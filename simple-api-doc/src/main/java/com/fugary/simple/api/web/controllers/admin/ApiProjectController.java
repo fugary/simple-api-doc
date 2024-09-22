@@ -1,5 +1,8 @@
 package com.fugary.simple.api.web.controllers.admin;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTCreator;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -12,13 +15,17 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
+import com.fugary.simple.api.web.vo.query.JwtParamVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
 
@@ -89,5 +96,37 @@ public class ApiProjectController {
         queryWrapper.eq("status", 1)
                 .and(wrapper -> wrapper.and(wrapper1 -> wrapper1.eq("user_name", userName)));
         return SimpleResultUtils.createSimpleResult(apiProjectService.list(queryWrapper));
+    }
+
+    /**
+     * 生成mock jwt token
+     * @param jwtParam
+     * @return
+     */
+    @PostMapping("/generateJwt")
+    public SimpleResult<String> generateJwt(@RequestBody JwtParamVo jwtParam) {
+        Algorithm algorithm = getAlgorithm(jwtParam.getAlgorithm(), jwtParam.getSecret());
+        JWTCreator.Builder builder = JWT.create()
+                .withPayload(jwtParam.getPayload());
+        if (StringUtils.isNotBlank(jwtParam.getIssuer())) {
+            builder.withIssuer(jwtParam.getIssuer());
+        }
+        if (jwtParam.getExpireTime() != null) {
+            builder.withExpiresAt(jwtParam.getExpireTime());
+        }
+        String token = builder.sign(algorithm);
+        return SimpleResultUtils.createSimpleResult(token);
+    }
+
+    protected Algorithm getAlgorithm(String algorithm, String secret) {
+        Map<String, Function<String, Algorithm>> config = new HashMap<>();
+        config.put("HS256", Algorithm::HMAC256);
+        config.put("HS384", Algorithm::HMAC384);
+        config.put("HS512", Algorithm::HMAC512);
+        Function<String, Algorithm> func = config.get(algorithm);
+        if (func != null) {
+            return func.apply(secret);
+        }
+        return Algorithm.HMAC256(secret);
     }
 }

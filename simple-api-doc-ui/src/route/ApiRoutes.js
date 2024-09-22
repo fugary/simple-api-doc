@@ -9,7 +9,7 @@ export default [{
     component: () => import('@/views/api/project/ApiProjects.vue'),
     meta: {
       replaceTabHistory: 'ApiProjects',
-      labelKey: 'api.label.mockProjects',
+      labelKey: 'api.label.apiProjects',
       icon: 'MessageBox'
     }
   }, {
@@ -18,7 +18,7 @@ export default [{
     component: () => import('@/views/api/project/ApiProjectEdit.vue'),
     meta: {
       replaceTabHistory: 'ApiProjects',
-      labelKey: 'api.label.mockProjects',
+      labelKey: 'api.label.apiProjects',
       icon: 'List'
     }
   }]

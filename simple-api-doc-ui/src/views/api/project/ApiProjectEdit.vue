@@ -12,6 +12,7 @@ import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import ApiProjectResourceApi from '@/api/ApiProjectResourcesApi'
+import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -256,6 +257,7 @@ const showImportWindow = ref(false)
       :save-current-item="saveMockRequest"
       label-width="130px"
     />
+    <api-project-import v-model="showImportWindow" />
   </el-container>
 </template>
 

@@ -1,25 +1,25 @@
 <script setup lang="jsx">
-import { ref, computed, watch } from 'vue'
-import { useLoginConfigStore } from '@/stores/LoginConfigStore'
-import { $coreAlert, $coreError, isAdminUser } from '@/utils'
+import { computed, ref } from 'vue'
+import { $coreAlert, $coreError } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
+import {
+  IMPORT_AUTH_TYPES,
+  IMPORT_DUPLICATE_STRATEGY,
+  IMPORT_SOURCE_TYPES,
+  IMPORT_TYPES
+} from '@/consts/ApiConstants'
 import { ElButton } from 'element-plus'
-import { IMPORT_DUPLICATE_STRATEGY, IMPORT_TYPES, uploadFiles } from '@/api/api/MockGroupApi'
-import { MOCK_DEFAULT_PROJECT } from '@/consts/ApiConstants'
+import {
+  uploadFiles
+} from '@/api/ApiProjectApi'
 import { $i18nBundle } from '@/messages'
+import { AUTH_OPTION_CONFIG } from '@/services/mock/ApiAuthorizationService'
+import { isFunction } from 'lodash-es'
 
 const props = defineProps({
-  defaultUser: {
+  projectCode: {
     type: String,
     default: ''
-  },
-  userOptions: {
-    type: Array,
-    default: () => []
-  },
-  defaultProject: {
-    type: String,
-    default: MOCK_DEFAULT_PROJECT
   },
   projectOptions: {
     type: Array,
@@ -27,31 +27,26 @@ const props = defineProps({
   }
 })
 const showWindow = defineModel('modelValue', { type: Boolean, default: false })
-const accountInfo = useLoginConfigStore().accountInfo
 const importModel = ref({
-  userName: !isAdminUser() ? accountInfo?.userName : (props.defaultUser || accountInfo?.userName),
-  type: 'simple',
-  projectCode: props.defaultProject,
+  type: 'swagger',
+  authType: 'none',
+  importSourceType: IMPORT_SOURCE_TYPES[0].value,
   duplicateStrategy: IMPORT_DUPLICATE_STRATEGY[0].value
 })
-watch(() => props.defaultUser, (val) => {
-  importModel.value.userName = !isAdminUser() ? accountInfo?.userName : (val || accountInfo?.userName)
-})
-watch(() => props.defaultProject, (val) => {
-  importModel.value.projectCode = val
+const authOptions = computed(() => {
+  let options = []
+  if (importModel.value.importSourceType === 'url') {
+    options = AUTH_OPTION_CONFIG[importModel.value.authType]?.options || []
+    if (isFunction(options)) {
+      options = options()
+    }
+  }
+  return options
 })
 const importFiles = ref([])
 const formOptions = computed(() => {
+  const urlMode = importModel.value.importSourceType === 'url'
   return defineFormOptions([{
-    labelKey: 'common.label.user',
-    prop: 'userName',
-    type: 'select',
-    disabled: !isAdminUser(),
-    children: props.userOptions,
-    attrs: {
-      clearable: false
-    }
-  }, {
     labelKey: 'api.label.project',
     prop: 'projectCode',
     type: 'select',
@@ -78,6 +73,23 @@ const formOptions = computed(() => {
       clearable: false
     }
   }, {
+    labelKey: 'api.label.importSourceType',
+    prop: 'importSourceType',
+    type: 'radio-group',
+    children: IMPORT_SOURCE_TYPES
+  }, {
+    enabled: urlMode,
+    required: true,
+    labelKey: 'api.label.importUrl',
+    prop: 'url'
+  }, {
+    enabled: urlMode,
+    labelKey: 'api.label.authType',
+    prop: 'authType',
+    type: 'radio-group',
+    children: IMPORT_AUTH_TYPES
+  }, ...authOptions.value, {
+    enabled: !urlMode,
     labelKey: 'api.label.importFile',
     type: 'upload',
     attrs: {

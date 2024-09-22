@@ -67,3 +67,33 @@ export const AUTH_OPTIONS = [{
   value: AUTH_TYPE.JWT,
   labelKey: 'api.label.authTypeJWT'
 }]
+
+export const IMPORT_DUPLICATE_STRATEGY = [{
+  value: 3,
+  labelKey: 'api.label.importDuplicateStrategyOverride'
+}, {
+  value: 1,
+  labelKey: 'api.label.importDuplicateStrategyAbort'
+}, {
+  value: 2,
+  labelKey: 'api.label.importDuplicateStrategySkip'
+}]
+
+export const IMPORT_TYPES = [{
+  value: 'swagger',
+  labelKey: 'api.label.importTypeSwagger'
+}]
+
+export const IMPORT_SOURCE_TYPES = [{
+  value: 'url',
+  labelKey: 'api.label.importSourceTypeUrl'
+}, {
+  value: 'file',
+  labelKey: 'api.label.importSourceTypeFile'
+}]
+
+export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH_TYPE.JWT)
+
+export const ALL_STATUS_CODES = [200, 201, 202, 301, 302, 307, 400, 401, 404, 405, 415, 500, 502, 503]
+
+export const ALL_CONTENT_TYPES = ['application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript', 'application/x-www-form-urlencoded']

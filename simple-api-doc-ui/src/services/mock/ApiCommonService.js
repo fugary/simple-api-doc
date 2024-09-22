@@ -3,7 +3,7 @@ import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
 import { isArray, isFunction, isString } from 'lodash-es'
-import { ALL_CONTENT_TYPES } from '@/api/api/MockDataApi'
+import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))

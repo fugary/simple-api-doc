@@ -1,5 +1,5 @@
 import { defineFormOptions } from '@/components/utils'
-import { generateJWT } from '@/api/api/MockDataApi'
+import { generateJWT } from '@/api/ApiProjectApi'
 import { getSingleSelectOptions } from '@/utils'
 import { ElMessage } from 'element-plus'
 import { AUTH_PARAM_NAMES, AUTH_PREFIX_NAMES, AUTHORIZATION_KEY, BEARER_KEY } from '@/consts/ApiConstants'
