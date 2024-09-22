@@ -54,7 +54,7 @@ const saveGroupConfig = ({ form }) => {
   >
     <template #header>
       <span class="el-dialog__title">
-        {{ $t('mock.label.mockEnv') }}
+        {{ $t('api.label.mockEnv') }}
       </span>
     </template>
     <common-form

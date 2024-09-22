@@ -31,7 +31,7 @@ defineExpose({
   >
     <template #header>
       <span class="el-dialog__title">
-        {{ $t('mock.msg.requestTest') }}
+        {{ $t('api.msg.requestTest') }}
       </span>
     </template>
     <mock-request-preview

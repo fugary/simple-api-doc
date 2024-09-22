@@ -1,5 +1,5 @@
 server:
-  port: 9086
+  port: 9089
   tomcat:
     max-swallow-size: 20MB
 spring:

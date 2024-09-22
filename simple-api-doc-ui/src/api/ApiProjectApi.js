@@ -1,11 +1,29 @@
 import { useResourceApi } from '@/hooks/ApiHooks'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { $http } from '@/vendors/axios'
 import { isAdminUser, useCurrentUserName } from '@/utils'
-import { MOCK_DEFAULT_PROJECT } from '@/consts/ApiConstants'
 
-const MOCK_PROJECT_URL = '/admin/projects'
-const ApiProjectApi = useResourceApi(MOCK_PROJECT_URL)
+const API_PROJECT_URL = '/admin/projects'
+const ApiProjectApi = useResourceApi(API_PROJECT_URL)
+
+export const useApiProjectItem = projectCode => {
+  const projectItem = ref({})
+  const loadSuccess = ref(false)
+
+  loadByCode(projectCode).then(data => {
+    projectItem.value = data
+    loadSuccess.value = !!data
+    console.log(projectItem.value)
+  })
+
+  const docUrl = computed(() => `/api-doc/${projectItem.value?.projectCode}`)
+
+  return {
+    projectItem,
+    docUrl,
+    loadSuccess
+  }
+}
 
 /**
  * 加载当前用户可选项目
@@ -13,9 +31,20 @@ const ApiProjectApi = useResourceApi(MOCK_PROJECT_URL)
  */
 export const selectProjects = (data, config) => {
   return $http(Object.assign({
-    url: `${MOCK_PROJECT_URL}/selectProjects`,
+    url: `${API_PROJECT_URL}/selectProjects`,
     method: 'post',
     data
+  }, config)).then(response => response.data?.resultData)
+}
+
+/**
+ * 加载项目详情
+ * @return {Promise<T>}
+ */
+export const loadByCode = (projectCode, config) => {
+  return $http(Object.assign({
+    url: `${API_PROJECT_URL}/loadByCode/${projectCode}`,
+    method: 'get'
   }, config)).then(response => response.data?.resultData)
 }
 
@@ -33,7 +62,7 @@ export const useSelectProjects = (searchParam) => {
       userName: searchParam.value?.userName || useCurrentUserName()
     })
     const currentProj = projects.value.find(proj => proj.projectCode === searchParam.value.projectCode)
-    searchParam.value.projectCode = currentProj?.projectCode || MOCK_DEFAULT_PROJECT
+    searchParam.value.projectCode = currentProj?.projectCode
     if (isAdminUser() && currentProj?.userName) {
       searchParam.value.userName = currentProj.userName
     }

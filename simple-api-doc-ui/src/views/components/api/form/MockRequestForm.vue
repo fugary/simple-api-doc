@@ -113,7 +113,7 @@ const responseExamples = computed(() => {
               type="primary"
               @click="sendRequest(form)"
             >
-              {{ $t('mock.label.sendRequest') }}
+              {{ $t('api.label.sendRequest') }}
             </el-button>
           </el-col>
         </el-row>

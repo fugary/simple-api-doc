@@ -1,6 +1,5 @@
 <script setup>
-import { $copyText } from '@/utils'
-import { getMockUrl } from '@/api/api/MockRequestApi'
+import { $copyText, getPathUrl } from '@/utils'
 
 const props = defineProps({
   urlPath: {
@@ -20,7 +19,7 @@ const props = defineProps({
 const copyInfo = () => {
   let info = props.content
   if (!info && props.urlPath) {
-    info = getMockUrl(props.urlPath)
+    info = getPathUrl(props.urlPath)
   }
   if (info) {
     $copyText(info)

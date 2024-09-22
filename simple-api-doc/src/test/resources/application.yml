@@ -1,5 +1,5 @@
 server:
-  port: 9086
+  port: 9089
 spring:
   application:
     name: simple-api-doc

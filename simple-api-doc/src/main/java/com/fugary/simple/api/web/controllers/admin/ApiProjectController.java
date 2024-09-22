@@ -11,7 +11,9 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +29,7 @@ import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
  */
 @RestController
 @RequestMapping("/admin/projects")
-public class MockProjectController {
+public class ApiProjectController {
 
     @Autowired
     private ApiProjectService apiProjectService;
@@ -37,8 +39,7 @@ public class MockProjectController {
         Page<ApiProject> page = SimpleResultUtils.toPage(queryVo);
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query();
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
-        queryWrapper.and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("project_name", keyword)
-                .or().like("project_code", keyword));
+        queryWrapper.and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("project_name", keyword));
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         queryWrapper.and(wrapper -> wrapper.and(wrapper1 -> wrapper1.eq("user_name", userName)));
         return SimpleResultUtils.createSimpleResult(apiProjectService.page(page, queryWrapper));
@@ -47,6 +48,11 @@ public class MockProjectController {
     @GetMapping("/{id}")
     public SimpleResult<ApiProject> get(@PathVariable("id") Integer id) {
         return SimpleResultUtils.createSimpleResult(apiProjectService.getById(id));
+    }
+
+    @GetMapping("/loadByCode/{projectCode}")
+    public SimpleResult<ApiProjectDetailVo> loadByCode(@PathVariable("projectCode") String projectCode) {
+        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(projectCode));
     }
 
     @DeleteMapping("/{id}")
@@ -68,9 +74,11 @@ public class MockProjectController {
         if (!SecurityUtils.validateUserUpdate(project.getUserName())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        project.setProjectCode(StringUtils.defaultIfBlank(project.getProjectCode(), SimpleModelUtils.uuid()));
         if (apiProjectService.existsMockProject(project)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
+        project.setPrivateFlag(ObjectUtils.defaultIfNull(project.getPrivateFlag(), true));
         return SimpleResultUtils.createSimpleResult(apiProjectService.saveOrUpdate(SimpleModelUtils.addAuditInfo(project)));
     }
 

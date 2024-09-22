@@ -2,11 +2,24 @@ const BASE_PATH = '/api'
 
 export default [{
   path: `${BASE_PATH}/projects`,
-  name: 'MockProjectsNew',
-  component: () => import('@/views/api/ApiProjects.vue'),
-  meta: {
-    replaceTabHistory: 'MockProjectsNew',
-    labelKey: 'mock.label.mockProjects',
-    icon: 'MessageBox'
-  }
+  name: 'ApiProjectsBase',
+  children: [{
+    path: '',
+    name: 'ApiProjects',
+    component: () => import('@/views/api/project/ApiProjects.vue'),
+    meta: {
+      replaceTabHistory: 'ApiProjects',
+      labelKey: 'api.label.mockProjects',
+      icon: 'MessageBox'
+    }
+  }, {
+    path: ':projectCode',
+    name: 'ApiProjectEdit',
+    component: () => import('@/views/api/project/ApiProjectEdit.vue'),
+    meta: {
+      replaceTabHistory: 'ApiProjects',
+      labelKey: 'api.label.mockProjects',
+      icon: 'List'
+    }
+  }]
 }]

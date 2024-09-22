@@ -1,7 +1,7 @@
 package com.fugary.simple.api.imports.swagger;
 
 import com.fugary.simple.api.imports.ApiDocImporter;
-import com.fugary.simple.api.web.vo.imports.ImportProjectVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -18,7 +18,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     }
 
     @Override
-    public ImportProjectVo doImport(String data) {
+    public ApiProjectDetailVo doImport(String data) {
         ParseOptions parseOptions = new ParseOptions();
         parseOptions.setResolve(true);
         parseOptions.setResolveRequestBody(true);

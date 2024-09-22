@@ -82,9 +82,9 @@ const langOption = {
     :ok-click="saveDataResponse"
   >
     <template #header>
-      {{ $i18nKey('common.label.commonEdit', 'mock.label.responseBody1') }}
+      {{ $i18nKey('common.label.commonEdit', 'api.label.responseBody1') }}
       <el-link
-        v-common-tooltip="$i18nBundle('mock.msg.responseBodyTooltip', ['{{ request.params.name }}'])"
+        v-common-tooltip="$i18nBundle('api.msg.responseBodyTooltip', ['{{ request.params.name }}'])"
         :underline="false"
       >
         <common-icon icon="QuestionFilled" />
@@ -102,10 +102,10 @@ const langOption = {
         <template #childAfter>
           <mock-url-copy-link
             :content="contentRef"
-            :tooltip="$i18nKey('common.label.commonCopy', 'mock.label.responseBody1')"
+            :tooltip="$i18nKey('common.label.commonCopy', 'api.label.responseBody1')"
           />
           <el-link
-            v-common-tooltip="$i18nKey('common.label.commonFormat', 'mock.label.responseBody1')"
+            v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.responseBody1')"
             type="primary"
             :underline="false"
             class="margin-left3"

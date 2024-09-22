@@ -1,6 +1,6 @@
 package com.fugary.simple.api.imports;
 
-import com.fugary.simple.api.web.vo.imports.ImportProjectVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ public interface ApiDocImporter {
      * @param data
      * @return
      */
-    ImportProjectVo doImport(String data);
+    ApiProjectDetailVo doImport(String data);
 
     /**
      * 查找可用导入器

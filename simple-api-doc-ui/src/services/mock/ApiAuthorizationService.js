@@ -35,11 +35,11 @@ const baseOptions = defineFormOptions([{
     label: 'Query Param'
   }]
 }, {
-  labelKey: 'mock.label.authParamName',
+  labelKey: 'api.label.authParamName',
   prop: 'headerName',
   value: AUTHORIZATION_KEY,
   required: true,
-  tooltip: $i18nKey('mock.msg.authParamNameTooltip', AUTHORIZATION_KEY),
+  tooltip: $i18nKey('api.msg.authParamNameTooltip', AUTHORIZATION_KEY),
   type: 'autocomplete',
   attrs: {
     fetchSuggestions: (queryString, cb) => {
@@ -50,10 +50,10 @@ const baseOptions = defineFormOptions([{
     triggerOnFocus: false
   }
 }, {
-  labelKey: 'mock.label.authPrefix',
+  labelKey: 'api.label.authPrefix',
   prop: 'tokenPrefix',
   value: BEARER_KEY,
-  tooltip: $i18nKey('mock.msg.authPrefixTooltip', BEARER_KEY),
+  tooltip: $i18nKey('api.msg.authPrefixTooltip', BEARER_KEY),
   type: 'autocomplete',
   attrs: {
     fetchSuggestions: (queryString, cb) => {

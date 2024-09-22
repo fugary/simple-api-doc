@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
 
 import java.util.List;
 
@@ -11,6 +12,13 @@ import java.util.List;
  * @author gary.fu
  */
 public interface ApiProjectService extends IService<ApiProject> {
+
+    /**
+     * 加载project详情
+     * @param projectCode
+     * @return
+     */
+    ApiProjectDetailVo loadProjectVo(String projectCode);
 
     /**
      * 级联删除分组、请求和数据

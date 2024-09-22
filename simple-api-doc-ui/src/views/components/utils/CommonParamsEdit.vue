@@ -108,7 +108,7 @@ const inputTextModel = ref({
   text: ''
 })
 const inputTextOption = {
-  tooltip: $i18nBundle('mock.msg.pasteToProcess'),
+  tooltip: $i18nBundle('api.msg.pasteToProcess'),
   prop: 'text',
   labelWidth: '40px',
   change (value) {
@@ -186,7 +186,7 @@ const paramsOptions = computed(() => {
       },
       slots: {
         trigger () {
-          return <ElButton type="primary" size="small">{$i18nBundle('mock.label.selectFile')}</ElButton>
+          return <ElButton type="primary" size="small">{$i18nBundle('api.label.selectFile')}</ElButton>
         }
       },
       colSpan: 6

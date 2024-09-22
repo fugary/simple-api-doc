@@ -14,10 +14,10 @@ languageRef.value = 'javascript'
 
 const matchPatternOption = computed(() => {
   return {
-    labelKey: 'mock.label.matchPattern',
+    labelKey: 'api.label.matchPattern',
     type: 'vue-monaco-editor',
     prop: 'matchPattern',
-    tooltip: $i18nBundle('mock.msg.matchPatternTooltip'),
+    tooltip: $i18nBundle('api.msg.matchPatternTooltip'),
     required: true,
     attrs: {
       class: 'common-resize-vertical',

@@ -1,24 +1,14 @@
-export const MOCK_DEFAULT_PROJECT = 'default'
-
-export const SIMPLE_BOOT_MOCK_HEADER = 'simple-api-doc'
-
 export const MOCK_REQUEST_ID_HEADER = 'mock-request-id'
 
 export const MOCK_DATA_ID_HEADER = 'mock-data-id'
-
-export const MOCK_DATA_PREVIEW_HEADER = 'mock-data-preview'
 
 export const MOCK_DATA_MATCH_PATTERN_HEADER = 'mock-data-match-pattern'
 
 export const MOCK_DATA_PATH_PARAMS_HEADER = 'mock-data-path-params'
 
-export const MOCK_META_DATA_REQ = 'mock-meta-req'
-
 export const AUTHORIZATION_KEY = 'Authorization'
 
 export const BEARER_KEY = 'Bearer'
-
-export const isDefaultProject = projectCode => MOCK_DEFAULT_PROJECT === projectCode
 
 export const DEFAULT_HEADERS = ['Accept',
   'Accept-Charset',
@@ -66,14 +56,14 @@ export const AUTH_PREFIX_NAMES = [BEARER_KEY, 'Basic']
 
 export const AUTH_OPTIONS = [{
   value: AUTH_TYPE.NONE,
-  labelKey: 'mock.label.authTypeNone'
+  labelKey: 'api.label.authTypeNone'
 }, {
   value: AUTH_TYPE.BASIC,
-  labelKey: 'mock.label.authTypeBasic'
+  labelKey: 'api.label.authTypeBasic'
 }, {
   value: AUTH_TYPE.TOKEN,
-  labelKey: 'mock.label.authTypeToken'
+  labelKey: 'api.label.authTypeToken'
 }, {
   value: AUTH_TYPE.JWT,
-  labelKey: 'mock.label.authTypeJWT'
+  labelKey: 'api.label.authTypeJWT'
 }]

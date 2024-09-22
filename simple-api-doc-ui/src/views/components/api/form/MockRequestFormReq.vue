@@ -140,7 +140,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           :value="paramTarget.pathParams?.length"
           :show-zero="false"
         >
-          {{ $t('mock.label.pathParams') }}
+          {{ $t('api.label.pathParams') }}
         </el-badge>
       </template>
       <common-params-edit
@@ -160,7 +160,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           :value="paramTarget.requestParams?.length"
           :show-zero="false"
         >
-          {{ $t('mock.label.queryParams') }}
+          {{ $t('api.label.queryParams') }}
         </el-badge>
       </template>
       <common-params-edit
@@ -176,7 +176,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           :value="requestHeaderLength"
           :show-zero="false"
         >
-          {{ $t('mock.label.requestHeaders') }}
+          {{ $t('api.label.requestHeaders') }}
         </el-badge>
       </template>
       <common-params-edit
@@ -211,7 +211,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           :hidden="isNone"
           is-dot
         >
-          {{ $t('mock.label.requestBody') }}
+          {{ $t('api.label.requestBody') }}
         </el-badge>
       </template>
       <el-container class="flex-column">
@@ -222,7 +222,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           <template #childAfter>
             <mock-url-copy-link
               :content="contentRef"
-              :tooltip="$i18nKey('common.label.commonCopy', 'mock.label.requestBody')"
+              :tooltip="$i18nKey('common.label.commonCopy', 'api.label.requestBody')"
             />
             <new-window-edit-link
               v-if="!isSpecialLang"
@@ -230,7 +230,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
               class="margin-left3"
             />
             <el-link
-              v-common-tooltip="$i18nKey('common.label.commonFormat', 'mock.label.requestBody')"
+              v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.requestBody')"
               type="primary"
               :underline="false"
               class="margin-left3"
@@ -294,7 +294,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           :hidden="authContentModel.authType === AUTH_TYPE.NONE"
           is-dot
         >
-          {{ $t('mock.label.authorization') }}
+          {{ $t('api.label.authorization') }}
         </el-badge>
       </template>
       <mock-request-form-authorization

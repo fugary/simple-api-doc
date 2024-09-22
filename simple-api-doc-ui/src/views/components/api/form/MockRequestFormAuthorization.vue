@@ -29,7 +29,7 @@ const authValid = defineModel('authValid', {
 })
 
 const authTypeSelectOption = ref({
-  labelKey: 'mock.label.authType',
+  labelKey: 'api.label.authType',
   type: 'radio-group',
   prop: 'authType',
   children: AUTH_OPTIONS,

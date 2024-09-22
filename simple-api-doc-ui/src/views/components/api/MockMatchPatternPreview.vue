@@ -104,7 +104,7 @@ defineExpose({
   <common-window
     v-model="showWindow"
     width="1100px"
-    :ok-label="$i18nKey('common.label.commonSave', 'mock.label.matchPattern')"
+    :ok-label="$i18nKey('common.label.commonSave', 'api.label.matchPattern')"
     show-fullscreen
     :ok-click="saveMatchPattern"
     destroy-on-close
@@ -112,7 +112,7 @@ defineExpose({
   >
     <template #header>
       <span class="el-dialog__title">
-        {{ $t('mock.msg.matchPatternTest') }}
+        {{ $t('api.msg.matchPatternTest') }}
       </span>
     </template>
     <el-container class="flex-column">

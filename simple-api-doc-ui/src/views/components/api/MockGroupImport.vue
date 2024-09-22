@@ -52,7 +52,7 @@ const formOptions = computed(() => {
       clearable: false
     }
   }, {
-    labelKey: 'mock.label.project',
+    labelKey: 'api.label.project',
     prop: 'projectCode',
     type: 'select',
     enabled: props.projectOptions.length > 1,
@@ -61,7 +61,7 @@ const formOptions = computed(() => {
       clearable: false
     }
   }, {
-    labelKey: 'mock.label.source',
+    labelKey: 'api.label.source',
     prop: 'type',
     type: 'select',
     children: IMPORT_TYPES,
@@ -69,16 +69,16 @@ const formOptions = computed(() => {
       clearable: false
     }
   }, {
-    labelKey: 'mock.label.duplicateStrategy',
+    labelKey: 'api.label.duplicateStrategy',
     prop: 'duplicateStrategy',
     type: 'select',
     children: IMPORT_DUPLICATE_STRATEGY,
-    tooltip: $i18nBundle('mock.msg.duplicateStrategy'),
+    tooltip: $i18nBundle('api.msg.duplicateStrategy'),
     attrs: {
       clearable: false
     }
   }, {
-    labelKey: 'mock.label.importFile',
+    labelKey: 'api.label.importFile',
     type: 'upload',
     attrs: {
       fileList: importFiles.value,
@@ -100,11 +100,11 @@ const formOptions = computed(() => {
     slots: {
       trigger () {
         return <>
-          <ElButton type="primary">{$i18nBundle('mock.label.selectFile')}</ElButton>
+          <ElButton type="primary">{$i18nBundle('api.label.selectFile')}</ElButton>
           <span style="display: inline-block; margin-left: 10px;">{importFiles.value?.[0]?.name}</span>
         </>
       },
-      tip: () => <div className="el-upload__tip">{$i18nBundle('mock.msg.importFileLimit')}</div>
+      tip: () => <div className="el-upload__tip">{$i18nBundle('api.msg.importFileLimit')}</div>
     }
   }])
 })
@@ -115,13 +115,13 @@ const doImportGroups = () => {
       loading: true
     }).then(data => {
       if (data.success) {
-        $coreAlert($i18nBundle('mock.msg.importFileSuccess', [data.resultData]))
+        $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData]))
         showWindow.value = false
         emit('import-success', data)
       }
     })
   } else {
-    $coreError($i18nBundle('mock.msg.importFileNoFile'))
+    $coreError($i18nBundle('api.msg.importFileNoFile'))
   }
   return false
 }
@@ -131,7 +131,7 @@ const doImportGroups = () => {
 <template>
   <common-window
     v-model="showWindow"
-    :title="$t('mock.msg.importFileTitle')"
+    :title="$t('api.msg.importFileTitle')"
     append-to-body
     destroy-on-close
     width="800px"

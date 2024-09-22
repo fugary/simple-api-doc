@@ -138,7 +138,7 @@ watch(contentRef2, val => {
             :hidden="!responseTarget?.data?.length"
             is-dot
           >
-            {{ $t('mock.label.responseBody') }}
+            {{ $t('api.label.responseBody') }}
           </el-badge>
         </template>
         <el-container class="flex-column">
@@ -150,10 +150,10 @@ watch(contentRef2, val => {
             <template #childAfter>
               <mock-url-copy-link
                 :content="contentRef"
-                :tooltip="$i18nKey('common.label.commonCopy', 'mock.label.responseBody')"
+                :tooltip="$i18nKey('common.label.commonCopy', 'api.label.responseBody')"
               />
               <el-link
-                v-common-tooltip="$i18nKey('common.label.commonFormat', 'mock.label.responseBody')"
+                v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.responseBody')"
                 type="primary"
                 :underline="false"
                 class="margin-left3"
@@ -165,7 +165,7 @@ watch(contentRef2, val => {
                 />
               </el-link>
               <el-link
-                v-common-tooltip="$t('mock.msg.showRawData')"
+                v-common-tooltip="$t('api.msg.showRawData')"
                 type="primary"
                 :underline="false"
                 class="margin-left3"
@@ -198,7 +198,7 @@ watch(contentRef2, val => {
             :value="responseTarget.responseHeaders?.length"
             :show-zero="false"
           >
-            {{ $t('mock.label.responseHeaders') }}
+            {{ $t('api.label.responseHeaders') }}
           </el-badge>
         </template>
         <el-descriptions
@@ -226,7 +226,7 @@ watch(contentRef2, val => {
             :hidden="!paramTarget.responseBody?.length"
             is-dot
           >
-            {{ $t('mock.label.mockResponseBody') }}
+            {{ $t('api.label.mockResponseBody') }}
           </el-badge>
         </template>
         <el-container class="flex-column">
@@ -242,7 +242,7 @@ watch(contentRef2, val => {
             <template #childAfter>
               <mock-url-copy-link
                 :content="contentRef2"
-                :tooltip="$i18nKey('common.label.commonCopy', 'mock.label.mockResponseBody')"
+                :tooltip="$i18nKey('common.label.commonCopy', 'api.label.mockResponseBody')"
               />
               <new-window-edit-link
                 v-model="contentRef2"
@@ -250,7 +250,7 @@ watch(contentRef2, val => {
                 full-editor
               />
               <el-link
-                v-common-tooltip="$i18nKey('common.label.commonFormat', 'mock.label.mockResponseBody')"
+                v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.mockResponseBody')"
                 type="primary"
                 :underline="false"
                 class="margin-left3"
@@ -262,7 +262,7 @@ watch(contentRef2, val => {
                 />
               </el-link>
               <el-link
-                v-common-tooltip="$t('mock.msg.saveMockResponse')"
+                v-common-tooltip="$t('api.msg.saveMockResponse')"
                 type="primary"
                 :underline="false"
                 class="margin-left3"

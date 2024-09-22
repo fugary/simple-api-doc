@@ -13,7 +13,6 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
-import { isDefaultProject } from '@/consts/ApiConstants'
 
 const route = useRoute()
 
@@ -23,20 +22,20 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   defaultParam: { page: useDefaultPage(50) },
   searchMethod: search
 })
-const loadMockProjects = (pageNumber) => searchMethod(pageNumber)
+const loadApiProjects = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 
 onMounted(() => {
-  loadMockProjects()
+  loadApiProjects()
 })
 
 onActivated(async () => {
   await loadUsersAndRefreshOptions()
-  loadMockProjects()
+  loadApiProjects()
 })
-const gotoMockGroups = (project) => {
+const toEditProject = (project) => {
   if (project.status === 1) {
-    $goto(`/mock/groups/project/${project.projectCode}/${project.userName}?backUrl=${route.fullPath}`)
+    $goto(`/api/projects/${project.projectCode}?backUrl=${route.fullPath}`)
   }
 }
 
@@ -52,7 +51,7 @@ const searchFormOptions = computed(() => {
       clearable: false
     },
     change () {
-      loadMockProjects(1)
+      loadApiProjects(1)
     }
   },
   {
@@ -65,13 +64,13 @@ const deleteProject = (project, $event) => {
   $event?.stopPropagation()
   $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [project.projectName]))
     .then(() => deleteById(project.id))
-    .then(() => loadMockProjects())
+    .then(() => loadApiProjects())
 }
 
 const deleteProjects = () => {
   $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
     .then(() => ApiProjectApi.removeByIds(selectedRows.value.map(item => item.id)), { loading: true })
-    .then(() => loadMockProjects())
+    .then(() => loadApiProjects())
 }
 
 const showEditWindow = ref(false)
@@ -85,6 +84,7 @@ const newOrEdit = async (id, $event) => {
   } else {
     currentProject.value = {
       status: 1,
+      privateFlag: true,
       userName: searchParam.value?.userName || useCurrentUserName()
     }
   }
@@ -100,19 +100,7 @@ const editFormOptions = computed(() => defineFormOptions([{
     clearable: false
   }
 }, {
-  labelKey: 'mock.label.projectCode',
-  prop: 'projectCode',
-  tooltip: $i18nBundle('mock.msg.projectCodeTooltip'),
-  required: true,
-  upperCase: true,
-  rules: [{
-    validator (val) {
-      return /[A-Za-z0-9_-]+/.test(val)
-    },
-    message: $i18nBundle('mock.msg.projectCodeTooltip')
-  }]
-}, {
-  labelKey: 'mock.label.projectName',
+  labelKey: 'api.label.projectName',
   prop: 'projectName',
   required: true
 }, useFormStatus(), {
@@ -123,7 +111,7 @@ const editFormOptions = computed(() => defineFormOptions([{
   }
 }]))
 const saveProjectItem = (item) => {
-  return saveOrUpdate(item).then(() => loadMockProjects())
+  return saveOrUpdate(item).then(() => loadApiProjects())
 }
 
 const colSize = ref(4)
@@ -131,16 +119,14 @@ const minWidth = '110px'
 
 const tableProjectItems = computed(() => {
   return tableData.value.map(project => {
-    const defaultProject = isDefaultProject(project.projectCode)
     return {
-      defaultProject,
       project,
       projectItems: [{
-        labelKey: 'mock.label.projectCode',
+        labelKey: 'api.label.projectCode',
         formatter () {
           return <>
             <span class="margin-right2">{project.projectCode}</span>
-            <DelFlagTag v-model={project.status} clickToToggle={!defaultProject}
+            <DelFlagTag v-model={project.status}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
           </>
         }
@@ -178,7 +164,7 @@ const selectedRows = computed(() => tableProjectItems.value.map(item => item.pro
       :model="searchParam"
       :options="searchFormOptions"
       :submit-label="$t('common.label.search')"
-      @submit-form="loadMockProjects"
+      @submit-form="loadApiProjects"
     >
       <template #buttons>
         <el-button
@@ -220,7 +206,7 @@ const selectedRows = computed(() => tableProjectItems.value.map(item => item.pro
             shadow="hover"
             class="small-card operation-card"
             :class="{pointer: project.status===1, 'project-selected': project.selected}"
-            @click="gotoMockGroups(project)"
+            @click="toEditProject(project)"
           >
             <template #header>
               <div class="card-header">
@@ -277,7 +263,7 @@ const selectedRows = computed(() => tableProjectItems.value.map(item => item.pro
       v-model="currentProject"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
-      :name="$t('mock.label.mockProjects')"
+      :name="$t('api.label.mockProjects')"
       :save-current-item="saveProjectItem"
       label-width="130px"
     />

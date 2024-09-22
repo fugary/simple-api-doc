@@ -41,7 +41,7 @@ const buttons = computed(() => {
       emit('toTestMockRequest', item, props.groupItem)
     }
   }, {
-    labelKey: 'mock.msg.matchPatternTest',
+    labelKey: 'api.msg.matchPatternTest',
     icon: 'FactCheckFilled',
     type: 'success',
     enabled: !!requestItem.value?.matchPattern,
@@ -80,7 +80,7 @@ const buttons = computed(() => {
 const changeStatus = (status) => {
   status = +status
   const statusLabel = $i18nBundle(status === 0 ? 'common.label.statusDisable' : 'common.label.statusEnable')
-  const mockRequestKey = $i18nBundle('mock.label.mockRequest')
+  const mockRequestKey = $i18nBundle('api.label.mockRequest')
   $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nConcat(statusLabel, mockRequestKey)]))
     .then(() => {
       emit('saveMockRequest', { ...requestItem.value, status })

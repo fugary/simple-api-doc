@@ -40,7 +40,7 @@ const columns = computed(() => {
     },
     enabled: batchMode.value
   }, {
-    labelKey: 'mock.label.statusCode',
+    labelKey: 'api.label.statusCode',
     property: 'statusCode',
     minWidth: '80px',
     formatter (data) {
@@ -55,7 +55,7 @@ const columns = computed(() => {
       return <>
           {data.defaultFlag
             ? <CommonIcon color="#2d8cf0"
-                          v-common-tooltip={$i18nBundle('mock.label.default')}
+                          v-common-tooltip={$i18nBundle('api.label.default')}
                           icon="Flag"/>
             : ''}
           <ElTag type={type} class="margin-left1">{data.statusCode}</ElTag>
@@ -73,7 +73,7 @@ const columns = computed(() => {
     property: 'delay',
     enabled: checkShowColumn(tableData.value, 'delay')
   }, {
-    labelKey: 'mock.label.matchPattern',
+    labelKey: 'api.label.matchPattern',
     minWidth: hasMatchPattern ? '150px' : '80px',
     formatter (data) {
       let showStr = data.matchPattern
@@ -81,7 +81,7 @@ const columns = computed(() => {
         showStr = data.matchPattern.substring(0, 100) + '...'
       }
       return <ViewDataLink data={showStr} icon="RuleFilled" style="word-break: break-all;"
-                             tooltip={$i18nKey('common.label.commonConfig', 'mock.label.matchPattern')}
+                             tooltip={$i18nKey('common.label.commonConfig', 'api.label.matchPattern')}
                              onViewDataDetails={() => toTestMatchPattern(props.groupItem, props.requestItem, data)
                                .then(() => loadMockData())}/>
     }
@@ -96,7 +96,7 @@ const columns = computed(() => {
       align: 'center'
     }
   }, {
-    labelKey: 'mock.label.responseBody',
+    labelKey: 'api.label.responseBody',
     property: 'responseBody',
     minWidth: '220px',
     formatter (data) {
@@ -105,7 +105,7 @@ const columns = computed(() => {
         showStr = data.responseBody.substring(0, 100) + '...'
       }
       return <ViewDataLink data={showStr} style="word-break: break-all;"
-                           tooltip={$i18nKey('common.label.commonConfig', 'mock.label.responseBody')}
+                           tooltip={$i18nKey('common.label.commonConfig', 'api.label.responseBody')}
                            onViewDataDetails={() => toEditDataResponse(data)}/>
     }
   }, {
@@ -160,7 +160,7 @@ const buttons = defineTableButtons([{
       .then(() => loadMockData())
   }
 }, {
-  labelKey: 'mock.label.setDefault',
+  labelKey: 'api.label.setDefault',
   type: 'primary',
   icon: 'Flag',
   buttonIf (item) {
@@ -214,7 +214,7 @@ const { contentRef: patternContentRef, languageRef: patternLanguageRef, monacoEd
 
 const editFormOptions = computed(() => {
   return defineFormOptions([{
-    labelKey: 'mock.label.statusCode',
+    labelKey: 'api.label.statusCode',
     prop: 'statusCode',
     type: 'select',
     children: getSingleSelectOptions(...ALL_STATUS_CODES),
@@ -222,7 +222,7 @@ const editFormOptions = computed(() => {
       clearable: false
     }
   }, {
-    labelKey: 'mock.label.default',
+    labelKey: 'api.label.default',
     prop: 'defaultFlag',
     type: 'switch',
     attrs: {
@@ -232,10 +232,10 @@ const editFormOptions = computed(() => {
       inactiveText: $i18nBundle('common.label.no')
     }
   }, useFormStatus(), useFormDelay(), {
-    labelKey: 'mock.label.matchPattern',
+    labelKey: 'api.label.matchPattern',
     type: 'vue-monaco-editor',
     prop: 'matchPattern',
-    tooltip: $i18nBundle('mock.msg.matchPatternTooltip'),
+    tooltip: $i18nBundle('api.msg.matchPatternTooltip'),
     attrs: {
       class: 'common-resize-vertical',
       value: currentDataItem.value?.matchPattern,
@@ -249,7 +249,7 @@ const editFormOptions = computed(() => {
       options: patternMonacoEditorOptions
     }
   }, {
-    labelKey: 'mock.label.responseHeaders',
+    labelKey: 'api.label.responseHeaders',
     slot: 'headerParams'
   }, useContentTypeOption(), {
     ...languageSelectOption.value,
@@ -260,7 +260,7 @@ const editFormOptions = computed(() => {
       }
     }
   }, {
-    labelKey: 'mock.label.responseBody',
+    labelKey: 'api.label.responseBody',
     type: 'vue-monaco-editor',
     prop: 'responseBody',
     attrs: {
@@ -389,7 +389,7 @@ const onSelectDataItem = (dataItem) => {
       v-model="currentDataItem"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
-      :name="$t('mock.label.mockData')"
+      :name="$t('api.label.mockData')"
       label-width="140px"
       :save-current-item="saveMockData"
       show-fullscreen
