@@ -1,0 +1,112 @@
+<script setup>
+import { computed, onMounted } from 'vue'
+import { useDefaultPage } from '@/config'
+import { useTableAndSearchForm } from '@/hooks/CommonHooks'
+import { showUserInfo } from '@/utils/DynamicUtils'
+import ApiUserApi from '@/api/ApiUserApi'
+import { isAdminUser, $goto, $coreConfirm, isUserAdmin } from '@/utils'
+import { $i18nBundle } from '@/messages'
+
+const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
+  defaultParam: { keyword: '', page: useDefaultPage() },
+  searchMethod: ApiUserApi.search
+})
+const loadUsers = (pageNumber) => searchMethod(pageNumber)
+
+onMounted(() => {
+  loadUsers()
+})
+
+/**
+ *
+ * @type {[CommonTableColumn]}
+ */
+const columns = [{
+  labelKey: 'common.label.username',
+  property: 'userName'
+}, {
+  labelKey: 'common.label.nickName',
+  property: 'nickName'
+}, {
+  labelKey: 'common.label.email',
+  property: 'userEmail'
+}]
+const buttons = computed(() => {
+  return [{
+    labelKey: 'common.label.edit',
+    type: 'primary',
+    click: item => {
+      $goto(`/admin/users/edit/${item.id}`)
+    },
+    enabled: isAdminUser()
+  }, {
+    labelKey: 'common.label.view',
+    type: 'success',
+    click: item => {
+      showUserInfo(item.id)
+    }
+  }, {
+    labelKey: 'common.label.delete',
+    type: 'danger',
+    click: item => {
+      $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
+        .then(() => ApiUserApi.deleteById(item.id))
+        .then(() => loadUsers())
+    },
+    buttonIf: item => isAdminUser() && !isUserAdmin(item.userName)
+  }]
+})
+//* ************搜索框**************//
+const searchFormOptions = computed(() => {
+  return [
+    {
+      labelKey: 'common.label.keywords',
+      prop: 'keyword'
+    }
+  ]
+})
+const doSearch = form => {
+  console.info('=================searchParam', form, searchParam.value)
+  loadUsers()
+}
+
+</script>
+
+<template>
+  <el-container
+    class="flex-column"
+  >
+    <common-form
+      inline
+      :model="searchParam"
+      :options="searchFormOptions"
+      :submit-label="$t('common.label.search')"
+      @submit-form="doSearch"
+    >
+      <template #buttons>
+        <el-button
+          v-if="isAdminUser()"
+          type="info"
+          @click="$goto('/admin/users/new')"
+        >
+          {{ $t('common.label.new') }}
+        </el-button>
+      </template>
+    </common-form>
+    <common-table
+      v-model:page="searchParam.page"
+      :data="tableData"
+      :columns="columns"
+      :buttons="buttons"
+      buttons-slot="buttons"
+      :buttons-column-attrs="{width:'250px'}"
+      :loading="loading"
+      @page-size-change="loadUsers()"
+      @current-page-change="loadUsers()"
+    />
+  </el-container>
+</template>
+
+<style scoped>
+
+</style>
