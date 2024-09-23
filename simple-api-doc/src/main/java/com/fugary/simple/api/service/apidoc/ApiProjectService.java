@@ -2,7 +2,10 @@ package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 
 import java.util.List;
 
@@ -44,4 +47,21 @@ public interface ApiProjectService extends IService<ApiProject> {
      */
     boolean existsMockProject(ApiProject project);
 
+    /**
+     * 解析成ExportVo对象
+     *
+     * @param content
+     * @param importVo
+     * @return
+     */
+    SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo);
+
+    /**
+     * 保存ExportVo对象
+     *
+     * @param exportVo
+     * @param importVo
+     * @return
+     */
+    SimpleResult<ApiProject> importProject(ExportApiProjectVo exportVo, ApiProjectImportVo importVo);
 }

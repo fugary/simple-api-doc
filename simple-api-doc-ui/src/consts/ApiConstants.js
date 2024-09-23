@@ -79,17 +79,17 @@ export const IMPORT_DUPLICATE_STRATEGY = [{
   labelKey: 'api.label.importDuplicateStrategySkip'
 }]
 
-export const IMPORT_TYPES = [{
+export const IMPORT_SOURCE_TYPES = [{
   value: 'swagger',
   labelKey: 'api.label.importTypeSwagger'
 }]
 
-export const IMPORT_SOURCE_TYPES = [{
+export const IMPORT_TYPES = [{
   value: 'url',
-  labelKey: 'api.label.importSourceTypeUrl'
+  labelKey: 'api.label.importTypeUrl'
 }, {
   value: 'file',
-  labelKey: 'api.label.importSourceTypeFile'
+  labelKey: 'api.label.importTypeFile'
 }]
 
 export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH_TYPE.JWT)

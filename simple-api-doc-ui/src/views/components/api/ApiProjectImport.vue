@@ -7,6 +7,7 @@ import {
   IMPORT_DUPLICATE_STRATEGY,
   IMPORT_SOURCE_TYPES,
   IMPORT_TYPES
+  , AUTH_TYPE
 } from '@/consts/ApiConstants'
 import { ElButton } from 'element-plus'
 import {
@@ -17,25 +18,21 @@ import { AUTH_OPTION_CONFIG } from '@/services/mock/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
 
 const props = defineProps({
-  projectCode: {
-    type: String,
-    default: ''
-  },
-  projectOptions: {
-    type: Array,
-    default: () => []
+  project: {
+    type: Object,
+    default: null
   }
 })
 const showWindow = defineModel('modelValue', { type: Boolean, default: false })
 const importModel = ref({
-  type: 'swagger',
-  authType: 'none',
-  importSourceType: IMPORT_SOURCE_TYPES[0].value,
-  duplicateStrategy: IMPORT_DUPLICATE_STRATEGY[0].value
+  importType: IMPORT_TYPES[0].value,
+  authType: AUTH_TYPE.NONE,
+  sourceType: IMPORT_SOURCE_TYPES[0].value,
+  overwriteMode: IMPORT_DUPLICATE_STRATEGY[0].value
 })
 const authOptions = computed(() => {
   let options = []
-  if (importModel.value.importSourceType === 'url') {
+  if (importModel.value.importType === 'url') {
     options = AUTH_OPTION_CONFIG[importModel.value.authType]?.options || []
     if (isFunction(options)) {
       options = options()
@@ -45,17 +42,8 @@ const authOptions = computed(() => {
 })
 const importFiles = ref([])
 const formOptions = computed(() => {
-  const urlMode = importModel.value.importSourceType === 'url'
+  const urlMode = importModel.value.importType === 'url'
   return defineFormOptions([{
-    labelKey: 'api.label.project',
-    prop: 'projectCode',
-    type: 'select',
-    enabled: props.projectOptions.length > 1,
-    children: props.projectOptions,
-    attrs: {
-      clearable: false
-    }
-  }, {
     labelKey: 'api.label.source',
     prop: 'type',
     type: 'select',
@@ -65,7 +53,7 @@ const formOptions = computed(() => {
     }
   }, {
     labelKey: 'api.label.duplicateStrategy',
-    prop: 'duplicateStrategy',
+    prop: 'overwriteMode',
     type: 'select',
     children: IMPORT_DUPLICATE_STRATEGY,
     tooltip: $i18nBundle('api.msg.duplicateStrategy'),
@@ -73,8 +61,8 @@ const formOptions = computed(() => {
       clearable: false
     }
   }, {
-    labelKey: 'api.label.importSourceType',
-    prop: 'importSourceType',
+    labelKey: 'api.label.source',
+    prop: 'sourceType',
     type: 'radio-group',
     children: IMPORT_SOURCE_TYPES
   }, {
@@ -137,7 +125,7 @@ const doImportGroups = () => {
   }
   return false
 }
-
+console.log('project', props.project)
 </script>
 
 <template>

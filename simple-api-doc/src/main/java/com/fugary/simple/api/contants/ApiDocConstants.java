@@ -19,7 +19,9 @@ public class ApiDocConstants {
 
     public static final String API_PATTERN = "/api";
 
-    public static final String FILTER_PATH_PATTERN = "/*";
+    public static final String IMPORT_TYPE_FILE = "file";
+
+    public static final String IMPORT_TYPE_URL = "url";
 
     /**
      * 中止导入

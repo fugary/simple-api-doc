@@ -1,7 +1,7 @@
 package com.fugary.simple.api.imports.swagger;
 
 import com.fugary.simple.api.imports.ApiDocImporter;
-import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
+import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -12,13 +12,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class SwaggerImporterImpl implements ApiDocImporter {
+
     @Override
     public boolean isSupport(String type) {
         return "swagger".equals(type);
     }
 
     @Override
-    public ApiProjectDetailVo doImport(String data) {
+    public ExportApiProjectVo doImport(String data) {
         ParseOptions parseOptions = new ParseOptions();
         parseOptions.setResolve(true);
         parseOptions.setResolveRequestBody(true);

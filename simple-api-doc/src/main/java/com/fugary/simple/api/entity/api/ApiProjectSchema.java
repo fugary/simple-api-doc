@@ -14,6 +14,8 @@ public class ApiProjectSchema extends ModelBase {
 
     private static final long serialVersionUID = 8517817442841283836L;
     private Integer projectId;
+    private String importType;
+    private String sourceType;
     private String url;
     private String fileName;
     private String contentType;
