@@ -86,8 +86,20 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocType(ApiDocConstants.DOC_TYPE_MD);
                 doc.setDocName("接口说明");
                 doc.setDocContent(info.getDescription());
+                doc.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getDocs().add(doc);
             }
+        }
+        if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
+            openAPI.getComponents().getSchemas().forEach((s, schema) -> {
+                ExportApiProjectSchemaDetailVo detail = new ExportApiProjectSchemaDetailVo();
+                detail.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT);
+                detail.setSchemaName(s);
+                detail.setSchemaContent(JsonUtils.toJson(schema));
+                detail.setDescription(schema.getDescription());
+                detail.setStatus(1);
+                projectVo.getProjectSchemaDetails().add(detail);
+            });
         }
     }
 
@@ -164,9 +176,9 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     requestBodySchema.setSchemaContent(JsonUtils.toJson(mediaType));
                     requestBodySchema.setStatus(ApiDocConstants.STATUS_ENABLED);
                     Schema schema = mediaType.getSchema();
+                    requestBodySchema.setDescription(operation.getRequestBody().getDescription());
                     if (schema != null) {
                         requestBodySchema.setSchemaName(schema.getName());
-                        requestBodySchema.setDescription(schema.getDescription());
                     }
                     apiDoc.getRequestsSchemas().add(requestBodySchema);
                 }
@@ -178,15 +190,12 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 if (MapUtils.isNotEmpty(response.getContent())) {
                     response.getContent().forEach((contentType, mediaType) -> {
                         ExportApiDocSchemaVo responseSchema = new ExportApiDocSchemaVo();
+                        responseSchema.setSchemaName(responseCode);
+                        responseSchema.setDescription(response.getDescription());
                         responseSchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_RESPONSE);
                         responseSchema.setContentType(contentType);
                         responseSchema.setSchemaContent(JsonUtils.toJson(mediaType));
                         responseSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
-                        Schema schema = mediaType.getSchema();
-                        if (schema != null) {
-                            responseSchema.setSchemaName(schema.getName());
-                            responseSchema.setDescription(schema.getDescription());
-                        }
                         apiDoc.getResponsesSchemas().add(responseSchema);
                     });
                 }

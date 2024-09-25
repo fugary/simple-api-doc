@@ -49,6 +49,8 @@ public class ApiDocConstants {
 
     public static final String PROJECT_SCHEMA_TYPE_CONTENT = "content";
 
+    public static final String PROJECT_SCHEMA_TYPE_COMPONENT = "component";
+
     /**
      * 中止导入
      */
