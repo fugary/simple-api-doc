@@ -205,11 +205,15 @@ public class SimpleModelUtils {
      * @param request
      * @return
      */
-    public static List<MultipartFile> getUploadFiles(MultipartHttpServletRequest request) {
-        List<MultipartFile> files = request.getFiles("files");
-        if (CollectionUtils.isEmpty(files)) {
-            files = request.getFiles("file");
+    public static List<MultipartFile> getUploadFiles(HttpServletRequest request) {
+        if (request instanceof MultipartHttpServletRequest) {
+            MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
+            List<MultipartFile> files = multipartRequest.getFiles("files");
+            if (CollectionUtils.isEmpty(files)) {
+                files = multipartRequest.getFiles("file");
+            }
+            return files;
         }
-        return files;
+        return new ArrayList<>();
     }
 }

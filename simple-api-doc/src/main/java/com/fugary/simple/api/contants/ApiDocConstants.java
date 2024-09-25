@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ApiDocConstants {
 
+    public static final Integer STATUS_ENABLED = 1;
+
+    public static final Integer STATUS_DISABLED = 0;
+
     public static final String API_USER_KEY = "simple-api-user";
 
     public static final String API_LOCALE_KEY = "locale";
@@ -22,6 +26,28 @@ public class ApiDocConstants {
     public static final String IMPORT_TYPE_FILE = "file";
 
     public static final String IMPORT_TYPE_URL = "url";
+
+    public static final String FOLDER_PATH_SEPARATOR = "/";
+
+    public static final String X_SIMPLE_FOLDER = "x-simple-folder";
+
+    public static final String X_APIFOX_FOLDER = "x-apifox-folder";
+
+    public static final String AUTH_TYPE_BASIC = "Basic";
+
+    public static final String DOC_TYPE_API = "api";
+
+    public static final String DOC_TYPE_SCHEMA = "schema";
+
+    public static final String DOC_TYPE_MD = "md";
+
+    public static final String DOC_SCHEMA_TYPE_PARAMETERS = "parameters";
+
+    public static final String DOC_SCHEMA_TYPE_REQUEST = "request";
+
+    public static final String DOC_SCHEMA_TYPE_RESPONSE = "response";
+
+    public static final String PROJECT_SCHEMA_TYPE_CONTENT = "content";
 
     /**
      * 中止导入

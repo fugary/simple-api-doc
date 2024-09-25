@@ -39,7 +39,15 @@ public class SystemErrorConstants {
      */
     public static final int CODE_2003 = 2003;
     /**
-     * 导入的分组路径已存在
+     * 不支持的导入数据类型
      */
     public static final int CODE_2004 = 2004;
+    /**
+     * URL导入解析失败
+     */
+    public static final int CODE_2005 = 2005;
+    /**
+     * API内容解析失败
+     */
+    public static final int CODE_2006 = 2006;
 }

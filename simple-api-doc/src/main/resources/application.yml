@@ -29,6 +29,18 @@ spring:
     placeholder-prefix: "${"
     table: flyway_schema_history
     locations: classpath:db/${DB_TYPE:h2}/migration
+  jackson: #jackson配置
+    deserialization:
+      ACCEPT_SINGLE_VALUE_AS_ARRAY: true
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+      INDENT_OUTPUT: false
+    mapper:
+      USE_WRAPPER_NAME_AS_PROPERTY_NAME: true
+      PROPAGATE_TRANSIENT_MARKER: true
+    default-property-inclusion: non_null
+    time-zone: GMT+8
 mybatis-plus:
   global-config:
     db-config:

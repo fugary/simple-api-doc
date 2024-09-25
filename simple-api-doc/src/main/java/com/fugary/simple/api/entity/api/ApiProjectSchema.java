@@ -20,8 +20,9 @@ public class ApiProjectSchema extends ModelBase {
     private String fileName;
     private String contentType;
     private String envContent;
-    private String contentSchema;
     private String authType;
     private String authContent;
-
+    private String version;
+    private String oasVersion;
+    private String specVersion;
 }

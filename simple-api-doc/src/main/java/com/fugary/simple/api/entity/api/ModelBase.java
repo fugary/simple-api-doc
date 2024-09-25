@@ -2,6 +2,7 @@ package com.fugary.simple.api.entity.api;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -24,6 +25,6 @@ public class ModelBase implements Serializable {
     private Integer status;
 
     public boolean isEnabled() {
-        return Integer.valueOf(1).equals(status);
+        return ApiDocConstants.STATUS_ENABLED.equals(status);
     }
 }

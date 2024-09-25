@@ -15,4 +15,5 @@ public class ApiFolder extends ModelBase {
     private String folderName;
     private Boolean rootFlag;
     private Integer parentId;
+    private String description;
 }

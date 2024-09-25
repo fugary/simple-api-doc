@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
@@ -10,14 +11,18 @@ import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
+import com.fugary.simple.api.web.vo.exports.ExportApiProjectSchemaVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import lombok.SneakyThrows;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -86,9 +91,14 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     public SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo) {
         ApiDocImporter importer = ApiDocImporter.findImporter(apiDocImporters, importVo.getSourceType());
         ExportApiProjectVo exportVo;
-        if (importer == null || (exportVo = importer.doImport(content)) == null) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2003);
+        if (importer == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2004);
         }
+        if ((exportVo = importer.doImport(content)) == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2006);
+        }
+        exportVo.setProjectCode(DigestUtils.md5Hex(content));
+        exportVo.setProjectName(importVo.getProjectName());
         return SimpleResultUtils.createSimpleResult(exportVo);
     }
 
@@ -98,8 +108,21 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             ApiProject apiProject = new ApiProject();
             BeanUtils.copyProperties(apiProject, exportVo);
             this.saveOrUpdate(apiProject);
+            ApiFolder parentFolder = null;
+            if (importVo instanceof ApiProjectTaskImportVo) {
+                ApiProjectTaskImportVo taskImportVo = (ApiProjectTaskImportVo) importVo;
+                if (taskImportVo.getToFolder() != null) {
+                    parentFolder = apiFolderService.getById(taskImportVo.getToFolder());
+                }
+            }
+            ExportApiProjectSchemaVo projectSchema = exportVo.getProjectSchema();
+            if (projectSchema != null) {
+                projectSchema.setProjectId(apiProject.getId());
+                apiProjectSchemaService.saveOrUpdate(SimpleModelUtils.addAuditInfo(projectSchema));
+            }
             List<ExportApiFolderVo> folders = Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new);
-            apiFolderService.saveApiFolders(folders, apiProject, null);
+            apiFolderService.saveApiFolders(folders, apiProject, parentFolder);
+            apiDocService.saveApiDocs(exportVo.getDocs(), apiProject);
             return SimpleResultUtils.createSimpleResult(apiProject);
         } catch (IllegalAccessException | InvocationTargetException e) {
             log.error("import project error", e);

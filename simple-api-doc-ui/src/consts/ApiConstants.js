@@ -80,7 +80,7 @@ export const IMPORT_DUPLICATE_STRATEGY = [{
 }]
 
 export const IMPORT_SOURCE_TYPES = [{
-  value: 'swagger',
+  value: 'openapi',
   labelKey: 'api.label.importTypeSwagger'
 }]
 

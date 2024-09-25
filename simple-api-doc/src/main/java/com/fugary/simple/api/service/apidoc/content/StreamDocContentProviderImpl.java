@@ -22,7 +22,7 @@ public class StreamDocContentProviderImpl implements DocContentProvider<InputStr
     public String getContent(InputStream stream) {
         if (stream != null) {
             try {
-                StreamUtils.copyToString(stream, StandardCharsets.UTF_8);
+                return StreamUtils.copyToString(stream, StandardCharsets.UTF_8);
             } catch (IOException e) {
                 log.error("读取文件失败", e);
             }
