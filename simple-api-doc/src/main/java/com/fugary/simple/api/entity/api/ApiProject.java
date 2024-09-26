@@ -13,7 +13,7 @@ public class ApiProject extends ModelBase {
     private static final long serialVersionUID = -8012815542682860804L;
     private String userName;
     private String projectCode;
-    private Boolean privateFlag;
+    private Boolean privateFlag = true;
     private String projectName;
     private String description;
 }

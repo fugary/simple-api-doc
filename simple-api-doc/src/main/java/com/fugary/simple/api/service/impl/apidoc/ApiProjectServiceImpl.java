@@ -5,24 +5,20 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
-import com.fugary.simple.api.service.apidoc.ApiDocService;
-import com.fugary.simple.api.service.apidoc.ApiFolderService;
-import com.fugary.simple.api.service.apidoc.ApiProjectSchemaService;
-import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
-import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
-import com.fugary.simple.api.web.vo.exports.ExportApiProjectSchemaVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import lombok.SneakyThrows;
 import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +26,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
 
 /**
  * Create date 2024/7/15<br>
@@ -51,6 +49,15 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     @Autowired
     private ApiProjectSchemaService apiProjectSchemaService;
 
+    @Autowired
+    private ApiProjectSchemaDetailService apiProjectSchemaDetailService;
+
+    @Autowired
+    private ApiProjectShareService apiProjectShareService;
+
+    @Autowired
+    private ApiProjectTaskService apiProjectTaskService;
+
     @SneakyThrows
     @Override
     public ApiProjectDetailVo loadProjectVo(String projectCode) {
@@ -61,27 +68,20 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     }
 
     @Override
-    public boolean deleteMockProject(Integer id) {
-        ApiProject mockProject = getById(id);
-        if (mockProject != null) {
-//            List<ModelGroup> mockGroups = mockGroupService.list(Wrappers.<ModelGroup>query()
-//                    .eq("project_code", mockProject.getProjectCode())
-//                    .eq("user_name", mockProject.getUserName()));
-//            mockGroupService.deleteMockGroups(mockGroups.stream().map(ModelGroup::getId).collect(Collectors.toList()));
+    public boolean deleteApiProject(Integer id) {
+        ApiProject apiProject = getById(id);
+        if (apiProject != null) {
+            apiFolderService.deleteByProject(id);
+            apiProjectSchemaService.deleteByProject(id);
+            apiProjectSchemaDetailService.deleteByProject(id);
+            apiProjectShareService.deleteByProject(id);
+            apiProjectTaskService.deleteByProject(id);
         }
         return removeById(id);
     }
 
     @Override
-    public boolean deleteMockProjects(List<Integer> ids) {
-        for (Integer id : ids) {
-            deleteMockProject(id);
-        }
-        return false;
-    }
-
-    @Override
-    public boolean existsMockProject(ApiProject project) {
+    public boolean existsApiProject(ApiProject project) {
         List<ApiProject> existProjects = list(Wrappers.<ApiProject>query().eq("user_name", project.getUserName())
                 .eq("project_code", project.getProjectCode()));
         return existProjects.stream().anyMatch(existProject -> !existProject.getId().equals(project.getId()));
@@ -97,36 +97,41 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         if ((exportVo = importer.doImport(content)) == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2006);
         }
-        exportVo.setProjectCode(DigestUtils.md5Hex(content));
-        exportVo.setProjectName(importVo.getProjectName());
+        exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
         return SimpleResultUtils.createSimpleResult(exportVo);
     }
 
     @Override
-    public SimpleResult<ApiProject> importProject(ExportApiProjectVo exportVo, ApiProjectImportVo importVo) {
+    public SimpleResult<ApiProject> importNewProject(ExportApiProjectVo exportVo, ApiProjectImportVo importVo) {
         try {
             ApiProject apiProject = new ApiProject();
             BeanUtils.copyProperties(apiProject, exportVo);
-            this.saveOrUpdate(apiProject);
-            ApiFolder parentFolder = null;
-            if (importVo instanceof ApiProjectTaskImportVo) {
-                ApiProjectTaskImportVo taskImportVo = (ApiProjectTaskImportVo) importVo;
-                if (taskImportVo.getToFolder() != null) {
-                    parentFolder = apiFolderService.getById(taskImportVo.getToFolder());
-                }
+            ApiUser loginUser = getLoginUser();
+            if (loginUser != null) {
+                apiProject.setUserName(loginUser.getUserName());
             }
-            ExportApiProjectSchemaVo projectSchema = exportVo.getProjectSchema();
-            if (projectSchema != null) {
-                projectSchema.setProjectId(apiProject.getId());
-                apiProjectSchemaService.saveOrUpdate(SimpleModelUtils.addAuditInfo(projectSchema));
-            }
-            List<ExportApiFolderVo> folders = Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new);
-            apiFolderService.saveApiFolders(folders, apiProject, parentFolder);
-            apiDocService.saveApiDocs(exportVo.getDocs(), apiProject);
-            return SimpleResultUtils.createSimpleResult(apiProject);
+            this.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiProject)); // 保存apiProject信息
+            return this.importUpdateProject(apiProject, exportVo, importVo);
         } catch (IllegalAccessException | InvocationTargetException e) {
             log.error("import project error", e);
         }
         return null;
+    }
+
+    @Override
+    public SimpleResult<ApiProject> importUpdateProject(ApiProject apiProject, ExportApiProjectVo exportVo, ApiProjectImportVo importVo) {
+        ApiFolder parentFolder = null;
+        boolean importExists = importVo instanceof ApiProjectTaskImportVo;
+        if (importExists) {
+            ApiProjectTaskImportVo taskImportVo = (ApiProjectTaskImportVo) importVo;
+            if (taskImportVo.getToFolder() != null && (parentFolder = apiFolderService.getById(taskImportVo.getToFolder())) != null
+                    && !Objects.equals(parentFolder.getProjectId(), apiProject.getId())) { // folder不属于project属于配置错误忽略该配置
+                parentFolder = null;
+            }
+        }
+        apiProjectSchemaService.saveApiProjectSchema(exportVo.getProjectSchema(), apiProject, importExists);
+        apiProjectSchemaDetailService.saveApiProjectSchema(exportVo.getProjectSchemaDetails(), apiProject);
+        apiFolderService.saveApiFolders(Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), apiProject, parentFolder, exportVo.getDocs());
+        return SimpleResultUtils.createSimpleResult(apiProject);
     }
 }

@@ -3,6 +3,7 @@ package com.fugary.simple.api.imports.swagger;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.*;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -55,6 +56,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             }, LinkedHashMap::new, Collectors.toList()));
             projectVo = new ExportApiProjectVo();
             projectVo.setStatus(ApiDocConstants.STATUS_ENABLED);
+            projectVo.setProjectCode(SimpleModelUtils.uuid());
             processProjectSchema(openAPI, projectVo, data);
             processFolders(openAPI, projectVo, pathMap);
         }
@@ -75,6 +77,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         ExportApiProjectSchemaDetailVo detailVo = new ExportApiProjectSchemaDetailVo();
         detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
         detailVo.setSchemaContent(content);
+        detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
         projectVo.getProjectSchemaDetails().add(detailVo);
         Info info = openAPI.getInfo();
         if (info != null) {
@@ -84,6 +87,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             if (StringUtils.containsIgnoreCase(info.getDescription(), "## ")) { // markdown
                 ExportApiDocVo doc = new ExportApiDocVo();
                 doc.setDocType(ApiDocConstants.DOC_TYPE_MD);
+                doc.setDocKey(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info");
                 doc.setDocName("接口说明");
                 doc.setDocContent(info.getDescription());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
@@ -97,7 +101,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 detail.setSchemaName(s);
                 detail.setSchemaContent(JsonUtils.toJson(schema));
                 detail.setDescription(schema.getDescription());
-                detail.setStatus(1);
+                detail.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getProjectSchemaDetails().add(detail);
             });
         }
@@ -120,7 +124,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     Pair<ExportApiFolderVo, ExportApiFolderVo> operationFolderPair = getOperationFolder(openAPI, folders, operationPair);
                     ExportApiFolderVo folder = operationFolderPair.getLeft();
                     if (folder != null) {
-                        folder.getDocs().add(calcApiDoc(url, operationPair));
+                        folder.getDocs().add(calcApiDoc(folder, url, operationPair));
                     }
                 }
             }
@@ -132,11 +136,12 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     /**
      * 解析Api文档信息
      *
+     * @param folder
      * @param url
      * @param operationPair
      * @return
      */
-    protected ExportApiDocVo calcApiDoc(String url, Pair<String, Operation> operationPair) {
+    protected ExportApiDocVo calcApiDoc(ExportApiFolderVo folder, String url, Pair<String, Operation> operationPair) {
         String method = operationPair.getLeft();
         Operation operation = operationPair.getRight();
         ExportApiDocVo apiDocVo = new ExportApiDocVo();
@@ -146,6 +151,11 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         apiDocVo.setDocName(operation.getSummary());
         apiDocVo.setDocType(ApiDocConstants.DOC_TYPE_API);
         apiDocVo.setUrl(url);
+        String docKey = operation.getOperationId();
+        if (folder != null) {
+            docKey = folder.getFolderName() + "#" + docKey;
+        }
+        apiDocVo.setDocKey(docKey);
         apiDocVo.setStatus(ApiDocConstants.STATUS_ENABLED);
         calcDocSchemas(apiDocVo, operation);
         return apiDocVo;

@@ -15,6 +15,7 @@ public class ApiDoc extends ModelBase {
     private Integer folderId;
     private String docType;
     private String docName;
+    private String docKey;
     private String docContent;
     private String method;
     private String url;

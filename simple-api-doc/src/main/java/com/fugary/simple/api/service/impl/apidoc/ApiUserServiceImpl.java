@@ -29,8 +29,8 @@ public class ApiUserServiceImpl extends ServiceImpl<ApiUserMapper, ApiUser> impl
     public boolean deleteMockUser(Integer id) {
         getOptById(id).ifPresent(mockUser -> {
             apiProjectService.list(Wrappers.<ApiProject>query().eq("user_name", mockUser.getUserName()))
-                    .forEach(mockGroup -> {
-                        apiProjectService.deleteMockProject(mockGroup.getId());
+                    .forEach(apiProject -> {
+                        apiProjectService.deleteApiProject(apiProject.getId());
                     });
         });
         return removeById(id);

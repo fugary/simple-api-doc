@@ -94,7 +94,7 @@ public class ApiProjectImportController {
     public SimpleResult<ApiProject> importProject(@ModelAttribute ApiProjectImportVo importVo, HttpServletRequest request){
         SimpleResult<ExportApiProjectVo> parseResult = parseProject(importVo, request);
         if (parseResult.isSuccess()) {
-            return apiProjectService.importProject(parseResult.getResultData(), importVo);
+            return apiProjectService.importNewProject(parseResult.getResultData(), importVo);
         }
         return SimpleResult.<ApiProject>builder()
                 .code(parseResult.getCode())

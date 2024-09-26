@@ -25,6 +25,6 @@ public class ModelBase implements Serializable {
     private Integer status;
 
     public boolean isEnabled() {
-        return ApiDocConstants.STATUS_ENABLED.equals(status);
+        return !ApiDocConstants.STATUS_DISABLED.equals(getStatus());
     }
 }

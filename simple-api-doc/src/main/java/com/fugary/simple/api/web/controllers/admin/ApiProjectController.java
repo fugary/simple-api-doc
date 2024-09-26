@@ -64,12 +64,7 @@ public class ApiProjectController {
 
     @DeleteMapping("/{id}")
     public SimpleResult remove(@PathVariable("id") Integer id) {
-        return SimpleResultUtils.createSimpleResult(apiProjectService.deleteMockProject(id));
-    }
-
-    @DeleteMapping("/removeByIds/{ids}")
-    public SimpleResult removeByIds(@PathVariable("ids") List<Integer> ids) {
-        return SimpleResultUtils.createSimpleResult(apiProjectService.deleteMockProjects(ids));
+        return SimpleResultUtils.createSimpleResult(apiProjectService.deleteApiProject(id));
     }
 
     @PostMapping
@@ -82,7 +77,7 @@ public class ApiProjectController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         project.setProjectCode(StringUtils.defaultIfBlank(project.getProjectCode(), SimpleModelUtils.uuid()));
-        if (apiProjectService.existsMockProject(project)) {
+        if (apiProjectService.existsApiProject(project)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
         project.setPrivateFlag(ObjectUtils.defaultIfNull(project.getPrivateFlag(), true));

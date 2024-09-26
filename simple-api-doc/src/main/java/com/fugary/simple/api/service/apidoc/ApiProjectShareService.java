@@ -9,4 +9,11 @@ import com.fugary.simple.api.entity.api.ApiProjectShare;
  * @author gary.fu
  */
 public interface ApiProjectShareService extends IService<ApiProjectShare> {
+    /**
+     * 按照projectId删除
+     *
+     * @param projectId
+     * @return
+     */
+    boolean deleteByProject(Integer projectId);
 }

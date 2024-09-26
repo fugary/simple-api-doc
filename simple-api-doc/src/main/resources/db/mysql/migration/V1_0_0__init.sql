@@ -6,6 +6,7 @@ CREATE TABLE t_api_doc
     doc_type     varchar(255),
     doc_name     varchar(8192),
     doc_content  text,
+    doc_key      varchar(2048),
     status       tinyint(3),
     operation_id varchar(8192),
     deprecated   bit(1),
@@ -19,6 +20,7 @@ CREATE TABLE t_api_doc
     modify_date  timestamp NULL,
     PRIMARY KEY (id)
 );
+
 CREATE TABLE t_api_doc_schema
 (
     id             int(11)   NOT NULL AUTO_INCREMENT,

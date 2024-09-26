@@ -2,7 +2,6 @@ package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiDoc;
-import com.fugary.simple.api.entity.api.ApiProject;
 
 import java.util.List;
 
@@ -14,11 +13,34 @@ import java.util.List;
 public interface ApiDocService extends IService<ApiDoc> {
 
     /**
-     * 保存ApiDoc列表
+     * 查询文档列表
      *
-     * @param apiDocs
-     * @param project
+     * @param projectId
      * @return
      */
-    int saveApiDocs(List<? extends ApiDoc> apiDocs, ApiProject project);
+    List<ApiDoc> loadByProject(Integer projectId);
+
+    /**
+     * 按照projectId删除，级联删除
+     *
+     * @param projectId
+     * @return
+     */
+    boolean deleteByProject(Integer projectId);
+
+    /**
+     * 按照folderId删除，级联删除
+     *
+     * @param folderId
+     * @return
+     */
+    boolean deleteByFolder(Integer folderId);
+
+    /**
+     * 指定id删除doc，级联删除
+     *
+     * @param docId
+     * @return
+     */
+    boolean deleteDoc(Integer docId);
 }

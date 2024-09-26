@@ -14,6 +14,7 @@ import java.util.List;
 @Data
 public class ExportApiDocVo extends ApiDoc {
 
+    private static final long serialVersionUID = -8612077469215078772L;
     private ExportApiDocSchemaVo parametersSchema;
     private List<ExportApiDocSchemaVo> requestsSchemas = new ArrayList<>();
     private List<ExportApiDocSchemaVo> responsesSchemas = new ArrayList<>();

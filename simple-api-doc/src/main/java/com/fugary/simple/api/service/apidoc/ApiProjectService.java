@@ -18,26 +18,19 @@ public interface ApiProjectService extends IService<ApiProject> {
 
     /**
      * 加载project详情
+     *
      * @param projectCode
      * @return
      */
     ApiProjectDetailVo loadProjectVo(String projectCode);
 
     /**
-     * 级联删除分组、请求和数据
+     * 级联删除
      *
      * @param id
      * @return
      */
-    boolean deleteMockProject(Integer id);
-
-    /**
-     * 级联删除分组、请求和数据
-     *
-     * @param ids
-     * @return
-     */
-    boolean deleteMockProjects(List<Integer> ids);
+    boolean deleteApiProject(Integer id);
 
     /**
      * 检查是否有重复
@@ -45,7 +38,7 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @param project
      * @return
      */
-    boolean existsMockProject(ApiProject project);
+    boolean existsApiProject(ApiProject project);
 
     /**
      * 解析成ExportVo对象
@@ -57,11 +50,21 @@ public interface ApiProjectService extends IService<ApiProject> {
     SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo);
 
     /**
-     * 保存ExportVo对象
+     * 导入新ApiProject对象
      *
      * @param exportVo
      * @param importVo
      * @return
      */
-    SimpleResult<ApiProject> importProject(ExportApiProjectVo exportVo, ApiProjectImportVo importVo);
+    SimpleResult<ApiProject> importNewProject(ExportApiProjectVo exportVo, ApiProjectImportVo importVo);
+
+    /**
+     * 更新现有ApiProject
+     *
+     * @param currentProject
+     * @param exportVo
+     * @param importVo
+     * @return
+     */
+    SimpleResult<ApiProject> importUpdateProject(ApiProject currentProject, ExportApiProjectVo exportVo, ApiProjectImportVo importVo);
 }

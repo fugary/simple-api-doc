@@ -41,6 +41,8 @@ public class ApiDocConstants {
 
     public static final String DOC_TYPE_MD = "md";
 
+    public static final String DOC_KEY_PREFIX = "x-simple-doc-";
+
     public static final String DOC_SCHEMA_TYPE_PARAMETERS = "parameters";
 
     public static final String DOC_SCHEMA_TYPE_REQUEST = "request";
@@ -50,6 +52,10 @@ public class ApiDocConstants {
     public static final String PROJECT_SCHEMA_TYPE_CONTENT = "content";
 
     public static final String PROJECT_SCHEMA_TYPE_COMPONENT = "component";
+
+    public static final String PROJECT_TASK_TYPE_MANUAL = "manual";
+
+    public static final String PROJECT_TASK_TYPE_AUTO = "auto";
 
     /**
      * 中止导入
