@@ -15,8 +15,8 @@ import java.util.List;
 public class ExportApiProjectVo extends ApiProject {
 
     private static final long serialVersionUID = -8612077469215078772L;
-    private ExportApiProjectSchemaVo projectSchema;
-    private List<ExportApiProjectSchemaDetailVo> projectSchemaDetails = new ArrayList<>();
+    private ExportApiProjectInfoVo projectInfo;
+    private List<ExportApiProjectInfoDetailVo> projectInfoDetails = new ArrayList<>();
     private List<ExportApiFolderVo> folders = new ArrayList<>();
     private List<ExportApiDocVo> docs = new ArrayList<>();
 

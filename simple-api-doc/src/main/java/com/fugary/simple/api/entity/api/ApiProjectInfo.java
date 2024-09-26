@@ -10,10 +10,11 @@ import lombok.Data;
  */
 @Data
 @TableName(excludeProperty = "status")
-public class ApiProjectSchema extends ModelBase {
+public class ApiProjectInfo extends ModelBase {
 
     private static final long serialVersionUID = 8517817442841283836L;
     private Integer projectId;
+    private Integer folderId;
     private String importType;
     private String sourceType;
     private String url;

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
@@ -47,10 +48,10 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     private ApiDocService apiDocService;
 
     @Autowired
-    private ApiProjectSchemaService apiProjectSchemaService;
+    private ApiProjectInfoService apiProjectInfoService;
 
     @Autowired
-    private ApiProjectSchemaDetailService apiProjectSchemaDetailService;
+    private ApiProjectInfoDetailService apiProjectInfoDetailService;
 
     @Autowired
     private ApiProjectShareService apiProjectShareService;
@@ -72,8 +73,8 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         ApiProject apiProject = getById(id);
         if (apiProject != null) {
             apiFolderService.deleteByProject(id);
-            apiProjectSchemaService.deleteByProject(id);
-            apiProjectSchemaDetailService.deleteByProject(id);
+            apiProjectInfoService.deleteByProject(id);
+            apiProjectInfoDetailService.deleteByProject(id);
             apiProjectShareService.deleteByProject(id);
             apiProjectTaskService.deleteByProject(id);
         }
@@ -120,18 +121,19 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Override
     public SimpleResult<ApiProject> importUpdateProject(ApiProject apiProject, ExportApiProjectVo exportVo, ApiProjectImportVo importVo) {
-        ApiFolder parentFolder = null;
+        ApiFolder mountFolder = null;
         boolean importExists = importVo instanceof ApiProjectTaskImportVo;
         if (importExists) {
             ApiProjectTaskImportVo taskImportVo = (ApiProjectTaskImportVo) importVo;
-            if (taskImportVo.getToFolder() != null && (parentFolder = apiFolderService.getById(taskImportVo.getToFolder())) != null
-                    && !Objects.equals(parentFolder.getProjectId(), apiProject.getId())) { // folder不属于project属于配置错误忽略该配置
-                parentFolder = null;
+            if (taskImportVo.getToFolder() != null && (mountFolder = apiFolderService.getById(taskImportVo.getToFolder())) != null
+                    && !Objects.equals(mountFolder.getProjectId(), apiProject.getId())) { // folder不属于project属于配置错误忽略该配置
+                mountFolder = null;
             }
         }
-        apiProjectSchemaService.saveApiProjectSchema(exportVo.getProjectSchema(), apiProject, importExists);
-        apiProjectSchemaDetailService.saveApiProjectSchema(exportVo.getProjectSchemaDetails(), apiProject);
-        apiFolderService.saveApiFolders(Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), apiProject, parentFolder, exportVo.getDocs());
+        mountFolder = apiFolderService.getOrCreateMountFolder(apiProject, mountFolder);
+        ApiProjectInfo projectInfo = apiProjectInfoService.saveApiProjectInfo(exportVo.getProjectInfo(), apiProject, mountFolder, importExists);
+        apiProjectInfoDetailService.saveApiProjectInfoDetails(apiProject, projectInfo, exportVo.getProjectInfoDetails());
+        apiFolderService.saveApiFolders(Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), apiProject, mountFolder, exportVo.getDocs());
         return SimpleResultUtils.createSimpleResult(apiProject);
     }
 }

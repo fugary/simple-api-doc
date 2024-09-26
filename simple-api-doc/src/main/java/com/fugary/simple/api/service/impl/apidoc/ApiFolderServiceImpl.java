@@ -42,10 +42,16 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     private ApiDocSchemaService apiDocSchemaService;
 
     @Override
-    public int saveApiFolders(List<ExportApiFolderVo> apiFolders, ApiProject project, ApiFolder parentFolder, List<ExportApiDocVo> extraDocs) {
+    public ApiFolder getOrCreateMountFolder(ApiProject project, ApiFolder parentFolder) {
         if (parentFolder == null && (parentFolder = getRootFolder(project.getId())) == null) {
             parentFolder = createRootFolder(project);
         }
+        return parentFolder;
+    }
+
+    @Override
+    public int saveApiFolders(List<ExportApiFolderVo> apiFolders, ApiProject project, ApiFolder parentFolder, List<ExportApiDocVo> extraDocs) {
+        parentFolder = getOrCreateMountFolder(project, parentFolder);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = calcFolderMap(loadApiFolders(project.getId()));
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
         Map<String, Pair<String, ApiDoc>> existsDocMap = calcDocMap(apiDocService.loadByProject(project.getId()), folderPathMap);

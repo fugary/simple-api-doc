@@ -57,33 +57,33 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             projectVo = new ExportApiProjectVo();
             projectVo.setStatus(ApiDocConstants.STATUS_ENABLED);
             projectVo.setProjectCode(SimpleModelUtils.uuid());
-            processProjectSchema(openAPI, projectVo, data);
+            processProjectInfo(openAPI, projectVo, data);
             processFolders(openAPI, projectVo, pathMap);
         }
         return projectVo;
     }
 
-    protected void processProjectSchema(OpenAPI openAPI, ExportApiProjectVo projectVo, String content) {
-        ExportApiProjectSchemaVo projectSchema = new ExportApiProjectSchemaVo();
-        projectVo.setProjectSchema(projectSchema);
-        projectSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
-        projectSchema.setOasVersion(openAPI.getOpenapi());
-        projectSchema.setSpecVersion(openAPI.getSpecVersion().name());
-        projectSchema.setEnvContent(JsonUtils.toJson(openAPI.getServers().stream().map(server -> {
+    protected void processProjectInfo(OpenAPI openAPI, ExportApiProjectVo projectVo, String content) {
+        ExportApiProjectInfoVo projectInfo = new ExportApiProjectInfoVo();
+        projectVo.setProjectInfo(projectInfo);
+        projectInfo.setStatus(ApiDocConstants.STATUS_ENABLED);
+        projectInfo.setOasVersion(openAPI.getOpenapi());
+        projectInfo.setSpecVersion(openAPI.getSpecVersion().name());
+        projectInfo.setEnvContent(JsonUtils.toJson(openAPI.getServers().stream().map(server -> {
             String url = server.getUrl();
             String name = server.getDescription();
             return new ExportEnvConfigVo(name, url);
         }).collect(Collectors.toList())));
-        ExportApiProjectSchemaDetailVo detailVo = new ExportApiProjectSchemaDetailVo();
+        ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
         detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
         detailVo.setSchemaContent(content);
         detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
-        projectVo.getProjectSchemaDetails().add(detailVo);
+        projectVo.getProjectInfoDetails().add(detailVo);
         Info info = openAPI.getInfo();
         if (info != null) {
             projectVo.setDescription(info.getTitle());
             detailVo.setDescription(info.getDescription());
-            projectSchema.setVersion(info.getVersion());
+            projectInfo.setVersion(info.getVersion());
             if (StringUtils.containsIgnoreCase(info.getDescription(), "## ")) { // markdown
                 ExportApiDocVo doc = new ExportApiDocVo();
                 doc.setDocType(ApiDocConstants.DOC_TYPE_MD);
@@ -96,13 +96,13 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         }
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             openAPI.getComponents().getSchemas().forEach((s, schema) -> {
-                ExportApiProjectSchemaDetailVo detail = new ExportApiProjectSchemaDetailVo();
+                ExportApiProjectInfoDetailVo detail = new ExportApiProjectInfoDetailVo();
                 detail.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT);
                 detail.setSchemaName(s);
                 detail.setSchemaContent(JsonUtils.toJson(schema));
                 detail.setDescription(schema.getDescription());
                 detail.setStatus(ApiDocConstants.STATUS_ENABLED);
-                projectVo.getProjectSchemaDetails().add(detail);
+                projectVo.getProjectInfoDetails().add(detail);
             });
         }
     }

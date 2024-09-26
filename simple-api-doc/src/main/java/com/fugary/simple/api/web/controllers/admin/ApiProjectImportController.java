@@ -8,7 +8,7 @@ import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
-import com.fugary.simple.api.web.vo.exports.ExportApiProjectSchemaVo;
+import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
@@ -75,15 +75,15 @@ public class ApiProjectImportController {
         SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
         ExportApiProjectVo exportProjectVo = parseResult.getResultData();
         if (parseResult.isSuccess()) {
-            ExportApiProjectSchemaVo projectSchema = exportProjectVo.getProjectSchema();
-            projectSchema.setFileName(fileName);
-            projectSchema.setImportType(importVo.getImportType());
-            projectSchema.setSourceType(importVo.getSourceType());
-            projectSchema.setAuthType(importVo.getAuthType());
-            projectSchema.setAuthContent(importVo.getAuthContent());
-            projectSchema.setSourceType(importVo.getSourceType());
+            ExportApiProjectInfoVo projectInfo = exportProjectVo.getProjectInfo();
+            projectInfo.setFileName(fileName);
+            projectInfo.setImportType(importVo.getImportType());
+            projectInfo.setSourceType(importVo.getSourceType());
+            projectInfo.setAuthType(importVo.getAuthType());
+            projectInfo.setAuthContent(importVo.getAuthContent());
+            projectInfo.setSourceType(importVo.getSourceType());
             if (isUrlMode) {
-                projectSchema.setUrl(importVo.getUrl());
+                projectInfo.setUrl(importVo.getUrl());
             }
         }
         return parseResult;

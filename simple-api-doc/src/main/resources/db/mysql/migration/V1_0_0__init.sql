@@ -67,10 +67,11 @@ CREATE TABLE t_api_project
     modify_date  timestamp NULL,
     PRIMARY KEY (id)
 );
-CREATE TABLE t_api_project_schema
+CREATE TABLE t_api_project_info
 (
     id           int(11)   NOT NULL AUTO_INCREMENT,
     project_id   varchar(255),
+    folder_id    int(11),
     import_type  varchar(255),
     file_name    varchar(8192),
     source_type  varchar(255),
@@ -87,14 +88,15 @@ CREATE TABLE t_api_project_schema
     create_date  timestamp NULL,
     PRIMARY KEY (id)
 );
-CREATE TABLE t_api_project_schema_detail
+CREATE TABLE t_api_project_info_detail
 (
     id             int(11)   NOT NULL AUTO_INCREMENT,
     project_id     varchar(255),
+    info_id        int(11),
     body_type      varchar(255),
     schema_content text,
-    schema_key     varchar(4096),
     schema_name    varchar(4096),
+    schema_key     varchar(4096),
     content_type   varchar(255),
     description    text,
     creator        varchar(255),
@@ -103,6 +105,7 @@ CREATE TABLE t_api_project_schema_detail
     create_date    timestamp NULL,
     PRIMARY KEY (id)
 );
+
 CREATE TABLE t_api_project_share
 (
     id             int(11)     NOT NULL AUTO_INCREMENT,

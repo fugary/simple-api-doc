@@ -17,6 +17,15 @@ import java.util.Map;
  */
 public interface ApiFolderService extends IService<ApiFolder> {
     /**
+     * 获取或创建根目录
+     *
+     * @param project
+     * @param parentFolder
+     * @return
+     */
+    ApiFolder getOrCreateMountFolder(ApiProject project, ApiFolder parentFolder);
+
+    /**
      * 保存数据
      *
      * @param apiFolders

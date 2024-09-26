@@ -1,5 +1,6 @@
 package com.fugary.simple.api.entity.api;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 /**
@@ -8,10 +9,12 @@ import lombok.Data;
  * @author gary.fu
  */
 @Data
-public class ApiProjectSchemaDetail extends ModelBase {
+@TableName(excludeProperty = "status")
+public class ApiProjectInfoDetail extends ModelBase {
 
     private static final long serialVersionUID = 593626013543617186L;
     private Integer projectId;
+    private Integer infoId;
     private String bodyType;
     private String schemaContent;
     private String schemaName;
