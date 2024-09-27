@@ -6,12 +6,22 @@ import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 
+import java.util.List;
+
 /**
  * Created on 2024/7/31 11:42 .<br>
  *
  * @author gary.fu
  */
 public interface ApiProjectInfoService extends IService<ApiProjectInfo> {
+
+    /**
+     * 加载详细信息
+     *
+     * @param projectId
+     * @return
+     */
+    List<ApiProjectInfo> listByProjectId(Integer projectId);
 
     /**
      * 按照projectId查找
@@ -26,9 +36,9 @@ public interface ApiProjectInfoService extends IService<ApiProjectInfo> {
      * 保存导入数据
      *
      * @param projectInfoVo 导入项目信息
-     * @param apiProject 已保存项目基本信息
-     * @param mountFolder 挂载的目录
-     * @param importExists 是否已经存在该项目
+     * @param apiProject    已保存项目基本信息
+     * @param mountFolder   挂载的目录
+     * @param importExists  是否已经存在该项目
      */
     ApiProjectInfo saveApiProjectInfo(ExportApiProjectInfoVo projectInfoVo, ApiProject apiProject, ApiFolder mountFolder, boolean importExists);
 

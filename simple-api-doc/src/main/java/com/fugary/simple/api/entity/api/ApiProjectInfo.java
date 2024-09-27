@@ -1,6 +1,7 @@
 package com.fugary.simple.api.entity.api;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import lombok.Data;
 
 /**
@@ -9,7 +10,7 @@ import lombok.Data;
  * @author gary.fu
  */
 @Data
-@TableName(excludeProperty = "status")
+@TableName(excludeProperty = ApiDocConstants.STATUS_KEY)
 public class ApiProjectInfo extends ModelBase {
 
     private static final long serialVersionUID = 8517817442841283836L;

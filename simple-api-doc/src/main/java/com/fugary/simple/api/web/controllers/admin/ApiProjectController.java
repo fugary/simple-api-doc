@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiUser;
@@ -14,7 +15,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
-import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.JwtParamVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.ObjectUtils;
@@ -59,7 +60,7 @@ public class ApiProjectController {
 
     @GetMapping("/loadByCode/{projectCode}")
     public SimpleResult<ApiProjectDetailVo> loadByCode(@PathVariable("projectCode") String projectCode) {
-        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(projectCode));
+        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(projectCode, false));
     }
 
     @DeleteMapping("/{id}")
@@ -88,7 +89,7 @@ public class ApiProjectController {
     public SimpleResult<List<ApiProject>> selectProjects(@RequestBody ProjectQueryVo queryVo) {
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query();
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
-        queryWrapper.eq("status", 1)
+        queryWrapper.eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED)
                 .and(wrapper -> wrapper.and(wrapper1 -> wrapper1.eq("user_name", userName)));
         return SimpleResultUtils.createSimpleResult(apiProjectService.list(queryWrapper));
     }

@@ -103,6 +103,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         }).collect(Collectors.toList())));
         Info info = openAPI.getInfo();
         if (info != null) {
+            projectVo.setProjectName(info.getTitle());
             projectVo.setDescription(info.getTitle());
             projectInfo.setVersion(info.getVersion());
             if (StringUtils.containsIgnoreCase(info.getDescription(), "## ")) { // markdown
@@ -114,6 +115,8 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocContent(info.getDescription());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getDocs().add(doc);
+            } else {
+                projectVo.setDescription(info.getDescription());
             }
         }
         projectVo.setProjectInfo(projectInfo);

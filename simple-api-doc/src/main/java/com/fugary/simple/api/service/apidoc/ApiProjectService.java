@@ -4,10 +4,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
-import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
-
-import java.util.List;
 
 /**
  * Create date 2024/7/15<br>
@@ -22,7 +20,7 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @param projectCode
      * @return
      */
-    ApiProjectDetailVo loadProjectVo(String projectCode);
+    ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled);
 
     /**
      * 级联删除

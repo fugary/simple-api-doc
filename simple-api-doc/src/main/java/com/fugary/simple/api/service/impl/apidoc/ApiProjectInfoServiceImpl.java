@@ -11,6 +11,8 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * Created on 2020/5/3 22:37 .<br>
  *
@@ -18,6 +20,11 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper, ApiProjectInfo> implements ApiProjectInfoService {
+
+    @Override
+    public List<ApiProjectInfo> listByProjectId(Integer projectId) {
+        return list(Wrappers.<ApiProjectInfo>query().eq("project_id", projectId));
+    }
 
     @Override
     public ApiProjectInfo loadByProjectId(Integer projectId, Integer folderId) {

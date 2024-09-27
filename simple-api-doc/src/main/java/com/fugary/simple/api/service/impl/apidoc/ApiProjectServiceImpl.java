@@ -2,11 +2,9 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
-import com.fugary.simple.api.entity.api.ApiFolder;
-import com.fugary.simple.api.entity.api.ApiProject;
-import com.fugary.simple.api.entity.api.ApiProjectInfo;
-import com.fugary.simple.api.entity.api.ApiUser;
+import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
 import com.fugary.simple.api.service.apidoc.*;
@@ -14,7 +12,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
-import com.fugary.simple.api.web.vo.imports.ApiProjectDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import lombok.SneakyThrows;
@@ -61,11 +59,23 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @SneakyThrows
     @Override
-    public ApiProjectDetailVo loadProjectVo(String projectCode) {
-        ApiProject apiProject = getOne(Wrappers.<ApiProject>query().eq("project_code", projectCode));
-        ApiProjectDetailVo apiProjectVo = new ApiProjectDetailVo();
-        BeanUtils.copyProperties(apiProject, apiProjectVo);
-        return apiProjectVo;
+    public ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled) {
+        ApiProject apiProject = getOne(Wrappers.<ApiProject>query().eq("project_code", projectCode)
+                .eq(forceEnabled, ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
+        if (apiProject != null) {
+            ApiProjectDetailVo apiProjectVo = new ApiProjectDetailVo();
+            BeanUtils.copyProperties(apiProject, apiProjectVo);
+            List<ApiProjectInfo> infoList = apiProjectInfoService.listByProjectId(apiProject.getId());
+            apiProjectVo.setInfoList(infoList);
+            List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())
+                    : apiFolderService.loadApiFolders(apiProject.getId());
+            apiProjectVo.setFolders(folders);
+            List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId())
+                    : apiDocService.loadByProject(apiProject.getId());
+            apiProjectVo.setDocs(docs);
+            return apiProjectVo;
+        }
+        return null;
     }
 
     @Override

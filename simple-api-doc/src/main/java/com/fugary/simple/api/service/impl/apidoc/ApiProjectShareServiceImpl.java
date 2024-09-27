@@ -18,4 +18,9 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
     public boolean deleteByProject(Integer projectId) {
         return this.remove(Wrappers.<ApiProjectShare>query().eq("project_id", projectId));
     }
+
+    @Override
+    public ApiProjectShare loadByShareId(String shareId) {
+        return this.getOne(Wrappers.<ApiProjectShare>query().eq("share_id", shareId));
+    }
 }

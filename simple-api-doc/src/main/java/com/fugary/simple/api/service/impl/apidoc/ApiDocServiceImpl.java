@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiDocSchema;
 import com.fugary.simple.api.mapper.api.ApiDocMapper;
@@ -26,6 +27,12 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     @Override
     public List<ApiDoc> loadByProject(Integer projectId) {
         return this.list(Wrappers.<ApiDoc>query().eq("project_id", projectId));
+    }
+
+    @Override
+    public List<ApiDoc> loadEnabledByProject(Integer projectId) {
+        return this.list(Wrappers.<ApiDoc>query().eq("project_id", projectId)
+                .eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
     }
 
     @Override

@@ -177,7 +177,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     @Override
     public List<ApiFolder> loadEnabledApiFolders(Integer projectId) {
         return list(Wrappers.<ApiFolder>query().eq("project_id", projectId)
-                .eq("status", ApiDocConstants.STATUS_ENABLED));
+                .eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
     }
 
     @Override

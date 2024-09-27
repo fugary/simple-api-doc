@@ -15,6 +15,8 @@ public class ApiDocConstants {
 
     public static final Integer STATUS_DISABLED = 0;
 
+    public static final String STATUS_KEY = "status";
+
     public static final String API_USER_KEY = "simple-api-user";
 
     public static final String API_LOCALE_KEY = "locale";

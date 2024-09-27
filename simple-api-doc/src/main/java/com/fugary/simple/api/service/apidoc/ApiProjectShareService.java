@@ -16,4 +16,12 @@ public interface ApiProjectShareService extends IService<ApiProjectShare> {
      * @return
      */
     boolean deleteByProject(Integer projectId);
+
+    /**
+     * 加载数据
+     *
+     * @param shareId
+     * @return
+     */
+    ApiProjectShare loadByShareId(String shareId);
 }
