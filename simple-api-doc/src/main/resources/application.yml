@@ -60,6 +60,7 @@ simple:
   api:
     jwt-password: ${API_JWT_PASSWORD:}
     jwt-expire: ${API_JWT_EXPIRE:7}
+    project-version: @project.version@
 dbs:
   type: ${DB_TYPE:h2}
   h2:

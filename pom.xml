@@ -28,6 +28,7 @@
         <commons-fileupload.version>1.5</commons-fileupload.version>
         <graalvm.version>22.3.1</graalvm.version>
         <swagger-parser.version>2.1.22</swagger-parser.version>
+        <springdoc.version>1.8.0</springdoc.version>
     </properties>
 
     <dependencyManagement>
@@ -71,6 +72,11 @@
                 <groupId>io.swagger.parser.v3</groupId>
                 <artifactId>swagger-parser</artifactId>
                 <version>${swagger-parser.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-ui</artifactId>
+                <version>${springdoc.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

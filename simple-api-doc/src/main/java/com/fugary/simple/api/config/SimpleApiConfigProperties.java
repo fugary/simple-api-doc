@@ -14,6 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "simple.api")
 public class SimpleApiConfigProperties {
 
+    private String projectVersion;
+
     private String jwtPassword = "";
 
     private Integer jwtExpire = 7;

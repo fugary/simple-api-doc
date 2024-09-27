@@ -1,5 +1,7 @@
 server:
   port: 9089
+  tomcat:
+    max-swallow-size: 20MB
 spring:
   application:
     name: simple-api-doc
@@ -44,6 +46,7 @@ mybatis-plus:
     db-config:
       table-prefix: t_
       table-underline: true
+      update-strategy: always
     banner: false
 logging: # 日志相关配置
   level:
@@ -54,9 +57,10 @@ logging: # 日志相关配置
     name: ${logging.file.path}/${spring.application.name}.log
 # 自定义database信息
 simple:
-  mock:
-    jwt-password: ${MOCK_JWT_PASSWORD:}
-    jwt-expire: ${MOCK_JWT_EXPIRE:7}
+  api:
+    jwt-password: ${API_JWT_PASSWORD:}
+    jwt-expire: ${API_JWT_EXPIRE:7}
+    project-version: @project.version@
 dbs:
   type: ${DB_TYPE:h2}
   h2:

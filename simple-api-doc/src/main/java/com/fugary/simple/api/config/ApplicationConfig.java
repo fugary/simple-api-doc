@@ -3,6 +3,10 @@ package com.fugary.simple.api.config;
 import com.fugary.simple.api.security.UserSecurityInterceptor;
 import com.fugary.simple.api.utils.http.SimpleHttpClientUtils;
 import com.fugary.simple.api.web.filters.locale.CustomHeaderLocaleContextResolver;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomiser;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +40,9 @@ import static com.fugary.simple.api.contants.ApiDocConstants.API_PATTERN;
 @Configuration
 @EnableConfigurationProperties({SimpleApiConfigProperties.class})
 public class ApplicationConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private SimpleApiConfigProperties simpleApiConfigProperties;
 
     @Bean
     public CommonsMultipartResolver multipartResolver() {
@@ -93,5 +100,20 @@ public class ApplicationConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userSecurityInterceptor()).addPathPatterns("/admin/**");
+    }
+
+    @Bean
+    public OpenApiCustomiser openApiCustomiser() {
+        return openApi -> {
+            openApi.getInfo().setVersion(simpleApiConfigProperties.getProjectVersion());
+            openApi.addSecurityItem(new SecurityRequirement()
+                    .addList("AccessToken", "/admin/**"));
+            if (openApi.getComponents() != null) {
+                openApi.getComponents().addSecuritySchemes("AccessToken", new SecurityScheme()
+                        .type(SecurityScheme.Type.APIKEY).name("Authorization").scheme("Bearer").bearerFormat("JWT")
+                        .in(SecurityScheme.In.HEADER)
+                        .description("Authorization header using login access token. Example: \"Authorization: Bearer {token}\""));
+            }
+        };
     }
 }
