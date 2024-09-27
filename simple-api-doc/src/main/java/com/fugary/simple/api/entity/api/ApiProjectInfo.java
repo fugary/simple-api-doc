@@ -20,7 +20,6 @@ public class ApiProjectInfo extends ModelBase {
     private String sourceType;
     private String url;
     private String fileName;
-    private String contentType;
     private String envContent;
     private String authType;
     private String authContent;
