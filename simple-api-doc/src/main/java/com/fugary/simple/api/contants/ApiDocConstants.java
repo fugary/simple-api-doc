@@ -31,6 +31,8 @@ public class ApiDocConstants {
 
     public static final String X_SIMPLE_FOLDER = "x-simple-folder";
 
+    public static final String X_SIMPLE_MARKDOWN_FILES = "x-simple-markdown-files";
+
     public static final String X_APIFOX_FOLDER = "x-apifox-folder";
 
     public static final String AUTH_TYPE_BASIC = "Basic";
@@ -52,6 +54,8 @@ public class ApiDocConstants {
     public static final String PROJECT_SCHEMA_TYPE_CONTENT = "content";
 
     public static final String PROJECT_SCHEMA_TYPE_COMPONENT = "component";
+
+    public static final String PROJECT_SCHEMA_TYPE_SECURITY = "security";
 
     public static final String PROJECT_TASK_TYPE_MANUAL = "manual";
 

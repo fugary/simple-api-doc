@@ -1,3 +1,34 @@
+CREATE TABLE t_api_project
+(
+    id           int(11)   NOT NULL AUTO_INCREMENT,
+    user_name    varchar(255),
+    project_code varchar(255) UNIQUE,
+    project_name varchar(4096),
+    status       tinyint(3) DEFAULT 0,
+    private_flag bit(1)     DEFAULT 1,
+    description  text,
+    creator      varchar(255),
+    modifier     varchar(255),
+    create_date  timestamp NULL,
+    modify_date  timestamp NULL,
+    PRIMARY KEY (id)
+);
+CREATE TABLE t_api_folder
+(
+    id          int(11)   NOT NULL AUTO_INCREMENT,
+    project_id  int(10)   NOT NULL,
+    folder_name varchar(8192),
+    root_flag   bit(1),
+    status      tinyint(3) DEFAULT 0,
+    sort_id     int(11),
+    parent_id   int(10),
+    description text,
+    creator     varchar(255),
+    modifier    varchar(255),
+    create_date timestamp NULL,
+    modify_date timestamp NULL,
+    PRIMARY KEY (id)
+);
 CREATE TABLE t_api_doc
 (
     id           int(11)   NOT NULL AUTO_INCREMENT,
@@ -8,6 +39,7 @@ CREATE TABLE t_api_doc
     doc_content  text,
     doc_key      varchar(2048),
     status       tinyint(3),
+    sort_id      int(11),
     operation_id varchar(8192),
     deprecated   bit(1),
     method       varchar(255),
@@ -20,7 +52,6 @@ CREATE TABLE t_api_doc
     modify_date  timestamp NULL,
     PRIMARY KEY (id)
 );
-
 CREATE TABLE t_api_doc_schema
 (
     id             int(11)   NOT NULL AUTO_INCREMENT,
@@ -35,36 +66,6 @@ CREATE TABLE t_api_doc_schema
     modifier       varchar(255),
     create_date    timestamp NULL,
     modify_date    timestamp NULL,
-    PRIMARY KEY (id)
-);
-CREATE TABLE t_api_folder
-(
-    id          int(11)   NOT NULL AUTO_INCREMENT,
-    project_id  int(10)   NOT NULL,
-    folder_name varchar(8192),
-    root_flag   bit(1),
-    status      tinyint(3) DEFAULT 0,
-    parent_id   int(10),
-    description text,
-    creator     varchar(255),
-    modifier    varchar(255),
-    create_date timestamp NULL,
-    modify_date timestamp NULL,
-    PRIMARY KEY (id)
-);
-CREATE TABLE t_api_project
-(
-    id           int(11)   NOT NULL AUTO_INCREMENT,
-    user_name    varchar(255),
-    project_code varchar(255) UNIQUE,
-    project_name varchar(4096),
-    status       tinyint(3) DEFAULT 0,
-    private_flag bit(1)     DEFAULT 1,
-    description  text,
-    creator      varchar(255),
-    modifier     varchar(255),
-    create_date  timestamp NULL,
-    modify_date  timestamp NULL,
     PRIMARY KEY (id)
 );
 CREATE TABLE t_api_project_info

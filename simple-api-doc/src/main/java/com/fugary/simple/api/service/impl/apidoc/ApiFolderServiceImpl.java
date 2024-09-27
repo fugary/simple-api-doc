@@ -164,6 +164,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         rootFolder.setRootFlag(true);
         rootFolder.setFolderName("根目录");
         rootFolder.setStatus(ApiDocConstants.STATUS_ENABLED);
+        rootFolder.setSortId(0);
         save(SimpleModelUtils.addAuditInfo(rootFolder));
         return rootFolder;
     }

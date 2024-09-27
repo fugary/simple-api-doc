@@ -12,6 +12,7 @@ public class ApiFolder extends ModelBase {
 
     private static final long serialVersionUID = 9215758244413506093L;
     private Integer projectId;
+    private Integer sortId;
     private String folderName;
     private Boolean rootFlag;
     private Integer parentId;

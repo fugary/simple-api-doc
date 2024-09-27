@@ -2,6 +2,7 @@ package com.fugary.simple.api.utils;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.AccessLevel;
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -73,6 +75,20 @@ public class JsonUtils {
         } catch (Exception e) {
             log.error("解析Json错误", e);
         }
+        return result;
+    }
+
+    public static <T> T fromJson(String json, TypeReference<T> typeReference) {
+        T result = null;
+        try {
+            if (StringUtils.isNotBlank(json)) {
+                result = MAPPER.readValue(json, typeReference);
+            }
+        } catch (IOException var4) {
+            IOException e = var4;
+            log.error("将Json转换成对象出错", e);
+        }
+
         return result;
     }
 

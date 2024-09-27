@@ -1,9 +1,11 @@
 package com.fugary.simple.api.imports.swagger;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.*;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -22,7 +24,6 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,7 +45,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         SwaggerParseResult result = new OpenAPIParser().readContents(data, null, parseOptions);
         OpenAPI openAPI = result.getOpenAPI();
         ExportApiProjectVo projectVo = null;
-        if (openAPI != null && openAPI.getTags() != null) {
+        if (openAPI != null) {
             Map<String, List<Triple<String, PathItem, List<Pair<String, Operation>>>>> pathMap = openAPI.getPaths().entrySet().stream().map(entry -> {
                 PathItem pathItem = entry.getValue();
                 List<Pair<String, Operation>> operations = getAllOperationsInAPath(pathItem);
@@ -64,8 +65,34 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     }
 
     protected void processProjectInfo(OpenAPI openAPI, ExportApiProjectVo projectVo, String content) {
+        processApiInfo(openAPI, projectVo);
+        processApiContent(openAPI, projectVo, content);
+        processApiSecurity(openAPI, projectVo);
+        processApiComponents(openAPI, projectVo);
+        processApiMarkdownFiles(openAPI, projectVo);
+    }
+
+    protected void processApiContent(OpenAPI openAPI, ExportApiProjectVo projectVo, String content) {
+        ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
+        detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
+        detailVo.setSchemaContent(content);
+        detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
+        detailVo.setDescription(Optional.ofNullable(openAPI.getInfo()).map(Info::getDescription).orElse(null));
+        projectVo.getProjectInfoDetails().add(detailVo);
+    }
+
+    protected void processApiSecurity(OpenAPI openAPI, ExportApiProjectVo projectVo) {
+        if (openAPI.getComponents() != null && openAPI.getComponents().getSecuritySchemes() != null) {
+            ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
+            detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY);
+            detailVo.setSchemaContent(JsonUtils.toJson(openAPI.getComponents().getSecuritySchemes()));
+            detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
+            projectVo.getProjectInfoDetails().add(detailVo);
+        }
+    }
+
+    protected void processApiInfo(OpenAPI openAPI, ExportApiProjectVo projectVo) {
         ExportApiProjectInfoVo projectInfo = new ExportApiProjectInfoVo();
-        projectVo.setProjectInfo(projectInfo);
         projectInfo.setStatus(ApiDocConstants.STATUS_ENABLED);
         projectInfo.setOasVersion(openAPI.getOpenapi());
         projectInfo.setSpecVersion(openAPI.getSpecVersion().name());
@@ -74,26 +101,25 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             String name = server.getDescription();
             return new ExportEnvConfigVo(name, url);
         }).collect(Collectors.toList())));
-        ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
-        detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
-        detailVo.setSchemaContent(content);
-        detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
-        projectVo.getProjectInfoDetails().add(detailVo);
         Info info = openAPI.getInfo();
         if (info != null) {
             projectVo.setDescription(info.getTitle());
-            detailVo.setDescription(info.getDescription());
             projectInfo.setVersion(info.getVersion());
             if (StringUtils.containsIgnoreCase(info.getDescription(), "## ")) { // markdown
                 ExportApiDocVo doc = new ExportApiDocVo();
                 doc.setDocType(ApiDocConstants.DOC_TYPE_MD);
                 doc.setDocKey(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info");
                 doc.setDocName("接口说明");
+                doc.setSortId(0);
                 doc.setDocContent(info.getDescription());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getDocs().add(doc);
             }
         }
+        projectVo.setProjectInfo(projectInfo);
+    }
+
+    protected void processApiComponents(OpenAPI openAPI, ExportApiProjectVo projectVo) {
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             openAPI.getComponents().getSchemas().forEach((s, schema) -> {
                 ExportApiProjectInfoDetailVo detail = new ExportApiProjectInfoDetailVo();
@@ -107,6 +133,35 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         }
     }
 
+    protected void processApiMarkdownFiles(OpenAPI openAPI, ExportApiProjectVo projectVo) {
+        Object markdownFilesObj;
+        if (openAPI.getExtensions() != null && (markdownFilesObj = openAPI.getExtensions().get(ApiDocConstants.X_SIMPLE_MARKDOWN_FILES)) != null) {
+            String markdownFileStr = markdownFilesObj instanceof String ? (String) markdownFilesObj : JsonUtils.toJson(markdownFilesObj);
+            List<ExtendMarkdownFile> markdownFiles = JsonUtils.fromJson(markdownFileStr, new TypeReference<>() {
+            });
+            for (int i = 0; i < markdownFiles.size(); i++) {
+                ExtendMarkdownFile markdownFile = markdownFiles.get(i);
+                ExportApiFolderVo folder = null;
+                if (StringUtils.isNotBlank(markdownFile.getFolderName())) {
+                    Pair<ExportApiFolderVo, ExportApiFolderVo> pathFolderPair = ApiDocParseUtils.calcApiPathFolder(projectVo.getFolders(), markdownFile.getFolderName());
+                    folder = pathFolderPair.getKey();
+                }
+                ExportApiDocVo doc = new ExportApiDocVo();
+                doc.setDocType(ApiDocConstants.DOC_TYPE_MD);
+                doc.setDocKey(markdownFile.getFileName());
+                doc.setDocName(markdownFile.getTitle());
+                doc.setDocContent(markdownFile.getContent());
+                doc.setStatus(ApiDocConstants.STATUS_ENABLED);
+                doc.setSortId(Objects.requireNonNullElse(markdownFile.getSortId(), i + 1));
+                if (folder == null) {
+                    projectVo.getDocs().add(doc); // 根目录
+                } else {
+                    folder.getDocs().add(doc); // 子目录
+                }
+            }
+        }
+    }
+
     /**
      * 解析文件夹信息
      *
@@ -116,7 +171,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
      */
     protected void processFolders(OpenAPI openAPI, ExportApiProjectVo projectVo,
                                   Map<String, List<Triple<String, PathItem, List<Pair<String, Operation>>>>> pathMap) {
-        List<ExportApiFolderVo> folders = new ArrayList<>();
+        List<ExportApiFolderVo> folders = projectVo.getFolders();
         pathMap.forEach((path, tripleList) -> {
             for (Triple<String, PathItem, List<Pair<String, Operation>>> triple : tripleList) {
                 String url = triple.getLeft();
@@ -124,7 +179,10 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     Pair<ExportApiFolderVo, ExportApiFolderVo> operationFolderPair = getOperationFolder(openAPI, folders, operationPair);
                     ExportApiFolderVo folder = operationFolderPair.getLeft();
                     if (folder != null) {
-                        folder.getDocs().add(calcApiDoc(folder, url, operationPair));
+                        int docSize = folder.getDocs().size();
+                        ExportApiDocVo apiDocVo = calcApiDoc(folder, url, operationPair);
+                        apiDocVo.setSortId(docSize + 1);
+                        folder.getDocs().add(apiDocVo);
                     }
                 }
             }
@@ -221,43 +279,13 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_APIFOX_FOLDER), folderPath);
             folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER), folderPath);
         }
-        Map<String, ExportApiFolderVo> folderMap = folders.stream().collect(Collectors.toMap(ExportApiFolderVo::getFolderPath, Function.identity()));
-        String[] folderNames = StringUtils.split(folderPath, ApiDocConstants.FOLDER_PATH_SEPARATOR);
-        ExportApiFolderVo topFolder = null;
-        ExportApiFolderVo currentParentFolder = null;
-        for (int i = 0; i < folderNames.length; i++) {
-            String folderName = folderNames[i];
-            List<String> namePaths = new ArrayList<>();
-            for (int j = 0; j <= i; j++) {
-                namePaths.add(folderNames[j]);
-            }
-            String childFolderPath = StringUtils.join(namePaths, ApiDocConstants.FOLDER_PATH_SEPARATOR);
-            ExportApiFolderVo childFolder = folderMap.computeIfAbsent(childFolderPath, k -> {
-                ExportApiFolderVo folder = new ExportApiFolderVo();
-                folder.setFolderPath(childFolderPath);
-                folder.setFolderName(folderName);
-                folder.setStatus(ApiDocConstants.STATUS_ENABLED);
-                return folder;
-            });
-            if (currentParentFolder != null) {
-                addFolderIfNotExist(currentParentFolder.getFolders(), childFolder);
-                if (childFolder.getParentFolder() == null) {
-                    childFolder.setParentFolder(currentParentFolder);
-                }
-            }
-            addFolderIfNotExist(folders, childFolder);
-            currentParentFolder = childFolder; // 把当前folder记为parent
-            if (i == 0) {
-                topFolder = childFolder;
-            }
-            if (i == folderNames.length - 1) {
-                findOperationTag(openAPI, operation).ifPresent(tag -> {
-                    childFolder.setDescription(tag.getDescription());
-                });
-            }
-        }
+        Pair<ExportApiFolderVo, ExportApiFolderVo> parsedPair = ApiDocParseUtils.calcApiPathFolder(folders, folderPath);
+        ExportApiFolderVo childFolder = parsedPair.getLeft();
+        findOperationTag(openAPI, operation).ifPresent(tag -> {
+            childFolder.setDescription(tag.getDescription());
+        });
         // 新增或获取Folder信息
-        return Pair.of(currentParentFolder, topFolder); // 应该永远有个folder，不能为空
+        return parsedPair; // 应该永远有个folder，不能为空
     }
 
     protected Optional<Tag> findOperationTag(OpenAPI openAPI, Operation operation) {
@@ -266,12 +294,6 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     && operation.getTags().contains(tag.getName())).findFirst();
         }
         return Optional.empty();
-    }
-
-    protected void addFolderIfNotExist(List<ExportApiFolderVo> folders, ExportApiFolderVo folder) {
-        if (folder != null && folders.stream().noneMatch(cFolder -> StringUtils.equals(cFolder.getFolderPath(), folder.getFolderPath()))) {
-            folders.add(folder);
-        }
     }
 
     protected List<Pair<String, Operation>> getAllOperationsInAPath(PathItem pathObj) {

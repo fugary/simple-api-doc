@@ -14,6 +14,8 @@ public class ExtendMarkdownFile implements Serializable {
 
     private static final long serialVersionUID = -4507696422000908071L;
     private String folderName;
-    private String name;
+    private String fileName;
+    private String title;
     private String content;
+    private Integer sortId;
 }
