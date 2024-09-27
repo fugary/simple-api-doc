@@ -64,7 +64,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 .eq(forceEnabled, ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
         if (apiProject != null) {
             ApiProjectDetailVo apiProjectVo = new ApiProjectDetailVo();
-            BeanUtils.copyProperties(apiProject, apiProjectVo);
+            BeanUtils.copyProperties(apiProjectVo, apiProject);
             List<ApiProjectInfo> infoList = apiProjectInfoService.listByProjectId(apiProject.getId());
             apiProjectVo.setInfoList(infoList);
             List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())
