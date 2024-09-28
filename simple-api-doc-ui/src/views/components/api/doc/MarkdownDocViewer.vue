@@ -19,6 +19,7 @@ const scrollElement = '.home-main'
 <template>
   <el-container class="padding-left2 padding-right2">
     <md-preview
+      class="md-doc-container"
       :editor-id="id"
       :theme="theme"
       :model-value="vModel"
@@ -36,5 +37,11 @@ const scrollElement = '.home-main'
 .md-catalog {
   position: fixed;
   right: 40px;
+  width: 200px;
+}
+.md-doc-container {
+  right: 40px;
+  margin-right: 170px;
+  margin-left: 20px;
 }
 </style>

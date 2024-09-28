@@ -11,10 +11,10 @@ import MockDataApi, {
 import MockRequestForm from '@/views/components/api/form/MockRequestForm.vue'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
-import { AUTH_OPTION_CONFIG } from '@/services/mock/ApiAuthorizationService'
+import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { MOCK_DATA_ID_HEADER, MOCK_REQUEST_ID_HEADER } from '@/consts/ApiConstants'
 import { cloneDeep, isArray } from 'lodash-es'
-import { processEvnParams } from '@/services/mock/ApiCommonService'
+import { processEvnParams } from '@/services/api/ApiCommonService'
 
 const groupItem = ref()
 const requestItem = ref()

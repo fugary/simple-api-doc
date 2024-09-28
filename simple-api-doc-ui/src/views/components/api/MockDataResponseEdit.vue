@@ -7,7 +7,7 @@ import { $i18nKey, $i18nBundle } from '@/messages'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import MockGenerateSample from '@/views/components/api/form/MockGenerateSample.vue'
 import MockDataExample from '@/views/components/api/form/MockDataExample.vue'
-import { generateSchemaSample, useContentTypeOption } from '@/services/mock/ApiCommonService'
+import { generateSchemaSample, useContentTypeOption } from '@/services/api/ApiCommonService'
 import { loadSchemas } from '@/api/api/MockRequestApi'
 import { calcContentType } from '@/consts/ApiConstants'
 

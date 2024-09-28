@@ -2,7 +2,7 @@
 
 import { ref, computed, watch, nextTick } from 'vue'
 import { AUTH_OPTIONS, AUTH_TYPE } from '@/consts/ApiConstants'
-import { AUTH_OPTION_CONFIG } from '@/services/mock/ApiAuthorizationService'
+import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { useFormItem } from 'element-plus'
 import { isFunction } from 'lodash-es'

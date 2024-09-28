@@ -14,7 +14,7 @@ import {
   importProject
 } from '@/api/ApiProjectApi'
 import { $i18nBundle } from '@/messages'
-import { AUTH_OPTION_CONFIG } from '@/services/mock/ApiAuthorizationService'
+import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
 
 const props = defineProps({

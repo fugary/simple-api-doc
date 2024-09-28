@@ -1,11 +1,13 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { processTreeData, useBackUrl } from '@/utils'
+import { useBackUrl } from '@/utils'
 import { computed, ref, watch } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
+import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
+import { calcProjectItem, filerProjectItem } from '@/services/api/ApiProjectService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -19,7 +21,10 @@ const searchFormOptions = computed(() => {
   return [
     {
       labelKey: 'common.label.keywords',
-      prop: 'keyword'
+      prop: 'keyword',
+      attrs: {
+        onInput: calcProjectItemInfo
+      }
     }
   ]
 })
@@ -29,36 +34,19 @@ const treeNodes = ref([])
 const defaultExpandedKeys = ref([])
 const currentNodeKey = ref(null)
 
-watch(loadSuccess, () => {
-  if (loadSuccess) {
-    if (projectItem.value) {
-      projectItem.value.docs?.sort((a, b) => {
-        return a.sortId - b.sortId
-      })
-      const docs = projectItem.value.docs || []
-      currentDoc.value = docs[0]
-      const folders = projectItem.value.folders || []
-      const folderMap = Object.fromEntries(folders.map(folder => [folder.id, folder]))
-      docs.forEach(doc => {
-        const children = folderMap[doc.folderId].children = folderMap[doc.folderId].children || []
-        children.push(doc)
-        doc.label = doc.docName
-        doc.isDoc = true
-      })
-      treeNodes.value = processTreeData(projectItem.value.folders, null, {
-        clone: false,
-        after: node => (node.label = node.label || node.folderName)
-      })
-      if (treeNodes.value[0]?.id) {
-        defaultExpandedKeys.value = [treeNodes.value[0]?.id]
-      }
-      console.log('=============================treeNodes', defaultExpandedKeys.value, treeNodes.value)
-    }
+const calcProjectItemInfo = () => {
+  const { docTreeNodes, docExpandedKeys, currentSelectDoc } = calcProjectItem(filerProjectItem(projectItem.value, searchParam.value.keyword), currentDoc.value)
+  currentDoc.value = currentSelectDoc
+  treeNodes.value = docTreeNodes
+  defaultExpandedKeys.value = docExpandedKeys
+}
+
+watch(projectItem, (apiProject) => {
+  if (apiProject) {
+    calcProjectItemInfo()
   }
 })
-const filterFolderDocs = () => {
-  console.log('filterFolderDocs')
-}
+
 const showDocDetails = (doc) => {
   console.log('====================================doc', doc)
   if (doc.isDoc) {
@@ -81,8 +69,7 @@ const showDocDetails = (doc) => {
       inline
       :model="searchParam"
       :options="searchFormOptions"
-      :submit-label="$t('common.label.search')"
-      @submit-form="filterFolderDocs()"
+      :show-submit="false"
     >
       <template #buttons>
         <el-button
@@ -154,8 +141,12 @@ const showDocDetails = (doc) => {
           </template>
           <template #split-1>
             <markdown-doc-viewer
-              v-if="currentDoc?.docContent"
+              v-if="currentDoc?.docType==='md'&&currentDoc?.docContent"
               v-model="currentDoc.docContent"
+            />
+            <api-doc-viewer
+              v-if="currentDoc?.docType==='api'"
+              v-model="currentDoc"
             />
           </template>
         </common-split>

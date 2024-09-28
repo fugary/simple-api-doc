@@ -11,7 +11,7 @@ import MockRequestApi, { loadSchemas } from '@/api/api/MockRequestApi'
 import MockRequestForm from '@/views/components/api/form/MockRequestForm.vue'
 import { $i18nKey } from '@/messages'
 import { MOCK_DATA_MATCH_PATTERN_HEADER, MOCK_DATA_PATH_PARAMS_HEADER } from '@/consts/ApiConstants'
-import { processEvnParams } from '@/services/mock/ApiCommonService'
+import { processEvnParams } from '@/services/api/ApiCommonService'
 
 const showWindow = ref(false)
 const groupItem = ref()

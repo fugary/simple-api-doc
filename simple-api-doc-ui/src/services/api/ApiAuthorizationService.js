@@ -4,7 +4,7 @@ import { getSingleSelectOptions } from '@/utils'
 import { ElMessage } from 'element-plus'
 import { AUTH_PARAM_NAMES, AUTH_PREFIX_NAMES, AUTHORIZATION_KEY, BEARER_KEY } from '@/consts/ApiConstants'
 import { $i18nKey } from '@/messages'
-import { calcEnvSuggestions, calcSuggestionsFunc, processEvnParams } from '@/services/mock/ApiCommonService'
+import { calcEnvSuggestions, calcSuggestionsFunc, processEvnParams } from '@/services/api/ApiCommonService'
 
 export const SUPPORTED_ALGORITHMS = [
   'HS256', // HMAC using SHA-256

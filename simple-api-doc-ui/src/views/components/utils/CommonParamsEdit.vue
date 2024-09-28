@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { getSingleSelectOptions, toFlatKeyValue } from '@/utils'
 import { $i18nBundle } from '@/messages'
 import { ElMessage, ElButton } from 'element-plus'
-import { calcSuggestionsFunc } from '@/services/mock/ApiCommonService'
+import { calcSuggestionsFunc } from '@/services/api/ApiCommonService'
 
 const props = defineProps({
   formProp: {

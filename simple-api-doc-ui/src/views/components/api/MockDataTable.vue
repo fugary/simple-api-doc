@@ -17,7 +17,7 @@ import MockDataResponseEdit from '@/views/components/api/MockDataResponseEdit.vu
 import ViewDataLink from '@/views/components/utils/ViewDataLink.vue'
 import MockRequestPreview from '@/views/components/api/MockRequestPreview.vue'
 import { calcContentType, DEFAULT_HEADERS } from '@/consts/ApiConstants'
-import { useContentTypeOption } from '@/services/mock/ApiCommonService'
+import { useContentTypeOption } from '@/services/api/ApiCommonService'
 
 const props = defineProps({
   groupItem: {

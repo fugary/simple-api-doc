@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '@/views/Login.vue'
+import ShareDoc from '@/views/share/ShareDoc.vue'
 import AdminRoutes from '@/route/AdminRoutes'
 import MockRoutes from '@/route/ApiRoutes'
 import ToolsRoutes from '@/route/ToolsRoutes'
@@ -57,6 +58,13 @@ const router = createRouter({
       path: '/login',
       name: 'Login',
       component: Login,
+      meta: {
+        beforeLogin: true
+      }
+    }, {
+      path: '/share/:shareId',
+      name: 'ShareDoc',
+      component: ShareDoc,
       meta: {
         beforeLogin: true
       }
