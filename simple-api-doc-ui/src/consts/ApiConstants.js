@@ -85,11 +85,11 @@ export const IMPORT_SOURCE_TYPES = [{
 }]
 
 export const IMPORT_TYPES = [{
-  value: 'url',
-  labelKey: 'api.label.importTypeUrl'
-}, {
   value: 'file',
   labelKey: 'api.label.importTypeFile'
+}, {
+  value: 'url',
+  labelKey: 'api.label.importTypeUrl'
 }]
 
 export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH_TYPE.JWT)

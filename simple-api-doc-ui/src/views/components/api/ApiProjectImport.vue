@@ -11,7 +11,7 @@ import {
 } from '@/consts/ApiConstants'
 import { ElButton } from 'element-plus'
 import {
-  uploadFiles
+  importProject
 } from '@/api/ApiProjectApi'
 import { $i18nBundle } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/mock/ApiAuthorizationService'
@@ -42,16 +42,21 @@ const authOptions = computed(() => {
 })
 const importFiles = ref([])
 const formOptions = computed(() => {
+  const existsProj = !!props.project
   const urlMode = importModel.value.importType === 'url'
   return defineFormOptions([{
     labelKey: 'api.label.source',
-    prop: 'type',
-    type: 'select',
-    children: IMPORT_TYPES,
+    prop: 'importType',
+    type: 'segmented',
     attrs: {
-      clearable: false
+      clearable: false,
+      options: IMPORT_TYPES.map(item => ({
+        value: item.value,
+        label: $i18nBundle(item.labelKey)
+      }))
     }
   }, {
+    enabled: existsProj,
     labelKey: 'api.label.duplicateStrategy',
     prop: 'overwriteMode',
     type: 'select',
@@ -65,6 +70,11 @@ const formOptions = computed(() => {
     prop: 'sourceType',
     type: 'radio-group',
     children: IMPORT_SOURCE_TYPES
+  }, {
+    labelKey: 'api.label.projectName',
+    prop: 'projectName',
+    required: true,
+    enabled: !existsProj
   }, {
     enabled: urlMode,
     required: true,
@@ -109,9 +119,9 @@ const formOptions = computed(() => {
   }])
 })
 const emit = defineEmits(['import-success'])
-const doImportGroups = () => {
+const doImportProject = () => {
   if (importFiles.value?.length) {
-    uploadFiles(importFiles.value, importModel.value, {
+    importProject(importFiles.value, importModel.value, {
       loading: true
     }).then(data => {
       if (data.success) {
@@ -125,7 +135,7 @@ const doImportGroups = () => {
   }
   return false
 }
-console.log('project', props.project)
+
 </script>
 
 <template>
@@ -135,7 +145,7 @@ console.log('project', props.project)
     append-to-body
     destroy-on-close
     width="800px"
-    :ok-click="doImportGroups"
+    :ok-click="doImportProject"
   >
     <el-container class="flex-column">
       <common-form

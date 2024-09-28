@@ -13,6 +13,7 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
+import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
 
 const route = useRoute()
 
@@ -122,13 +123,13 @@ const tableProjectItems = computed(() => {
     return {
       project,
       projectItems: [{
-        labelKey: 'api.label.projectCode',
+        value: project.projectCode,
+        labelKey: 'api.label.projectCode'
+      }, {
+        labelKey: 'common.label.status',
         formatter () {
-          return <>
-            <span class="margin-right2">{project.projectCode}</span>
-            <DelFlagTag v-model={project.status}
+          return <DelFlagTag v-model={project.status}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
-          </>
         }
       }, {
         labelKey: 'common.label.createDate',
@@ -152,6 +153,8 @@ const dataRows = computed(() => {
 })
 
 const selectedRows = computed(() => tableProjectItems.value.map(item => item.project).filter(project => project?.selected))
+
+const showImportWindow = ref(false)
 
 </script>
 
@@ -179,6 +182,12 @@ const selectedRows = computed(() => tableProjectItems.value.map(item => item.pro
           @click="deleteProjects()"
         >
           {{ $t('common.label.delete') }}
+        </el-button>
+        <el-button
+          type="success"
+          @click="showImportWindow = true"
+        >
+          {{ $t('api.label.import') }}
         </el-button>
       </template>
     </common-form>
@@ -263,9 +272,13 @@ const selectedRows = computed(() => tableProjectItems.value.map(item => item.pro
       v-model="currentProject"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
-      :name="$t('api.label.mockProjects')"
+      :name="$t('api.label.apiProjects')"
       :save-current-item="saveProjectItem"
       label-width="130px"
+    />
+    <api-project-import
+      v-model="showImportWindow"
+      @import-success="loadApiProjects()"
     />
   </el-container>
 </template>

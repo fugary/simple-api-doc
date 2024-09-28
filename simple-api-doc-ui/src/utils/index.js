@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { markRaw, ref } from 'vue'
-import { isObject, isArray, set, isNumber, isFunction } from 'lodash-es'
+import { isObject, isArray, set, isNumber, isFunction, cloneDeep } from 'lodash-es'
 import { ElLoading, ElMessageBox, ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import numeral from 'numeral'
@@ -397,6 +397,48 @@ export const checkShowColumn = (dataList, field) => {
     }
   }
   return hasFieldData
+}
+
+/**
+ * 列表数据解析成树结构
+ * @template T
+ * @param items {T[]}数据集
+ * @param parent {T=} 上级，第一次调用都传null
+ * @param config {Object=}配置信息
+ * @param config.parentKey {string} 父级字段名
+ * @param config.valueKey {string} 当前主字段名
+ * @param config.pre {(item) => void} 前置处理，改变item的属性值
+ * @param config.after {(item) => void} 后置处理，改变item的属性值
+ * @returns {T[]}
+ */
+export const processTreeData = (items, parent, config) => {
+  const results = []
+  const { parentKey, valueKey } = Object.assign({
+    parentKey: 'parentId',
+    valueKey: 'id'
+  }, config || {})
+  items.forEach(current => {
+    if (!parent) {
+      if (!current[parentKey]) { // 根节点
+        const currentNode = cloneDeep(current)
+        results.push(currentNode)
+        isFunction(config?.pre) && config.pre(currentNode)
+        processTreeData(items, currentNode, config)
+        isFunction(config?.after) && config.after(currentNode)
+      }
+    } else {
+      if (current[parentKey] === parent[valueKey]) {
+        const currentNode = cloneDeep(current)
+        parent.children = parent.children || []
+        parent.children.push(currentNode)
+        isFunction(config?.pre) && config.pre(currentNode)
+        processTreeData(items, currentNode, config)
+        isFunction(config?.after) && config.after(currentNode)
+      }
+    }
+    return parent
+  })
+  return results
 }
 
 export default {

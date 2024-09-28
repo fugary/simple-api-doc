@@ -1,46 +1,19 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { $coreConfirm, useBackUrl } from '@/utils'
-import { useTableAndSearchForm } from '@/hooks/CommonHooks'
-import { defineFormOptions } from '@/components/utils'
-import { ref, computed, nextTick } from 'vue'
-import { useFormDelay, useFormStatus } from '@/consts/GlobalConstants'
-import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
-import { useDefaultPage } from '@/config'
-import { $i18nBundle } from '@/messages'
-import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
-import CommonIcon from '@/components/common-icon/index.vue'
+import { processTreeData, useBackUrl } from '@/utils'
+import { computed, ref, watch } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
-import ApiProjectResourceApi from '@/api/ApiProjectResourcesApi'
 import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
+import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
 
 const { goBack } = useBackUrl('/api/projects')
-const { projectItem, loadSuccess } = useApiProjectItem(projectCode)
-
-const { tableData, loading, searchParam, searchMethod: searchMockRequests } = useTableAndSearchForm({
-  defaultParam: { projectCode, page: useDefaultPage(50) },
-  searchMethod: (param) => ApiProjectResourceApi.search(param, { loading: true }),
-  saveParam: false
-})
-
-const loadMockRequests = (...args) => {
-  return searchMockRequests(...args).then((result) => {
-    nextTick(() => {
-      if (tableData.value?.length) {
-        selectRequest.value = tableData.value.find(req => req.id === selectRequest.value?.id) || tableData.value[0]
-        requestTableRef.value?.table?.setCurrentRow(selectRequest.value, true)
-      }
-    })
-    return result
-  })
-}
-
-loadMockRequests()
+const { projectItem, loadSuccess, loading } = useApiProjectItem(projectCode)
 
 //* ************搜索框**************//
+const searchParam = ref({})
 const searchFormOptions = computed(() => {
   return [
     {
@@ -49,112 +22,31 @@ const searchFormOptions = computed(() => {
     }
   ]
 })
-const selectedRows = ref([])
-const requestTableRef = ref()
-
-const deleteRequests = () => {
-  $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
-    .then(() => ApiProjectResourceApi.removeByIds(selectedRows.value.map(item => item.id)), { loading: true })
-    .then(() => loadMockRequests())
-}
-
-const newRequestItem = () => ({
-  status: 1,
-  method: 'GET',
-  projectCode
-})
-const showEditWindow = ref(false)
-const currentRequest = ref(newRequestItem())
-const selectRequest = ref()
-const newOrEdit = async id => {
-  if (id) {
-    await ApiProjectResourceApi.getById(id).then(data => {
-      data.resultData && (currentRequest.value = data.resultData)
-    })
-  } else {
-    currentRequest.value = newRequestItem()
-  }
-  showEditWindow.value = true
-}
-const { contentRef, languageRef, monacoEditorOptions } = useMonacoEditorOptions({
-  readOnly: false,
-  lineNumbers: 'off',
-  minimap: { enabled: false }
-})
-const editFormOptions = computed(() => {
-  return defineFormOptions([{
-    labelKey: 'api.label.requestPath',
-    prop: 'requestPath',
-    required: true,
-    change (val) {
-      if (val && !val.startsWith('/')) {
-        currentRequest.value.requestPath = `/${val.trim()}`
-      }
-    }
-  }, useFormStatus(), useFormDelay(),
-  {
-    labelKey: 'api.label.matchPattern',
-    type: 'vue-monaco-editor',
-    prop: 'matchPattern',
-    tooltip: $i18nBundle('api.msg.matchPatternTooltip'),
-    attrs: {
-      class: 'common-resize-vertical',
-      value: currentRequest.value?.matchPattern,
-      'onUpdate:value': (value) => {
-        currentRequest.value.matchPattern = value
-        contentRef.value = value
-        languageRef.value = 'javascript'
-      },
-      language: languageRef.value,
-      height: '100px',
-      options: monacoEditorOptions
-    }
-  }, {
-    labelKey: 'api.label.requestName',
-    prop: 'requestName',
-    tooltip: $i18nBundle('api.msg.requestNameTooltip')
-  }, {
-    labelKey: 'common.label.description',
-    prop: 'description',
-    attrs: {
-      type: 'textarea'
-    }
-  }])
-})
-
-const saveMockRequest = item => {
-  return ApiProjectResourceApi.saveOrUpdate(item)
-    .then(() => loadMockRequests())
-}
-
-const batchMode = ref(false)
-
-const newColumns = computed(() => {
-  return [{
-    width: '50px',
-    enabled: batchMode.value,
-    attrs: {
-      type: 'selection'
-    }
-  }, {
-    headerSlot: 'buttonHeader',
-    property: 'requestPath',
-    formatter (data) {
-      return data.id
-    },
-    minWidth: '150px'
-  }]
-})
-
-const changeBatchMode = () => {
-  batchMode.value = !batchMode.value
-  if (!batchMode.value) {
-    selectedRows.value = []
-  }
-}
-
 const showImportWindow = ref(false)
+const currentDoc = ref(null)
+const treeNodes = ref([])
+const defaultExpandedKeys = ref([])
+const currentNodeKey = ref(null)
 
+watch(loadSuccess, () => {
+  if (loadSuccess) {
+    if (projectItem.value) {
+      projectItem.value.docs?.sort((a, b) => {
+        return a.sortId - b.sortId
+      })
+      currentDoc.value = projectItem.value.docs?.[0]
+      treeNodes.value = processTreeData(projectItem.value.folders, null, {
+        after (node) {
+          node.label = node.folderName
+        }
+      })
+      console.log('=============================treeNodes', treeNodes.value)
+    }
+  }
+})
+const filterFolderDocs = () => {
+  console.log('filterFolderDocs')
+}
 </script>
 
 <template>
@@ -172,7 +64,7 @@ const showImportWindow = ref(false)
       :model="searchParam"
       :options="searchFormOptions"
       :submit-label="$t('common.label.search')"
-      @submit-form="loadMockRequests()"
+      @submit-form="filterFolderDocs()"
     >
       <template #buttons>
         <el-button
@@ -196,68 +88,62 @@ const showImportWindow = ref(false)
         >
           <template #split-0>
             <div class="padding-right2">
-              <common-table
-                :key="batchMode"
-                ref="requestTableRef"
-                class="request-table"
-                :data="tableData"
-                :columns="newColumns"
-                :loading="loading"
-                row-key="id"
-                @selection-change="selectedRows=$event"
-                @current-change="selectRequest=$event"
+              <el-card
+                shadow="hover"
+                class="small-card operation-card"
               >
-                <template #buttonHeader>
-                  {{ $t('api.label.interfaces') }}
-                  <div class="float-right">
-                    <el-button
-                      v-common-tooltip="$t('common.label.batchMode')"
-                      round
-                      :type="batchMode?'success':'default'"
-                      size="small"
-                      @click="changeBatchMode"
-                    >
-                      <common-icon :icon="batchMode?'LibraryAddCheckFilled':'LibraryAddCheckOutlined'" />
-                    </el-button>
-                    <el-button
-                      v-common-tooltip="$t('common.label.new')"
-                      round
-                      type="primary"
-                      size="small"
-                      @click="newOrEdit()"
-                    >
-                      <common-icon icon="Plus" />
-                    </el-button>
-                    <el-button
-                      v-if="selectedRows.length"
-                      v-common-tooltip="$t('common.label.delete')"
-                      round
-                      type="danger"
-                      size="small"
-                      @click="deleteRequests()"
-                    >
-                      <common-icon icon="DeleteFilled" />
-                    </el-button>
-                  </div>
+                <template #header>
+                  接口管理
                 </template>
-              </common-table>
+                <el-tree
+                  v-loading="loading"
+                  node-key="value"
+                  :data="treeNodes"
+                  :default-expanded-keys="defaultExpandedKeys"
+                  :accordion="true"
+                  highlight-current
+                  :current-node-key="currentNodeKey"
+                  @node-click="$goto(`/admin/groups/edit/modify/${$event.value}`)"
+                >
+                  <template #empty>
+                    <el-empty :description="$t('common.msg.noData')" />
+                  </template>
+                  <template #default="{node}">
+                    <!--                    <el-dropdown-->
+                    <!--                      :id="`${data.value}`"-->
+                    <!--                      :ref="dropdownRef => groupTreeDropdownRef.push(dropdownRef)"-->
+                    <!--                      trigger="contextmenu"-->
+                    <!--                    >-->
+                    <tree-icon-label :node="node" />
+                    <!--                      <template #dropdown>-->
+                    <!--                        <el-dropdown-menu>-->
+                    <!--                          <el-dropdown-item @click="handleTreeNodeOperation('create', data);currentNodeKey=data.value">-->
+                    <!--                            {{ $i18nKey('common.label.commonAdd', 'admin.label.department') }}-->
+                    <!--                          </el-dropdown-item>-->
+                    <!--                          <el-dropdown-item @click="handleTreeNodeOperation('delete', data);">-->
+                    <!--                            {{ $i18nKey('common.label.commonDelete', 'admin.label.department') }}-->
+                    <!--                          </el-dropdown-item>-->
+                    <!--                          <el-dropdown-item @click="handleTreeNodeOperation('cancel', data)">-->
+                    <!--                            {{ $t('common.label.close') }}-->
+                    <!--                          </el-dropdown-item>-->
+                    <!--                        </el-dropdown-menu>-->
+                    <!--                      </template>-->
+                    <!--                    </el-dropdown>-->
+                  </template>
+                </el-tree>
+              </el-card>
             </div>
           </template>
           <template #split-1>
-            111
+            {{ currentDoc }}
           </template>
         </common-split>
       </div>
     </el-container>
-    <simple-edit-window
-      v-model="currentRequest"
-      v-model:show-edit-window="showEditWindow"
-      :form-options="editFormOptions"
-      :name="$t('api.label.interfaces')"
-      :save-current-item="saveMockRequest"
-      label-width="130px"
+    <api-project-import
+      v-model="showImportWindow"
+      :project="projectItem"
     />
-    <api-project-import v-model="showImportWindow" />
   </el-container>
 </template>
 
