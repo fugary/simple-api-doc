@@ -30,19 +30,19 @@ defineProps({
   >
     <common-icon
       v-if="!node.isLeaf&&node.expanded"
-      style="vertical-align: bottom;"
+      class="tree-label-icon"
       :size="iconSize"
       :icon="iconExpand"
     />
     <common-icon
       v-if="!node.isLeaf&&!node.expanded"
-      style="vertical-align: bottom;"
+      class="tree-label-icon"
       :size="iconSize"
       :icon="iconClosed"
     />
     <common-icon
       v-if="node.isLeaf"
-      style="vertical-align: bottom;"
+      class="tree-label-icon"
       :size="iconSize"
       :icon="iconLeaf"
     />
@@ -53,5 +53,8 @@ defineProps({
 </template>
 
 <style scoped>
-
+.tree-label-icon {
+  vertical-align: bottom;
+  margin-right: 4px;
+}
 </style>

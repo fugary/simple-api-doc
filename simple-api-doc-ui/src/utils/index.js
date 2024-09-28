@@ -413,14 +413,15 @@ export const checkShowColumn = (dataList, field) => {
  */
 export const processTreeData = (items, parent, config) => {
   const results = []
-  const { parentKey, valueKey } = Object.assign({
+  const { parentKey, valueKey, clone } = Object.assign({
     parentKey: 'parentId',
-    valueKey: 'id'
+    valueKey: 'id',
+    clone: true
   }, config || {})
   items.forEach(current => {
     if (!parent) {
       if (!current[parentKey]) { // 根节点
-        const currentNode = cloneDeep(current)
+        const currentNode = clone ? cloneDeep(current) : current
         results.push(currentNode)
         isFunction(config?.pre) && config.pre(currentNode)
         processTreeData(items, currentNode, config)
@@ -428,7 +429,7 @@ export const processTreeData = (items, parent, config) => {
       }
     } else {
       if (current[parentKey] === parent[valueKey]) {
-        const currentNode = cloneDeep(current)
+        const currentNode = clone ? cloneDeep(current) : current
         parent.children = parent.children || []
         parent.children.push(currentNode)
         isFunction(config?.pre) && config.pre(currentNode)

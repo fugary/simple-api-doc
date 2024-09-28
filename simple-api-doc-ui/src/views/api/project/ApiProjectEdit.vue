@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
+import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -34,18 +35,35 @@ watch(loadSuccess, () => {
       projectItem.value.docs?.sort((a, b) => {
         return a.sortId - b.sortId
       })
-      currentDoc.value = projectItem.value.docs?.[0]
-      treeNodes.value = processTreeData(projectItem.value.folders, null, {
-        after (node) {
-          node.label = node.folderName
-        }
+      const docs = projectItem.value.docs || []
+      currentDoc.value = docs[0]
+      const folders = projectItem.value.folders || []
+      const folderMap = Object.fromEntries(folders.map(folder => [folder.id, folder]))
+      docs.forEach(doc => {
+        const children = folderMap[doc.folderId].children = folderMap[doc.folderId].children || []
+        children.push(doc)
+        doc.label = doc.docName
+        doc.isDoc = true
       })
-      console.log('=============================treeNodes', treeNodes.value)
+      treeNodes.value = processTreeData(projectItem.value.folders, null, {
+        clone: false,
+        after: node => (node.label = node.label || node.folderName)
+      })
+      if (treeNodes.value[0]?.id) {
+        defaultExpandedKeys.value = [treeNodes.value[0]?.id]
+      }
+      console.log('=============================treeNodes', defaultExpandedKeys.value, treeNodes.value)
     }
   }
 })
 const filterFolderDocs = () => {
   console.log('filterFolderDocs')
+}
+const showDocDetails = (doc) => {
+  console.log('====================================doc', doc)
+  if (doc.isDoc) {
+    currentDoc.value = doc
+  }
 }
 </script>
 
@@ -89,7 +107,6 @@ const filterFolderDocs = () => {
           <template #split-0>
             <div class="padding-right2">
               <el-card
-                shadow="hover"
                 class="small-card operation-card"
               >
                 <template #header>
@@ -97,13 +114,13 @@ const filterFolderDocs = () => {
                 </template>
                 <el-tree
                   v-loading="loading"
-                  node-key="value"
+                  node-key="id"
                   :data="treeNodes"
                   :default-expanded-keys="defaultExpandedKeys"
                   :accordion="true"
                   highlight-current
                   :current-node-key="currentNodeKey"
-                  @node-click="$goto(`/admin/groups/edit/modify/${$event.value}`)"
+                  @node-click="showDocDetails"
                 >
                   <template #empty>
                     <el-empty :description="$t('common.msg.noData')" />
@@ -135,7 +152,10 @@ const filterFolderDocs = () => {
             </div>
           </template>
           <template #split-1>
-            {{ currentDoc }}
+            <markdown-doc-viewer
+              v-if="currentDoc.docContent"
+              :content="currentDoc?.docContent"
+            />
           </template>
         </common-split>
       </div>
