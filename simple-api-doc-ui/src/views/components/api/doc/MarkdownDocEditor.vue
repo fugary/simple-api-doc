@@ -1,47 +1,22 @@
 <script setup>
-import Vditor from 'vditor'
-import 'vditor/dist/index.css'
-
-import { shallowRef, watch, onMounted } from 'vue'
+import { computed } from 'vue'
+import { MdEditor } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 
-const globalConfigStore = useGlobalConfigStore()
-
-const props = defineProps({
-  content: {
-    type: String,
-    default: ''
-  }
+const vModel = defineModel({
+  type: String,
+  default: ''
 })
-
-const getTheme = () => globalConfigStore.isDarkTheme ? 'dark' : 'light'
-
-const vditorConfig = {
-  preview: {
-    theme: getTheme()
-  },
-  outline: {
-    enabled: true,
-    position: 'right'
-  }
-}
-
-const vditor = shallowRef()
-onMounted(() => {
-  vditor.value = new Vditor('markdown-container', {
-    ...vditorConfig,
-    value: props.content
-  })
-})
-watch(() => props.content, content => {
-  vditor.value?.setValue(content)
-})
-watch(() => globalConfigStore.isDarkTheme, () => {
-  vditor.value?.setTheme(getTheme())
-})
+const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
+defineEmits(['change'])
 </script>
 <template>
-  <div id="markdown-container" />
+  <md-editor
+    v-model="vModel"
+    :theme="theme"
+    @update:model-value="$emit('change', $event)"
+  />
 </template>
 
 <style scoped>

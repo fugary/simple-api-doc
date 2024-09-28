@@ -107,6 +107,7 @@ const showDocDetails = (doc) => {
           <template #split-0>
             <div class="padding-right2">
               <el-card
+                shadow="never"
                 class="small-card operation-card"
               >
                 <template #header>
@@ -153,8 +154,8 @@ const showDocDetails = (doc) => {
           </template>
           <template #split-1>
             <markdown-doc-viewer
-              v-if="currentDoc.docContent"
-              :content="currentDoc?.docContent"
+              v-if="currentDoc?.docContent"
+              v-model="currentDoc.docContent"
             />
           </template>
         </common-split>

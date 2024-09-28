@@ -1,39 +1,40 @@
 <script setup>
-import { Marked } from 'marked'
-import { markedHighlight } from 'marked-highlight'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/monokai.css'
 import { computed } from 'vue'
+import { MdCatalog, MdPreview } from 'md-editor-v3'
+import 'md-editor-v3/lib/preview.css'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import { calcAffixOffset } from '@/utils'
 
-const props = defineProps({
-  content: {
-    type: String,
-    default: ''
-  }
+const id = 'markdown-doc-preview-only'
+const vModel = defineModel({
+  type: String,
+  default: ''
 })
 
-const html = computed(() => {
-  const marked = new Marked(
-    markedHighlight({
-      langPrefix: 'hljs language-',
-      highlight (code, lang) {
-        console.log('======================lang', lang, code)
-        const language = hljs.getLanguage(lang) ? lang : 'plaintext'
-        return hljs.highlight(code, { language }).value
-      }
-    })
-  )
-  return marked.parse(props.content)
-})
+const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
+const scrollElement = '.home-main'
 
 </script>
 
 <template>
   <el-container class="padding-left2 padding-right2">
-    <div v-html="html" />
+    <md-preview
+      :editor-id="id"
+      :theme="theme"
+      :model-value="vModel"
+    />
+    <md-catalog
+      class="md-catalog"
+      :editor-id="id"
+      :scroll-element="scrollElement"
+      :scroll-element-offset-top="calcAffixOffset()"
+    />
   </el-container>
 </template>
 
 <style scoped>
-
+.md-catalog {
+  position: fixed;
+  right: 40px;
+}
 </style>
