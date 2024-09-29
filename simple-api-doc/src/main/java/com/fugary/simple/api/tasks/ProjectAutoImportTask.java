@@ -1,17 +1,11 @@
 package com.fugary.simple.api.tasks;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
-import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
+import com.fugary.simple.api.utils.task.SimpleTaskUtils;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import org.springframework.scheduling.config.FixedRateTask;
 
 /**
  * Create date 2024/9/29<br>
@@ -19,23 +13,19 @@ import java.util.concurrent.TimeUnit;
  * @author gary.fu
  */
 @Slf4j
-@Component
-public class ProjectAutoImportTask {
+@Setter
+@Getter
+public class ProjectAutoImportTask extends FixedRateTask implements SimpleAutoTask<ApiProjectTask> {
 
-    @Autowired
-    private ApiProjectTaskService apiProjectTaskService;
+    private SimpleTaskWrapper<ApiProjectTask> projectTaskWrapper;
 
-    @Scheduled(fixedRate = 10, timeUnit = TimeUnit.SECONDS)
-    public void importProjects() {
-        List<ApiProjectTask> projectTasks = apiProjectTaskService.list(Wrappers.lambdaQuery(ApiProjectTask.class)
-                .eq(ApiProjectTask::getTaskType, ApiDocConstants.PROJECT_TASK_TYPE_AUTO)
-                .eq(ApiProjectTask::getStatus, ApiDocConstants.STATUS_ENABLED));
-        if (CollectionUtils.isEmpty(projectTasks)) {
-            log.info("没有需要自动导入的项目");
-            return;
-        }
-        for (ApiProjectTask projectTask : projectTasks) {
-            log.info("开始自动导入项目:{}", projectTask.getTaskName());
-        }
+    public ProjectAutoImportTask(SimpleTaskWrapper<ApiProjectTask> projectTaskWrapper, Runnable runnable, long delay) {
+        super(() -> SimpleTaskUtils.executeTask(projectTaskWrapper, runnable), projectTaskWrapper.getData().getScheduleRate(), delay);
+        this.projectTaskWrapper = projectTaskWrapper;
+    }
+
+    @Override
+    public SimpleTaskWrapper<ApiProjectTask> getTaskWrapper() {
+        return projectTaskWrapper;
     }
 }

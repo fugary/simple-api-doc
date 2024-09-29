@@ -47,6 +47,8 @@ public class ApiDocConstants {
 
     public static final String DOC_KEY_PREFIX = "x-simple-doc-";
 
+    public static final String AUTO_IMPORT_TASK_PREFIX = "auto-import-";
+
     public static final String DOC_SCHEMA_TYPE_PARAMETERS = "parameters";
 
     public static final String DOC_SCHEMA_TYPE_REQUEST = "request";
@@ -62,6 +64,16 @@ public class ApiDocConstants {
     public static final String PROJECT_TASK_TYPE_MANUAL = "manual";
 
     public static final String PROJECT_TASK_TYPE_AUTO = "auto";
+
+    public static final String TASK_STATUS_STARTED = "started";
+
+    public static final String TASK_STATUS_DONE = "done";
+
+    public static final String TASK_STATUS_ERROR = "error";
+
+    public static final String TASK_STATUS_RUNNING = "running";
+
+    public static final String TASK_STATUS_STOPPED = "stopped";
 
     /**
      * 中止导入

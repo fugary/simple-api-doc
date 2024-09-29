@@ -61,6 +61,8 @@ simple:
     jwt-password: ${API_JWT_PASSWORD:}
     jwt-expire: ${API_JWT_EXPIRE:7}
     project-version: @project.version@
+    task-enabled: ${API_TASK_ENABLED:true}
+    task-pool-size: ${API_TASK_POOL_SIZE:10}
 dbs:
   type: ${DB_TYPE:h2}
   h2:

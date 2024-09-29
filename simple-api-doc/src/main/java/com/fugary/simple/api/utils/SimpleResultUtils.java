@@ -106,7 +106,7 @@ public class SimpleResultUtils {
      * @param success
      * @return
      */
-    public static SimpleResult createSimpleResult(boolean success) {
+    public static <T> SimpleResult<T> createSimpleResult(boolean success) {
         return createSimpleResult(success ? SystemErrorConstants.CODE_0 : SystemErrorConstants.CODE_1);
     }
 
@@ -116,8 +116,8 @@ public class SimpleResultUtils {
      * @param code
      * @return
      */
-    public static SimpleResult createSimpleResult(int code) {
-        return SimpleResult.builder()
+    public static <T> SimpleResult<T> createSimpleResult(int code) {
+        return SimpleResult.<T>builder()
                 .code(code)
                 .message(getErrorMsg(code)).build();
     }

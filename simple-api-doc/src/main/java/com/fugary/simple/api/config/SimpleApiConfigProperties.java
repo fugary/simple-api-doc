@@ -19,4 +19,17 @@ public class SimpleApiConfigProperties {
     private String jwtPassword = "";
 
     private Integer jwtExpire = 7;
+    /**
+     * 是否开启任务
+     */
+    private boolean taskEnabled = true;
+    /**
+     * 任务池大小
+     */
+    private int taskPoolSize = 10;
+
+    /**
+     * 任务启动延迟，单位毫秒
+     */
+    private long defaultTaskDelay = 5000;
 }

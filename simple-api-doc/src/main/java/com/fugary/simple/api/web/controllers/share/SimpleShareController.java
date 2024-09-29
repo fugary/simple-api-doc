@@ -1,4 +1,4 @@
-package com.fugary.simple.api.web.controllers.admin;
+package com.fugary.simple.api.web.controllers.share;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
