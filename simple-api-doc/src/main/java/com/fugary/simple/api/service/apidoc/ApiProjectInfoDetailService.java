@@ -7,6 +7,7 @@ import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Create date 2024/9/26<br>
@@ -14,6 +15,16 @@ import java.util.List;
  * @author gary.fu
  */
 public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDetail> {
+
+    /**
+     * 加载需要的详细信息
+     *
+     * @param projectId
+     * @param infoId
+     * @param types
+     * @return
+     */
+    List<ApiProjectInfoDetail> loadByProjectAndInfo(Integer projectId, Integer infoId, Set<String> types);
 
     /**
      * 按照projectId删除
@@ -35,8 +46,8 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
     /**
      * 保存项目详细信息
      *
-     * @param apiProject  项目基本信息
-     * @param apiProjectInfo 项目更多信息
+     * @param apiProject         项目基本信息
+     * @param apiProjectInfo     项目更多信息
      * @param projectInfoDetails 项目一些schema等详情
      */
     void saveApiProjectInfoDetails(ApiProject apiProject, ApiProjectInfo apiProjectInfo, List<ExportApiProjectInfoDetailVo> projectInfoDetails);

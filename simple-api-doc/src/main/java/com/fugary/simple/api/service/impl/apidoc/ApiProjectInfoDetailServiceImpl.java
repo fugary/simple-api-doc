@@ -12,6 +12,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Create date 2024/9/26<br>
@@ -20,6 +21,12 @@ import java.util.List;
  */
 @Service
 public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoDetailMapper, ApiProjectInfoDetail> implements ApiProjectInfoDetailService {
+
+    @Override
+    public List<ApiProjectInfoDetail> loadByProjectAndInfo(Integer projectId, Integer infoId, Set<String> types) {
+        return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("project_id", projectId)
+                .eq("info_id", infoId).in(!types.isEmpty(), "body_type", types));
+    }
 
     @Override
     public boolean deleteByProject(Integer projectId) {

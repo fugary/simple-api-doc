@@ -8,7 +8,9 @@ import lombok.Data;
  * @author gary.fu
  */
 @Data
-public class ProjectQueryVo extends SimpleQueryVo{
+public class ProjectQueryVo extends SimpleQueryVo {
+
+    private Integer projectId;
 
     private String userName;
 

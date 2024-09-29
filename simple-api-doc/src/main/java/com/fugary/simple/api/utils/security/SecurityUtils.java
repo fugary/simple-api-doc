@@ -35,6 +35,15 @@ public class SecurityUtils {
     }
 
     /**
+     * 获取登录用户名
+     * @return
+     */
+    public static String getLoginUserName() {
+        ApiUser loginUser = getLoginUser();
+        return loginUser != null ? loginUser.getUserName() : "";
+    }
+
+    /**
      * 验证用户操作
      *
      * @param targetUserName

@@ -39,6 +39,14 @@ public interface ApiProjectService extends IService<ApiProject> {
     boolean existsApiProject(ApiProject project);
 
     /**
+     * 验证用户Project是否有权限
+     *
+     * @param projectId
+     * @return
+     */
+    boolean validateUserProject(Integer projectId);
+
+    /**
      * 解析成ExportVo对象
      *
      * @param content

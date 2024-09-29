@@ -10,6 +10,7 @@ import com.fugary.simple.api.mapper.api.ApiProjectMapper;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
@@ -96,6 +97,19 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         List<ApiProject> existProjects = list(Wrappers.<ApiProject>query().eq("user_name", project.getUserName())
                 .eq("project_code", project.getProjectCode()));
         return existProjects.stream().anyMatch(existProject -> !existProject.getId().equals(project.getId()));
+    }
+
+    @Override
+    public boolean validateUserProject(Integer projectId) {
+        if (projectId != null) {
+            ApiProject project = getById(projectId);
+            if (project != null) {
+                if (!SecurityUtils.validateUserUpdate(project.getUserName())) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     @Override
