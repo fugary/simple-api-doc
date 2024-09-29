@@ -37,7 +37,7 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
         if (projectInfoVo != null) {
             ApiProjectInfo existsProjectInfo;
             if (importExists && (existsProjectInfo = loadByProjectId(projectInfoVo.getProjectId(), projectInfoVo.getFolderId())) != null) {
-                projectInfoVo.setId(existsProjectInfo.getId());
+                SimpleModelUtils.copyNoneNullValue(existsProjectInfo, projectInfoVo);
             }
             projectInfoVo.setProjectId(apiProject.getId());
             projectInfoVo.setFolderId(mountFolder.getId());

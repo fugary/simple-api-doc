@@ -59,11 +59,6 @@ public class TaskScheduleConfig {
             List<ApiProjectTask> projectTasks = apiProjectTaskService.list(Wrappers.lambdaQuery(ApiProjectTask.class)
                     .eq(ApiProjectTask::getTaskType, ApiDocConstants.PROJECT_TASK_TYPE_AUTO)
                     .eq(ApiProjectTask::getStatus, ApiDocConstants.STATUS_ENABLED));
-            ApiProjectTask testTask = new ApiProjectTask();
-            testTask.setScheduleRate(5000);
-            testTask.setId(100);
-            testTask.setTaskName("测试任务");
-            projectTasks.add(testTask);
             if (CollectionUtils.isEmpty(projectTasks)) {
                 log.info("没有需要自动导入的项目任务");
             }

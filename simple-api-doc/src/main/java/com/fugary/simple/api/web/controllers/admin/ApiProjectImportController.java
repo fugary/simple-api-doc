@@ -11,6 +11,7 @@ import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
@@ -81,7 +82,6 @@ public class ApiProjectImportController {
             projectInfo.setSourceType(importVo.getSourceType());
             projectInfo.setAuthType(importVo.getAuthType());
             projectInfo.setAuthContent(importVo.getAuthContent());
-            projectInfo.setSourceType(importVo.getSourceType());
             if (isUrlMode) {
                 projectInfo.setUrl(importVo.getUrl());
             }
@@ -95,6 +95,22 @@ public class ApiProjectImportController {
         SimpleResult<ExportApiProjectVo> parseResult = parseProject(importVo, request);
         if (parseResult.isSuccess()) {
             return apiProjectService.importNewProject(parseResult.getResultData(), importVo);
+        }
+        return SimpleResult.<ApiProject>builder()
+                .code(parseResult.getCode())
+                .message(parseResult.getMessage()).build();
+    }
+
+    @SneakyThrows
+    @PostMapping("/importExistsProject")
+    public SimpleResult<ApiProject> importExistsProject(@ModelAttribute ApiProjectTaskImportVo importVo, HttpServletRequest request){
+        ApiProject apiProject = apiProjectService.getById(importVo.getProjectId());
+        if (apiProject == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        SimpleResult<ExportApiProjectVo> parseResult = parseProject(importVo, request);
+        if (parseResult.isSuccess()) {
+            return apiProjectService.importUpdateProject(apiProject, parseResult.getResultData(), importVo);
         }
         return SimpleResult.<ApiProject>builder()
                 .code(parseResult.getCode())

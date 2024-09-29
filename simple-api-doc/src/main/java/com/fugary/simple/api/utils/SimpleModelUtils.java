@@ -1,6 +1,8 @@
 package com.fugary.simple.api.utils;
 
-import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiUser;
+import com.fugary.simple.api.entity.api.ModelBase;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.NameValue;
@@ -24,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static com.fugary.simple.api.utils.servlet.HttpRequestUtils.getBodyResource;
 
@@ -215,5 +218,27 @@ public class SimpleModelUtils {
             return files;
         }
         return new ArrayList<>();
+    }
+
+    /**
+     * 复制非空数据
+     *
+     * @param source
+     * @param target
+     */
+    public static void copyNoneNullValue(Object source, Object target) {
+        if (target != null) {
+            Stream.of(target.getClass().getDeclaredFields()).forEach(field -> {
+                field.setAccessible(true);
+                try {
+                    Object value = field.get(target);
+                    if (value == null || (value instanceof String && StringUtils.isBlank((String) value))) {
+                        field.set(target, field.get(source));
+                    }
+                } catch (IllegalAccessException e) {
+                    log.error("copy属性错误", e);
+                }
+            });
+        }
     }
 }

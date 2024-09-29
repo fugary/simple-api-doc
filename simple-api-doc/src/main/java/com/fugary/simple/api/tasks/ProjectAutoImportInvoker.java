@@ -1,14 +1,24 @@
 package com.fugary.simple.api.tasks;
 
+import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
+import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
+import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
+import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
+import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.TimeUnit;
+import java.util.Date;
 
 /**
  * Create date 2024/9/29<br>
@@ -25,6 +35,10 @@ public class ProjectAutoImportInvoker {
     @Autowired
     private ApiProjectTaskService apiProjectTaskService;
 
+    @Qualifier("urlDocContentProviderImpl")
+    @Autowired
+    private DocContentProvider<UrlWithAuthVo> urlDocContentProvider;
+
     /**
      * 导入数据
      *
@@ -33,6 +47,36 @@ public class ProjectAutoImportInvoker {
     @SneakyThrows
     public void importProject(ApiProjectTask projectTask) {
         long start = System.currentTimeMillis();
-        TimeUnit.SECONDS.sleep(1);
+        if (StringUtils.isNotBlank(projectTask.getSourceUrl())) {
+            ApiProject apiProject = apiProjectService.getById(projectTask.getProjectId());
+            if (apiProject != null) {
+                ApiProjectTaskImportVo importVo = new ApiProjectTaskImportVo();
+                importVo.setProjectId(projectTask.getProjectId());
+                importVo.setImportType(ApiDocConstants.IMPORT_TYPE_URL);
+                importVo.setUrl(projectTask.getSourceUrl());
+                importVo.setAuthType(projectTask.getAuthType());
+                importVo.setAuthContent(projectTask.getAuthContent());
+                String content = urlDocContentProvider.getContent(importVo);
+                SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
+                if (!parseResult.isSuccess()) {
+                    log.error("parse project task {}/{} error {}", projectTask.getProjectId(), projectTask.getId(), parseResult.getCode());
+                    return;
+                }
+                ExportApiProjectVo exportProjectVo = parseResult.getResultData();
+                ExportApiProjectInfoVo projectInfo = exportProjectVo.getProjectInfo();
+                projectInfo.setSourceType(importVo.getSourceType());
+                projectInfo.setAuthType(importVo.getAuthType());
+                projectInfo.setAuthContent(importVo.getAuthContent());
+                projectInfo.setUrl(importVo.getUrl());
+                SimpleResult<ApiProject> importResult = apiProjectService.importUpdateProject(apiProject, parseResult.getResultData(), importVo);
+                if (!importResult.isSuccess()) {
+                    log.error("import project task {}/{} error {}", projectTask.getProjectId(), projectTask.getId(), importResult.getCode());
+                    return;
+                }
+                projectTask.setExecDate(new Date());
+                apiProjectTaskService.updateById(projectTask);
+            }
+        }
+        log.info("import project task {}/{} cost {}ms", projectTask.getProjectId(), projectTask.getId(), System.currentTimeMillis() - start);
     }
 }
