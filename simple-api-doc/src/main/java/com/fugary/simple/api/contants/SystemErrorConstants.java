@@ -50,4 +50,8 @@ public class SystemErrorConstants {
      * API内容解析失败
      */
     public static final int CODE_2006 = 2006;
+    /**
+     * 根文件夹不能删除
+     */
+    public static final int CODE_2007 = 2007;
 }
