@@ -5,8 +5,10 @@ import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -52,4 +54,21 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      */
     void saveApiProjectInfoDetails(ApiProject apiProject, ApiProjectInfo apiProjectInfo, List<ExportApiProjectInfoDetailVo> projectInfoDetails);
 
+    /**
+     * 解析成SchemaMap
+     *
+     * @param projectInfoDetails
+     * @return
+     */
+    Map<String, ApiProjectInfoDetail> toSchemaKeyMap(List<ApiProjectInfoDetail> projectInfoDetails);
+
+    /**
+     * 数据过滤
+     *
+     * @param projectInfoDetails
+     * @param schemaKeyMap
+     * @param docDetailVo
+     * @return
+     */
+    List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, ApiDocDetailVo docDetailVo);
 }

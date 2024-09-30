@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -67,40 +68,33 @@ public class SimpleShareController {
         if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        ApiDocDetailVo apiDocVo = new ApiDocDetailVo();
-        BeanUtils.copyProperties(apiDoc, apiDocVo);
-        List<ApiDocSchema> docSchemas = apiDocSchemaService.loadByDoc(docId);
-        docSchemas.forEach(schema -> {
-            switch (schema.getBodyType()) {
-                case ApiDocConstants.DOC_SCHEMA_TYPE_REQUEST:
-                    apiDocVo.getRequestsSchemas().add(schema);
-                    break;
-                case ApiDocConstants.DOC_SCHEMA_TYPE_RESPONSE:
-                    apiDocVo.getResponsesSchemas().add(schema);
-                    break;
-                case ApiDocConstants.DOC_SCHEMA_TYPE_PARAMETERS:
-                    apiDocVo.setParametersSchema(schema);
-                    break;
-            }
-        });
+        ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);
         return SimpleResultUtils.createSimpleResult(apiDocVo);
     }
 
     @GetMapping("/info/{shareId}/{docId}")
-    public SimpleResult<ApiProjectInfoDetailVo> loadInfo(@PathVariable("shareId") String shareId, @PathVariable("docId") Integer docId) {
-        ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
-        ApiDoc apiDoc = apiDocService.getById(docId);
-        if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
+    public SimpleResult<ApiDocDetailVo> loadInfo(@PathVariable("shareId") String shareId, @PathVariable("docId") Integer docId) {
+        SimpleResult<ApiDocDetailVo> apiDocDetailResult = loadShareDoc(shareId, docId);
+        if (!apiDocDetailResult.isSuccess()) {
+            return apiDocDetailResult;
+        }
+        ApiDocDetailVo apiDocVo = apiDocDetailResult.getResultData();
+        ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDocVo.getInfoId());
+        if (apiInfo == null || !apiDocVo.getProjectId().equals(apiInfo.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDoc.getInfoId());
-        if (apiInfo == null || !apiShare.getProjectId().equals(apiInfo.getProjectId())) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
-        }
+        ApiProjectInfoDetailVo apiInfoDetailVo = getInfoDetailVo(apiInfo, apiDocVo);
+        apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
+        return SimpleResultUtils.createSimpleResult(apiDocVo);
+    }
+
+    protected ApiProjectInfoDetailVo getInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail) {
         ApiProjectInfoDetailVo apiInfoVo = new ApiProjectInfoDetailVo();
         BeanUtils.copyProperties(apiInfo, apiInfoVo);
-        List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), apiInfo.getId(),
+        List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(),
                 Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
+        Map<String, ApiProjectInfoDetail> schemaKeyMap = apiProjectInfoDetailService.toSchemaKeyMap(apiInfoDetails);
+        apiInfoDetails = apiProjectInfoDetailService.filterByDocDetail(apiInfoDetails, schemaKeyMap, apiDocDetail);
         apiInfoDetails.forEach(detail -> {
             switch (detail.getBodyType()) {
                 case ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT:
@@ -111,7 +105,7 @@ public class SimpleShareController {
                     break;
             }
         });
-        return SimpleResultUtils.createSimpleResult(apiInfoVo);
+        return apiInfoVo;
     }
 
 }
