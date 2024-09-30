@@ -1,8 +1,9 @@
 package com.fugary.simple.api.web.controllers.share;
 
-import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
-import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.entity.api.ApiDoc;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
@@ -18,9 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Create date 2024/9/29<br>
@@ -69,43 +67,13 @@ public class SimpleShareController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);
-        return SimpleResultUtils.createSimpleResult(apiDocVo);
-    }
-
-    @GetMapping("/info/{shareId}/{docId}")
-    public SimpleResult<ApiDocDetailVo> loadInfo(@PathVariable("shareId") String shareId, @PathVariable("docId") Integer docId) {
-        SimpleResult<ApiDocDetailVo> apiDocDetailResult = loadShareDoc(shareId, docId);
-        if (!apiDocDetailResult.isSuccess()) {
-            return apiDocDetailResult;
-        }
-        ApiDocDetailVo apiDocVo = apiDocDetailResult.getResultData();
         ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDocVo.getInfoId());
         if (apiInfo == null || !apiDocVo.getProjectId().equals(apiInfo.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        ApiProjectInfoDetailVo apiInfoDetailVo = getInfoDetailVo(apiInfo, apiDocVo);
+        ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         return SimpleResultUtils.createSimpleResult(apiDocVo);
-    }
-
-    protected ApiProjectInfoDetailVo getInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail) {
-        ApiProjectInfoDetailVo apiInfoVo = new ApiProjectInfoDetailVo();
-        BeanUtils.copyProperties(apiInfo, apiInfoVo);
-        List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(),
-                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
-        Map<String, ApiProjectInfoDetail> schemaKeyMap = apiProjectInfoDetailService.toSchemaKeyMap(apiInfoDetails);
-        apiInfoDetails = apiProjectInfoDetailService.filterByDocDetail(apiInfoDetails, schemaKeyMap, apiDocDetail);
-        apiInfoDetails.forEach(detail -> {
-            switch (detail.getBodyType()) {
-                case ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT:
-                    apiInfoVo.getComponentSchemas().add(detail);
-                    break;
-                case ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY:
-                    apiInfoVo.getSecuritySchemas().add(detail);
-                    break;
-            }
-        });
-        return apiInfoVo;
     }
 
 }

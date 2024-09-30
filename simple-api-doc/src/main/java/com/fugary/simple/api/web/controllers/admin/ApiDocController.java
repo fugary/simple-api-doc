@@ -6,12 +6,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
-import com.fugary.simple.api.service.apidoc.ApiDocService;
-import com.fugary.simple.api.service.apidoc.ApiFolderService;
-import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,15 @@ public class ApiDocController {
 
     @Autowired
     private ApiProjectService apiProjectService;
+
+    @Autowired
+    private ApiDocSchemaService apiDocSchemaService;
+
+    @Autowired
+    private ApiProjectInfoService apiProjectInfoService;
+
+    @Autowired
+    private ApiProjectInfoDetailService apiProjectInfoDetailService;
 
     @GetMapping
     public SimpleResult<List<ApiDoc>> searchDoc(@ModelAttribute ProjectQueryVo queryVo) {
@@ -77,6 +87,19 @@ public class ApiDocController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiDocService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiDoc)));
+    }
+
+    @GetMapping("/loadDoc/{docId}")
+    public SimpleResult<ApiDocDetailVo> loadDoc(@PathVariable("docId") Integer docId) {
+        ApiDoc apiDoc = apiDocService.getById(docId);
+        ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);
+        ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDocVo.getInfoId());
+        if (apiInfo == null || !apiDocVo.getProjectId().equals(apiInfo.getProjectId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
+        apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
+        return SimpleResultUtils.createSimpleResult(apiDocVo);
     }
 
     protected boolean validateUserProject(ApiDoc apiDoc) {

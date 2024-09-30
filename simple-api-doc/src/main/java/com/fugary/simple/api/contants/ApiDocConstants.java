@@ -75,6 +75,8 @@ public class ApiDocConstants {
 
     public static final String TASK_STATUS_STOPPED = "stopped";
 
+    public static final String SCHEMA_COMPONENT_PREFIX = "#/components/schemas/";
+
     /**
      * 中止导入
      */

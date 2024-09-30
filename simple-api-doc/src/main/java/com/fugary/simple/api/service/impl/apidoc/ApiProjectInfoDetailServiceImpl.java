@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
@@ -10,12 +11,16 @@ import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,11 +35,7 @@ import java.util.stream.Collectors;
 @Service
 public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoDetailMapper, ApiProjectInfoDetail> implements ApiProjectInfoDetailService {
 
-    private final StringHttpMessageConverter stringHttpMessageConverter;
-
-    public ApiProjectInfoDetailServiceImpl(StringHttpMessageConverter stringHttpMessageConverter) {
-        this.stringHttpMessageConverter = stringHttpMessageConverter;
-    }
+    private static final Pattern SCHEMA_COMPONENT_PATTERN = Pattern.compile("\"(" + ApiDocConstants.SCHEMA_COMPONENT_PREFIX + "[^\"]+)\"");
 
     @Override
     public List<ApiProjectInfoDetail> loadByProjectAndInfo(Integer projectId, Integer infoId, Set<String> types) {
@@ -64,11 +65,32 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     }
 
     @Override
+    public ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail) {
+        ApiProjectInfoDetailVo apiInfoVo = new ApiProjectInfoDetailVo();
+        BeanUtils.copyProperties(apiInfo, apiInfoVo);
+        List<ApiProjectInfoDetail> apiInfoDetails = loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(),
+                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
+        Map<String, ApiProjectInfoDetail> schemaKeyMap = toSchemaKeyMap(apiInfoDetails);
+        apiInfoDetails = filterByDocDetail(apiInfoDetails, schemaKeyMap, apiDocDetail);
+        apiInfoDetails.forEach(detail -> {
+            switch (detail.getBodyType()) {
+                case ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT:
+                    apiInfoVo.getComponentSchemas().add(detail);
+                    break;
+                case ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY:
+                    apiInfoVo.getSecuritySchemas().add(detail);
+                    break;
+            }
+        });
+        return apiInfoVo;
+    }
+
+    @Override
     public Map<String, ApiProjectInfoDetail> toSchemaKeyMap(List<ApiProjectInfoDetail> projectInfoDetails) {
         return projectInfoDetails.stream()
                 .filter(detail -> StringUtils.isNotBlank(detail.getSchemaName()))
                 .collect(Collectors.toMap(detail -> {
-                    String schemaKey = "#/components/schemas/" + detail.getSchemaName();
+                    String schemaKey = ApiDocConstants.SCHEMA_COMPONENT_PREFIX + detail.getSchemaName();
                     detail.setSchemaKey(schemaKey);
                     return schemaKey;
                 }, Function.identity()));
@@ -77,8 +99,8 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, ApiDocDetailVo docDetailVo) {
         Set<String> schemaKeys = new HashSet<>();
-        docDetailVo.getRequestsSchemas().forEach(schema -> calcSchemaList(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
-        docDetailVo.getResponsesSchemas().forEach(schema -> calcSchemaList(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
+        docDetailVo.getRequestsSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
+        docDetailVo.getResponsesSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
         projectInfoDetails = projectInfoDetails.stream()
                 .filter(detail -> StringUtils.isNotBlank(detail.getSchemaKey()) && schemaKeys.contains(detail.getSchemaKey()))
                 .collect(Collectors.toList());
@@ -92,22 +114,18 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
      * @param content
      * @param detailMap
      */
-    protected void calcSchemaList(Set<String> schemaKeys, String content, Map<String, ApiProjectInfoDetail> detailMap) {
-        log.info("====content:{}", content);
-        Pattern pattern = Pattern.compile("\"(#/components/schemas/[^\"]+)\"");
-        Matcher matcher = pattern.matcher(content);
-        String schemaName = null;
+    protected void calcRelatedSchemas(Set<String> schemaKeys, String content, Map<String, ApiProjectInfoDetail> detailMap) {
+        Matcher matcher = SCHEMA_COMPONENT_PATTERN.matcher(content);
         while (matcher.find()) {
-            schemaName = matcher.group(1);
+            String schemaName = matcher.group(1);
+            // 如果 schema 已经被处理过，则跳过该 schema，避免重复递归
             if (!schemaKeys.contains(schemaName)) {
+                schemaKeys.add(schemaName);  // 处理当前 schema，避免重复
                 ApiProjectInfoDetail targetDetail = detailMap.get(schemaName);
-                if (targetDetail != null) {
-                    calcSchemaList(schemaKeys, targetDetail.getSchemaContent(), detailMap);
+                if (targetDetail != null && StringUtils.isNotBlank(targetDetail.getSchemaContent())) {
+                    calcRelatedSchemas(schemaKeys, targetDetail.getSchemaContent(), detailMap);
                 }
             }
-        }
-        if (StringUtils.isNotBlank(schemaName)) {
-            schemaKeys.add(schemaName);
         }
     }
 }
