@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -228,7 +229,7 @@ public class SimpleModelUtils {
      */
     public static void copyNoneNullValue(Object source, Object target) {
         if (target != null) {
-            Stream.of(target.getClass().getDeclaredFields()).forEach(field -> {
+            Stream.of(FieldUtils.getAllFields(target.getClass())).forEach(field -> {
                 field.setAccessible(true);
                 try {
                     Object value = field.get(target);

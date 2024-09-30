@@ -50,13 +50,13 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     }
 
     @Override
-    public int saveApiFolders(List<ExportApiFolderVo> apiFolders, ApiProject project, ApiFolder parentFolder, List<ExportApiDocVo> extraDocs) {
-        parentFolder = getOrCreateMountFolder(project, parentFolder);
+    public int saveApiFolders(List<ExportApiFolderVo> apiFolders, ApiProject project, ApiFolder mountFolder, List<ExportApiDocVo> extraDocs) {
+        mountFolder = getOrCreateMountFolder(project, mountFolder);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = calcFolderMap(loadApiFolders(project.getId()));
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
         Map<String, Pair<String, ApiDoc>> existsDocMap = calcDocMap(apiDocService.loadByProject(project.getId()), folderPathMap);
-        ApiFolder mountFolder = parentFolder; // 挂载目录
-        apiFolders.forEach(folder -> saveApiFolderVo(mountFolder, folder, folderMapPair, existsDocMap));
+        ApiFolder finalMountFolder = mountFolder; // 挂载目录
+        apiFolders.forEach(folder -> saveApiFolderVo(finalMountFolder, folder, folderMapPair, existsDocMap));
         this.saveApiDocs(mountFolder, null, extraDocs, folderMapPair, existsDocMap);
         return apiFolders.size();
     }
@@ -188,9 +188,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         for (ApiFolder apiFolder : apiFolders) {
             List<String> paths = new ArrayList<>();
             paths.add(apiFolder.getFolderName());
-            while (apiFolder.getParentId() != null) {
-                apiFolder = folderMap.get(apiFolder.getParentId());
-                paths.add(0, apiFolder.getFolderName());
+            ApiFolder currentFolder = apiFolder;
+            while (currentFolder.getParentId() != null) {
+                currentFolder = folderMap.get(currentFolder.getParentId());
+                paths.add(0, currentFolder.getFolderName());
             }
             String folderPath = String.join("/", paths);
             pathFolderMap.put(folderPath, apiFolder);

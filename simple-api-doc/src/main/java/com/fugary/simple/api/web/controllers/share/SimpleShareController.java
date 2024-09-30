@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,7 +46,7 @@ public class SimpleShareController {
     private ApiDocSchemaService apiDocSchemaService;
 
     @GetMapping("/{shareId}")
-    public SimpleResult<ApiProjectShareVo> loadShare(String shareId) {
+    public SimpleResult<ApiProjectShareVo> loadShare(@PathVariable("shareId") String shareId) {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         if (apiShare == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
@@ -60,10 +61,10 @@ public class SimpleShareController {
     }
 
     @GetMapping("/{shareId}/{docId}")
-    public SimpleResult<ApiDocDetailVo> loadShareDoc(String shareId, Integer docId) {
+    public SimpleResult<ApiDocDetailVo> loadShareDoc(@PathVariable("shareId") String shareId, @PathVariable("docId") Integer docId) {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         ApiDoc apiDoc = apiDocService.getById(docId);
-        if (apiShare == null || apiDoc == null) {
+        if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiDocDetailVo apiDocVo = new ApiDocDetailVo();
@@ -86,10 +87,10 @@ public class SimpleShareController {
     }
 
     @GetMapping("/info/{shareId}/{infoId}")
-    public SimpleResult<ApiProjectInfoDetailVo> loadInfo(String shareId, Integer infoId) {
+    public SimpleResult<ApiProjectInfoDetailVo> loadInfo(@PathVariable("shareId") String shareId, @PathVariable("infoId") Integer infoId) {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         ApiProjectInfo apiInfo = apiProjectInfoService.getById(infoId);
-        if (apiShare == null || apiInfo == null) {
+        if (apiShare == null || apiInfo == null || !apiShare.getProjectId().equals(apiInfo.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiProjectInfoDetailVo apiInfoVo = new ApiProjectInfoDetailVo();

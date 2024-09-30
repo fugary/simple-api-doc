@@ -35,13 +35,13 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
     @Override
     public ApiProjectInfo saveApiProjectInfo(ExportApiProjectInfoVo projectInfoVo, ApiProject apiProject, ApiFolder mountFolder, boolean importExists) {
         if (projectInfoVo != null) {
+            projectInfoVo.setProjectId(apiProject.getId());
+            projectInfoVo.setFolderId(mountFolder.getId());
             ApiProjectInfo existsProjectInfo;
             if (importExists && (existsProjectInfo = loadByProjectId(projectInfoVo.getProjectId(), projectInfoVo.getFolderId())) != null) {
                 SimpleModelUtils.copyNoneNullValue(existsProjectInfo, projectInfoVo);
             }
-            projectInfoVo.setProjectId(apiProject.getId());
-            projectInfoVo.setFolderId(mountFolder.getId());
-            save(SimpleModelUtils.addAuditInfo(projectInfoVo));
+            saveOrUpdate(SimpleModelUtils.addAuditInfo(projectInfoVo));
         }
         return projectInfoVo;
     }

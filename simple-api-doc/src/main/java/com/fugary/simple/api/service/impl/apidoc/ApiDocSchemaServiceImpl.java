@@ -18,7 +18,7 @@ import java.util.List;
 public class ApiDocSchemaServiceImpl extends ServiceImpl<ApiDocSchemaMapper, ApiDocSchema> implements ApiDocSchemaService {
     @Override
     public List<ApiDocSchema> loadByDoc(Integer docId) {
-        return List.of();
+        return this.list(Wrappers.<ApiDocSchema>query().eq("doc_id", docId));
     }
 
     @Override
