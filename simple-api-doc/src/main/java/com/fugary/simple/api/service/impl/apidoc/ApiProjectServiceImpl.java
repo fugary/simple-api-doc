@@ -157,7 +157,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         mountFolder = apiFolderService.getOrCreateMountFolder(apiProject, mountFolder);
         ApiProjectInfo projectInfo = apiProjectInfoService.saveApiProjectInfo(exportVo.getProjectInfo(), apiProject, mountFolder, importExists);
         apiProjectInfoDetailService.saveApiProjectInfoDetails(apiProject, projectInfo, exportVo.getProjectInfoDetails());
-        apiFolderService.saveApiFolders(Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), apiProject, mountFolder, exportVo.getDocs());
+        apiFolderService.saveApiFolders(apiProject, projectInfo, mountFolder, Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), exportVo.getDocs());
         return SimpleResultUtils.createSimpleResult(apiProject);
     }
 }

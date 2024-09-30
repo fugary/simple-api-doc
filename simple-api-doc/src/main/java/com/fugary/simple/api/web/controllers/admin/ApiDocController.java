@@ -62,7 +62,7 @@ public class ApiDocController {
         if (!validateUserProject(ApiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        return SimpleResultUtils.createSimpleResult(apiDocService.removeById(id));
+        return SimpleResultUtils.createSimpleResult(apiDocService.deleteDoc(id));
     }
 
     @PostMapping

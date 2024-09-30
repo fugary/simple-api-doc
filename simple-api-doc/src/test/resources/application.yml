@@ -2,6 +2,8 @@ server:
   port: 9089
   tomcat:
     max-swallow-size: 20MB
+  compression:
+    enabled: true
 spring:
   application:
     name: simple-api-doc

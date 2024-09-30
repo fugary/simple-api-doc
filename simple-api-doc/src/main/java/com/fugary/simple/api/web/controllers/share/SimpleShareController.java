@@ -86,16 +86,20 @@ public class SimpleShareController {
         return SimpleResultUtils.createSimpleResult(apiDocVo);
     }
 
-    @GetMapping("/info/{shareId}/{infoId}")
-    public SimpleResult<ApiProjectInfoDetailVo> loadInfo(@PathVariable("shareId") String shareId, @PathVariable("infoId") Integer infoId) {
+    @GetMapping("/info/{shareId}/{docId}")
+    public SimpleResult<ApiProjectInfoDetailVo> loadInfo(@PathVariable("shareId") String shareId, @PathVariable("docId") Integer docId) {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
-        ApiProjectInfo apiInfo = apiProjectInfoService.getById(infoId);
-        if (apiShare == null || apiInfo == null || !apiShare.getProjectId().equals(apiInfo.getProjectId())) {
+        ApiDoc apiDoc = apiDocService.getById(docId);
+        if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDoc.getInfoId());
+        if (apiInfo == null || !apiShare.getProjectId().equals(apiInfo.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiProjectInfoDetailVo apiInfoVo = new ApiProjectInfoDetailVo();
         BeanUtils.copyProperties(apiInfo, apiInfoVo);
-        List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), infoId,
+        List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), apiInfo.getId(),
                 Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
         apiInfoDetails.forEach(detail -> {
             switch (detail.getBodyType()) {

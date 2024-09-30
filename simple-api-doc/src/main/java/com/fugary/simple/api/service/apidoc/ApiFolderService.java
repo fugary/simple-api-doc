@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.apidoc;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import org.apache.commons.lang3.tuple.Pair;
@@ -28,13 +29,14 @@ public interface ApiFolderService extends IService<ApiFolder> {
     /**
      * 保存数据
      *
-     * @param apiFolders
      * @param project
-     * @param parentFolder
+     * @param projectInfo
+     * @param mountFolder
+     * @param apiFolders
      * @param extraDocs
      * @return
      */
-    int saveApiFolders(List<ExportApiFolderVo> apiFolders, ApiProject project, ApiFolder parentFolder, List<ExportApiDocVo> extraDocs);
+    int saveApiFolders(ApiProject project, ApiProjectInfo projectInfo, ApiFolder mountFolder, List<ExportApiFolderVo> apiFolders, List<ExportApiDocVo> extraDocs);
 
     /**
      * 获取根目录
@@ -59,6 +61,14 @@ public interface ApiFolderService extends IService<ApiFolder> {
      * @return
      */
     List<ApiFolder> loadApiFolders(Integer projectId);
+
+    /**
+     * 加载所有子目录
+     *
+     * @param folderId
+     * @return
+     */
+    List<ApiFolder> loadSubFolders(Integer folderId);
 
     /**
      * 获取folders列表

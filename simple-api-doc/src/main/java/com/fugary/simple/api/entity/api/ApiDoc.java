@@ -13,6 +13,8 @@ public class ApiDoc extends ModelBase {
     private static final long serialVersionUID = -8358397569699746687L;
     private Integer projectId;
     private Integer folderId;
+    private Integer infoId;
+    private String specVersion;
     private Integer sortId;
     private String docType;
     private String docName;

@@ -7,6 +7,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.mapper.api.ApiFolderMapper;
 import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
@@ -18,7 +19,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.PathMatcher;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +44,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     @Autowired
     private ApiDocSchemaService apiDocSchemaService;
 
+    private PathMatcher pathMatcher = new AntPathMatcher();
+
     @Override
     public ApiFolder getOrCreateMountFolder(ApiProject project, ApiFolder parentFolder) {
         if (parentFolder == null && (parentFolder = getRootFolder(project.getId())) == null) {
@@ -50,14 +55,14 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     }
 
     @Override
-    public int saveApiFolders(List<ExportApiFolderVo> apiFolders, ApiProject project, ApiFolder mountFolder, List<ExportApiDocVo> extraDocs) {
+    public int saveApiFolders(ApiProject project, ApiProjectInfo projectInfo, ApiFolder mountFolder, List<ExportApiFolderVo> apiFolders, List<ExportApiDocVo> extraDocs) {
         mountFolder = getOrCreateMountFolder(project, mountFolder);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = calcFolderMap(loadApiFolders(project.getId()));
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
         Map<String, Pair<String, ApiDoc>> existsDocMap = calcDocMap(apiDocService.loadByProject(project.getId()), folderPathMap);
         ApiFolder finalMountFolder = mountFolder; // 挂载目录
-        apiFolders.forEach(folder -> saveApiFolderVo(finalMountFolder, folder, folderMapPair, existsDocMap));
-        this.saveApiDocs(mountFolder, null, extraDocs, folderMapPair, existsDocMap);
+        apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, folder, folderMapPair, existsDocMap));
+        this.saveApiDocs(projectInfo, mountFolder, null, extraDocs, folderMapPair, existsDocMap);
         return apiFolders.size();
     }
 
@@ -70,7 +75,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         return docMap;
     }
 
-    protected void saveApiFolderVo(ApiFolder mountFolder, ExportApiFolderVo folder,
+    protected void saveApiFolderVo(ApiProjectInfo projectInfo, ApiFolder mountFolder, ExportApiFolderVo folder,
                                    Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
                                    Map<String, Pair<String, ApiDoc>> existsDocMap) {
         Map<String, ApiFolder> pathFolderMap = folderMapPair.getKey();
@@ -85,10 +90,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         } else {
             updateById(SimpleModelUtils.addAuditInfo(existsFolder)); // 更新
         }
-        saveApiDocs(mountFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
+        saveApiDocs(projectInfo, mountFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
         if (!CollectionUtils.isEmpty(folder.getFolders())) { // 子目录
             for (ExportApiFolderVo subFolder : folder.getFolders()) {
-                saveApiFolderVo(existsFolder, subFolder, folderMapPair, existsDocMap);
+                saveApiFolderVo(projectInfo, existsFolder, subFolder, folderMapPair, existsDocMap);
             }
         }
     }
@@ -96,13 +101,14 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     /**
      * 保存doc信息
      *
+     * @param projectInfo 项目基本信息
      * @param mountFolder   挂载目录
      * @param folder        父级目录
      * @param docs          文档列表
      * @param folderMapPair 文档解析map
      * @param existsDocMap  已保存文档map
      */
-    protected void saveApiDocs(ApiFolder mountFolder, ExportApiFolderVo folder, List<ExportApiDocVo> docs,
+    protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder mountFolder, ExportApiFolderVo folder, List<ExportApiDocVo> docs,
                                Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
                                Map<String, Pair<String, ApiDoc>> existsDocMap) {
         Map<Integer, String> folderPathMap = folderMapPair.getRight();
@@ -121,6 +127,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                         && existsDocPair.getValue() != null) { // 目录相同
                     apiDocVo.setId(existsDocPair.getValue().getId());
                     apiDocSchemaService.deleteByDoc(apiDocVo.getId());
+                }
+                apiDocVo.setInfoId(projectInfo.getId());
+                if (ApiDocConstants.DOC_TYPE_API.equals(apiDocVo.getDocType())) {
+                    apiDocVo.setSpecVersion(projectInfo.getSpecVersion());
                 }
                 apiDocVo.setProjectId(projectId);
                 apiDocVo.setFolderId(folderId);
@@ -172,6 +182,22 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     @Override
     public List<ApiFolder> loadApiFolders(Integer projectId) {
         return list(Wrappers.<ApiFolder>query().eq("project_id", projectId));
+    }
+
+    @Override
+    public List<ApiFolder> loadSubFolders(Integer folderId) {
+        ApiFolder apiFolder = getById(folderId);
+        if (apiFolder != null) {
+            List<ApiFolder> allFolders = loadApiFolders(apiFolder.getProjectId());
+            Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = calcFolderMap(allFolders);
+            Map<Integer, String> folderPathMap = folderMapPair.getRight();
+            Map<String, ApiFolder> pathFolderMap = folderMapPair.getLeft();
+            String path = folderPathMap.get(apiFolder.getId());
+            return pathFolderMap.entrySet().stream()
+                    .filter(entry-> pathMatcher.match(path + "/*", entry.getKey())).map(Map.Entry::getValue)
+                    .collect(Collectors.toList());
+        }
+        return new ArrayList<>();
     }
 
     @Override

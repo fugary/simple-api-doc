@@ -49,19 +49,26 @@ public class ApiFolderController {
     }
 
     @DeleteMapping("/{id}")
-    public SimpleResult removeFolder(@PathVariable("id") Integer id) {
+    public SimpleResult<Boolean> removeFolder(@PathVariable("id") Integer id) {
         ApiFolder apiFolder = apiFolderService.getById(id);
+        if (apiFolder == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
         if (BooleanUtils.isTrue(apiFolder.getRootFlag())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2007);
         }
         if (!validateUserProject(apiFolder)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        return SimpleResultUtils.createSimpleResult(apiFolderService.removeById(id));
+        List<ApiFolder> folders = apiFolderService.loadSubFolders(id);
+        if (!folders.isEmpty()) {
+            folders.forEach(folder -> apiFolderService.deleteFolder(folder.getId()));
+        }
+        return SimpleResultUtils.createSimpleResult(apiFolderService.deleteFolder(id));
     }
 
     @PostMapping
-    public SimpleResult saveFolder(@RequestBody ApiFolder apiFolder) {
+    public SimpleResult<Boolean> saveFolder(@RequestBody ApiFolder apiFolder) {
         if (apiFolder.getParentId() != null) {
             ApiFolder parent = apiFolderService.getById(apiFolder.getParentId());
             if (parent == null || !parent.getProjectId().equals(apiFolder.getProjectId())) {
