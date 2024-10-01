@@ -15,10 +15,12 @@ const calcHandlers = computed(() => {
   return props.handlers.filter(item => item.enabled !== false)
 })
 
+defineEmits(['enterDropdown', 'leaveDropdown', 'showDropdown'])
+
 </script>
 
 <template>
-  <el-dropdown>
+  <el-dropdown @visible-change="$event&&$emit('showDropdown')">
     <el-link :underline="false">
       <el-tag
         type="info"
@@ -28,7 +30,10 @@ const calcHandlers = computed(() => {
       </el-tag>
     </el-link>
     <template #dropdown>
-      <el-dropdown-menu>
+      <el-dropdown-menu
+        @mouseenter="$emit('enterDropdown');"
+        @mouseleave="$emit('leaveDropdown');"
+      >
         <el-dropdown-item
           v-for="(handler, index) in calcHandlers"
           :key="index"

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { calcProjectItem, filerProjectItem } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
@@ -30,29 +30,27 @@ const calcProjectItemInfo = () => {
     docTreeNodes,
     docExpandedKeys,
     currentSelectDoc
-  } = calcProjectItem(filerProjectItem(props.projectItem, searchParam.value.keyword), currentDoc.value)
+  } = calcProjectItem(filerProjectItem(props.projectItem, searchParam.value.keyword), currentDoc.value, searchParam.value)
   currentDoc.value = currentSelectDoc
   treeNodes.value = docTreeNodes
   defaultExpandedKeys.value = docExpandedKeys
 }
 
 //* ************搜索框**************//
-const searchParam = ref({})
+const searchParam = ref({
+  showDocLabelType: 'docName'
+})
 const searchFormOption = computed(() => {
   return {
     labelWidth: '1px',
-    prop: 'keyword',
-    attrs: {
-      onInput: calcProjectItemInfo
-    }
+    prop: 'keyword'
   }
 })
-
-onMounted(() => {
+watch(searchParam, () => {
   if (props.projectItem) {
     calcProjectItemInfo()
   }
-})
+}, { immediate: true, deep: true })
 
 const showDocDetails = (doc) => {
   if (doc.isDoc) {
@@ -65,24 +63,35 @@ const rootFolder = computed(() => {
   return props.projectItem?.folders?.find(folder => folder.rootFlag)
 })
 
+const emit = defineEmits(['toAddFolder', 'deleteFolder', 'toEditFolder', 'toAddDoc', 'toEditDoc', 'deleteDoc'])
 const getFolderHandlers = folder => {
   return [{
     icon: 'FolderAdd',
     label: '新增子文件夹',
     handler: () => {
       console.log('新增文件夹', folder)
+      emit('toAddFolder', folder)
     }
   }, {
     icon: 'DocumentAdd',
     label: '新建接口',
     handler: () => {
       console.log('新建接口')
+      emit('toAddDoc', { folder, docType: 'api' })
     }
   }, {
     icon: 'DocumentAdd',
     label: '新建文档',
     handler: () => {
       console.log('新建文档')
+      emit('toAddDoc', { folder, docType: 'md' })
+    }
+  }, {
+    enabled: !!folder.rootFlag,
+    icon: 'TextSnippetOutlined',
+    labelKey: searchParam.value.showDocLabelType === 'docName' ? 'api.label.docLabelShowUrl' : 'api.label.docLabelShowName',
+    handler: () => {
+      searchParam.value.showDocLabelType = searchParam.value.showDocLabelType === 'url' ? 'docName' : 'url'
     }
   }, {
     enabled: !folder.rootFlag,
@@ -91,6 +100,7 @@ const getFolderHandlers = folder => {
     label: '删除',
     handler: () => {
       console.log('删除')
+      emit('deleteFolder', folder)
     }
   }]
 }
@@ -103,6 +113,7 @@ const getDocHandlers = doc => {
     label: '编辑' + label,
     handler: () => {
       console.log('编辑' + label, doc)
+      emit('toEditDoc', doc)
     }
   }, {
     icon: 'Delete',
@@ -110,8 +121,34 @@ const getDocHandlers = doc => {
     label: '删除' + label,
     handler: () => {
       console.log('删除' + label, doc)
+      emit('deleteDoc', doc)
     }
   }]
+}
+
+const calcNodeLeaf = (node) => {
+  if (!node.data.isDoc) {
+    return 'Folder'
+  }
+  return node.data.docType === 'md' ? 'Document' : 'Link'
+}
+
+const delayDropdown = ref(false)
+let lastTimer = null
+const leaveDropdown = (node) => { // 离开时延迟执行，方便特殊处理显示问题
+  if (delayDropdown.value) {
+    lastTimer = setTimeout(() => (node.data.showOperations = false), 450)
+  } else {
+    node.data.showOperations = false
+  }
+}
+const enterDropdown = (node) => {
+  showDropdown(node, true)
+  lastTimer && clearTimeout(lastTimer) // 清理timer
+}
+const showDropdown = (node, delay = true) => {
+  node.data.showOperations = true
+  delayDropdown.value = delay
 }
 
 </script>
@@ -152,12 +189,12 @@ const getDocHandlers = doc => {
         <template #default="{node}">
           <div
             class="custom-tree-node"
-            @mouseenter="node.data.showOperations=true"
-            @mouseleave="node.data.showOperations=false"
+            @mouseenter="showDropdown(node, false)"
+            @mouseleave="leaveDropdown(node)"
           >
             <tree-icon-label
               :node="node"
-              :icon-leaf="node.data.docType==='md'?'Document':'Link'"
+              :icon-leaf="calcNodeLeaf(node)"
             >
               <api-method-tag
                 v-if="node.data.docType==='api'"
@@ -171,12 +208,10 @@ const getDocHandlers = doc => {
               class="more-actions"
             >
               <more-actions-link
-                v-if="!node.data.isDoc"
-                :handlers="getFolderHandlers(node.data)"
-              />
-              <more-actions-link
-                v-if="node.data.isDoc"
-                :handlers="getDocHandlers(node.data)"
+                :handlers="node.data.isDoc ? getDocHandlers(node.data) : getFolderHandlers(node.data)"
+                @show-dropdown="showDropdown(node)"
+                @enter-dropdown="enterDropdown(node)"
+                @leave-dropdown="leaveDropdown(node)"
               />
             </span>
           </div>
@@ -188,8 +223,8 @@ const getDocHandlers = doc => {
 
 <style scoped>
 .custom-tree-node {
-  position: relative;
   width: 100%;
+  height: 25px;
 }
 .custom-tree-node .more-actions {
   position: absolute;

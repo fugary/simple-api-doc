@@ -1,5 +1,5 @@
 import { useResourceApi } from '@/hooks/ApiHooks'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { $http, $httpPost } from '@/vendors/axios'
 import { isAdminUser, useCurrentUserName } from '@/utils'
 import { isArray } from 'lodash-es'
@@ -7,22 +7,25 @@ import { isArray } from 'lodash-es'
 const API_PROJECT_URL = '/admin/projects'
 const ApiProjectApi = useResourceApi(API_PROJECT_URL)
 
-export const useApiProjectItem = projectCode => {
-  const projectItem = ref({})
+export const useApiProjectItem = (projectCode, autoLoad = true) => {
+  const projectItem = ref()
   const loadSuccess = ref(false)
   const loading = ref(true)
 
-  loadByCode(projectCode).then(data => {
-    projectItem.value = data
-    loadSuccess.value = !!data
-    console.log(projectItem.value)
-  }).finally(() => (loading.value = false))
-
-  const docUrl = computed(() => `/api-doc/${projectItem.value?.projectCode}`)
+  const loadProjectItem = (code) => {
+    return loadByCode(code).then(data => {
+      projectItem.value = data
+      loadSuccess.value = !!data
+      console.log(projectItem.value)
+    }).finally(() => (loading.value = false))
+  }
+  if (autoLoad) {
+    loadProjectItem(projectCode)
+  }
 
   return {
     projectItem,
-    docUrl,
+    loadProjectItem,
     loading,
     loadSuccess
   }

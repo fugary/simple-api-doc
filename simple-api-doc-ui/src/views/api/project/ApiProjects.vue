@@ -13,7 +13,7 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
-import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
+import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 import { useWindowSize } from '@vueuse/core'
 
 const { width } = useWindowSize()
@@ -186,7 +186,7 @@ const showImportWindow = ref(false)
           type="success"
           @click="showImportWindow = true"
         >
-          {{ $t('api.label.import') }}
+          {{ $t('api.label.importData') }}
         </el-button>
       </template>
     </common-form>

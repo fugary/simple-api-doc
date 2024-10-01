@@ -21,5 +21,14 @@ export default [{
       labelKey: 'api.label.apiProjects',
       icon: 'List'
     }
+  }, {
+    path: 'shares/:projectCode',
+    name: 'ApiProjectShares',
+    component: () => import('@/views/api/project/ApiProjectShares.vue'),
+    meta: {
+      replaceTabHistory: 'ApiProjects',
+      labelKey: 'api.label.shareDocs',
+      icon: 'List'
+    }
   }]
 }]

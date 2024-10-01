@@ -5,7 +5,7 @@ import { ElLoading, ElMessageBox, ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import numeral from 'numeral'
 import { useClipboard } from '@vueuse/core'
-import { BASE_URL, LOADING_DELAY, SYSTEM_KEY, REMEMBER_SEARCH_PARAM_ENABLED } from '@/config'
+import { LOADING_DELAY, SYSTEM_KEY, REMEMBER_SEARCH_PARAM_ENABLED } from '@/config'
 import { $i18nBundle } from '@/messages'
 import { useRoute } from 'vue-router'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
@@ -23,11 +23,8 @@ export const getPathUrl = (path) => {
   if (/^https?:\/\//.test(path)) {
     return path
   }
-  let baseUrl = location.origin
-  if (/^https?:\/\//.test(BASE_URL)) {
-    baseUrl = BASE_URL
-  }
-  return `${baseUrl}${path}`
+  const baseUrl = location.origin + location.pathname
+  return `${baseUrl}#${path}`
 }
 
 export const isAdminUser = () => {

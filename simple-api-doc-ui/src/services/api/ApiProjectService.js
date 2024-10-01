@@ -5,26 +5,25 @@ import { cloneDeep } from 'lodash-es'
 export const containsDocs = (folder) => {
   if (folder.children) {
     // 检查文件夹的子文件夹中是否包含文档
-    return folder.children.some(child => child.isDoc || containsDocs(child))
+    folder.children = folder.children.filter(child => child.isDoc || containsDocs(child))
+    return folder.children.length > 0
   }
   return false
 }
 
 // 过滤文件夹，只保留那些包含文档的文件夹，保持原始结构
 export const filterFoldersWithDocs = (folders) => {
-  return folders.filter(folder => {
-    // 保留包含文档的文件夹
-    return containsDocs(folder)
-  })
+  return folders.filter(folder => containsDocs(folder))
 }
 
 /**
  * 计算ProjectItem
  * @param projectItem
  * @param lastSelectDoc
+ * @param searchParam
  * @return {{treeNodes: *[], defaultExpandedKeys: *[]}}
  */
-export const calcProjectItem = (projectItem, lastSelectDoc) => {
+export const calcProjectItem = (projectItem, lastSelectDoc, searchParam) => {
   let docTreeNodes = []
   let docExpandedKeys = []
   let currentSelectDoc = lastSelectDoc
@@ -38,14 +37,16 @@ export const calcProjectItem = (projectItem, lastSelectDoc) => {
     docs.forEach(doc => {
       const children = folderMap[doc.folderId].children = folderMap[doc.folderId].children || []
       children.push(doc)
-      doc.label = doc.docName
+      doc.label = doc[searchParam.showDocLabelType] || doc.docName
       doc.isDoc = true
     })
     docTreeNodes = processTreeData(projectItem.folders, null, {
       clone: false,
       after: node => (node.label = node.label || node.folderName)
     })
-    docTreeNodes = filterFoldersWithDocs(docTreeNodes)
+    if (searchParam?.keyword) {
+      docTreeNodes = filterFoldersWithDocs(docTreeNodes)
+    }
     if (docTreeNodes[0]?.id) {
       docExpandedKeys = [docTreeNodes[0]?.id]
     }

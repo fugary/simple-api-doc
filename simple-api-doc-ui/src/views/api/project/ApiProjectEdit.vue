@@ -1,9 +1,9 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { useBackUrl } from '@/utils'
+import { $goto, useBackUrl } from '@/utils'
 import { ref } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
-import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
+import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
@@ -12,10 +12,10 @@ const route = useRoute()
 const projectCode = route.params.projectCode
 
 const { goBack } = useBackUrl('/api/projects')
-const { projectItem, loadSuccess, loading } = useApiProjectItem(projectCode)
+const { projectItem, loading } = useApiProjectItem(projectCode)
 
-const showImportWindow = ref(false)
 const currentDoc = ref(null)
+const showImportWindow = ref(false)
 </script>
 
 <template>
@@ -27,25 +27,36 @@ const currentDoc = ref(null)
       <template #content>
         <el-container>
           <span>
-            {{ projectItem?.projectName }} 【{{ projectItem?.projectCode }}】
-          </span>
-          <span>
-            <el-button
-              type="success"
-              @click="showImportWindow = true"
-            >
-              {{ $t('api.label.import') }}
-            </el-button>
+            {{ projectItem?.projectName }}
           </span>
         </el-container>
       </template>
+      <template #extra>
+        <div
+          v-if="projectItem"
+          class="flex items-center"
+        >
+          <el-button
+            type="primary"
+            @click="$goto(`/api/projects/shares/${projectItem.projectCode}`)"
+          >
+            {{ $t('api.label.shareDocs') }}
+          </el-button>
+          <el-button
+            type="success"
+            @click="showImportWindow = true"
+          >
+            {{ $t('api.label.importData') }}
+          </el-button>
+        </div>
+      </template>
     </el-page-header>
     <el-container
-      v-if="loadSuccess"
       v-loading="loading"
     >
       <div class="form-edit-width-100">
         <common-split
+          v-if="projectItem"
           :min-size="150"
           :max-size="[500, Infinity]"
         >
@@ -71,6 +82,7 @@ const currentDoc = ref(null)
       </div>
     </el-container>
     <api-project-import
+      v-if="projectItem"
       v-model="showImportWindow"
       :project="projectItem"
     />

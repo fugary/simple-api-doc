@@ -13,6 +13,10 @@ const props = defineProps({
   tooltip: {
     type: String,
     default: '复制链接地址'
+  },
+  icon: {
+    type: String,
+    default: 'DocumentCopy'
   }
 })
 
@@ -33,11 +37,12 @@ const copyInfo = () => {
     v-common-tooltip="tooltip"
     type="primary"
     :underline="false"
+    v-bind="$attrs"
+    @click="copyInfo"
   >
     <common-icon
       :size="18"
-      icon="DocumentCopy"
-      @click="copyInfo"
+      :icon="icon"
     />
   </el-link>
 </template>
