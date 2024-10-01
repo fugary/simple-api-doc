@@ -19,4 +19,5 @@ public class ApiProjectShareVo implements Serializable {
     private String envContent;
     private boolean needPassword;
     private boolean expired;
+    private String shareToken;
 }

@@ -31,7 +31,7 @@ import java.util.Date;
 @Component
 public class TokenServiceImpl implements TokenService {
 
-    public static final String DEFAULT_ISSUER = "simple-mock";
+    public static final String DEFAULT_ISSUER = "simple-api";
     public static final String USER_NAME_KEY = "name";
 
     @Autowired
@@ -63,7 +63,7 @@ public class TokenServiceImpl implements TokenService {
     public ApiUser fromAccessToken(String accessToken) {
         DecodedJWT decoded = getDecoded(accessToken);
         if (decoded != null) {
-            return toMockUser(decoded);
+            return toApiUser(decoded);
         }
         return null;
     }
@@ -73,9 +73,9 @@ public class TokenServiceImpl implements TokenService {
         int errorCode = SystemErrorConstants.CODE_401;
         try {
             DecodedJWT decoded = getDecoded1(accessToken);
-            ApiUser mockUser = toMockUser(decoded);
-            if (mockUser != null) {
-                return SimpleResultUtils.createSimpleResult(mockUser);
+            ApiUser user = toApiUser(decoded);
+            if (user != null) {
+                return SimpleResultUtils.createSimpleResult(user);
             } else {
                 errorCode = SystemErrorConstants.CODE_404;
             }
@@ -86,7 +86,26 @@ public class TokenServiceImpl implements TokenService {
         return SimpleResultUtils.createSimpleResult(errorCode);
     }
 
-    protected ApiUser toMockUser(DecodedJWT decoded) {
+    @Override
+    public SimpleResult<ApiUser> validateTokenOnly(String accessToken) {
+        int errorCode = SystemErrorConstants.CODE_401;
+        try {
+            DecodedJWT decoded = getDecoded1(accessToken);
+            String userName = decoded.getClaim(USER_NAME_KEY).asString();
+            ApiUser user = null;
+            if (StringUtils.isNotBlank(userName)) {
+                user = new ApiUser();
+                user.setUserName(userName);
+            }
+            return SimpleResultUtils.createSimpleResult(user);
+        } catch (JWTVerificationException e) {
+            // Invalid signature/claims
+            log.error("Token Error", e);
+        }
+        return SimpleResultUtils.createSimpleResult(errorCode);
+    }
+
+    protected ApiUser toApiUser(DecodedJWT decoded) {
         String userName = decoded.getClaim(USER_NAME_KEY).asString();
         return apiUserService.getOne(Wrappers.<ApiUser>query().eq("user_name", userName));
     }

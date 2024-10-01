@@ -1,34 +1,116 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { loadShare } from '@/api/SimpleShareApi'
+import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
-import { useApiProjectItem } from '@/api/ApiProjectApi'
+import { $i18nKey } from '@/messages'
+
 const route = useRoute()
 const shareId = route.params.shareId
-const projectShare = ref()
-loadShare(shareId).then(data => {
-  projectShare.value = data
+const password = route.query.pwd || route.query.password || ''
+const shareParam = ref({
+  shareId,
+  password
 })
-const { projectItem, loadSuccess, loading } = useApiProjectItem(null, false)
+const loading = ref(false)
+const projectShare = ref()
+const errorMessage = ref()
+const showPassWindow = ref(false)
+
+const projectItem = ref()
+
+const loadShareData = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  await loadShare(shareParam.value).then(data => {
+    projectShare.value = data.resultData
+    console.log('=========================projectShare.value', projectShare.value)
+  }, error => {
+    showPassWindow.value = error.data?.code === 401
+    errorMessage.value = error.data?.message
+    if (error.data?.resultData) {
+      projectShare.value = error.data.resultData
+    }
+  }).finally(() => (loading.value = false))
+  if (projectShare.value?.shareToken) { // 验证成功
+    showPassWindow.value = false
+    loadProject(shareId).then(data => {
+      projectItem.value = data.resultData
+      console.log('=========================projectItem.value', projectItem.value)
+    })
+  }
+}
+onMounted(() => loadShareData())
+const passwordOptions = [{
+  labelKey: 'api.label.accessPassword',
+  prop: 'password',
+  required: true,
+  placeholder: $i18nKey('common.msg.commonInput', 'api.label.accessPassword'),
+  attrs: {
+    showPassword: true
+  }
+}]
+const toAccessDocs = ({ form }) => {
+  form.validate(valid => {
+    if (valid) {
+      loadShareData()
+    }
+  })
+  return false
+}
 </script>
 
 <template>
   <el-container class="flex-column">
     <el-container
-      v-if="loadSuccess"
       v-loading="loading"
+      style="min-height: 100vh"
     >
-      <div class="form-edit-width-100">
+      <div
+        v-if="!showPassWindow && errorMessage"
+        class="form-edit-width-100"
+      >
+        <el-empty :description="errorMessage" />
+      </div>
+      <common-window
+        v-model="showPassWindow"
+        width="500px"
+        :show-close="false"
+        :show-cancel="false"
+        :title="projectShare?.shareName"
+        :ok-label="$t('api.label.accessDocs')"
+        :ok-click="toAccessDocs"
+      >
+        <el-container class="flex-column">
+          <el-alert
+            show-icon
+            :title="projectShare?.shareName"
+            description="当前文档需要密码才可访问"
+            type="warning"
+            :closable="false"
+            class="margin-bottom3"
+          />
+          <common-form
+            :options="passwordOptions"
+            :model="shareParam"
+            :show-submit="false"
+            :show-buttons="false"
+          />
+        </el-container>
+      </common-window>
+      <div
+        v-if="projectItem"
+        class="form-edit-width-100"
+      >
         <common-split
+          v-if="projectItem"
           :min-size="150"
           :max-size="[500, Infinity]"
         >
           <template #split-0>
             <api-folder-tree-viewer
-              v-if="projectItem"
               v-model="currentDoc"
               :project-item="projectItem"
             />

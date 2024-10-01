@@ -54,4 +54,8 @@ public class SystemErrorConstants {
      * 根文件夹不能删除
      */
     public static final int CODE_2007 = 2007;
+    /**
+     * 文档分享已过期
+     */
+    public static final int CODE_2008 = 2008;
 }

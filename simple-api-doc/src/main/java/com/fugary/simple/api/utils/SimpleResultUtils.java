@@ -5,6 +5,7 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.SimplePage;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -98,6 +99,18 @@ public class SimpleResultUtils {
         return SimpleResult.<T>builder().resultData(data)
                 .code(code)
                 .message(getErrorMsg(code)).build();
+    }
+
+    /**
+     * 简单Result对象
+     *
+     * @param result
+     * @return
+     */
+    public static <T> SimpleResult<T> createSimpleResult(SimpleResult<?> result) {
+        return SimpleResult.<T>builder()
+                .code(result.getCode())
+                .message(StringUtils.defaultIfBlank(result.getMessage(), getErrorMsg(result.getCode()))).build();
     }
 
     /**

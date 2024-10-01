@@ -12,6 +12,7 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import { ElTag } from 'element-plus'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -57,6 +58,19 @@ const columns = [{
     align: 'center'
   }
 }, {
+  labelKey: 'api.label.hasPassword',
+  minWidth: '100px',
+  formatter (data) {
+    const type = data.sharePassword ? 'success' : 'danger'
+    const text = data.sharePassword ? $i18nBundle('common.label.yes') : $i18nBundle('common.label.no')
+    return <ElTag type={type}>
+      {text}
+    </ElTag>
+  },
+  attrs: {
+    align: 'center'
+  }
+}, {
   labelKey: 'common.label.createDate',
   property: 'createDate',
   dateFormat: 'YYYY-MM-DD HH:mm:ss'
@@ -76,9 +90,9 @@ const buttons = computed(() => {
     type: 'success',
     click: item => {
       const shareUrl = getShareUrl(item.shareId)
-      let text = `链接：${shareUrl}`
+      let text = `${item.shareName}: \n链接: ${shareUrl}`
       if (item.sharePassword) {
-        text += `，密码：${item.sharePassword}`
+        text += `\n密码: ${item.sharePassword}`
       }
       $copyText(text)
     }
