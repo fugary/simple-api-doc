@@ -40,8 +40,6 @@ const scrollElement = '.home-main'
   width: 200px;
 }
 .md-doc-container {
-  right: 40px;
-  margin-right: 170px;
-  margin-left: 20px;
+  margin-right: 200px;
 }
 </style>

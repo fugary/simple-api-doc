@@ -47,6 +47,14 @@ public interface ApiProjectService extends IService<ApiProject> {
     boolean validateUserProject(Integer projectId);
 
     /**
+     * 保存ApiProject
+     *
+     * @param project
+     * @return
+     */
+    boolean saveProject(ApiProject project);
+
+    /**
      * 解析成ExportVo对象
      *
      * @param content

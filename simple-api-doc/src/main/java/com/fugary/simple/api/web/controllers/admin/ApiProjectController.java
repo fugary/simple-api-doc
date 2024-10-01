@@ -82,7 +82,7 @@ public class ApiProjectController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
         project.setPrivateFlag(ObjectUtils.defaultIfNull(project.getPrivateFlag(), true));
-        return SimpleResultUtils.createSimpleResult(apiProjectService.saveOrUpdate(SimpleModelUtils.addAuditInfo(project)));
+        return SimpleResultUtils.createSimpleResult(apiProjectService.saveProject(SimpleModelUtils.addAuditInfo(project)));
     }
 
     @PostMapping("/selectProjects")

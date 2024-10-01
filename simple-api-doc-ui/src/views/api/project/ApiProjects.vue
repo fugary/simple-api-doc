@@ -14,6 +14,9 @@ import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
 import ApiProjectImport from '@/views/components/api/ApiProjectImport.vue'
+import { useWindowSize } from '@vueuse/core'
+
+const { width } = useWindowSize()
 
 const route = useRoute()
 
@@ -115,30 +118,26 @@ const saveProjectItem = (item) => {
   return saveOrUpdate(item).then(() => loadApiProjects())
 }
 
-const colSize = ref(4)
-const minWidth = '110px'
+const colSize = computed(() => {
+  console.log('====================================', width.value, Math.floor(width.value / 400) || 1)
+  return Math.floor(width.value / 420) || 1
+})
+const minWidth = '100px'
 
 const tableProjectItems = computed(() => {
   return tableData.value.map(project => {
     return {
       project,
       projectItems: [{
-        value: project.projectCode,
-        labelKey: 'api.label.projectCode'
-      }, {
         labelKey: 'common.label.status',
         formatter () {
           return <DelFlagTag v-model={project.status}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
         }
       }, {
-        labelKey: 'common.label.createDate',
-        value: formatDate(project.createDate),
-        enabled: !!project.createDate
-      }, {
         labelKey: 'common.label.modifyDate',
-        value: formatDate(project.modifyDate),
-        enabled: !!project.modifyDate
+        value: formatDate(project.modifyDate) || formatDate(project.createDate),
+        enabled: !!project.modifyDate || !!project.createDate
       }, {
         labelKey: 'common.label.description',
         value: project.description,
@@ -207,58 +206,56 @@ const showImportWindow = ref(false)
         :class="{'margin-top2': index>0}"
       >
         <el-col
-          v-for="{project, projectItems, defaultProject} in dataRow"
+          v-for="{project, projectItems} in dataRow"
           :key="project.id"
-          :span="6"
+          :span="Math.floor(24/colSize)"
+          @mouseenter="project.showOperations=true"
+          @mouseleave="project.showOperations=false"
         >
           <el-card
             shadow="hover"
             class="small-card operation-card"
+            style="border-radius: 15px;"
             :class="{pointer: project.status===1, 'project-selected': project.selected}"
             @click="toEditProject(project)"
           >
-            <template #header>
-              <div class="card-header">
-                <el-checkbox
-                  v-model="project.selected"
-                  style="margin-right: auto;"
-                  :disabled="defaultProject"
-                  @click="$event.stopPropagation()"
+            <div
+              class="card-header"
+              style="padding-bottom: 12px"
+            >
+              <el-checkbox
+                v-model="project.selected"
+                style="margin-right: auto;"
+                @click="$event.stopPropagation()"
+              >
+                <el-text
+                  tag="b"
+                  :type="project.status===1?'':'danger'"
                 >
-                  <el-text
-                    tag="b"
-                    :type="project.status===1?'':'danger'"
-                  >
-                    <common-icon
-                      v-if="defaultProject"
-                      icon="LockFilled"
-                      :size="16"
-                    />
-                    {{ project.projectName }}
-                  </el-text>
-                </el-checkbox>
-                <el-button
-                  v-if="!defaultProject"
-                  v-common-tooltip="$t('common.label.edit')"
-                  type="primary"
-                  size="small"
-                  round
-                  @click="newOrEdit(project.id, $event)"
-                >
-                  <common-icon icon="Edit" />
-                </el-button>
-                <el-button
-                  v-if="!defaultProject"
-                  v-common-tooltip="$t('common.label.delete')"
-                  type="danger"
-                  size="small"
-                  round
-                  @click="deleteProject(project, $event)"
-                >
-                  <common-icon icon="DeleteFilled" />
-                </el-button>
-              </div>
-            </template>
+                  {{ project.projectName }}
+                </el-text>
+              </el-checkbox>
+              <el-button
+                v-if="project.showOperations"
+                v-common-tooltip="$t('common.label.edit')"
+                type="primary"
+                size="small"
+                round
+                @click="newOrEdit(project.id, $event)"
+              >
+                <common-icon icon="Edit" />
+              </el-button>
+              <el-button
+                v-if="project.showOperations"
+                v-common-tooltip="$t('common.label.delete')"
+                type="danger"
+                size="small"
+                round
+                @click="deleteProject(project, $event)"
+              >
+                <common-icon icon="DeleteFilled" />
+              </el-button>
+            </div>
             <common-descriptions
               :column="1"
               :min-width="minWidth"

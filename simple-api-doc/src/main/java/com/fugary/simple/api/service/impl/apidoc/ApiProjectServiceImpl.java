@@ -113,6 +113,18 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     }
 
     @Override
+    public boolean saveProject(ApiProject project) {
+        boolean saved = saveOrUpdate(project);
+        if (project.getId() != null) {
+            ApiFolder rootFolder = apiFolderService.getRootFolder(project.getId());
+            if (rootFolder == null) {
+                apiFolderService.createRootFolder(project);
+            }
+        }
+        return saved;
+    }
+
+    @Override
     public SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo) {
         ApiDocImporter importer = ApiDocImporter.findImporter(apiDocImporters, importVo.getSourceType());
         ExportApiProjectVo exportVo;
