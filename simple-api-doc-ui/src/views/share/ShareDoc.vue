@@ -19,7 +19,9 @@ const projectShare = ref()
 const errorMessage = ref()
 const showPassWindow = ref(false)
 
+//= ====================项目数据=====================
 const projectItem = ref()
+const currentDoc = ref(null)
 
 const loadShareData = async () => {
   loading.value = true
@@ -100,9 +102,9 @@ const toAccessDocs = ({ form }) => {
           />
         </el-container>
       </common-window>
-      <div
+      <el-container
         v-if="projectItem"
-        class="form-edit-width-100"
+        class="form-edit-width-100 padding-15"
       >
         <common-split
           v-if="projectItem"
@@ -123,10 +125,11 @@ const toAccessDocs = ({ form }) => {
             <api-doc-viewer
               v-if="currentDoc?.docType==='api'"
               v-model="currentDoc"
+              :share-id="projectShare?.shareId"
             />
           </template>
         </common-split>
-      </div>
+      </el-container>
     </el-container>
   </el-container>
 </template>
