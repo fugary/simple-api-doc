@@ -35,7 +35,6 @@ const projectInfoDetail = computed(() => {
             </el-text>
           </span>
         </template>
-        {{ responseSchema }}
         <api-doc-schema-tree
           v-if="projectInfoDetail"
           :model-value="responseSchema"

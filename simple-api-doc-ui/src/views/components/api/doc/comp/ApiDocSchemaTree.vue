@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch, ref, nextTick } from 'vue'
 import { cloneDeep, isArray } from 'lodash-es'
 
 const props = defineProps({
@@ -18,6 +18,15 @@ const schemaModel = defineModel({
   default: () => ({})
 })
 
+const showTree = ref(false)
+watch(schemaModel, () => {
+  showTree.value = false
+  console.log('==========================schemaModel', schemaModel.value)
+  nextTick(() => {
+    showTree.value = true
+  })
+}, { immediate: true })
+
 const componentsMap = computed(() => {
   return props.componentSchemas.reduce((res, apiSchema) => {
     if (!apiSchema.schema && apiSchema.schemaContent) {
@@ -27,18 +36,39 @@ const componentsMap = computed(() => {
     return res
   }, {})
 })
+
+const checkLeaf = schema => {
+  return !['array'].includes(schema?.type) && !schema?.$ref && !Object.keys(schema?.properties || {}).length
+}
+
+const $ref2Schema = $ref => {
+  // #/components/schemas/xxx截取
+  return $ref.substring($ref.lastIndexOf('/') + 1)
+}
+
 /**
  * 特殊处理schema的属性为数组
  * @param schema
  * @return {{schema: *, name: *}[]}
  */
 const processProperties = schema => {
-  return Object.keys(schema.properties).map(key => {
-    const value = schema.properties[key]
+  console.log('====================================processProperties', schema)
+  const properties = schema.items?.properties || schema.properties || {}
+  return Object.keys(properties).map(key => {
+    const value = properties[key]
+    if (value.$ref) {
+      value.name = $ref2Schema(value.$ref)
+    }
+    if (value?.type === 'array' && value?.items) {
+      if (value?.items?.$ref) {
+        value.items.name = $ref2Schema(value.items.$ref)
+        value.name = value.items.name
+      }
+    }
     return {
       name: key,
       schema: value,
-      children: value.children
+      isLeaf: checkLeaf(value)
     }
   })
 }
@@ -52,22 +82,31 @@ const processSchemas = (docSchema) => {
     resultArr = [processSchema(saveSchema)]
   }
   return resultArr.flatMap(data => {
-    if (data.schema.type === 'object' && data.schema.properties) { // json第一级对象不保留名称，仅用属性
+    if (data.schema.type === 'object' && data.schema.properties) { // 对象不保留名称，仅用属性
       return processProperties(data.schema)
     }
     return [data]
   })
 }
 
-const processSchema = schema => {
-  if (schema.schema?.$ref) {
-    schema.schema = processSchemaRef(schema.schema)
+const processSchema = apiSchema => {
+  if (apiSchema) {
+    const schema = apiSchema.schema
+    const isArray = schema?.type === 'array'
+    if (isArray && schema.items) {
+      if (schema.items?.$ref) {
+        schema.items = processSchemaRef(schema.items)
+      }
+      processSchemaAllOf(schema.items)
+    } else {
+      if (schema?.$ref) {
+        apiSchema.schema = processSchemaRef(schema)
+      }
+      processSchemaAllOf(apiSchema.schema)
+      apiSchema.isLeaf = checkLeaf(apiSchema.schema)
+    }
   }
-  if (schema.schema?.children) {
-    schema.children = schema.schema.children
-    delete schema.schema.children
-  }
-  return schema
+  return apiSchema
 }
 
 const processSchemaRef = schema => {
@@ -76,37 +115,54 @@ const processSchemaRef = schema => {
     if (!apiSchema) {
       console.log('==============================$ref-null', schema.$ref, apiSchema)
     }
+    apiSchema.name = $ref2Schema(schema.$ref)
     schema = apiSchema
-  }
-  if (schema?.properties) {
-    Object.keys(schema.properties).forEach(child => {
-      schema.properties[child] = processSchemaRef(schema.properties[child])
-    })
-    schema.children = processProperties(schema)
   }
   return schema
 }
 
-const treeNodes = computed(() => {
-  console.log('================================schemaModel', schemaModel.value)
-  if (schemaModel.value) {
-    if (isArray(schemaModel.value)) {
-      return schemaModel.value.flatMap(docSchema => processSchemas(docSchema))
-    } else {
-      return processSchemas(schemaModel.value)
-    }
+const processSchemaAllOf = schema => {
+  if (schema?.allOf?.length && !schema.properties) {
+    let properties = {}
+    schema.allOf.forEach(child => {
+      properties = { ...properties, ...child.properties }
+    })
+    schema.properties = properties
   }
-  return []
-})
+  return schema
+}
+
+const loadTreeNode = (node, resolve) => {
+  console.log('===================node', node, schemaModel.value)
+  if (!node.parent) { // 第一级
+    let firstArr = []
+    if (isArray(schemaModel.value)) {
+      firstArr = schemaModel.value.flatMap(docSchema => processSchemas(docSchema))
+    } else {
+      firstArr = processSchemas(schemaModel.value)
+    }
+    resolve(firstArr)
+  } else {
+    // 下级node
+    resolve(processProperties(processSchema(node.data)?.schema))
+  }
+}
+
+const treeProps = {
+  isLeaf: 'isLeaf'
+}
 
 </script>
 
 <template>
   <el-container class="flex-column">
     <el-tree
+      v-if="showTree"
+      :props="treeProps"
       class="doc-schema-tree"
       node-key="name"
-      :data="treeNodes"
+      lazy
+      :load="loadTreeNode"
     >
       <template #empty>
         <el-empty :description="$t('common.msg.noData')" />
@@ -130,7 +186,10 @@ const treeNodes = computed(() => {
             type="info"
             class="margin-right2"
           >
-            <strong>{{ node.data.schema?.format || node.data.schema?.type }}</strong>
+            <strong>{{ node.data.schema?.type }}&nbsp;</strong>
+            <span v-if="node.data.schema?.format||node.data.schema?.name">
+              &lt;{{ node.data.schema?.format || node.data.schema?.name }}&gt;
+            </span>
           </el-text>
           <el-text
             v-if="node.data.schema?.description"
