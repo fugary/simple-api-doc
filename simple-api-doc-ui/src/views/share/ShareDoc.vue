@@ -128,7 +128,7 @@ const toAccessDocs = ({ form }) => {
           <template #split-1>
             <markdown-doc-viewer
               v-if="currentDoc?.docType==='md'&&currentDoc?.docContent"
-              v-model="currentDoc.docContent"
+              v-model="currentDoc"
             />
             <api-doc-viewer
               v-if="currentDoc?.docType==='api'"

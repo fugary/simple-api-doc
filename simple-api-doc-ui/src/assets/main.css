@@ -491,3 +491,11 @@ html, body, #app, .index-container {
     resize: horizontal;
     overflow: auto;
 }
+
+.doc-schema-tree .el-tree-node__content{
+    height: 40px;
+}
+
+.doc-schema-required {
+    color: var(--el-color-danger);
+}

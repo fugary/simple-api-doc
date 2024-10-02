@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 
 defineProps({
   scrollElement: {
@@ -15,9 +16,9 @@ defineProps({
   }
 })
 const id = 'markdown-doc-preview-only'
-const vModel = defineModel({
-  type: String,
-  default: ''
+const currentDoc = defineModel({
+  type: Object,
+  default: undefined
 })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
@@ -25,19 +26,24 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
 </script>
 
 <template>
-  <el-container class="padding-left2 padding-right2">
-    <md-preview
-      class="md-doc-container"
-      :editor-id="id"
-      :theme="theme"
-      :model-value="vModel"
+  <el-container class="padding-left2 padding-right2 flex-column">
+    <api-doc-view-header
+      v-model="currentDoc"
     />
-    <md-catalog
-      class="md-catalog"
-      :editor-id="id"
-      :scroll-element="scrollElement"
-      :scroll-element-offset-top="scrollElementOffsetTop"
-    />
+    <el-container>
+      <md-preview
+        class="md-doc-container"
+        :editor-id="id"
+        :theme="theme"
+        :model-value="currentDoc.docContent"
+      />
+      <md-catalog
+        class="md-catalog"
+        :editor-id="id"
+        :scroll-element="scrollElement"
+        :scroll-element-offset-top="scrollElementOffsetTop"
+      />
+    </el-container>
   </el-container>
 </template>
 

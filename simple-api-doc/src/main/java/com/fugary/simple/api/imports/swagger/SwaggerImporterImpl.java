@@ -104,7 +104,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         Info info = openAPI.getInfo();
         if (info != null) {
             projectVo.setProjectName(info.getTitle());
-            projectVo.setDescription(info.getTitle());
+            projectVo.setDescription(StringUtils.defaultIfBlank(info.getDescription(), info.getTitle()));
             projectInfo.setVersion(info.getVersion());
             if (StringUtils.containsIgnoreCase(info.getDescription(), "## ")) { // markdown
                 ExportApiDocVo doc = new ExportApiDocVo();
@@ -115,8 +115,6 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocContent(info.getDescription());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getDocs().add(doc);
-            } else {
-                projectVo.setDescription(info.getDescription());
             }
         }
         projectVo.setProjectInfo(projectInfo);
@@ -208,8 +206,9 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         ExportApiDocVo apiDocVo = new ExportApiDocVo();
         apiDocVo.setMethod(method);
         apiDocVo.setOperationId(operation.getOperationId());
-        apiDocVo.setSummary(operation.getSummary());
-        apiDocVo.setDocName(operation.getSummary());
+        String docName = StringUtils.defaultIfBlank(operation.getSummary(), operation.getOperationId());
+        apiDocVo.setSummary(docName);
+        apiDocVo.setDocName(docName);
         apiDocVo.setDocType(ApiDocConstants.DOC_TYPE_API);
         apiDocVo.setUrl(url);
         String docKey = operation.getOperationId();
@@ -218,6 +217,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         }
         apiDocVo.setDocKey(docKey);
         apiDocVo.setStatus(ApiDocConstants.STATUS_ENABLED);
+        apiDocVo.setDescription(operation.getDescription());
         calcDocSchemas(apiDocVo, operation);
         return apiDocVo;
     }

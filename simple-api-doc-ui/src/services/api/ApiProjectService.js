@@ -35,10 +35,12 @@ export const calcProjectItem = (projectItem, lastSelectDoc, searchParam) => {
     const folders = projectItem.folders || []
     const folderMap = Object.fromEntries(folders.map(folder => [folder.id, folder]))
     docs.forEach(doc => {
-      const children = folderMap[doc.folderId].children = folderMap[doc.folderId].children || []
+      const parentFolder = folderMap[doc.folderId]
+      const children = parentFolder.children = parentFolder.children || []
       children.push(doc)
       doc.label = doc[searchParam.showDocLabelType] || doc.docName
       doc.isDoc = true
+      doc.parent = parentFolder
     })
     docTreeNodes = processTreeData(projectItem.folders, null, {
       clone: false,
@@ -74,4 +76,19 @@ export const filerProjectItem = (projectItem, keyword) => {
     projectItem.docs = projectItem.docs?.filter(doc => doc.docName?.includes(keyword) || doc.url?.includes(keyword))
   }
   return projectItem
+}
+/**
+ * 获取folder路径
+ * @param node
+ * @return {*[]}
+ */
+export const getFolderPaths = node => {
+  const paths = []
+  while (node) {
+    if (node.folderName) {
+      paths.push(node.folderName)
+    }
+    node = node.parent
+  }
+  return paths.reverse()
 }

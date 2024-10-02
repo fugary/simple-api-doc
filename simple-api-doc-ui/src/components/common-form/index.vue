@@ -227,6 +227,11 @@ const goBack = (...args) => {
         >
           {{ resetLabel||$t('common.label.reset') }}
         </el-button>
+        <slot
+          :form="form"
+          :model="formModel"
+          name="buttons"
+        />
         <el-button
           v-if="showBack||backUrl"
           :disabled="disableButtons"
@@ -234,11 +239,6 @@ const goBack = (...args) => {
         >
           {{ backLabel||$t('common.label.back') }}
         </el-button>
-        <slot
-          :form="form"
-          :model="formModel"
-          name="buttons"
-        />
       </el-form-item>
       <slot
         :form="form"

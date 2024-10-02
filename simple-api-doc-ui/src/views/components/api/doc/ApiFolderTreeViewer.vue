@@ -56,6 +56,8 @@ const showDocDetails = (doc) => {
   if (doc.isDoc) {
     console.log('====================================doc', doc)
     currentDoc.value = doc
+    const element = props.editable ? document.querySelector('.home-main') : document.documentElement
+    element?.scrollTo({ behavior: 'smooth', top: 0 })
   }
 }
 

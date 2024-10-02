@@ -188,6 +188,7 @@ const saveProjectShare = (item) => {
       :model="searchParam"
       :options="searchFormOptions"
       :submit-label="$t('common.label.search')"
+      :back-url="goBack"
       @submit-form="loadProjectShares(1)"
     >
       <template #buttons>

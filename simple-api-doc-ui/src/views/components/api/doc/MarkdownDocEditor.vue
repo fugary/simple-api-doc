@@ -4,16 +4,15 @@ import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 
-const vModel = defineModel({
-  type: String,
-  default: ''
+const currentDoc = defineModel({
+  type: Object,
+  default: () => ({})
 })
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-defineEmits(['change'])
 </script>
 <template>
   <md-editor
-    v-model="vModel"
+    v-model="currentDoc.docContent"
     :theme="theme"
     @update:model-value="$emit('change', $event)"
   />

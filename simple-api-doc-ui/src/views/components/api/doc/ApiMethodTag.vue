@@ -13,18 +13,18 @@ const props = defineProps({
 })
 
 const methodName = computed(() => {
-  return (props.method || 'get').toLowerCase()
+  return (props.method || 'get').toUpperCase()
 })
 
 const methodColors = {
-  get: 'success',
-  post: 'primary',
-  put: 'warning',
-  delete: 'danger',
-  patch: 'info',
-  head: 'info',
-  options: 'info',
-  trace: 'info'
+  GET: 'success',
+  POST: 'primary',
+  PUT: 'warning',
+  DELETE: 'danger',
+  PATCH: 'info',
+  HEAD: 'info',
+  OPTIONS: 'info',
+  TRACE: 'info'
 }
 
 </script>

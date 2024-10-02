@@ -436,6 +436,7 @@ export const processTreeData = (items, parent, config) => {
         const currentNode = clone ? cloneDeep(current) : current
         parent.children = parent.children || []
         parent.children.push(currentNode)
+        currentNode.parent = parent
         isFunction(config?.pre) && config.pre(currentNode)
         processTreeData(items, currentNode, config)
         isFunction(config?.after) && config.after(currentNode)

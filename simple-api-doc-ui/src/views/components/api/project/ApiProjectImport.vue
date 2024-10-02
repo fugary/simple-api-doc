@@ -120,12 +120,12 @@ const formOptions = computed(() => {
 })
 const emit = defineEmits(['import-success'])
 const doImportProject = () => {
-  if (importFiles.value?.length) {
+  if (importFiles.value?.length || importModel.value.importType === 'url') {
     importProject(importFiles.value, importModel.value, {
       loading: true
     }).then(data => {
       if (data.success) {
-        $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData]))
+        $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
         showWindow.value = false
         emit('import-success', data)
       }

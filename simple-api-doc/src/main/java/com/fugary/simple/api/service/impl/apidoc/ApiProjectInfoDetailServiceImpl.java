@@ -99,6 +99,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, ApiDocDetailVo docDetailVo) {
         Set<String> schemaKeys = new HashSet<>();
+        if (docDetailVo.getParametersSchema() != null) {
+            calcRelatedSchemas(schemaKeys, docDetailVo.getParametersSchema().getSchemaContent(), schemaKeyMap);
+        }
         docDetailVo.getRequestsSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
         docDetailVo.getResponsesSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
         projectInfoDetails = projectInfoDetails.stream()

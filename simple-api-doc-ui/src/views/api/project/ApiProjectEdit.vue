@@ -37,6 +37,11 @@ const showImportWindow = ref(false)
           class="flex items-center"
         >
           <el-button
+            @click="goBack"
+          >
+            {{ $t('common.label.back') }}
+          </el-button>
+          <el-button
             type="primary"
             @click="$goto(`/api/projects/shares/${projectItem.projectCode}`)"
           >
@@ -71,7 +76,7 @@ const showImportWindow = ref(false)
           <template #split-1>
             <markdown-doc-viewer
               v-if="currentDoc?.docType==='md'&&currentDoc?.docContent"
-              v-model="currentDoc.docContent"
+              v-model="currentDoc"
               scroll-element=".home-main"
               :scroll-element-offset-top="calcAffixOffset()"
             />
