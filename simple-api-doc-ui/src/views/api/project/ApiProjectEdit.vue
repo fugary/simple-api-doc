@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { $goto, useBackUrl } from '@/utils'
+import { $goto, useBackUrl, calcAffixOffset } from '@/utils'
 import { ref } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
@@ -72,6 +72,8 @@ const showImportWindow = ref(false)
             <markdown-doc-viewer
               v-if="currentDoc?.docType==='md'&&currentDoc?.docContent"
               v-model="currentDoc.docContent"
+              scroll-element=".home-main"
+              :scroll-element-offset-top="calcAffixOffset()"
             />
             <api-doc-viewer
               v-if="currentDoc?.docType==='api'"

@@ -58,7 +58,8 @@ export const calcProjectItem = (projectItem, lastSelectDoc, searchParam) => {
   return {
     docTreeNodes,
     docExpandedKeys,
-    currentSelectDoc
+    currentSelectDoc,
+    projectItem
   }
 }
 /**

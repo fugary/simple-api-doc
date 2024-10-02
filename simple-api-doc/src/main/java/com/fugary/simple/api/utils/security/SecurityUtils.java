@@ -44,6 +44,18 @@ public class SecurityUtils {
     }
 
     /**
+     * 获取ShareId
+     * @return
+     */
+    public static String getLoginShareId() {
+        HttpServletRequest request = HttpRequestUtils.getCurrentRequest();
+        if (request != null) {
+            return (String) request.getAttribute(ApiDocConstants.AUTHORIZED_SHARED_KEY);
+        }
+        return null;
+    }
+
+    /**
      * 验证用户操作
      *
      * @param targetUserName

@@ -44,7 +44,7 @@ const columns = [{
       <UrlCopyLink urlPath={shareUrl} />&nbsp;
       <UrlCopyLink icon="OpenInNewFilled"
                    tooltip={$i18nBundle('api.label.openLink')}
-                   onClick={() => $openNewWin(getShareUrl(data.shareId))} />
+                   onClick={() => $openNewWin(shareUrl)} />
       </>
   }
 }, {

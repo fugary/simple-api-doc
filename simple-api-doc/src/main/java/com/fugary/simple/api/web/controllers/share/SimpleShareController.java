@@ -5,6 +5,7 @@ import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
@@ -71,7 +72,7 @@ public class SimpleShareController {
             }
         }
         ApiUser apiUser = new ApiUser();
-        apiUser.setUserName(apiShare.getShareName());
+        apiUser.setUserName(apiShare.getShareId());
         shareVo.setShareToken(tokenService.createToken(apiUser));
         return SimpleResultUtils.createSimpleResult(shareVo);
     }
@@ -88,6 +89,9 @@ public class SimpleShareController {
 
     @GetMapping("/loadProject/{shareId}")
     public SimpleResult<ApiProjectDetailVo> loadProject(@PathVariable("shareId") String shareId) {
+        if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
+        }
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         ApiProject project;
         if (apiShare == null || (project = apiProjectService.getById(apiShare.getProjectId())) == null) {

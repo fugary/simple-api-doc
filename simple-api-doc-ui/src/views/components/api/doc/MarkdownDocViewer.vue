@@ -3,8 +3,17 @@ import { computed } from 'vue'
 import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
-import { calcAffixOffset } from '@/utils'
 
+defineProps({
+  scrollElement: {
+    type: [Object, String],
+    default: document.documentElement
+  },
+  scrollElementOffsetTop: {
+    type: Number,
+    default: 0
+  }
+})
 const id = 'markdown-doc-preview-only'
 const vModel = defineModel({
   type: String,
@@ -12,7 +21,6 @@ const vModel = defineModel({
 })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-const scrollElement = '.home-main'
 
 </script>
 
@@ -28,7 +36,7 @@ const scrollElement = '.home-main'
       class="md-catalog"
       :editor-id="id"
       :scroll-element="scrollElement"
-      :scroll-element-offset-top="calcAffixOffset()"
+      :scroll-element-offset-top="scrollElementOffsetTop"
     />
   </el-container>
 </template>
@@ -40,6 +48,6 @@ const scrollElement = '.home-main'
   width: 200px;
 }
 .md-doc-container {
-  margin-right: 200px;
+  margin-right: 220px;
 }
 </style>

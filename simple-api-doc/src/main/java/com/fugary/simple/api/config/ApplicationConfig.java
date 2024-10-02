@@ -1,5 +1,6 @@
 package com.fugary.simple.api.config;
 
+import com.fugary.simple.api.security.ShareSecurityInterceptor;
 import com.fugary.simple.api.security.UserSecurityInterceptor;
 import com.fugary.simple.api.utils.http.SimpleHttpClientUtils;
 import com.fugary.simple.api.web.filters.locale.CustomHeaderLocaleContextResolver;
@@ -97,9 +98,16 @@ public class ApplicationConfig implements WebMvcConfigurer {
         return new UserSecurityInterceptor();
     }
 
+    @Bean
+    public ShareSecurityInterceptor shareSecurityInterceptor(){
+        return new ShareSecurityInterceptor();
+    }
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userSecurityInterceptor()).addPathPatterns("/admin/**");
+        registry.addInterceptor(shareSecurityInterceptor()).addPathPatterns("/shares/**")
+                .excludePathPatterns("/shares/loadShare/**");
     }
 
     @Bean

@@ -19,6 +19,8 @@ public class ApiDocConstants {
 
     public static final String API_USER_KEY = "simple-api-user";
 
+    public static final String AUTHORIZED_SHARED_KEY = "simple-api-share-id";
+
     public static final String API_LOCALE_KEY = "locale";
 
     public static final String ALL_PATH_PATTERN = "/**";

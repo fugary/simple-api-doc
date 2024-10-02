@@ -18,7 +18,7 @@ public class SimpleTestTask extends FixedRateTask implements SimpleAutoTask<Stri
      * @param runnable     the underlying task to execute
      */
     public SimpleTestTask(SimpleTaskWrapper<String> taskWrapper, Runnable runnable) {
-        super(() -> SimpleTaskUtils.executeTask(taskWrapper, runnable), 10000, 2000);
+        super(() -> SimpleTaskUtils.executeTask(taskWrapper, runnable), 60000, 2000);
         this.taskWrapper = taskWrapper;
     }
 

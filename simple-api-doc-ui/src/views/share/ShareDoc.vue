@@ -6,7 +6,9 @@ import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import { $i18nKey } from '@/messages'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 
+const shareConfigStore = useShareConfigStore()
 const route = useRoute()
 const shareId = route.params.shareId
 const password = route.query.pwd || route.query.password || ''
@@ -23,24 +25,30 @@ const showPassWindow = ref(false)
 const projectItem = ref()
 const currentDoc = ref(null)
 
-const loadShareData = async () => {
+const loadShareData = async (input) => {
   loading.value = true
   errorMessage.value = ''
-  await loadShare(shareParam.value).then(data => {
-    projectShare.value = data.resultData
-    console.log('=========================projectShare.value', projectShare.value)
-  }, error => {
+  const param = input ? shareParam.value : { ...shareParam.value, password: shareConfigStore.getShareToken(shareId) || shareParam.value.password }
+  projectShare.value = await loadShare(param).then(data => data.resultData, error => {
     showPassWindow.value = error.data?.code === 401
     errorMessage.value = error.data?.message
-    if (error.data?.resultData) {
-      projectShare.value = error.data.resultData
+    if (showPassWindow.value) {
+      shareConfigStore.clearShareToken(shareId)
     }
+    return error.data?.resultData
   }).finally(() => (loading.value = false))
+  console.log('=====================projectShare', projectShare.value)
   if (projectShare.value?.shareToken) { // 验证成功
     showPassWindow.value = false
-    loadProject(shareId).then(data => {
+    shareConfigStore.setShareToken(shareId, projectShare.value.shareToken)
+    loadProject(shareId, { loading: true }).then(data => {
       projectItem.value = data.resultData
       console.log('=========================projectItem.value', projectItem.value)
+    }).catch(err => {
+      if (err.data?.code === 401) {
+        useShareConfigStore().clearShareToken(shareId)
+        showPassWindow.value = true
+      }
     })
   }
 }
@@ -57,7 +65,7 @@ const passwordOptions = [{
 const toAccessDocs = ({ form }) => {
   form.validate(valid => {
     if (valid) {
-      loadShareData()
+      loadShareData(true)
     }
   })
   return false
@@ -104,7 +112,7 @@ const toAccessDocs = ({ form }) => {
       </common-window>
       <el-container
         v-if="projectItem"
-        class="form-edit-width-100 padding-15"
+        class="form-edit-width-100 flex-column padding-15"
       >
         <common-split
           v-if="projectItem"
