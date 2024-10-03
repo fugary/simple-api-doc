@@ -70,7 +70,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
       :model-value="apiDocDetail?.description"
     />
     <api-doc-parameters
-      v-if="apiDocDetail?.parametersSchema"
+      v-if="apiDocDetail?.parametersSchema || !apiDocDetail?.requestsSchemas?.length"
       v-model="apiDocDetail"
     />
     <api-doc-request-body
