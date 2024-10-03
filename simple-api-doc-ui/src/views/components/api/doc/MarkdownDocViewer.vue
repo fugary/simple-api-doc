@@ -4,6 +4,10 @@ import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
+import { useWindowSize } from '@vueuse/core'
+
+const { width } = useWindowSize()
+const docMargin = computed(() => width.value < 800 ? 0 : '220px')
 
 defineProps({
   scrollElement: {
@@ -38,6 +42,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
         :model-value="currentDoc.docContent"
       />
       <md-catalog
+        v-if="width>=800"
         class="md-catalog"
         :editor-id="id"
         :scroll-element="scrollElement"
@@ -54,6 +59,6 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
   width: 200px;
 }
 .md-doc-container {
-  margin-right: 220px;
+  margin-right: v-bind(docMargin);
 }
 </style>

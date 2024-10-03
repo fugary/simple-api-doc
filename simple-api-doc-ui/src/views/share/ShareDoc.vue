@@ -28,7 +28,7 @@ const currentDoc = ref(null)
 const loadShareData = async (input) => {
   loading.value = true
   errorMessage.value = ''
-  const param = input ? shareParam.value : { ...shareParam.value, password: shareConfigStore.getShareToken(shareId) || shareParam.value.password }
+  const param = input ? shareParam.value : { ...shareParam.value, password: shareParam.value.password || shareConfigStore.getShareToken(shareId) }
   projectShare.value = await loadShare(param).then(data => data.resultData, error => {
     showPassWindow.value = error.data?.code === 401
     errorMessage.value = error.data?.message
@@ -123,6 +123,7 @@ const toAccessDocs = ({ form }) => {
             <api-folder-tree-viewer
               v-model="currentDoc"
               :project-item="projectItem"
+              :share-doc="projectShare"
             />
           </template>
           <template #split-1>

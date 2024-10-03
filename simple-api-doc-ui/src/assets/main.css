@@ -493,7 +493,8 @@ html, body, #app, .index-container {
 }
 
 .doc-schema-tree .el-tree-node__content{
-    height: 40px;
+    min-height: 40px;
+    height: unset;
 }
 
 .doc-schema-required {

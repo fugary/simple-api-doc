@@ -1,6 +1,12 @@
 <script setup>
 import { computed, watch, ref, nextTick } from 'vue'
 import { cloneDeep, isArray } from 'lodash-es'
+import markdownit from 'markdown-it'
+import { $i18nBundle } from '@/messages'
+const md = markdownit({
+  html: true,
+  linkify: true
+})
 
 const props = defineProps({
   componentSchemas: {
@@ -54,6 +60,7 @@ const $ref2Schema = $ref => {
 const processProperties = schema => {
   console.log('====================================processProperties', schema)
   const properties = schema.items?.properties || schema.properties || {}
+  const schemaParent = schema.items || schema
   return Object.keys(properties).map(key => {
     const value = properties[key]
     if (value.$ref) {
@@ -64,6 +71,9 @@ const processProperties = schema => {
         value.items.name = $ref2Schema(value.items.$ref)
         value.name = value.items.name
       }
+    }
+    if (schemaParent.required?.length) {
+      value.isRequired = schemaParent.required.includes(key)
     }
     return {
       name: key,
@@ -152,6 +162,16 @@ const treeProps = {
   isLeaf: 'isLeaf'
 }
 
+const getMarkdownStr = data => {
+  let example = ''
+  if (data.schema?.example) {
+    example = `${$i18nBundle('common.label.example')}: <code>${data.schema?.example}</code>`
+  }
+  const str = `${example}<br/>
+  ${data.schema?.description || ''}`
+  return md.render(str)
+}
+
 </script>
 
 <template>
@@ -177,7 +197,7 @@ const treeProps = {
             <strong>
               {{ node.data.name }}
               <span
-                v-if="node.data.required"
+                v-if="node.data.required || node.data.schema?.isRequired"
                 class="doc-schema-required"
               >*</span>
             </strong>
@@ -195,9 +215,11 @@ const treeProps = {
             v-if="node.data.schema?.description"
             type="info"
             size="small"
-            style="word-break: break-all;"
+            class="padding-left2"
+            style="white-space: normal;"
           >
-            {{ node.data.schema.description }}
+            <!--eslint-disable-next-line vue/no-v-html-->
+            <span v-html="getMarkdownStr(node.data)" />
           </el-text>
         </div>
       </template>

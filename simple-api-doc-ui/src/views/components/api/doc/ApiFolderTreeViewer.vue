@@ -1,12 +1,18 @@
-<script setup>
-import { ref, watch, computed } from 'vue'
+<script setup lang="jsx">
+import { computed, ref, watch } from 'vue'
 import { calcProjectItem, filerProjectItem } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
+import CommonIcon from '@/components/common-icon/index.vue'
+import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
   projectItem: {
+    type: Object,
+    default: undefined
+  },
+  shareDoc: {
     type: Object,
     default: undefined
   },
@@ -43,7 +49,12 @@ const searchParam = ref({
 const searchFormOption = computed(() => {
   return {
     labelWidth: '1px',
-    prop: 'keyword'
+    prop: 'keyword',
+    placeholder: $i18nBundle('common.msg.inputKeywords'),
+    attrs: {
+      clearable: true,
+      prefixIcon: <CommonIcon icon="Search"/>
+    }
   }
 })
 watch(searchParam, () => {
@@ -161,7 +172,10 @@ const showDropdown = (node, delay = true) => {
       shadow="never"
       class="small-card operation-card"
     >
-      <template #header>
+      <template
+        v-if="!shareDoc"
+        #header
+      >
         <div class="card-header">
           <span style="margin-right: auto">{{ $t('menu.label.apiManagement') }}</span>
           <span
@@ -172,6 +186,17 @@ const showDropdown = (node, delay = true) => {
           </span>
         </div>
       </template>
+      <el-header
+        v-if="shareDoc"
+        class="share-name-header"
+      >
+        <common-icon
+          :size="30"
+          icon="custom-logo"
+          class="margin-right1"
+        />
+        <span>{{ shareDoc.shareName }}</span>
+      </el-header>
       <common-form-control
         style="margin-left: -10px;"
         :option="searchFormOption"
@@ -224,10 +249,18 @@ const showDropdown = (node, delay = true) => {
 </template>
 
 <style scoped>
+.share-name-header {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  margin-bottom: 20px;
+}
+
 .custom-tree-node {
   width: 100%;
   height: 25px;
 }
+
 .custom-tree-node .more-actions {
   position: absolute;
   right: 5px;
