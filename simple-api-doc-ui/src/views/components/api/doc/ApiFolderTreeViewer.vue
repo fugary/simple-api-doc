@@ -6,6 +6,9 @@ import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { $i18nBundle } from '@/messages'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+
+const globalConfigStore = useGlobalConfigStore()
 
 const props = defineProps({
   projectItem: {
@@ -143,7 +146,7 @@ const calcNodeLeaf = (node) => {
   if (!node.data.isDoc) {
     return 'Folder'
   }
-  return node.data.docType === 'md' ? 'Document' : 'Link'
+  return node.data.docType === 'md' ? 'custom-markdown' : 'custom-api'
 }
 
 const delayDropdown = ref(false)
@@ -194,8 +197,16 @@ const showDropdown = (node, delay = true) => {
           :size="30"
           icon="custom-logo"
           class="margin-right1"
+          style="color: #FF821A;"
         />
-        <span>{{ shareDoc.shareName }}</span>
+        <span style="margin-right: auto;">{{ shareDoc.shareName }}</span>
+        <el-link :underline="false">
+          <common-icon
+            :icon="globalConfigStore.isDarkTheme ? 'sunny' : 'moon'"
+            :size="20"
+            @click="globalConfigStore.toggleTheme"
+          />
+        </el-link>
       </el-header>
       <common-form-control
         style="margin-left: -10px;"

@@ -43,6 +43,10 @@ export const useGlobalConfigStore = defineStore('globalConfig', () => {
       if (!THEME_ENABLED) return
       isDarkTheme.value = dark
     },
+    toggleTheme () {
+      if (!THEME_ENABLED) return
+      isDarkTheme.value = !isDarkTheme.value
+    },
     changeShowSettings (val) {
       isShowSettings.value = val
     },
