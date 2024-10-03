@@ -30,5 +30,14 @@ export default [{
       labelKey: 'api.label.shareDocs',
       icon: 'List'
     }
+  }, {
+    path: 'tasks/:projectCode',
+    name: 'ApiProjectTasks',
+    component: () => import('@/views/api/project/ApiProjectTasks.vue'),
+    meta: {
+      replaceTabHistory: 'ApiProjects',
+      labelKey: 'api.label.importData',
+      icon: 'List'
+    }
   }]
 }]

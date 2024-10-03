@@ -3,7 +3,6 @@ import { useRoute } from 'vue-router'
 import { $goto, useBackUrl, calcAffixOffset } from '@/utils'
 import { ref } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
-import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
@@ -15,7 +14,6 @@ const { goBack } = useBackUrl('/api/projects')
 const { projectItem, loading } = useApiProjectItem(projectCode)
 
 const currentDoc = ref(null)
-const showImportWindow = ref(false)
 </script>
 
 <template>
@@ -49,7 +47,7 @@ const showImportWindow = ref(false)
           </el-button>
           <el-button
             type="success"
-            @click="showImportWindow = true"
+            @click="$goto(`/api/projects/tasks/${projectItem.projectCode}`)"
           >
             {{ $t('api.label.importData') }}
           </el-button>
@@ -88,11 +86,6 @@ const showImportWindow = ref(false)
         </common-split>
       </div>
     </el-container>
-    <api-project-import
-      v-if="projectItem"
-      v-model="showImportWindow"
-      :project="projectItem"
-    />
   </el-container>
 </template>
 

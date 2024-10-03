@@ -13,8 +13,8 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
-import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 import { useWindowSize } from '@vueuse/core'
+import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 
 const { width } = useWindowSize()
 
@@ -26,7 +26,10 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   defaultParam: { page: useDefaultPage(50) },
   searchMethod: search
 })
-const loadApiProjects = (pageNumber) => searchMethod(pageNumber)
+const loadApiProjects = (pageNumber) => {
+  showImportWindow.value = false
+  searchMethod(pageNumber)
+}
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 
 onMounted(() => {
@@ -273,7 +276,7 @@ const showImportWindow = ref(false)
       :save-current-item="saveProjectItem"
       label-width="130px"
     />
-    <api-project-import
+    <api-project-import-window
       v-model="showImportWindow"
       @import-success="loadApiProjects()"
     />

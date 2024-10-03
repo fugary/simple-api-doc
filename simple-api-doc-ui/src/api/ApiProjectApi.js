@@ -95,7 +95,8 @@ export const importProject = (files, params = {}, config = {}) => {
   for (const key in params) {
     params[key] && formData.append(key, params[key])
   }
-  return $httpPost(`${API_PROJECT_URL}/importProject`,
+  const url = params.projectId ? `${API_PROJECT_URL}/importExistsProject` : `${API_PROJECT_URL}/importProject`
+  return $httpPost(url,
     formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true }, config))
 }
 

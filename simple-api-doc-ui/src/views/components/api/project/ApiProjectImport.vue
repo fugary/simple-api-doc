@@ -23,7 +23,7 @@ const props = defineProps({
     default: null
   }
 })
-const showWindow = defineModel('modelValue', { type: Boolean, default: false })
+
 const importModel = ref({
   importType: IMPORT_TYPES[0].value,
   authType: AUTH_TYPE.NONE,
@@ -121,12 +121,12 @@ const formOptions = computed(() => {
 const emit = defineEmits(['import-success'])
 const doImportProject = () => {
   if (importFiles.value?.length || importModel.value.importType === 'url') {
+    importModel.value.projectId = props.project?.id
     importProject(importFiles.value, importModel.value, {
       loading: true
     }).then(data => {
       if (data.success) {
         $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
-        showWindow.value = false
         emit('import-success', data)
       }
     })
@@ -136,28 +136,23 @@ const doImportProject = () => {
   return false
 }
 
+defineExpose({
+  doImportProject
+})
+
 </script>
 
 <template>
-  <common-window
-    v-model="showWindow"
-    :title="$t('api.msg.importFileTitle')"
-    append-to-body
-    destroy-on-close
-    width="800px"
-    :ok-click="doImportProject"
-  >
-    <el-container class="flex-column">
-      <common-form
-        label-width="130px"
-        class="form-edit-width-90"
-        :options="formOptions"
-        :show-buttons="false"
-        :model="importModel"
-        v-bind="$attrs"
-      />
-    </el-container>
-  </common-window>
+  <el-container class="flex-column">
+    <common-form
+      label-width="130px"
+      class="form-edit-width-90"
+      :options="formOptions"
+      :show-buttons="false"
+      :model="importModel"
+      v-bind="$attrs"
+    />
+  </el-container>
 </template>
 
 <style scoped>

@@ -1,18 +1,18 @@
 <script setup lang="jsx">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $copyText, $coreConfirm, $openNewWin, formatDate, useBackUrl } from '@/utils'
+import { $coreConfirm, formatDate, useBackUrl } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectShareApi, { getShareUrl } from '@/api/ApiProjectShareApi'
+import ApiProjectTaskApi from '@/api/ApiProjectTaskApi'
 import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
-import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElTag } from 'element-plus'
+import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -22,37 +22,25 @@ const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, false)
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
-  searchMethod: ApiProjectShareApi.search
+  searchMethod: ApiProjectTaskApi.search
 })
-const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
+const loadProjectTasks = (pageNumber) => searchMethod(pageNumber)
 
 onMounted(async () => {
   await loadProjectItem(projectCode)
   searchParam.value.projectId = projectItem.value.id
-  loadProjectShares(1)
+  loadProjectTasks(1)
 })
 
 const columns = [{
-  labelKey: 'api.label.shareName',
-  formatter (data) {
-    let shareUrl = getShareUrl(data.shareId)
-    if (data.sharePassword) {
-      shareUrl = `${shareUrl}?pwd=${data.sharePassword}`
-    }
-    return <>
-      {data.shareName}&nbsp;
-      <UrlCopyLink urlPath={shareUrl} />&nbsp;
-      <UrlCopyLink icon="OpenInNewFilled"
-                   tooltip={$i18nBundle('api.label.openLink')}
-                   onClick={() => $openNewWin(shareUrl)} />
-      </>
-  }
+  labelKey: 'api.label.importName',
+  prop: 'taskName'
 }, {
   labelKey: 'common.label.status',
   minWidth: '100px',
   formatter (data) {
     return <DelFlagTag v-model={data.status} clickToToggle={true}
-                       onToggleValue={(status) => ApiProjectShareApi.saveOrUpdate({ ...data, status })}/>
+                       onToggleValue={(status) => ApiProjectTaskApi.saveOrUpdate({ ...data, status })}/>
   },
   attrs: {
     align: 'center'
@@ -87,15 +75,7 @@ const columns = [{
 const buttons = computed(() => {
   return [{
     labelKey: 'api.label.copyLinkAndPassword',
-    type: 'success',
-    click: item => {
-      const shareUrl = getShareUrl(item.shareId)
-      let text = `${item.shareName}: \n链接: ${shareUrl}`
-      if (item.sharePassword) {
-        text += `\n密码: ${item.sharePassword}`
-      }
-      $copyText(text)
-    }
+    type: 'success'
   }, {
     labelKey: 'common.label.edit',
     type: 'primary',
@@ -107,8 +87,8 @@ const buttons = computed(() => {
     type: 'danger',
     click: item => {
       $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
-        .then(() => ApiProjectShareApi.deleteById(item.id))
-        .then(() => loadProjectShares())
+        .then(() => ApiProjectTaskApi.deleteById(item.id))
+        .then(() => loadProjectTasks())
     }
   }]
 })
@@ -126,7 +106,7 @@ const showEditWindow = ref(false)
 const currentShare = ref()
 const newOrEdit = async (id) => {
   if (id) {
-    await ApiProjectShareApi.getById(id).then(data => {
+    await ApiProjectTaskApi.getById(id).then(data => {
       data.resultData && (currentShare.value = data.resultData)
     })
   } else {
@@ -163,9 +143,11 @@ const editFormOptions = computed(() => defineFormOptions([{
   type: 'date-picker'
 }]))
 
-const saveProjectShare = (item) => {
-  return ApiProjectShareApi.saveOrUpdate(item).then(() => loadProjectShares())
+const saveProjectTask = (item) => {
+  return ApiProjectTaskApi.saveOrUpdate(item).then(() => loadProjectTasks())
 }
+
+const importRef = ref()
 
 </script>
 
@@ -178,44 +160,63 @@ const saveProjectShare = (item) => {
       <template #content>
         <el-container>
           <span>
-            {{ projectItem?.projectName }} - {{ $t('api.label.shareDocs') }}
+            {{ projectItem?.projectName }} - {{ $t('api.label.importData') }}
           </span>
         </el-container>
       </template>
     </el-page-header>
-    <common-form
-      inline
-      :model="searchParam"
-      :options="searchFormOptions"
-      :submit-label="$t('common.label.search')"
-      :back-url="goBack"
-      @submit-form="loadProjectShares(1)"
+    <el-tabs
+      type="border-card"
+      lazy
     >
-      <template #buttons>
-        <el-button
-          type="info"
-          @click="newOrEdit()"
+      <el-tab-pane>
+        <template #label>
+          {{ $t('api.label.manualImportData') }}
+        </template>
+        <api-project-import
+          ref="importRef"
+          :project="projectItem"
+        />
+      </el-tab-pane>
+      <el-tab-pane>
+        <template #label>
+          {{ $t('api.label.autoImportData') }}
+        </template>
+        <common-form
+          inline
+          :model="searchParam"
+          :options="searchFormOptions"
+          :submit-label="$t('common.label.search')"
+          :back-url="goBack"
+          @submit-form="loadProjectTasks(1)"
         >
-          {{ $t('common.label.new') }}
-        </el-button>
-      </template>
-    </common-form>
-    <common-table
-      v-model:page="searchParam.page"
-      :data="tableData"
-      :columns="columns"
-      :buttons="buttons"
-      buttons-slot="buttons"
-      :loading="loading"
-      @page-size-change="loadProjectShares()"
-      @current-page-change="loadProjectShares()"
-    />
+          <template #buttons>
+            <el-button
+              type="info"
+              @click="newOrEdit()"
+            >
+              {{ $t('common.label.new') }}
+            </el-button>
+          </template>
+        </common-form>
+        <common-table
+          v-model:page="searchParam.page"
+          :data="tableData"
+          :columns="columns"
+          :buttons="buttons"
+          buttons-slot="buttons"
+          :loading="loading"
+          @page-size-change="loadProjectTasks()"
+          @current-page-change="loadProjectTasks()"
+        />
+      </el-tab-pane>
+    </el-tabs>
     <simple-edit-window
       v-model="currentShare"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
       :name="$t('api.label.shareDocs')"
-      :save-current-item="saveProjectShare"
+      :save-current-item="saveProjectTask"
       label-width="130px"
     />
   </el-container>
