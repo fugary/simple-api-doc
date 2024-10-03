@@ -19,14 +19,14 @@ export const filterFoldersWithDocs = (folders) => {
 /**
  * 计算ProjectItem
  * @param projectItem
- * @param lastSelectDoc
  * @param searchParam
+ * @param lastExpandKeys
+ * @param lastDocId
  * @return {{treeNodes: *[], defaultExpandedKeys: *[]}}
  */
-export const calcProjectItem = (projectItem, lastSelectDoc, searchParam) => {
+export const calcProjectItem = (projectItem, searchParam, lastExpandKeys, lastDocId) => {
   let docTreeNodes = []
-  let docExpandedKeys = []
-  let currentSelectDoc = lastSelectDoc
+  let currentSelectDoc = null
   if (projectItem) {
     projectItem.docs?.sort((a, b) => {
       return a.sortId - b.sortId
@@ -49,17 +49,15 @@ export const calcProjectItem = (projectItem, lastSelectDoc, searchParam) => {
     if (searchParam?.keyword) {
       docTreeNodes = filterFoldersWithDocs(docTreeNodes)
     }
-    if (docTreeNodes[0]?.id) {
-      docExpandedKeys = [docTreeNodes[0]?.id]
+    if (docTreeNodes[0]?.id && !lastExpandKeys.includes(docTreeNodes[0]?.id)) {
+      lastExpandKeys.push(docTreeNodes[0]?.id)
     }
-    if (!docs.find(doc => doc.id === currentSelectDoc?.id)) {
-      currentSelectDoc = docs[0]
-    }
-    console.log('=============================treeNodes', docExpandedKeys, docTreeNodes)
+    currentSelectDoc = docs.find(doc => doc.id === lastDocId) || docs[0]
+    console.log('=============================treeNodes', lastExpandKeys, docTreeNodes)
   }
   return {
     docTreeNodes,
-    docExpandedKeys,
+    docExpandedKeys: lastExpandKeys,
     currentSelectDoc,
     projectItem
   }
@@ -70,7 +68,7 @@ export const calcProjectItem = (projectItem, lastSelectDoc, searchParam) => {
  * @param keyword
  * @return {*}
  */
-export const filerProjectItem = (projectItem, keyword) => {
+export const filterProjectItem = (projectItem, keyword) => {
   projectItem = cloneDeep(projectItem)
   if (keyword && projectItem) {
     projectItem.docs = projectItem.docs?.filter(doc => doc.docName?.includes(keyword) || doc.url?.includes(keyword))

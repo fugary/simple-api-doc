@@ -6,8 +6,10 @@ import { defineStore } from 'pinia'
  */
 export const useShareConfigStore = defineStore('shareConfigStore', () => {
   const shareConfig = ref({})
+  const shareFolderView = ref({})
   return {
     shareConfig,
+    shareFolderView,
     getShareToken (shareId) {
       return shareConfig.value[shareId]
     },

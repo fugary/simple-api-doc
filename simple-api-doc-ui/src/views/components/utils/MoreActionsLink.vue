@@ -8,6 +8,10 @@ const props = defineProps({
   handlers: {
     type: Array,
     default: () => []
+  },
+  iconSize: {
+    type: Number,
+    default: 20
   }
 })
 
@@ -22,12 +26,15 @@ defineEmits(['enterDropdown', 'leaveDropdown', 'showDropdown'])
 <template>
   <el-dropdown @visible-change="$event&&$emit('showDropdown')">
     <el-link :underline="false">
-      <el-tag
+      <el-link
         type="info"
-        effect="light"
+        :underline="false"
       >
-        <common-icon :icon="icon" />
-      </el-tag>
+        <common-icon
+          :size="iconSize"
+          :icon="icon"
+        />
+      </el-link>
     </el-link>
     <template #dropdown>
       <el-dropdown-menu
