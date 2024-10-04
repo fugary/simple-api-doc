@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -229,12 +230,16 @@ public class SimpleModelUtils {
      */
     public static void copyNoneNullValue(Object source, Object target) {
         if (target != null) {
-            Stream.of(FieldUtils.getAllFields(target.getClass())).forEach(field -> {
+            Stream.of(FieldUtils.getAllFields(source.getClass())).forEach(field -> {
                 field.setAccessible(true);
                 try {
-                    Object value = field.get(target);
-                    if (value == null || (value instanceof String && StringUtils.isBlank((String) value))) {
-                        field.set(target, field.get(source));
+                    Field targetField = FieldUtils.getField(target.getClass(), field.getName(), true);
+                    if (targetField != null) {
+                        targetField.setAccessible(true);
+                        Object value = targetField.get(target);
+                        if (value == null || (value instanceof String && StringUtils.isBlank((String) value))) {
+                            targetField.set(target, field.get(source));
+                        }
                     }
                 } catch (IllegalAccessException e) {
                     log.error("copy属性错误", e);

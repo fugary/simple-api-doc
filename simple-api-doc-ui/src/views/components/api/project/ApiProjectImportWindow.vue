@@ -24,6 +24,7 @@ defineEmits(['import-success'])
     destroy-on-close
     width="800px"
     :ok-click="doImportProject"
+    :ok-label="$t('api.label.importData')"
   >
     <api-project-import
       ref="importRef"

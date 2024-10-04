@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, ref } from 'vue'
-import { $coreAlert, $coreError } from '@/utils'
+import { $coreAlert, $coreError, processTreeData } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
 import {
   IMPORT_AUTH_TYPES,
@@ -13,6 +13,7 @@ import { ElButton } from 'element-plus'
 import {
   importProject
 } from '@/api/ApiProjectApi'
+import { loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $i18nBundle } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
@@ -21,6 +22,10 @@ const props = defineProps({
   project: {
     type: Object,
     default: null
+  },
+  showButtons: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -40,6 +45,16 @@ const authOptions = computed(() => {
   }
   return options
 })
+const folderTreeNodes = ref([])
+if (props.project?.id) {
+  loadAvailableFolders(props.project?.id).then(folders => {
+    folderTreeNodes.value = processTreeData(folders, null, {
+      clone: false,
+      after: node => (node.label = node.folderName)
+    })
+    importModel.value.toFolder = folderTreeNodes.value[0]?.id
+  })
+}
 const importFiles = ref([])
 const formOptions = computed(() => {
   const existsProj = !!props.project
@@ -56,7 +71,7 @@ const formOptions = computed(() => {
       }))
     }
   }, {
-    enabled: existsProj,
+    enabled: false,
     labelKey: 'api.label.duplicateStrategy',
     prop: 'overwriteMode',
     type: 'select',
@@ -116,6 +131,17 @@ const formOptions = computed(() => {
       },
       tip: () => <div className="el-upload__tip">{$i18nBundle('api.msg.importFileLimit')}</div>
     }
+  }, {
+    enabled: !!props.project?.id,
+    labelKey: 'api.label.targetFolder',
+    type: 'tree-select',
+    prop: 'toFolder',
+    attrs: {
+      nodeKey: 'id',
+      data: folderTreeNodes.value,
+      clearable: false,
+      defaultExpandedKeys: folderTreeNodes.value[0]?.id ? [folderTreeNodes.value[0]?.id] : []
+    }
   }])
 })
 const emit = defineEmits(['import-success'])
@@ -148,9 +174,11 @@ defineExpose({
       label-width="130px"
       class="form-edit-width-90"
       :options="formOptions"
-      :show-buttons="false"
+      :show-buttons="showButtons"
       :model="importModel"
+      :submit-label="$t('api.label.importData')"
       v-bind="$attrs"
+      @submit-form="doImportProject()"
     />
   </el-container>
 </template>

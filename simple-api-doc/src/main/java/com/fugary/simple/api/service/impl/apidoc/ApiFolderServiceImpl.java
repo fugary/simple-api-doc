@@ -88,7 +88,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             save(SimpleModelUtils.addAuditInfo(folder));
             existsFolder = folder;
         } else {
-            updateById(SimpleModelUtils.addAuditInfo(existsFolder)); // 更新
+            SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
+            updateById(SimpleModelUtils.addAuditInfo(folder)); // 更新
         }
         saveApiDocs(projectInfo, mountFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
         if (!CollectionUtils.isEmpty(folder.getFolders())) { // 子目录

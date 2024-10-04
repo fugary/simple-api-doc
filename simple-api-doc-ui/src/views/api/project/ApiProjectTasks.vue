@@ -119,9 +119,23 @@ const newOrEdit = async (id) => {
   }
   showEditWindow.value = true
 }
+/**
+ *     private Integer projectId;
+ *     private String taskType;
+ *     private String taskName;
+ *     private String sourceType;
+ *     private String sourceUrl;
+ *     private Integer scheduleRate;
+ *     private Integer toFolder;
+ *     private Integer overwriteMode;
+ *     private String authType;
+ *     private String authContent;
+ *     private Date execDate;
+ * @type {ComputedRef<CommonFormOption|CommonFormOption[]>}
+ */
 const editFormOptions = computed(() => defineFormOptions([{
-  labelKey: 'api.label.shareName',
-  prop: 'shareName',
+  labelKey: 'api.label.importName',
+  prop: 'importName',
   required: true
 }, useFormStatus(), {
   labelKey: 'api.label.exportEnabled',
@@ -173,10 +187,15 @@ const importRef = ref()
         <template #label>
           {{ $t('api.label.manualImportData') }}
         </template>
-        <api-project-import
-          ref="importRef"
-          :project="projectItem"
-        />
+        <el-container class="form-edit-width-70">
+          <api-project-import
+            v-if="projectItem"
+            ref="importRef"
+            show-buttons
+            :project="projectItem"
+            @import-success="goBack"
+          />
+        </el-container>
       </el-tab-pane>
       <el-tab-pane>
         <template #label>
