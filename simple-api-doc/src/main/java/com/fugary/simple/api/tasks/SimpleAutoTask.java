@@ -21,4 +21,9 @@ public interface SimpleAutoTask<T> {
      * @return
      */
     SimpleTaskWrapper<T> getTaskWrapper();
+
+    /**
+     * 立即触发
+     */
+    void triggerNow();
 }

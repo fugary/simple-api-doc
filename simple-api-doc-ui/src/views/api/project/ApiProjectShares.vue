@@ -206,6 +206,7 @@ const saveProjectShare = (item) => {
       :columns="columns"
       :buttons="buttons"
       buttons-slot="buttons"
+      :buttons-column-attrs="{minWidth:'250px'}"
       :loading="loading"
       @page-size-change="loadProjectShares()"
       @current-page-change="loadProjectShares()"

@@ -5,9 +5,9 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
-import com.fugary.simple.api.tasks.ProjectAutoImportTask;
 import com.fugary.simple.api.tasks.SimpleTaskWrapper;
 import com.fugary.simple.api.tasks.SimpleTestTask;
+import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.config.IntervalTask;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 import java.util.List;
@@ -64,11 +65,8 @@ public class TaskScheduleConfig {
             }
             for (ApiProjectTask projectTask : projectTasks) {
                 if (projectTask.getScheduleRate() != null) {
-                    SimpleTaskWrapper<ApiProjectTask> projectTaskWrapper = new SimpleTaskWrapper<>(
-                            ApiDocConstants.AUTO_IMPORT_TASK_PREFIX + projectTask.getId(), projectTask.getTaskName(), projectTask);
-                    scheduledTaskRegistrar.addFixedRateTask(new ProjectAutoImportTask(projectTaskWrapper,
-                            () -> projectAutoImportInvoker.importProject(projectTask),
-                            simpleApiConfigProperties.getDefaultTaskDelay()));
+                    scheduledTaskRegistrar.addFixedRateTask((IntervalTask) SimpleTaskUtils.projectTask2SimpleTask(projectTask,
+                            projectAutoImportInvoker, simpleApiConfigProperties));
                 }
             }
             scheduledTaskRegistrar.addFixedRateTask(new SimpleTestTask(

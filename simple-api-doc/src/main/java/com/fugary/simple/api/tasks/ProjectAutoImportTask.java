@@ -28,4 +28,9 @@ public class ProjectAutoImportTask extends FixedRateTask implements SimpleAutoTa
     public SimpleTaskWrapper<ApiProjectTask> getTaskWrapper() {
         return projectTaskWrapper;
     }
+
+    @Override
+    public void triggerNow() {
+        getRunnable().run();
+    }
 }

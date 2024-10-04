@@ -15,10 +15,6 @@ public interface SimpleTaskManager {
 
     ScheduledTask getScheduledTask(String taskId);
 
-    ScheduledTask startAutoTask(String taskId);
-
-    ScheduledTask stopAutoTask(String taskId);
-
     ScheduledTask addOrUpdateAutoTask(SimpleAutoTask<?> task);
 
     void removeAutoTask(String taskId);

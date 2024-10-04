@@ -5,7 +5,7 @@ import { $coreConfirm, useBackUrl } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectTaskApi from '@/api/ApiProjectTaskApi'
+import ApiProjectTaskApi, { triggerTask } from '@/api/ApiProjectTaskApi'
 import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
@@ -38,9 +38,12 @@ const loadProjectTasks = (pageNumber) => searchMethod(pageNumber)
 
 onMounted(async () => {
   await loadProjectItem(projectCode)
-  searchParam.value.projectId = projectItem.value.id
-  loadProjectTasks(1)
-  loadValidFolders(searchParam.value.projectId)
+  const projectId = projectItem.value?.id
+  if (projectId) {
+    searchParam.value.projectId = projectId
+    loadProjectTasks(1)
+    loadValidFolders(searchParam.value.projectId)
+  }
 })
 
 const columns = [{
@@ -75,7 +78,7 @@ const columns = [{
 }, {
   labelKey: 'api.label.triggerRate',
   formatter (data) {
-    return data.taskType === 'auto' ? dayjs.duration(data.scheduleRate, 'minutes') : $i18nBundle('api.label.manualImportData1')
+    return data.taskType === 'auto' ? dayjs.duration(data.scheduleRate, 'minutes').humanize() : $i18nBundle('api.label.manualImportData1')
   }
 }, {
   labelKey: 'api.label.execDate',
@@ -86,7 +89,11 @@ const columns = [{
 const buttons = computed(() => {
   return [{
     labelKey: 'api.label.importNow',
-    type: 'success'
+    type: 'success',
+    click: item => {
+      triggerTask(item.id, { loading: true })
+        .then(() => loadProjectTasks())
+    }
   }, {
     labelKey: 'common.label.edit',
     type: 'primary',
@@ -122,12 +129,13 @@ const newOrEdit = async (id) => {
     })
   } else {
     currentModel.value = {
-      projectId: projectItem.value.id,
+      projectId: projectItem.value?.id,
       status: 1,
-      taskType: IMPORT_TASK_TYPES[0].value,
+      taskType: IMPORT_TASK_TYPES[1].value,
       sourceType: IMPORT_SOURCE_TYPES[0].value,
       authType: AUTH_TYPE.NONE,
-      toFolder: folderTreeNodes.value[0]?.id
+      toFolder: folderTreeNodes.value[0]?.id,
+      scheduleRate: TASK_TRIGGER_RATES[TASK_TRIGGER_RATES.length - 1].value
     }
   }
   showEditWindow.value = true
@@ -262,7 +270,7 @@ const importRef = ref()
             :data="tableData"
             :columns="columns"
             :buttons="buttons"
-            :buttons-column-attrs="{width:'250px'}"
+            :buttons-column-attrs="{minWidth:'250px'}"
             buttons-slot="buttons"
             :loading="loading"
             @page-size-change="loadProjectTasks()"

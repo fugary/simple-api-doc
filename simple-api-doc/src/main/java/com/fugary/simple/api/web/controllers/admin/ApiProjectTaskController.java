@@ -3,12 +3,16 @@ package com.fugary.simple.api.web.controllers.admin;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
+import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
+import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +36,15 @@ public class ApiProjectTaskController {
     @Autowired
     private ApiProjectService apiProjectService;
 
+    @Autowired
+    private ProjectAutoImportInvoker projectAutoImportInvoker;
+
+    @Autowired
+    private SimpleApiConfigProperties simpleApiConfigProperties;
+
+    @Autowired
+    private SimpleTaskManager simpleTaskManager;
+
     @GetMapping
     public SimpleResult<List<ApiProjectTask>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProjectTask> page = SimpleResultUtils.toPage(queryVo);
@@ -48,20 +61,45 @@ public class ApiProjectTaskController {
     }
 
     @DeleteMapping("/{id}")
-    public SimpleResult remove(@PathVariable("id") Integer id) {
-        ApiProjectTask apiShare = apiProjectTaskService.getById(id);
-        if (!validateOperateUser(apiShare)) {
+    public SimpleResult<Boolean> remove(@PathVariable("id") Integer id) {
+        ApiProjectTask apiTask = apiProjectTaskService.getById(id);
+        if (!validateOperateUser(apiTask)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (apiTask != null) {
+            simpleTaskManager.removeAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId()));
         }
         return SimpleResultUtils.createSimpleResult(apiProjectTaskService.removeById(id));
     }
 
     @PostMapping
-    public SimpleResult save(@RequestBody ApiProjectTask apiTask) {
+    public SimpleResult<Boolean> save(@RequestBody ApiProjectTask apiTask) {
         if (!validateOperateUser(apiTask)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        return SimpleResultUtils.createSimpleResult(apiProjectTaskService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiTask)));
+        boolean saved = apiProjectTaskService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiTask));
+        if (apiTask.getId() != null) {
+            if (!apiTask.isEnabled()) {
+                simpleTaskManager.removeAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId()));
+            } else {
+                simpleTaskManager.addOrUpdateAutoTask(SimpleTaskUtils.projectTask2SimpleTask(apiTask,
+                        projectAutoImportInvoker, simpleApiConfigProperties));
+            }
+        }
+        return SimpleResultUtils.createSimpleResult(saved);
+    }
+
+    @PostMapping("/trigger/{id}")
+    public SimpleResult<Boolean> triggerNow(@PathVariable("id") Integer id) {
+        ApiProjectTask apiTask = apiProjectTaskService.getById(id);
+        if (!validateOperateUser(apiTask)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (apiTask != null) {
+            SimpleTaskUtils.projectTask2SimpleTask(apiTask,
+                    projectAutoImportInvoker, simpleApiConfigProperties).triggerNow();
+        }
+        return SimpleResultUtils.createSimpleResult(true);
     }
 
     protected boolean validateOperateUser(ApiProjectTask projectTask) {

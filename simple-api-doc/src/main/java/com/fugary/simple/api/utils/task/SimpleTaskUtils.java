@@ -1,6 +1,11 @@
 package com.fugary.simple.api.utils.task;
 
+import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
+import com.fugary.simple.api.tasks.ProjectAutoImportTask;
+import com.fugary.simple.api.tasks.SimpleAutoTask;
 import com.fugary.simple.api.tasks.SimpleTaskWrapper;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -36,4 +41,26 @@ public class SimpleTaskUtils {
         }
     }
 
+    /**
+     * 计算TaskId
+     *
+     * @param id
+     * @return
+     */
+    public static String getTaskId(Integer id) {
+        return ApiDocConstants.AUTO_IMPORT_TASK_PREFIX + id;
+    }
+
+    /**
+     * 计算ProjectTask为SimpleTask
+     *
+     * @param projectTask
+     */
+    public static SimpleAutoTask<ApiProjectTask> projectTask2SimpleTask(ApiProjectTask projectTask, ProjectAutoImportInvoker projectAutoImportInvoker, SimpleApiConfigProperties simpleApiConfigProperties) {
+        SimpleTaskWrapper<ApiProjectTask> projectTaskWrapper = new SimpleTaskWrapper<>(
+                SimpleTaskUtils.getTaskId(projectTask.getId()), projectTask.getTaskName(), projectTask);
+        return new ProjectAutoImportTask(projectTaskWrapper,
+                () -> projectAutoImportInvoker.importProject(projectTask),
+                simpleApiConfigProperties.getDefaultTaskDelay());
+    }
 }

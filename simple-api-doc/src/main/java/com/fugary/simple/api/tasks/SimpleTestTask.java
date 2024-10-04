@@ -26,4 +26,9 @@ public class SimpleTestTask extends FixedRateTask implements SimpleAutoTask<Stri
     public SimpleTaskWrapper<String> getTaskWrapper() {
         return taskWrapper;
     }
+
+    @Override
+    public void triggerNow() {
+        getRunnable().run();
+    }
 }
