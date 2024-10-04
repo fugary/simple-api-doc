@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, ref } from 'vue'
-import { $coreAlert, $coreError, processTreeData } from '@/utils'
+import { $coreAlert, $coreError } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
 import {
   IMPORT_AUTH_TYPES,
@@ -13,10 +13,10 @@ import { ElButton } from 'element-plus'
 import {
   importProject
 } from '@/api/ApiProjectApi'
-import { loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $i18nBundle } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
+import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 
 const props = defineProps({
   project: {
@@ -45,22 +45,17 @@ const authOptions = computed(() => {
   }
   return options
 })
-const folderTreeNodes = ref([])
-if (props.project?.id) {
-  loadAvailableFolders(props.project?.id).then(folders => {
-    folderTreeNodes.value = processTreeData(folders, null, {
-      clone: false,
-      after: node => (node.label = node.folderName)
-    })
-    importModel.value.toFolder = folderTreeNodes.value[0]?.id
-  })
-}
+const { folderTreeNodes, loadValidFolders } = useFolderTreeNodes()
+loadValidFolders(props.project?.id).then(() => {
+  importModel.value.toFolder = folderTreeNodes.value[0]?.id
+})
+
 const importFiles = ref([])
 const formOptions = computed(() => {
   const existsProj = !!props.project
   const urlMode = importModel.value.importType === 'url'
   return defineFormOptions([{
-    labelKey: 'api.label.source',
+    labelKey: 'api.label.importType',
     prop: 'importType',
     type: 'segmented',
     attrs: {
@@ -94,7 +89,13 @@ const formOptions = computed(() => {
     enabled: urlMode,
     required: true,
     labelKey: 'api.label.importUrl',
-    prop: 'url'
+    prop: 'url',
+    rules: [{
+      message: $i18nBundle('api.msg.proxyUrlMsg'),
+      validator: () => {
+        return !importModel.value.url || /^https?:\/\//.test(importModel.value.url)
+      }
+    }]
   }, {
     enabled: urlMode,
     labelKey: 'api.label.authType',
@@ -137,6 +138,8 @@ const formOptions = computed(() => {
     type: 'tree-select',
     prop: 'toFolder',
     attrs: {
+      checkStrictly: true,
+      filterable: true,
       nodeKey: 'id',
       data: folderTreeNodes.value,
       clearable: false,

@@ -1,3 +1,5 @@
+import dayjs from 'dayjs'
+
 export const MOCK_REQUEST_ID_HEADER = 'mock-request-id'
 
 export const MOCK_DATA_ID_HEADER = 'mock-data-id'
@@ -91,6 +93,21 @@ export const IMPORT_TYPES = [{
   value: 'url',
   labelKey: 'api.label.importTypeUrl'
 }]
+
+export const IMPORT_TASK_TYPES = [{
+  value: 'manual',
+  labelKey: 'api.label.manualImportData1'
+}, {
+  value: 'auto',
+  labelKey: 'api.label.autoImportData1'
+}]
+
+export const TASK_TRIGGER_RATES = [5, 10, 30, 60, 60 * 3, 60 * 12, 60 * 24, 60 * 24 * 3, 60 * 24 * 7].map(minutes => {
+  return {
+    value: minutes * 60,
+    label: dayjs.duration(minutes, 'minutes').humanize()
+  }
+})
 
 export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH_TYPE.JWT)
 

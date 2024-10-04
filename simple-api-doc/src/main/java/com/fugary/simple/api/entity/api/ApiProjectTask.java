@@ -18,7 +18,7 @@ public class ApiProjectTask extends ModelBase {
     private String taskName;
     private String sourceType;
     private String sourceUrl;
-    private Integer scheduleRate;
+    private Integer scheduleRate; // 单位秒
     private Integer toFolder;
     private Integer overwriteMode;
     private String authType;

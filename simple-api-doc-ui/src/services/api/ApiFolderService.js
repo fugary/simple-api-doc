@@ -1,4 +1,6 @@
 import { ref } from 'vue'
+import { loadAvailableFolders } from '@/api/ApiFolderApi'
+import { processTreeData } from '@/utils'
 
 /**
  * 根目是否显示url或者名称
@@ -117,4 +119,22 @@ export const useFolderDropdown = () => {
     leaveDropdown,
     showDropdown
   }
+}
+
+export const useFolderTreeNodes = (projectId) => {
+  const folderTreeNodes = ref([])
+  const folders = ref([])
+  const loadValidFolders = projId => {
+    return loadAvailableFolders(projId).then(validFolders => {
+      folders.value = validFolders || []
+      folderTreeNodes.value = processTreeData(validFolders, null, {
+        clone: false,
+        after: node => (node.label = node.folderName)
+      })
+    })
+  }
+  if (projectId) {
+    loadValidFolders(projectId)
+  }
+  return { folderTreeNodes, folders, loadValidFolders }
 }

@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $coreConfirm, formatDate, useBackUrl } from '@/utils'
+import { $coreConfirm, useBackUrl } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -11,14 +11,24 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
-import { ElTag } from 'element-plus'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
+import {
+  AUTH_TYPE,
+  IMPORT_AUTH_TYPES,
+  IMPORT_SOURCE_TYPES,
+  IMPORT_TASK_TYPES,
+  TASK_TRIGGER_RATES
+} from '@/consts/ApiConstants'
+import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
+import { isFunction } from 'lodash-es'
+import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
+import dayjs from 'dayjs'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
-
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, false)
+const { folderTreeNodes, folders, loadValidFolders } = useFolderTreeNodes()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -30,51 +40,52 @@ onMounted(async () => {
   await loadProjectItem(projectCode)
   searchParam.value.projectId = projectItem.value.id
   loadProjectTasks(1)
+  loadValidFolders(searchParam.value.projectId)
 })
 
 const columns = [{
-  labelKey: 'api.label.importName',
+  labelKey: 'api.label.taskName',
   prop: 'taskName'
 }, {
   labelKey: 'common.label.status',
-  minWidth: '100px',
   formatter (data) {
     return <DelFlagTag v-model={data.status} clickToToggle={true}
-                       onToggleValue={(status) => ApiProjectTaskApi.saveOrUpdate({ ...data, status })}/>
+                       onToggleValue={(status) => saveProjectTask({ ...data, status })}/>
   },
   attrs: {
     align: 'center'
   }
 }, {
-  labelKey: 'api.label.hasPassword',
-  minWidth: '100px',
+  labelKey: 'api.label.targetFolder',
   formatter (data) {
-    const type = data.sharePassword ? 'success' : 'danger'
-    const text = data.sharePassword ? $i18nBundle('common.label.yes') : $i18nBundle('common.label.no')
-    return <ElTag type={type}>
-      {text}
-    </ElTag>
-  },
-  attrs: {
-    align: 'center'
+    return folders.value.find(folder => folder.id === data.toFolder)?.folderName
   }
 }, {
-  labelKey: 'common.label.createDate',
-  property: 'createDate',
+  labelKey: 'api.label.source',
+  formatter (data) {
+    const labelKey = IMPORT_SOURCE_TYPES.find(type => type.value === data.sourceType)?.labelKey
+    return labelKey ? $i18nBundle(labelKey) : ''
+  }
+}, {
+  labelKey: 'api.label.importData',
+  formatter (data) {
+    const labelKey = IMPORT_TASK_TYPES.find(type => type.value === data.taskType)?.labelKey
+    return labelKey ? $i18nBundle(labelKey) : ''
+  }
+}, {
+  labelKey: 'api.label.triggerRate',
+  formatter (data) {
+    return data.taskType === 'auto' ? dayjs.duration(data.scheduleRate, 'minutes') : $i18nBundle('api.label.manualImportData1')
+  }
+}, {
+  labelKey: 'api.label.execDate',
+  property: 'execDate',
   dateFormat: 'YYYY-MM-DD HH:mm:ss'
-}, {
-  labelKey: 'api.label.expireDate',
-  formatter: (row) => {
-    if (row.expireDate) {
-      return formatDate(row.expireDate)
-    }
-    return $i18nBundle('api.label.noExpires')
-  }
 }]
 
 const buttons = computed(() => {
   return [{
-    labelKey: 'api.label.copyLinkAndPassword',
+    labelKey: 'api.label.importNow',
     type: 'success'
   }, {
     labelKey: 'common.label.edit',
@@ -103,59 +114,89 @@ const searchFormOptions = computed(() => {
 })
 
 const showEditWindow = ref(false)
-const currentShare = ref()
+const currentModel = ref()
 const newOrEdit = async (id) => {
   if (id) {
     await ApiProjectTaskApi.getById(id).then(data => {
-      data.resultData && (currentShare.value = data.resultData)
+      data.resultData && (currentModel.value = data.resultData)
     })
   } else {
-    currentShare.value = {
+    currentModel.value = {
       projectId: projectItem.value.id,
       status: 1,
-      exportEnabled: true,
-      debugEnabled: true
+      taskType: IMPORT_TASK_TYPES[0].value,
+      sourceType: IMPORT_SOURCE_TYPES[0].value,
+      authType: AUTH_TYPE.NONE,
+      toFolder: folderTreeNodes.value[0]?.id
     }
   }
   showEditWindow.value = true
 }
-/**
- *     private Integer projectId;
- *     private String taskType;
- *     private String taskName;
- *     private String sourceType;
- *     private String sourceUrl;
- *     private Integer scheduleRate;
- *     private Integer toFolder;
- *     private Integer overwriteMode;
- *     private String authType;
- *     private String authContent;
- *     private Date execDate;
- * @type {ComputedRef<CommonFormOption|CommonFormOption[]>}
- */
-const editFormOptions = computed(() => defineFormOptions([{
-  labelKey: 'api.label.importName',
-  prop: 'importName',
-  required: true
-}, useFormStatus(), {
-  labelKey: 'api.label.exportEnabled',
-  prop: 'exportEnabled',
-  type: 'switch'
-}, {
-  labelKey: 'api.label.debugEnabled',
-  prop: 'debugEnabled',
-  type: 'switch'
-}, {
-  labelKey: 'api.label.accessPassword',
-  prop: 'sharePassword',
-  attrs: {
-    showPassword: true
+
+const editFormOptions = computed(() => {
+  let authOptions = AUTH_OPTION_CONFIG[currentModel.value?.authType]?.options || []
+  if (isFunction(authOptions)) {
+    authOptions = authOptions()
   }
-}, {
-  labelKey: 'api.label.expireDate',
-  prop: 'expireDate',
-  type: 'date-picker'
-}]))
+  return defineFormOptions([{
+    labelKey: 'api.label.taskName',
+    prop: 'taskName',
+    required: true
+  }, {
+    labelKey: 'api.label.importData',
+    prop: 'taskType',
+    type: 'segmented',
+    attrs: {
+      clearable: false,
+      options: IMPORT_TASK_TYPES.map(item => ({
+        value: item.value,
+        label: $i18nBundle(item.labelKey)
+      }))
+    }
+  }, {
+    enabled: currentModel.value?.taskType === 'auto',
+    required: true,
+    labelKey: 'api.label.triggerRate',
+    prop: 'scheduleRate',
+    type: 'select',
+    children: TASK_TRIGGER_RATES,
+    attrs: {
+      clearable: false
+    }
+  }, useFormStatus(), {
+    labelKey: 'api.label.source',
+    prop: 'sourceType',
+    type: 'radio-group',
+    children: IMPORT_SOURCE_TYPES
+  }, {
+    required: true,
+    labelKey: 'api.label.importUrl',
+    prop: 'sourceUrl',
+    rules: [{
+      message: $i18nBundle('api.msg.proxyUrlMsg'),
+      validator: () => {
+        return !currentModel.value.sourceUrl || /^https?:\/\//.test(currentModel.value.sourceUrl)
+      }
+    }]
+  }, {
+    labelKey: 'api.label.authType',
+    prop: 'authType',
+    type: 'radio-group',
+    children: IMPORT_AUTH_TYPES
+  }, ...authOptions, {
+    labelKey: 'api.label.targetFolder',
+    type: 'tree-select',
+    prop: 'toFolder',
+    attrs: {
+      checkStrictly: true,
+      filterable: true,
+      nodeKey: 'id',
+      data: folderTreeNodes.value,
+      clearable: false,
+      defaultExpandedKeys: folderTreeNodes.value[0]?.id ? [folderTreeNodes.value[0]?.id] : []
+    }
+  }])
+})
 
 const saveProjectTask = (item) => {
   return ApiProjectTaskApi.saveOrUpdate(item).then(() => loadProjectTasks())
@@ -179,15 +220,12 @@ const importRef = ref()
         </el-container>
       </template>
     </el-page-header>
-    <el-tabs
-      type="border-card"
-      lazy
-    >
+    <el-tabs lazy>
       <el-tab-pane>
         <template #label>
           {{ $t('api.label.manualImportData') }}
         </template>
-        <el-container class="form-edit-width-70">
+        <el-container class="form-edit-width-70 padding-top2">
           <api-project-import
             v-if="projectItem"
             ref="importRef"
@@ -201,40 +239,43 @@ const importRef = ref()
         <template #label>
           {{ $t('api.label.autoImportData') }}
         </template>
-        <common-form
-          inline
-          :model="searchParam"
-          :options="searchFormOptions"
-          :submit-label="$t('common.label.search')"
-          :back-url="goBack"
-          @submit-form="loadProjectTasks(1)"
-        >
-          <template #buttons>
-            <el-button
-              type="info"
-              @click="newOrEdit()"
-            >
-              {{ $t('common.label.new') }}
-            </el-button>
-          </template>
-        </common-form>
-        <common-table
-          v-model:page="searchParam.page"
-          :data="tableData"
-          :columns="columns"
-          :buttons="buttons"
-          buttons-slot="buttons"
-          :loading="loading"
-          @page-size-change="loadProjectTasks()"
-          @current-page-change="loadProjectTasks()"
-        />
+        <el-container class="flex-column padding-top2">
+          <common-form
+            inline
+            :model="searchParam"
+            :options="searchFormOptions"
+            :submit-label="$t('common.label.search')"
+            :back-url="goBack"
+            @submit-form="loadProjectTasks(1)"
+          >
+            <template #buttons>
+              <el-button
+                type="info"
+                @click="newOrEdit()"
+              >
+                {{ $t('common.label.new') }}
+              </el-button>
+            </template>
+          </common-form>
+          <common-table
+            v-model:page="searchParam.page"
+            :data="tableData"
+            :columns="columns"
+            :buttons="buttons"
+            :buttons-column-attrs="{width:'250px'}"
+            buttons-slot="buttons"
+            :loading="loading"
+            @page-size-change="loadProjectTasks()"
+            @current-page-change="loadProjectTasks()"
+          />
+        </el-container>
       </el-tab-pane>
     </el-tabs>
     <simple-edit-window
-      v-model="currentShare"
+      v-model="currentModel"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
-      :name="$t('api.label.shareDocs')"
+      :name="$t('api.label.importData')"
       :save-current-item="saveProjectTask"
       label-width="130px"
     />

@@ -20,7 +20,7 @@ public class ProjectAutoImportTask extends FixedRateTask implements SimpleAutoTa
     private SimpleTaskWrapper<ApiProjectTask> projectTaskWrapper;
 
     public ProjectAutoImportTask(SimpleTaskWrapper<ApiProjectTask> projectTaskWrapper, Runnable runnable, long delay) {
-        super(() -> SimpleTaskUtils.executeTask(projectTaskWrapper, runnable), projectTaskWrapper.getData().getScheduleRate(), delay);
+        super(() -> SimpleTaskUtils.executeTask(projectTaskWrapper, runnable), projectTaskWrapper.getData().getScheduleRate() * 1000, delay);
         this.projectTaskWrapper = projectTaskWrapper;
     }
 

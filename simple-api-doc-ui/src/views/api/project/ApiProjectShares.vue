@@ -52,7 +52,7 @@ const columns = [{
   minWidth: '100px',
   formatter (data) {
     return <DelFlagTag v-model={data.status} clickToToggle={true}
-                       onToggleValue={(status) => ApiProjectShareApi.saveOrUpdate({ ...data, status })}/>
+                       onToggleValue={(status) => saveProjectShare({ ...data, status })}/>
   },
   attrs: {
     align: 'center'
