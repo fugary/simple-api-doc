@@ -27,7 +27,6 @@ const schemaModel = defineModel({
 const showTree = ref(false)
 watch(schemaModel, () => {
   showTree.value = false
-  console.log('==========================schemaModel', schemaModel.value)
   nextTick(() => {
     showTree.value = true
   })
@@ -58,7 +57,6 @@ const $ref2Schema = $ref => {
  * @return {{schema: *, name: *}[]}
  */
 const processProperties = schema => {
-  console.log('====================================processProperties', schema)
   const properties = schema.items?.properties || schema.properties || {}
   const schemaParent = schema.items || schema
   return Object.keys(properties).map(key => {
@@ -92,9 +90,9 @@ const processSchemas = (docSchema) => {
     resultArr = [processSchema(saveSchema)]
   }
   return resultArr.flatMap(data => {
-    if (data.schema.type === 'object' && data.schema.properties) { // 对象不保留名称，仅用属性
-      return processProperties(data.schema)
-    }
+    // if (data.schema?.properties && Object.keys(data.schema.properties).length) { // 对象不保留名称，仅用属性
+    //   return processProperties(data.schema)
+    // }
     return [data]
   })
 }
@@ -143,7 +141,6 @@ const processSchemaAllOf = schema => {
 }
 
 const loadTreeNode = (node, resolve) => {
-  console.log('===================node', node, schemaModel.value)
   if (!node.parent) { // 第一级
     let firstArr = []
     if (isArray(schemaModel.value)) {
@@ -151,7 +148,10 @@ const loadTreeNode = (node, resolve) => {
     } else {
       firstArr = processSchemas(schemaModel.value)
     }
-    resolve(firstArr)
+    resolve(firstArr.map(data => {
+      data.id = '_root'
+      return data
+    }))
   } else {
     // 下级node
     resolve(processProperties(processSchema(node.data)?.schema))
@@ -165,9 +165,9 @@ const treeProps = {
 const getMarkdownStr = data => {
   let example = ''
   if (data.schema?.example) {
-    example = `${$i18nBundle('common.label.example')}: <code>${data.schema?.example}</code>`
+    example = `${$i18nBundle('common.label.example')}: <code>${data.schema?.example}</code>\n`
   }
-  const str = `${example}<br/>
+  const str = `${example}
   ${data.schema?.description || ''}`
   return md.render(str)
 }
@@ -180,7 +180,8 @@ const getMarkdownStr = data => {
       v-if="showTree"
       :props="treeProps"
       class="doc-schema-tree"
-      node-key="name"
+      :default-expanded-keys="['_root']"
+      node-key="id"
       lazy
       :load="loadTreeNode"
     >
@@ -190,6 +191,7 @@ const getMarkdownStr = data => {
       <template #default="{node}">
         <div class="custom-tree-node">
           <el-tag
+            v-if="node.data.name"
             type="primary"
             size="small"
             class="margin-right2"

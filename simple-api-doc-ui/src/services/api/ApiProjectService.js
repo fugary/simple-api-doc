@@ -90,3 +90,11 @@ export const getFolderPaths = node => {
   }
   return paths.reverse()
 }
+
+export const getFolderIds = (data, ids = []) => {
+  if (data.id) {
+    ids.push(data.id)
+    data.children?.filter(child => !child.isDoc).forEach(child => getFolderIds(child, ids))
+  }
+  return ids
+}

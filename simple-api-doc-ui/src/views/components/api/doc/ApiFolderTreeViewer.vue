@@ -1,6 +1,6 @@
 <script setup lang="jsx">
-import { computed, ref, watch, reactive } from 'vue'
-import { calcProjectItem, filterProjectItem } from '@/services/api/ApiProjectService'
+import { computed, ref, reactive } from 'vue'
+import { calcProjectItem, filterProjectItem, getFolderIds } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
@@ -73,11 +73,11 @@ const searchFormOption = computed(() => {
     }
   }
 })
-watch(searchParam, () => {
-  if (props.projectItem) {
-    calcProjectItemInfo()
-  }
-}, { deep: true })
+// watch(searchParam, () => {
+//   if (props.projectItem) {
+//     calcProjectItemInfo()
+//   }
+// }, { deep: true })
 
 const showDocDetails = (doc) => {
   if (doc.isDoc) {
@@ -103,12 +103,29 @@ const shareTopHandlers = computed(() => {
   return []
 })
 
-const expandOrCollapse = (key) => {
-  if (folderView.expandedKeys.includes(key)) {
-    folderView.expandedKeys = folderView.expandedKeys.filter(item => item !== key)
+const expandOrCollapse = (nodeData, expand) => {
+  if (expand) {
+    folderView.expandedKeys = [...folderView.expandedKeys, nodeData.id]
   } else {
-    folderView.expandedKeys = [...folderView.expandedKeys, key]
+    getFolderIds(nodeData).forEach(nodeId => {
+      folderView.expandedKeys = folderView.expandedKeys.filter(item => item !== nodeId)
+    })
   }
+}
+
+const loadTreeNode = (node, resolve) => {
+  if (!treeNodes.value?.length) {
+    calcProjectItemInfo()
+  }
+  if (!node.parent) { // 第一级
+    resolve(treeNodes.value)
+  } else { // 下级node
+    resolve(node.data?.children || [])
+  }
+}
+
+const treeProps = {
+  isLeaf: 'isDoc'
 }
 
 </script>
@@ -160,13 +177,15 @@ const expandOrCollapse = (key) => {
     />
     <el-tree
       node-key="id"
-      :data="treeNodes"
       :default-expanded-keys="folderView.expandedKeys"
       highlight-current
       :current-node-key="folderView.currentDocId"
+      lazy
+      :props="treeProps"
+      :load="loadTreeNode"
       @node-click="showDocDetails"
-      @node-expand="expandOrCollapse($event.id)"
-      @node-collapse="expandOrCollapse($event.id)"
+      @node-expand="expandOrCollapse($event, true)"
+      @node-collapse="expandOrCollapse($event, false)"
     >
       <template #empty>
         <el-empty :description="$t('common.msg.noData')" />
