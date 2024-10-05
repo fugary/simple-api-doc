@@ -6,6 +6,7 @@ import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
+import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -13,7 +14,12 @@ const projectCode = route.params.projectCode
 const { goBack } = useBackUrl('/api/projects')
 const { projectItem, loading } = useApiProjectItem(projectCode)
 
+const folderTreeRef = ref()
 const currentDoc = ref(null)
+const savedApiDoc = () => {
+  currentDoc.value.editing = false
+  folderTreeRef.value?.refreshProjectItem()
+}
 </script>
 
 <template>
@@ -65,23 +71,38 @@ const currentDoc = ref(null)
         >
           <template #split-0>
             <api-folder-tree-viewer
-              v-if="projectItem"
-              v-model="currentDoc"
+              ref="folderTreeRef"
+              v-model="projectItem"
+              v-model:current-doc="currentDoc"
               :project-item="projectItem"
               editable
             />
           </template>
           <template #split-1>
-            <markdown-doc-viewer
-              v-if="currentDoc?.docType==='md'&&currentDoc?.docContent"
-              v-model="currentDoc"
-              scroll-element=".home-main"
-              :scroll-element-offset-top="calcAffixOffset()"
-            />
-            <api-doc-viewer
-              v-if="currentDoc?.docType==='api'"
-              v-model="currentDoc"
-            />
+            <el-container v-if="currentDoc?.editing">
+              <markdown-doc-editor
+                v-if="currentDoc?.docType==='md'"
+                v-model="currentDoc"
+                @saved-doc="savedApiDoc"
+              />
+              <api-doc-viewer
+                v-if="currentDoc?.docType==='api'"
+                v-model="currentDoc"
+              />
+            </el-container>
+            <el-container v-else>
+              <markdown-doc-viewer
+                v-if="currentDoc?.docType==='md'"
+                v-model="currentDoc"
+                editable
+                scroll-element=".home-main"
+                :scroll-element-offset-top="calcAffixOffset()"
+              />
+              <api-doc-viewer
+                v-if="currentDoc?.docType==='api'"
+                v-model="currentDoc"
+              />
+            </el-container>
           </template>
         </common-split>
       </div>

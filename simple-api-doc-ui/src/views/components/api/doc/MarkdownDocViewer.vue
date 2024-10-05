@@ -17,6 +17,10 @@ defineProps({
   scrollElementOffsetTop: {
     type: Number,
     default: 0
+  },
+  editable: {
+    type: Boolean,
+    default: false
   }
 })
 const id = 'markdown-doc-preview-only'
@@ -33,6 +37,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
   <el-container class="padding-left2 padding-right2 flex-column">
     <api-doc-view-header
       v-model="currentDoc"
+      :editable="editable"
     />
     <el-container>
       <md-preview

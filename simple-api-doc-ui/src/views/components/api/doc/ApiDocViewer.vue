@@ -46,7 +46,7 @@ const loadDocDetail = async () => {
   console.log('====================================apiDocDetail', apiDocDetail.value, apiDoc.value)
 }
 
-watch(apiDoc, loadDocDetail, { immediate: true })
+watch(apiDoc, loadDocDetail)
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 </script>
 

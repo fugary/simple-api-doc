@@ -63,13 +63,18 @@ const passwordOptions = [{
   }
 }]
 const toAccessDocs = ({ form }) => {
+  submitForm(form)
+  return false
+}
+
+const submitForm = form => {
   form.validate(valid => {
     if (valid) {
       loadShareData(true)
     }
   })
-  return false
 }
+
 </script>
 
 <template>
@@ -107,6 +112,7 @@ const toAccessDocs = ({ form }) => {
             :model="shareParam"
             :show-submit="false"
             :show-buttons="false"
+            @submit-form="submitForm"
           />
         </el-container>
       </common-window>
@@ -121,8 +127,8 @@ const toAccessDocs = ({ form }) => {
         >
           <template #split-0>
             <api-folder-tree-viewer
-              v-model="currentDoc"
-              :project-item="projectItem"
+              v-model="projectItem"
+              v-model:current-doc="currentDoc"
               :share-doc="projectShare"
             />
           </template>

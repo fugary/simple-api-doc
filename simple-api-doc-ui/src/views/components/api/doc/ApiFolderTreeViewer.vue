@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, ref, reactive } from 'vue'
+import { computed, ref, reactive, watch, nextTick } from 'vue'
 import { calcProjectItem, filterProjectItem, getFolderIds } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
@@ -15,15 +15,12 @@ import {
   calcNodeLeaf,
   calcShowDocLabelHandler
 } from '@/services/api/ApiFolderService'
+import { loadByCode } from '@/api/ApiProjectApi'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
 
 const props = defineProps({
-  projectItem: {
-    type: Object,
-    default: undefined
-  },
   shareDoc: {
     type: Object,
     default: undefined
@@ -34,7 +31,11 @@ const props = defineProps({
   }
 })
 
-const currentDoc = defineModel({
+const projectItem = defineModel({
+  type: Object,
+  default: undefined
+})
+const currentDoc = defineModel('currentDoc', {
   type: Object,
   default: undefined
 })
@@ -48,7 +49,7 @@ if (props.shareDoc) {
 const treeNodes = ref([])
 
 const calcProjectItemInfo = () => {
-  const filteredItem = filterProjectItem(props.projectItem, searchParam.value.keyword)
+  const filteredItem = filterProjectItem(projectItem.value, searchParam.value.keyword)
   const {
     docTreeNodes,
     currentSelectDoc
@@ -73,15 +74,19 @@ const searchFormOption = computed(() => {
     }
   }
 })
-// watch(searchParam, () => {
-//   if (props.projectItem) {
-//     calcProjectItemInfo()
-//   }
-// }, { deep: true })
+watch(searchParam, () => {
+  if (projectItem.value) {
+    refreshFolderTree()
+  }
+}, { deep: true })
 
-const showDocDetails = (doc) => {
+const showDocDetails = (doc, edit) => {
   if (doc.isDoc) {
-    console.log('====================================doc', doc)
+    console.log('====================================load doc', doc)
+    if (edit) {
+      treeRef.value?.setCurrentKey(doc.id)
+    }
+    doc.editing = !!edit
     currentDoc.value = doc
     folderView.currentDocId = doc.id
     const element = props.editable ? document.querySelector('.home-main') : document.documentElement
@@ -90,7 +95,7 @@ const showDocDetails = (doc) => {
 }
 
 const rootFolder = computed(() => {
-  return props.projectItem?.folders?.find(folder => folder.rootFlag)
+  return projectItem.value?.folders?.find(folder => folder.rootFlag)
 })
 
 defineEmits(['toAddFolder', 'deleteFolder', 'toEditFolder', 'toAddDoc', 'toEditDoc', 'deleteDoc'])
@@ -127,6 +132,36 @@ const loadTreeNode = (node, resolve) => {
 const treeProps = {
   isLeaf: 'isDoc'
 }
+
+const treeRef = ref()
+const showFolderTree = ref(true)
+
+const refreshFolderTree = () => {
+  showFolderTree.value = false
+  nextTick(() => {
+    calcProjectItemInfo()
+    showFolderTree.value = true
+  })
+}
+
+const refreshProjectItem = (...args) => {
+  return new Promise((resolve, reject) => {
+    if (projectItem.value?.projectCode) {
+      loadByCode(projectItem.value.projectCode).then(data => {
+        projectItem.value = data
+        resolve(projectItem.value, ...args)
+        refreshFolderTree()
+      }, reject)
+    }
+  })
+}
+
+const handlerData = {
+  refreshProjectItem,
+  showDocDetails
+}
+
+defineExpose(handlerData)
 
 </script>
 
@@ -167,7 +202,7 @@ const treeProps = {
         style="font-size:18px;margin-right: auto"
       >{{ $t('menu.label.apiManagement') }}</span>
       <span class="margin-right2">
-        <more-actions-link :handlers="getFolderHandlers(rootFolder, searchParam, $emit)" />
+        <more-actions-link :handlers="getFolderHandlers(rootFolder, searchParam, handlerData)" />
       </span>
     </el-header>
     <common-form-control
@@ -176,6 +211,8 @@ const treeProps = {
       :model="searchParam"
     />
     <el-tree
+      v-if="showFolderTree"
+      ref="treeRef"
       node-key="id"
       :default-expanded-keys="folderView.expandedKeys"
       highlight-current
@@ -183,39 +220,39 @@ const treeProps = {
       lazy
       :props="treeProps"
       :load="loadTreeNode"
-      @node-click="showDocDetails"
+      @node-click="showDocDetails($event, false)"
       @node-expand="expandOrCollapse($event, true)"
       @node-collapse="expandOrCollapse($event, false)"
     >
       <template #empty>
         <el-empty :description="$t('common.msg.noData')" />
       </template>
-      <template #default="{node}">
+      <template #default="{node, data}">
         <div
           class="custom-tree-node"
-          @mouseenter="showDropdown(node, false)"
-          @mouseleave="leaveDropdown(node)"
+          @mouseenter="showDropdown(data, false)"
+          @mouseleave="leaveDropdown(data)"
         >
           <tree-icon-label
             :node="node"
-            :icon-leaf="calcNodeLeaf(node)"
+            :icon-leaf="calcNodeLeaf(data)"
           >
             <api-method-tag
-              v-if="node.data.docType==='api'"
-              :method="node.data.method"
+              v-if="data.docType==='api'"
+              :method="data.method"
             />
             {{ node.label }}
           </tree-icon-label>
           <span
             v-if="editable"
-            v-show="node.data.showOperations"
+            v-show="data.showOperations"
             class="more-actions"
           >
             <more-actions-link
-              :handlers="node.data.isDoc ? getDocHandlers(node.data, $emit) : getFolderHandlers(node.data, searchParam, $emit)"
-              @show-dropdown="showDropdown(node)"
-              @enter-dropdown="enterDropdown(node)"
-              @leave-dropdown="leaveDropdown(node)"
+              :handlers="data.isDoc ? getDocHandlers(data, handlerData) : getFolderHandlers(data, searchParam, handlerData)"
+              @show-dropdown="showDropdown(data)"
+              @enter-dropdown="enterDropdown(data)"
+              @leave-dropdown="leaveDropdown(data)"
             />
           </span>
         </div>

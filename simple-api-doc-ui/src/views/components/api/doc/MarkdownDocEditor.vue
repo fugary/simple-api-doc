@@ -1,21 +1,32 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import MarkdownDocEditHeader from '@/views/components/api/doc/comp/MarkdownDocEditHeader.vue'
 
 const currentDoc = defineModel({
   type: Object,
   default: () => ({})
 })
+const currentDocModel = ref({
+  ...currentDoc.value
+})
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
+defineEmits(['savedDoc'])
 </script>
 <template>
-  <md-editor
-    v-model="currentDoc.docContent"
-    :theme="theme"
-    @update:model-value="$emit('change', $event)"
-  />
+  <el-container class="flex-column padding-left2">
+    <markdown-doc-edit-header
+      v-model="currentDoc"
+      v-model:doc-model="currentDocModel"
+      @saved-doc="$emit('savedDoc', $event)"
+    />
+    <md-editor
+      v-model="currentDocModel.docContent"
+      :theme="theme"
+    />
+  </el-container>
 </template>
 
 <style scoped>

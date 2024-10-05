@@ -1,6 +1,8 @@
 import { ref } from 'vue'
-import { loadAvailableFolders } from '@/api/ApiFolderApi'
-import { processTreeData } from '@/utils'
+import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
+import { $coreConfirm, processTreeData } from '@/utils'
+import { $i18nBundle } from '@/messages'
+import ApiDocApi from '@/api/ApiDocApi'
 
 /**
  * 根目是否显示url或者名称
@@ -23,29 +25,26 @@ export const calcShowDocLabelHandler = (folder, searchParam) => {
  * folder处理工具
  * @param folder
  * @param searchParam
- * @param emit
+ * @param handlerData
  */
-export const getFolderHandlers = (folder, searchParam, emit) => {
+export const getFolderHandlers = (folder, searchParam, handlerData) => {
   return [{
     icon: 'FolderAdd',
     label: '新增子文件夹',
     handler: () => {
       console.log('新增文件夹', folder)
-      emit('toAddFolder', folder)
     }
   }, {
     icon: 'DocumentAdd',
     label: '新建接口',
     handler: () => {
       console.log('新建接口')
-      emit('toAddDoc', { folder, docType: 'api' })
     }
   }, {
     icon: 'DocumentAdd',
     label: '新建文档',
     handler: () => {
       console.log('新建文档')
-      emit('toAddDoc', { folder, docType: 'md' })
     }
   }, calcShowDocLabelHandler(folder, searchParam), {
     enabled: !folder.rootFlag,
@@ -53,64 +52,66 @@ export const getFolderHandlers = (folder, searchParam, emit) => {
     type: 'danger',
     label: '删除',
     handler: () => {
-      console.log('删除')
-      emit('deleteFolder', folder)
+      $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [folder.folderName]))
+        .then(() => ApiFolderApi.deleteById(folder.id))
+        .then(() => handlerData.refreshProjectItem())
     }
   }]
 }
 /**
  * doc处理工具
  * @param doc
- * @param emit
+ * @param handlerData
  */
-export const getDocHandlers = (doc, emit) => {
+export const getDocHandlers = (doc, handlerData) => {
   const isApi = doc.docType === 'api'
   const label = isApi ? '接口' : '文档'
   return [{
     icon: 'Edit',
     label: '编辑' + label,
     handler: () => {
-      console.log('编辑' + label, doc)
-      emit('toEditDoc', doc)
+      handlerData.showDocDetails(doc, true)
     }
   }, {
     icon: 'Delete',
     type: 'danger',
     label: '删除' + label,
     handler: () => {
-      console.log('删除' + label, doc)
-      emit('deleteDoc', doc)
+      console.log('删除' + label, doc, handlerData)
+      $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [doc.docName]))
+        .then(() => ApiDocApi.deleteById(doc.id))
+        .then(() => handlerData.refreshProjectItem())
     }
   }]
 }
 /**
  * Node icon计算逻辑
- * @param node
+ * @param data
  * @return {string|string}
  */
-export const calcNodeLeaf = (node) => {
-  if (!node.data.isDoc) {
+export const calcNodeLeaf = (data) => {
+  if (!data.isDoc) {
     return 'Folder'
   }
-  return node.data.docType === 'md' ? 'custom-markdown' : 'custom-api'
+  return data.docType === 'md' ? 'custom-markdown' : 'custom-api'
 }
 
 export const useFolderDropdown = () => {
   const delayDropdown = ref(false)
   let lastTimer = null
-  const leaveDropdown = (node) => { // 离开时延迟执行，方便特殊处理显示问题
+  const leaveDropdown = (data) => { // 离开时延迟执行，方便特殊处理显示问题
     if (delayDropdown.value) {
-      lastTimer = setTimeout(() => (node.data.showOperations = false), 450)
+      lastTimer = setTimeout(() => (data.showOperations = false), 450)
     } else {
-      node.data.showOperations = false
+      data.showOperations = false
     }
   }
-  const enterDropdown = (node) => {
-    showDropdown(node, true)
+  const enterDropdown = (data) => {
+    showDropdown(data, true)
     lastTimer && clearTimeout(lastTimer) // 清理timer
   }
-  const showDropdown = (node, delay = true) => {
-    node.data.showOperations = true
+  const showDropdown = (data, delay = true) => {
+    data.showOperations = true
     delayDropdown.value = delay
   }
   return {
