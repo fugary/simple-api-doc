@@ -5,11 +5,12 @@ import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import { useWindowSize } from '@vueuse/core'
+import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 
 const { width } = useWindowSize()
 const docMargin = computed(() => width.value < 800 ? 0 : '220px')
 
-defineProps({
+const props = defineProps({
   scrollElement: {
     type: [Object, String],
     default: document.documentElement
@@ -30,6 +31,7 @@ const currentDoc = defineModel({
 })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
+const folderContainerHeight = useFolderLayoutHeight(props.editable)
 
 </script>
 
@@ -39,7 +41,10 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
       v-model="currentDoc"
       :editable="editable"
     />
-    <el-container>
+    <el-container
+      class="markdown-doc-viewer"
+      :style="{height: folderContainerHeight}"
+    >
       <md-preview
         class="md-doc-container"
         :editor-id="id"

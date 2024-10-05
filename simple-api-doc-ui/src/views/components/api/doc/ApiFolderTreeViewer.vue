@@ -13,7 +13,7 @@ import {
   getFolderHandlers,
   getDocHandlers,
   calcNodeLeaf,
-  calcShowDocLabelHandler
+  calcShowDocLabelHandler, useFolderLayoutHeight
 } from '@/services/api/ApiFolderService'
 import { loadByCode } from '@/api/ApiProjectApi'
 
@@ -163,6 +163,8 @@ const handlerData = {
 
 defineExpose(handlerData)
 
+const folderContainerHeight = useFolderLayoutHeight(props.editable)
+
 </script>
 
 <template>
@@ -210,54 +212,58 @@ defineExpose(handlerData)
       :option="searchFormOption"
       :model="searchParam"
     />
-    <el-tree
-      v-if="showFolderTree"
-      ref="treeRef"
-      node-key="id"
-      :default-expanded-keys="folderView.expandedKeys"
-      highlight-current
-      :current-node-key="folderView.currentDocId"
-      lazy
-      :props="treeProps"
-      :load="loadTreeNode"
-      @node-click="showDocDetails($event, false)"
-      @node-expand="expandOrCollapse($event, true)"
-      @node-collapse="expandOrCollapse($event, false)"
-    >
-      <template #empty>
-        <el-empty :description="$t('common.msg.noData')" />
-      </template>
-      <template #default="{node, data}">
-        <div
-          class="custom-tree-node"
-          @mouseenter="showDropdown(data, false)"
-          @mouseleave="leaveDropdown(data)"
+    <el-container :style="{height:folderContainerHeight}">
+      <el-scrollbar style="flex-grow: 1;">
+        <el-tree
+          v-if="showFolderTree"
+          ref="treeRef"
+          node-key="id"
+          :default-expanded-keys="folderView.expandedKeys"
+          highlight-current
+          :current-node-key="folderView.currentDocId"
+          lazy
+          :props="treeProps"
+          :load="loadTreeNode"
+          @node-click="showDocDetails($event, false)"
+          @node-expand="expandOrCollapse($event, true)"
+          @node-collapse="expandOrCollapse($event, false)"
         >
-          <tree-icon-label
-            :node="node"
-            :icon-leaf="calcNodeLeaf(data)"
-          >
-            <api-method-tag
-              v-if="data.docType==='api'"
-              :method="data.method"
-            />
-            {{ node.label }}
-          </tree-icon-label>
-          <span
-            v-if="editable"
-            v-show="data.showOperations"
-            class="more-actions"
-          >
-            <more-actions-link
-              :handlers="data.isDoc ? getDocHandlers(data, handlerData) : getFolderHandlers(data, searchParam, handlerData)"
-              @show-dropdown="showDropdown(data)"
-              @enter-dropdown="enterDropdown(data)"
-              @leave-dropdown="leaveDropdown(data)"
-            />
-          </span>
-        </div>
-      </template>
-    </el-tree>
+          <template #empty>
+            <el-empty :description="$t('common.msg.noData')" />
+          </template>
+          <template #default="{node, data}">
+            <div
+              class="custom-tree-node"
+              @mouseenter="showDropdown(data, false)"
+              @mouseleave="leaveDropdown(data)"
+            >
+              <tree-icon-label
+                :node="node"
+                :icon-leaf="calcNodeLeaf(data)"
+              >
+                <api-method-tag
+                  v-if="data.docType==='api'"
+                  :method="data.method"
+                />
+                {{ node.label }}
+              </tree-icon-label>
+              <span
+                v-if="editable"
+                v-show="data.showOperations"
+                class="more-actions"
+              >
+                <more-actions-link
+                  :handlers="data.isDoc ? getDocHandlers(data, handlerData) : getFolderHandlers(data, searchParam, handlerData)"
+                  @show-dropdown="showDropdown(data)"
+                  @enter-dropdown="enterDropdown(data)"
+                  @leave-dropdown="leaveDropdown(data)"
+                />
+              </span>
+            </div>
+          </template>
+        </el-tree>
+      </el-scrollbar>
+    </el-container>
   </el-container>
 </template>
 

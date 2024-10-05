@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { $goto, useBackUrl, calcAffixOffset } from '@/utils'
+import { $goto, useBackUrl } from '@/utils'
 import { ref } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
@@ -95,8 +95,7 @@ const savedApiDoc = () => {
                 v-if="currentDoc?.docType==='md'"
                 v-model="currentDoc"
                 editable
-                scroll-element=".home-main"
-                :scroll-element-offset-top="calcAffixOffset()"
+                scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
               />
               <api-doc-viewer
                 v-if="currentDoc?.docType==='api'"

@@ -7,6 +7,7 @@ import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import { $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import { APP_VERSION } from '@/config'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -81,7 +82,7 @@ const submitForm = form => {
   <el-container class="flex-column">
     <el-container
       v-loading="loading"
-      style="min-height: 100vh"
+      style="min-height: 20vh"
     >
       <div
         v-if="!showPassWindow && errorMessage"
@@ -136,12 +137,18 @@ const submitForm = form => {
             <markdown-doc-viewer
               v-if="currentDoc?.docType==='md'&&currentDoc?.docContent"
               v-model="currentDoc"
+              scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
             />
             <api-doc-viewer
               v-if="currentDoc?.docType==='api'"
               v-model="currentDoc"
               :share-id="projectShare?.shareId"
             />
+            <el-container class="text-center padding-10 flex-center">
+              <span>
+                <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
+              </span>
+            </el-container>
           </template>
         </common-split>
       </el-container>

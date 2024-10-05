@@ -1,6 +1,6 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
-import { $coreConfirm, processTreeData } from '@/utils'
+import { $coreConfirm, calcAffixOffset, processTreeData } from '@/utils'
 import { $i18nBundle } from '@/messages'
 import ApiDocApi from '@/api/ApiDocApi'
 
@@ -138,4 +138,15 @@ export const useFolderTreeNodes = (projectId) => {
     loadValidFolders(projectId)
   }
   return { folderTreeNodes, folders, loadValidFolders }
+}
+
+export const useFolderLayoutHeight = (editable, heightFix = 0) => {
+  let offset = -70
+  if (editable) {
+    offset = calcAffixOffset()
+  }
+  offset = offset - heightFix
+  return computed(() => {
+    return `calc(100vh - ${220 + offset}px)`
+  })
 }

@@ -9,6 +9,7 @@ import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.vue'
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
+import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 
 const props = defineProps({
   shareId: {
@@ -48,6 +49,7 @@ const loadDocDetail = async () => {
 
 watch(apiDoc, loadDocDetail)
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
+const folderContainerHeight = useFolderLayoutHeight(!props.shareId, props.shareId ? -70 : -40)
 </script>
 
 <template>
@@ -61,26 +63,33 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
       :api-doc-detail="apiDocDetail"
       :env-configs="envConfigs"
     />
-    <h3 v-if="apiDocDetail?.description">
-      接口描述
-    </h3>
-    <md-preview
-      v-if="apiDocDetail?.description"
-      :theme="theme"
-      :model-value="apiDocDetail?.description"
-    />
-    <api-doc-parameters
-      v-if="apiDocDetail?.parametersSchema || !apiDocDetail?.requestsSchemas?.length"
-      v-model="apiDocDetail"
-    />
-    <api-doc-request-body
-      v-if="apiDocDetail?.requestsSchemas?.length"
-      v-model="apiDocDetail"
-    />
-    <api-doc-response-body
-      v-if="apiDocDetail?.responsesSchemas?.length"
-      v-model="apiDocDetail"
-    />
+    <el-container
+      :style="{height:folderContainerHeight}"
+      class="flex-column"
+    >
+      <el-scrollbar>
+        <h3 v-if="apiDocDetail?.description">
+          接口描述
+        </h3>
+        <md-preview
+          v-if="apiDocDetail?.description"
+          :theme="theme"
+          :model-value="apiDocDetail?.description"
+        />
+        <api-doc-parameters
+          v-if="apiDocDetail?.parametersSchema || !apiDocDetail?.requestsSchemas?.length"
+          v-model="apiDocDetail"
+        />
+        <api-doc-request-body
+          v-if="apiDocDetail?.requestsSchemas?.length"
+          v-model="apiDocDetail"
+        />
+        <api-doc-response-body
+          v-if="apiDocDetail?.responsesSchemas?.length"
+          v-model="apiDocDetail"
+        />
+      </el-scrollbar>
+    </el-container>
   </el-container>
 </template>
 
