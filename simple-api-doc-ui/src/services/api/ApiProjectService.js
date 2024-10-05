@@ -41,16 +41,20 @@ export const calcProjectItem = (projectItem, searchParam, lastExpandKeys, lastDo
       doc.label = doc[searchParam.showDocLabelType] || doc.docName
       doc.isDoc = true
       doc.parent = parentFolder
+      doc.treeId = doc.id
     })
     docTreeNodes = processTreeData(projectItem.folders, null, {
       clone: false,
-      after: node => (node.label = node.label || node.folderName)
+      after: node => {
+        node.label = node.label || node.folderName
+        node.treeId = 'folder_' + node.id
+      }
     })
     if (searchParam?.keyword) {
       docTreeNodes = filterFoldersWithDocs(docTreeNodes)
     }
-    if (docTreeNodes[0]?.id && !lastExpandKeys.includes(docTreeNodes[0]?.id)) {
-      lastExpandKeys.push(docTreeNodes[0]?.id)
+    if (docTreeNodes[0]?.id && !lastExpandKeys.includes(docTreeNodes[0]?.treeId)) {
+      lastExpandKeys.push(docTreeNodes[0]?.treeId)
     }
     currentSelectDoc = docs.find(doc => doc.id === lastDocId) || docs[0]
     console.log('=============================treeNodes', lastExpandKeys, docTreeNodes)
@@ -95,6 +99,14 @@ export const getFolderIds = (data, ids = []) => {
   if (data.id) {
     ids.push(data.id)
     data.children?.filter(child => !child.isDoc).forEach(child => getFolderIds(child, ids))
+  }
+  return ids
+}
+
+export const getFolderTreeIds = (data, ids = []) => {
+  if (data.treeId) {
+    ids.push(data.treeId)
+    data.children?.filter(child => !child.isDoc).forEach(child => getFolderTreeIds(child, ids))
   }
   return ids
 }

@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, ref, reactive, watch, nextTick } from 'vue'
-import { calcProjectItem, filterProjectItem, getFolderIds } from '@/services/api/ApiProjectService'
+import { calcProjectItem, filterProjectItem, getFolderTreeIds } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
@@ -110,9 +110,9 @@ const shareTopHandlers = computed(() => {
 
 const expandOrCollapse = (nodeData, expand) => {
   if (expand) {
-    folderView.expandedKeys = [...folderView.expandedKeys, nodeData.id]
+    folderView.expandedKeys = [...folderView.expandedKeys, nodeData.treeId]
   } else {
-    getFolderIds(nodeData).forEach(nodeId => {
+    getFolderTreeIds(nodeData).forEach(nodeId => {
       folderView.expandedKeys = folderView.expandedKeys.filter(item => item !== nodeId)
     })
   }
@@ -217,7 +217,7 @@ const folderContainerHeight = useFolderLayoutHeight(props.editable)
         <el-tree
           v-if="showFolderTree"
           ref="treeRef"
-          node-key="id"
+          node-key="treeId"
           :default-expanded-keys="folderView.expandedKeys"
           highlight-current
           :current-node-key="folderView.currentDocId"
