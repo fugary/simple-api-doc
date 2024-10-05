@@ -89,8 +89,6 @@ const showDocDetails = (doc, edit) => {
     doc.editing = !!edit
     currentDoc.value = doc
     folderView.currentDocId = doc.id
-    const element = props.editable ? document.querySelector('.home-main') : document.documentElement
-    element?.scrollTo({ behavior: 'smooth', top: 0 })
   }
 }
 

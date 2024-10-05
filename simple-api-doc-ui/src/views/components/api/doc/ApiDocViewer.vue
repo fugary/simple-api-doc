@@ -29,15 +29,18 @@ const docParam = ref({
   baseUrl: ''
 })
 
+const loading = ref(false)
 const loadDocDetail = async () => {
+  if (loading.value) {
+    return
+  }
+  loading.value = true
   if (props.shareId) {
-    apiDocDetail.value = await loadShareDoc({ shareId: props.shareId, docId: apiDoc.value.id }, {
-      loading: true
-    }).then(data => data.resultData)
+    apiDocDetail.value = await loadShareDoc({ shareId: props.shareId, docId: apiDoc.value.id }).then(data => data.resultData).finally(() => (loading.value = false))
   } else {
-    apiDocDetail.value = await loadDoc(apiDoc.value.id, {
-      loading: true
-    }).then(data => data.resultData)
+    apiDocDetail.value = await loadDoc(apiDoc.value.id).then(data => data.resultData).finally(() => {
+      loading.value = false
+    })
   }
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
   if (projectInfoDetail.value?.envContent) {
@@ -47,7 +50,9 @@ const loadDocDetail = async () => {
   console.log('====================================apiDocDetail', apiDocDetail.value, apiDoc.value)
 }
 
-watch(apiDoc, loadDocDetail)
+watch(apiDoc, loadDocDetail, {
+  immediate: true
+})
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 const folderContainerHeight = useFolderLayoutHeight(!props.shareId, props.shareId ? -70 : -40)
 </script>
@@ -55,7 +60,9 @@ const folderContainerHeight = useFolderLayoutHeight(!props.shareId, props.shareI
 <template>
   <el-container
     :key="apiDoc.id"
+    v-loading="loading"
     class="padding-left2 flex-column padding-right2"
+    style="min-height: 50vh"
   >
     <api-doc-view-header v-model="apiDoc" />
     <api-doc-path-header
@@ -69,7 +76,7 @@ const folderContainerHeight = useFolderLayoutHeight(!props.shareId, props.shareI
     >
       <el-scrollbar>
         <h3 v-if="apiDocDetail?.description">
-          接口描述
+          {{ $t('api.label.apiDescription') }}
         </h3>
         <md-preview
           v-if="apiDocDetail?.description"

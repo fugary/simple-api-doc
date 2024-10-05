@@ -94,7 +94,7 @@ common.label.newWindowEdit = '新窗口编辑'
 //= ============通用============
 common.label.commonCode = '{0}代码'
 common.label.commonConfig = '配置{0}'
-common.label.commonEdit = '{0}编辑'
+common.label.commonEdit = '编辑{0}'
 common.label.commonAdd = '新增{0}'
 common.label.commonView = '查看{0}'
 common.label.commonDelete = '删除{0}'
@@ -107,6 +107,8 @@ common.label.commonFormat = '格式化{0}'
 common.label.commonSave = '保存{0}'
 common.label.commonExpand = '展开{0}'
 common.label.commonCollapse = '收起{0}'
+common.label.commonEnable = '启用{0}'
+common.label.commonDisable = '禁用{0}'
 common.label.commonDelay = '延迟{0}毫秒'
 
 //* =======================msg=====================//

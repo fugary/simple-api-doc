@@ -62,6 +62,7 @@ const savedApiDoc = () => {
     </el-page-header>
     <el-container
       v-loading="loading"
+      style="min-height: 50vh"
     >
       <div class="form-edit-width-100">
         <common-split

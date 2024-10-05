@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
-import { $coreConfirm, calcAffixOffset, processTreeData } from '@/utils'
-import { $i18nBundle } from '@/messages'
+import { $coreAlert, $coreConfirm, calcAffixOffset, processTreeData } from '@/utils'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import ApiDocApi from '@/api/ApiDocApi'
 
 /**
@@ -28,29 +28,55 @@ export const calcShowDocLabelHandler = (folder, searchParam) => {
  * @param handlerData
  */
 export const getFolderHandlers = (folder, searchParam, handlerData) => {
+  const statusLabel = folder.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
   return [{
     icon: 'FolderAdd',
-    label: '新增子文件夹',
+    label: $i18nKey('common.label.commonAdd', 'api.label.subFolder'),
     handler: () => {
       console.log('新增文件夹', folder)
+      $coreAlert('新增文件夹暂未实现')
+    }
+  }, {
+    icon: 'Edit',
+    label: $i18nKey('common.label.commonEdit', 'api.label.folder'),
+    handler: () => {
+      console.log('编辑文件夹', folder)
+      $coreAlert('编辑文件夹暂未实现')
+    }
+  }, {
+    icon: folder.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
+    type: folder.status === 1 ? 'warning' : '',
+    label: $i18nKey(statusLabel, 'api.label.folder'),
+    handler: () => {
+      console.log('==============================folder', folder)
+      $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nKey(statusLabel, 'api.label.folder')]))
+        .then(() => ApiFolderApi.saveOrUpdate({ ...folder, status: folder.status === 1 ? 0 : 1, parent: null, children: null }))
+        .then(() => handlerData.refreshProjectItem())
     }
   }, {
     icon: 'DocumentAdd',
-    label: '新建接口',
+    label: $i18nKey('common.label.commonAdd', 'api.label.interfaces'),
     handler: () => {
-      console.log('新建接口')
+      $coreAlert('暂未实现')
     }
   }, {
     icon: 'DocumentAdd',
-    label: '新建文档',
+    label: $i18nKey('common.label.commonAdd', 'api.label.mdDocument'),
     handler: () => {
-      console.log('新建文档')
+      handlerData.showDocDetails({
+        isDoc: true,
+        folderId: folder.id,
+        projectId: folder.projectId,
+        docType: 'md',
+        status: 1,
+        sortId: 1
+      }, true)
     }
   }, calcShowDocLabelHandler(folder, searchParam), {
     enabled: !folder.rootFlag,
     icon: 'Delete',
     type: 'danger',
-    label: '删除',
+    label: $i18nBundle('common.label.delete'),
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [folder.folderName]))
         .then(() => ApiFolderApi.deleteById(folder.id))
@@ -65,19 +91,28 @@ export const getFolderHandlers = (folder, searchParam, handlerData) => {
  */
 export const getDocHandlers = (doc, handlerData) => {
   const isApi = doc.docType === 'api'
-  const label = isApi ? '接口' : '文档'
+  const label = isApi ? $i18nBundle('api.label.interfaces') : $i18nBundle('api.label.mdDocument')
+  const statusLabel = doc.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
   return [{
     icon: 'Edit',
-    label: '编辑' + label,
+    label: $i18nBundle('common.label.commonEdit', [label]),
     handler: () => {
       handlerData.showDocDetails(doc, true)
     }
   }, {
+    icon: doc.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
+    type: doc.status === 1 ? 'warning' : '',
+    label: $i18nBundle(statusLabel, [label]),
+    handler: () => {
+      $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle(statusLabel, [label])]))
+        .then(() => ApiDocApi.saveOrUpdate({ ...doc, status: doc.status === 1 ? 0 : 1, parent: null }))
+        .then(() => handlerData.refreshProjectItem())
+    }
+  }, {
     icon: 'Delete',
     type: 'danger',
-    label: '删除' + label,
+    label: $i18nBundle('common.label.commonDelete', [label]),
     handler: () => {
-      console.log('删除' + label, doc, handlerData)
       $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [doc.docName]))
         .then(() => ApiDocApi.deleteById(doc.id))
         .then(() => handlerData.refreshProjectItem())

@@ -107,6 +107,8 @@ common.label.commonFormat = 'Format {0}'
 common.label.commonSave = 'Save {0}'
 common.label.commonExpand = 'Expand {0}'
 common.label.commonCollapse = 'Collapse {0}'
+common.label.commonEnable = 'Enable {0}'
+common.label.commonDisable = 'Disable {0}'
 common.label.commonDelay = 'Delay {0}ms'
 
 //* =======================msg=====================//

@@ -82,7 +82,7 @@ const submitForm = form => {
   <el-container class="flex-column">
     <el-container
       v-loading="loading"
-      style="min-height: 20vh"
+      style="min-height: 50vh"
     >
       <div
         v-if="!showPassWindow && errorMessage"
