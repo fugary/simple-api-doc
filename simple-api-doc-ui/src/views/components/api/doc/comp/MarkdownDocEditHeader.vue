@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { ElMessage } from 'element-plus'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 
 const currentDoc = defineModel({ // 原始数据
   type: Object,
@@ -27,6 +27,7 @@ const docFormOption = computed(() => {
     showLabel: false,
     type: 'input',
     prop: 'docName',
+    placeholder: $i18nKey('common.msg.commonInput', 'api.label.docName'),
     required: true,
     attrs: {
       style: {

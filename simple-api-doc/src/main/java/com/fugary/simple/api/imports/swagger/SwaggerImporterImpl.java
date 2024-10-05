@@ -153,7 +153,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocName(markdownFile.getTitle());
                 doc.setDocContent(markdownFile.getContent());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
-                doc.setSortId(Objects.requireNonNullElse(markdownFile.getSortId(), i + 1));
+                doc.setSortId(Objects.requireNonNullElse(markdownFile.getSortId(), i * 10 + 1));
                 if (folder == null) {
                     projectVo.getDocs().add(doc); // 根目录
                 } else {
@@ -182,7 +182,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     if (folder != null) {
                         int docSize = folder.getDocs().size();
                         ExportApiDocVo apiDocVo = calcApiDoc(folder, url, operationPair);
-                        apiDocVo.setSortId(docSize + 1);
+                        apiDocVo.setSortId(docSize * 10 + 1);
                         folder.getDocs().add(apiDocVo);
                     }
                 }

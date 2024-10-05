@@ -31,10 +31,10 @@ export const calcProjectItem = (projectItem, searchParam, lastExpandKeys, lastDo
     projectItem.docs?.sort((a, b) => {
       return a.sortId - b.sortId
     })
-    const docs = projectItem.docs || []
+    let docs = projectItem.docs || []
     const folders = projectItem.folders || []
     const folderMap = Object.fromEntries(folders.map(folder => [folder.id, folder]))
-    docs.forEach(doc => {
+    docs = docs.filter(doc => !!folderMap[doc.folderId]).map(doc => {
       const parentFolder = folderMap[doc.folderId]
       const children = parentFolder.children = parentFolder.children || []
       children.push(doc)
@@ -42,6 +42,7 @@ export const calcProjectItem = (projectItem, searchParam, lastExpandKeys, lastDo
       doc.isDoc = true
       doc.parent = parentFolder
       doc.treeId = doc.id
+      return doc
     })
     docTreeNodes = processTreeData(projectItem.folders, null, {
       clone: false,

@@ -33,15 +33,15 @@ export const getFolderHandlers = (folder, searchParam, handlerData) => {
     icon: 'FolderAdd',
     label: $i18nKey('common.label.commonAdd', 'api.label.subFolder'),
     handler: () => {
-      console.log('新增文件夹', folder)
-      $coreAlert('新增文件夹暂未实现')
+      handlerData.addOrEditFolder(null, folder)
     }
   }, {
+    enabled: !folder.rootFlag,
     icon: 'Edit',
     label: $i18nKey('common.label.commonEdit', 'api.label.folder'),
     handler: () => {
-      console.log('编辑文件夹', folder)
-      $coreAlert('编辑文件夹暂未实现')
+      console.log('==============================folder', folder)
+      handlerData.addOrEditFolder(folder.id, folder.parent)
     }
   }, {
     icon: folder.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
@@ -54,13 +54,13 @@ export const getFolderHandlers = (folder, searchParam, handlerData) => {
         .then(() => handlerData.refreshProjectItem())
     }
   }, {
-    icon: 'DocumentAdd',
+    icon: 'custom-api',
     label: $i18nKey('common.label.commonAdd', 'api.label.interfaces'),
     handler: () => {
       $coreAlert('暂未实现')
     }
   }, {
-    icon: 'DocumentAdd',
+    icon: 'custom-markdown',
     label: $i18nKey('common.label.commonAdd', 'api.label.mdDocument'),
     handler: () => {
       handlerData.showDocDetails({
@@ -69,12 +69,12 @@ export const getFolderHandlers = (folder, searchParam, handlerData) => {
         projectId: folder.projectId,
         docType: 'md',
         status: 1,
-        sortId: 1
+        sortId: getChildrenSortId(folder)
       }, true)
     }
   }, calcShowDocLabelHandler(folder, searchParam), {
     enabled: !folder.rootFlag,
-    icon: 'Delete',
+    icon: 'FolderDelete',
     type: 'danger',
     label: $i18nBundle('common.label.delete'),
     handler: () => {
@@ -184,4 +184,9 @@ export const useFolderLayoutHeight = (editable, heightFix = 0) => {
   return computed(() => {
     return `calc(100vh - ${220 + offset}px)`
   })
+}
+
+export const getChildrenSortId = (folder) => {
+  const maxSort = 10
+  return (folder?.children?.reduce((sortId, child) => Math.max(sortId, child.sortId || 10), maxSort) || maxSort) + 10
 }

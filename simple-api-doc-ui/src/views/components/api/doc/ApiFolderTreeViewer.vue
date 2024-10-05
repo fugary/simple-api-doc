@@ -5,7 +5,7 @@ import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import {
@@ -13,9 +13,12 @@ import {
   getFolderHandlers,
   getDocHandlers,
   calcNodeLeaf,
-  calcShowDocLabelHandler, useFolderLayoutHeight
+  calcShowDocLabelHandler, useFolderLayoutHeight, getChildrenSortId
 } from '@/services/api/ApiFolderService'
 import { loadByCode } from '@/api/ApiProjectApi'
+import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
+import ApiFolderApi from '@/api/ApiFolderApi'
+import { ElMessage } from 'element-plus'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -154,14 +157,48 @@ const refreshProjectItem = (...args) => {
   })
 }
 
+const folderContainerHeight = useFolderLayoutHeight(props.editable)
+//* *********文件夹编辑****************//
+const currentEditFolder = ref()
+const showEditWindow = ref(false)
+const editFormOptions = [{
+  labelKey: 'api.label.folderName',
+  prop: 'folderName',
+  placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderName'),
+  required: true
+}]
+const addOrEditFolder = async (id, parentFolder) => {
+  if (id) {
+    await ApiFolderApi.getById(id).then(data => {
+      data.resultData && (currentEditFolder.value = data.resultData)
+    })
+  } else {
+    currentEditFolder.value = {
+      status: 1,
+      projectId: projectItem.value?.id,
+      parentId: parentFolder?.id,
+      sortId: getChildrenSortId(parentFolder)
+    }
+  }
+  showEditWindow.value = true
+}
+const saveFolder = () => {
+  ApiFolderApi.saveOrUpdate({ ...currentEditFolder.value, children: undefined }, { loading: true }).then(data => {
+    if (data.success) {
+      ElMessage.success($i18nBundle('common.msg.saveSuccess'))
+      refreshProjectItem()
+      showEditWindow.value = false
+    }
+  })
+}
+
 const handlerData = {
   refreshProjectItem,
-  showDocDetails
+  showDocDetails,
+  addOrEditFolder
 }
 
 defineExpose(handlerData)
-
-const folderContainerHeight = useFolderLayoutHeight(props.editable)
 
 </script>
 
@@ -230,7 +267,8 @@ const folderContainerHeight = useFolderLayoutHeight(props.editable)
             <el-empty :description="$t('common.msg.noData')" />
           </template>
           <template #default="{node, data}">
-            <div
+            <el-text
+              :type="!data.enabled?'warning':''"
               class="custom-tree-node"
               @mouseenter="showDropdown(data, false)"
               @mouseleave="leaveDropdown(data)"
@@ -257,11 +295,20 @@ const folderContainerHeight = useFolderLayoutHeight(props.editable)
                   @leave-dropdown="leaveDropdown(data)"
                 />
               </span>
-            </div>
+            </el-text>
           </template>
         </el-tree>
       </el-scrollbar>
     </el-container>
+    <simple-edit-window
+      v-model="currentEditFolder"
+      v-model:show-edit-window="showEditWindow"
+      width="500px"
+      :form-options="editFormOptions"
+      :name="$t('api.label.folder')"
+      :save-current-item="saveFolder"
+      label-width="130px"
+    />
   </el-container>
 </template>
 
