@@ -3,6 +3,7 @@ import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, calcAffixOffset, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import ApiDocApi from '@/api/ApiDocApi'
+import { useWindowSize } from '@vueuse/core'
 
 /**
  * 根目是否显示url或者名称
@@ -175,7 +176,11 @@ export const useFolderTreeNodes = (projectId) => {
   return { folderTreeNodes, folders, loadValidFolders }
 }
 
-export const useFolderLayoutHeight = (editable, heightFix = 0) => {
+export const useFolderLayoutHeight = (editable, heightFix = 0, force = false) => {
+  const { width } = useWindowSize()
+  if (width.value <= 768 && !force) {
+    return ref('auto')
+  }
   let offset = -70
   if (editable) {
     offset = calcAffixOffset()

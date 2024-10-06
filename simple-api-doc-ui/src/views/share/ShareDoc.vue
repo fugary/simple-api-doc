@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
@@ -8,6 +8,7 @@ import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import { $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { APP_VERSION } from '@/config'
+import { useWindowSize } from '@vueuse/core'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -76,10 +77,31 @@ const submitForm = form => {
   })
 }
 
+const { width } = useWindowSize()
+const showDrawerMenu = ref(true)
+const isMobile = computed(() => width.value <= 768)
+watch(currentDoc, () => {
+  showDrawerMenu.value = false
+})
 </script>
 
 <template>
   <el-container class="flex-column">
+    <el-affix
+      v-if="isMobile"
+      :offset="20"
+    >
+      <el-button
+        type="info"
+        class="margin-left3"
+        @click="showDrawerMenu=!showDrawerMenu"
+      >
+        <common-icon
+          icon="MenuFilled"
+          :size="20"
+        />
+      </el-button>
+    </el-affix>
     <el-container
       v-loading="loading"
       style="min-height: 50vh"
@@ -122,7 +144,7 @@ const submitForm = form => {
         class="form-edit-width-100 flex-column padding-15"
       >
         <common-split
-          v-if="projectItem"
+          v-if="!isMobile"
           :min-size="150"
           :max-size="[500, Infinity]"
         >
@@ -135,7 +157,7 @@ const submitForm = form => {
           </template>
           <template #split-1>
             <markdown-doc-viewer
-              v-if="currentDoc?.docType==='md'&&currentDoc?.docContent"
+              v-if="currentDoc?.docType==='md'"
               v-model="currentDoc"
               scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
             />
@@ -151,6 +173,40 @@ const submitForm = form => {
             </el-container>
           </template>
         </common-split>
+        <el-container
+          v-else
+          class="flex-column min-width-container"
+        >
+          <el-drawer
+            v-show="!!currentDoc"
+            v-model="showDrawerMenu"
+            style="min-width: 320px;"
+            :with-header="false"
+            direction="ltr"
+            append-to-body
+          >
+            <api-folder-tree-viewer
+              v-model="projectItem"
+              v-model:current-doc="currentDoc"
+              :share-doc="projectShare"
+            />
+          </el-drawer>
+          <markdown-doc-viewer
+            v-if="currentDoc?.docType==='md'"
+            v-model="currentDoc"
+            scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
+          />
+          <api-doc-viewer
+            v-if="currentDoc?.docType==='api'"
+            v-model="currentDoc"
+            :share-id="projectShare?.shareId"
+          />
+          <el-container class="text-center padding-10 flex-center">
+            <span>
+              <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
+            </span>
+          </el-container>
+        </el-container>
       </el-container>
     </el-container>
   </el-container>

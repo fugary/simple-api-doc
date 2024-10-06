@@ -157,7 +157,7 @@ const refreshProjectItem = (...args) => {
   })
 }
 
-const folderContainerHeight = useFolderLayoutHeight(props.editable)
+const folderContainerHeight = useFolderLayoutHeight(props.editable, -10, true)
 //* *********文件夹编辑****************//
 const currentEditFolder = ref()
 const showEditWindow = ref(false)
@@ -317,6 +317,7 @@ defineExpose(handlerData)
   display: flex;
   align-items: center;
   height: 50px;
+  padding: 0;
 }
 
 .custom-tree-node {
