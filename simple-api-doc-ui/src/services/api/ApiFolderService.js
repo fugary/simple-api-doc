@@ -45,6 +45,7 @@ export const getFolderHandlers = (folder, searchParam, handlerData) => {
       handlerData.addOrEditFolder(folder.id, folder.parent)
     }
   }, {
+    enabled: !folder.rootFlag,
     icon: folder.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
     type: folder.status === 1 ? 'warning' : '',
     label: $i18nKey(statusLabel, 'api.label.folder'),
@@ -95,6 +96,7 @@ export const getDocHandlers = (doc, handlerData) => {
   const label = isApi ? $i18nBundle('api.label.interfaces') : $i18nBundle('api.label.mdDocument')
   const statusLabel = doc.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
   return [{
+    enabled: !isApi,
     icon: 'Edit',
     label: $i18nBundle('common.label.commonEdit', [label]),
     handler: () => {

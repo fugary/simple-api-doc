@@ -78,6 +78,9 @@ public class ApiFolderController {
         if (!validateUserProject(apiFolder)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        if (apiFolderService.existsApiFolder(apiFolder)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
+        }
         return SimpleResultUtils.createSimpleResult(apiFolderService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiFolder)));
     }
 

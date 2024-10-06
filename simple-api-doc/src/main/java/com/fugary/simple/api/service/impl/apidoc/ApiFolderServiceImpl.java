@@ -89,6 +89,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             existsFolder = folder;
         } else {
             SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
+            folder.setStatus(existsFolder.getStatus());
+            folder.setSortId(existsFolder.getSortId());
             updateById(SimpleModelUtils.addAuditInfo(folder)); // 更新
         }
         saveApiDocs(projectInfo, mountFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
@@ -126,7 +128,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                 Pair<String, ApiDoc> existsDocPair = existsDocMap.get(apiDocVo.getDocKey());
                 if (existsDocPair != null && StringUtils.equals(existsDocPair.getKey(), folderPath)
                         && existsDocPair.getValue() != null) { // 目录相同
-                    apiDocVo.setId(existsDocPair.getValue().getId());
+                    ApiDoc existsDoc = existsDocPair.getValue();
+                    apiDocVo.setId(existsDoc.getId());
+                    apiDocVo.setStatus(existsDoc.getStatus());
+                    apiDocVo.setSortId(existsDoc.getSortId());
                     apiDocSchemaService.deleteByDoc(apiDocVo.getId());
                 }
                 apiDocVo.setInfoId(projectInfo.getId());
@@ -237,5 +242,13 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     public boolean deleteByProject(Integer projectId) {
         apiDocService.deleteByProject(projectId);
         return this.remove(Wrappers.<ApiFolder>query().eq("project_id", projectId));
+    }
+
+    @Override
+    public boolean existsApiFolder(ApiFolder folder) {
+        List<ApiFolder> existsItems = list(Wrappers.<ApiFolder>query().eq("project_id", folder.getProjectId())
+                .eq("parent_id", folder.getParentId())
+                .eq("folder_name", folder.getFolderName()));
+        return existsItems.stream().anyMatch(item -> !item.getId().equals(folder.getId()));
     }
 }

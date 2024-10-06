@@ -56,4 +56,12 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         apiDocSchemaService.remove(Wrappers.<ApiDocSchema>query().eq("doc_id", docId));
         return this.removeById(docId);
     }
+
+    @Override
+    public boolean existsApiDoc(ApiDoc doc) {
+        List<ApiDoc> existsItems = list(Wrappers.<ApiDoc>query().eq("project_id", doc.getProjectId())
+                .eq("folder_id", doc.getFolderId())
+                .eq("doc_name", doc.getDocName()));
+        return existsItems.stream().anyMatch(item -> !item.getId().equals(doc.getId()));
+    }
 }

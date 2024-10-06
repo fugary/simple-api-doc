@@ -51,4 +51,11 @@ public interface ApiDocService extends IService<ApiDoc> {
      * @return
      */
     boolean deleteDoc(Integer docId);
+
+    /**
+     * 是否已经存在
+     * @param doc
+     * @return
+     */
+    boolean existsApiDoc(ApiDoc doc);
 }

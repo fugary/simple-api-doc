@@ -86,6 +86,9 @@ public class ApiDocController {
         if (!validateUserProject(apiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        if (apiDocService.existsApiDoc(apiDoc)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
+        }
         return SimpleResultUtils.createSimpleResult(apiDocService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiDoc)));
     }
 

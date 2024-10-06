@@ -101,4 +101,12 @@ public interface ApiFolderService extends IService<ApiFolder> {
      * @return
      */
     boolean deleteByProject(Integer projectId);
+
+    /**
+     * 是否重复
+     *
+     * @param folder
+     * @return
+     */
+    boolean existsApiFolder(ApiFolder folder);
 }

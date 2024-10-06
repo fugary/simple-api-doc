@@ -8,7 +8,7 @@ import { useWindowSize } from '@vueuse/core'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 
 const { width } = useWindowSize()
-const docMargin = computed(() => width.value < 800 ? 0 : '220px')
+const docMargin = computed(() => width.value <= 768 ? 0 : '220px')
 
 const props = defineProps({
   scrollElement: {
