@@ -1,10 +1,10 @@
 <script setup>
 import { computed } from 'vue'
-import MockUrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import MockRequestFormRes from '@/views/components/api/form/MockRequestFormRes.vue'
-import MockRequestFormReq from '@/views/components/api/form/MockRequestFormReq.vue'
-import MockRequestFormUrl from '@/views/components/api/form/MockRequestFormUrl.vue'
-import MockRequestFormMatchPattern from '@/views/components/api/form/MockRequestFormMatchPattern.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import ApiRequestFormRes from '@/views/components/api/form/ApiRequestFormRes.vue'
+import ApiRequestFormReq from '@/views/components/api/form/ApiRequestFormReq.vue'
+import ApiRequestFormUrl from '@/views/components/api/form/ApiRequestFormUrl.vue'
+import ApiRequestFormMatchPattern from '@/views/components/api/form/ApiRequestFormMatchPattern.vue'
 
 const props = defineProps({
   responseTarget: {
@@ -78,7 +78,7 @@ const responseExamples = computed(() => {
       <template #default="{form}">
         <el-row>
           <el-col :span="20">
-            <mock-request-form-url
+            <ApiRequestFormUrl
               v-if="matchPatternMode"
               v-model="paramTarget"
             />
@@ -98,7 +98,7 @@ const responseExamples = computed(() => {
                 >
                   {{ requestUrl }}
                 </el-text>
-                <mock-url-copy-link
+                <url-copy-link
                   style="vertical-align: unset;"
                   :url-path="requestUrl"
                 />
@@ -119,13 +119,13 @@ const responseExamples = computed(() => {
         </el-row>
         <el-row>
           <el-col>
-            <mock-request-form-match-pattern
+            <ApiRequestFormMatchPattern
               v-if="matchPatternMode"
               v-model="paramTarget"
             />
           </el-col>
         </el-row>
-        <mock-request-form-req
+        <ApiRequestFormReq
           v-model="paramTarget"
           :show-authorization="!matchPatternMode"
           :response-target="responseTarget"
@@ -135,7 +135,7 @@ const responseExamples = computed(() => {
         />
       </template>
     </common-form>
-    <mock-request-form-res
+    <ApiRequestFormRes
       v-if="responseTarget||mockResponseEditable"
       v-model="paramTarget"
       :mock-response-editable="mockResponseEditable"

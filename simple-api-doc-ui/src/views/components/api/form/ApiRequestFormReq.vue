@@ -1,5 +1,5 @@
 <script setup>
-import MockUrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
 import { computed, ref, watch } from 'vue'
 import { checkParamsFilled } from '@/api/api/MockRequestApi'
@@ -13,14 +13,14 @@ import {
   SPECIAL_LANGS,
   DEFAULT_HEADERS
 } from '@/consts/ApiConstants'
-import MockRequestFormAuthorization from '@/views/components/api/form/MockRequestFormAuthorization.vue'
+import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { $i18nKey } from '@/messages'
 import { getSingleSelectOptions } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString } from 'lodash-es'
 import { calcEnvSuggestions, generateSchemaSample } from '@/services/api/ApiCommonService'
-import MockGenerateSample from '@/views/components/api/form/MockGenerateSample.vue'
-import MockDataExample from '@/views/components/api/form/MockDataExample.vue'
+import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
+import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
 
 const props = defineProps({
@@ -220,7 +220,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           :option="customLanguageSelectOption"
         >
           <template #childAfter>
-            <mock-url-copy-link
+            <url-copy-link
               :content="contentRef"
               :tooltip="$i18nKey('common.label.commonCopy', 'api.label.requestBody')"
             />
@@ -254,11 +254,11 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
                 icon="ContentPasteSearchFilled"
               />
             </el-link>
-            <mock-generate-sample
+            <api-generate-sample
               v-if="schemaBody"
               @generate-sample="generateSample"
             />
-            <mock-data-example
+            <api-data-example
               v-if="examples.length"
               :examples="examples"
               @select-example="selectExample"
@@ -297,7 +297,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
           {{ $t('api.label.authorization') }}
         </el-badge>
       </template>
-      <mock-request-form-authorization
+      <ApiRequestFormAuthorization
         v-model="authContentModel"
         v-model:auth-valid="authValid"
         :group-config="paramTarget.groupConfig"

@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import MockUrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import MockRequestApi, { ALL_METHODS, copyMockRequest } from '@/api/api/MockRequestApi'
 import CommonIcon from '@/components/common-icon/index.vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
@@ -94,7 +94,7 @@ const changeStatus = (status) => {
     <el-row>
       <el-col>
         {{ requestItem.requestPath }}
-        <mock-url-copy-link :url-path="fullPath" />
+        <url-copy-link :url-path="fullPath" />
       </el-col>
     </el-row>
     <el-row>

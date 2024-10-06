@@ -26,6 +26,13 @@ const showPassWindow = ref(false)
 //= ====================项目数据=====================
 const projectItem = ref()
 const currentDoc = ref(null)
+const errorHandler = (err) => {
+  if (err.data?.code === 401) {
+    useShareConfigStore().clearShareToken(shareId)
+    showPassWindow.value = true
+    projectItem.value = null
+  }
+}
 
 const loadShareData = async (input) => {
   loading.value = true
@@ -46,12 +53,7 @@ const loadShareData = async (input) => {
     loadProject(shareId, { loading: true }).then(data => {
       projectItem.value = data.resultData
       console.log('=========================projectItem.value', projectItem.value)
-    }).catch(err => {
-      if (err.data?.code === 401) {
-        useShareConfigStore().clearShareToken(shareId)
-        showPassWindow.value = true
-      }
-    })
+    }).catch(err => errorHandler(err))
   }
 }
 onMounted(() => loadShareData())
@@ -165,6 +167,7 @@ watch(currentDoc, () => {
               v-if="currentDoc?.docType==='api'"
               v-model="currentDoc"
               :share-id="projectShare?.shareId"
+              @doc-load-error="errorHandler"
             />
             <el-container class="text-center padding-10 flex-center">
               <span>
@@ -200,6 +203,7 @@ watch(currentDoc, () => {
             v-if="currentDoc?.docType==='api'"
             v-model="currentDoc"
             :share-id="projectShare?.shareId"
+            @doc-load-error="errorHandler"
           />
           <el-container class="text-center padding-10 flex-center">
             <span>

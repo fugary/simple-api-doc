@@ -1,6 +1,5 @@
 package com.fugary.simple.api.utils;
 
-import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.entity.api.ModelBase;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -17,20 +16,13 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
-
-import static com.fugary.simple.api.utils.servlet.HttpRequestUtils.getBodyResource;
 
 /**
  * Created on 2020/5/6 9:06 .<br>
@@ -141,38 +133,12 @@ public class SimpleModelUtils {
     /**
      * 解析成ApiParamsVo
      *
-     * @param apiProject
+     * @param paramVo
      * @param request
      * @return
      */
-    public static ApiParamsVo toApiParams(ApiProject apiProject, HttpServletRequest request) {
-        ApiParamsVo mockParams = new ApiParamsVo();
-        String pathPrefix = request.getContextPath() + "/mock/\\w+(/.*)";
-        String requestPath = request.getRequestURI();
-        Matcher matcher = Pattern.compile(pathPrefix).matcher(requestPath);
-        if (matcher.matches()) {
-            requestPath = matcher.group(1);
-        }
-//        mockParams.setTargetUrl(apiProject.getProxyUrl());
-//        mockParams.setRequestPath(requestPath);
-//        mockParams.setMethod(request.getMethod());
-//        Enumeration<String> headerNames = request.getHeaderNames();
-//        List<NameValue> headers = mockParams.getHeaderParams();
-//        while (headerNames.hasMoreElements()) {
-//            String headerName = headerNames.nextElement();
-//            String headerValue = request.getHeader(headerName);
-//            boolean excludeHeader = SimpleModelUtils.getExcludeHeaders().contains(headerName.toLowerCase());
-//            if (SimpleModelUtils.isMockPreview(request)) {
-//                excludeHeader = SimpleModelUtils.isExcludeHeaders(headerName.toLowerCase());
-//            }
-//            if (!excludeHeader && StringUtils.isNotBlank(headerValue)) {
-//                headers.add(new NameValue(headerName, headerValue));
-//            }
-//        }
-//        headers.add(new NameValue(ApiDocConstants.SIMPLE_BOOT_MOCK_HEADER, "1"));
-        Enumeration<String> parameterNames = request.getParameterNames();
-        List<NameValue> parameters = mockParams.getRequestParams();
-        List<NameValueObj> formData = mockParams.getFormData();
+    public static ApiParamsVo toApiParams(ApiParamsVo paramVo, HttpServletRequest request) {
+        List<NameValueObj> formData = paramVo.getFormData();
         boolean isUrlencoded = HttpRequestUtils.isCompatibleWith(request, MediaType.APPLICATION_FORM_URLENCODED);
         boolean isFormData = HttpRequestUtils.isCompatibleWith(request, MediaType.MULTIPART_FORM_DATA);
         if (isFormData) {
@@ -187,6 +153,8 @@ public class SimpleModelUtils {
                 }
             });
         } else if (!isUrlencoded) {
+            Enumeration<String> parameterNames = request.getParameterNames();
+            List<NameValue> parameters = paramVo.getRequestParams();
             while (parameterNames.hasMoreElements()) {
                 String parameterName = parameterNames.nextElement();
                 String parameterValue = request.getParameter(parameterName);
@@ -195,13 +163,7 @@ public class SimpleModelUtils {
                 }
             }
         }
-        mockParams.setContentType(request.getContentType());
-        try {
-            mockParams.setRequestBody(StreamUtils.copyToString(getBodyResource(request).getInputStream(), StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            log.error("Body解析错误", e);
-        }
-        return mockParams;
+        return paramVo;
     }
 
     /**

@@ -8,7 +8,7 @@ import MockDataApi, {
   processResponse
 } from '@/api/api/MockDataApi'
 import MockRequestApi, { loadSchemas } from '@/api/api/MockRequestApi'
-import MockRequestForm from '@/views/components/api/form/MockRequestForm.vue'
+import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { $i18nKey } from '@/messages'
 import { MOCK_DATA_MATCH_PATTERN_HEADER, MOCK_DATA_PATH_PARAMS_HEADER } from '@/consts/ApiConstants'
 import { processEvnParams } from '@/services/api/ApiCommonService'
@@ -116,7 +116,7 @@ defineExpose({
       </span>
     </template>
     <el-container class="flex-column">
-      <mock-request-form
+      <api-request-form
         v-model="paramTarget"
         :request-path="paramTarget.requestPath"
         :response-target="responseTarget"

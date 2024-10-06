@@ -2,9 +2,9 @@ import { isFunction } from 'lodash-es'
 import { DynamicHelper } from '@/components/directives'
 import { h, defineComponent, defineAsyncComponent } from 'vue'
 
-const MockRequestPreviewWindow = () => import('@/views/components/api/MockRequestPreviewWindow.vue')
-const MockMatchPatternPreview = () => import('@/views/components/api/MockMatchPatternPreview.vue')
-const MockEnvParams = () => import('@/views/components/api/MockEnvParams.vue')
+const MockRequestPreviewWindow = () => import('@/views/components/api/ApiRequestPreviewWindow.vue')
+const MockMatchPatternPreview = () => import('@/views/components/api/ApiMatchPatternPreview.vue')
+const MockEnvParams = () => import('@/views/components/api/ApiEnvParams.vue')
 const ShowUserInfo = () => import('@/views/components/user/ShowUserInfo.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
 

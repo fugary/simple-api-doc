@@ -1,13 +1,13 @@
 <script setup>
-import MockUrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { computed, watch, ref } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { $i18nKey } from '@/messages'
 import { generateSchemaSample, useContentTypeOption } from '@/services/api/ApiCommonService'
-import MockGenerateSample from '@/views/components/api/form/MockGenerateSample.vue'
+import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
 import { isString } from 'lodash-es'
-import MockDataExample from '@/views/components/api/form/MockDataExample.vue'
+import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import { calcContentType } from '@/consts/ApiConstants'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
 
@@ -240,7 +240,7 @@ watch(contentRef2, val => {
             @change="languageRef2=$event"
           >
             <template #childAfter>
-              <mock-url-copy-link
+              <url-copy-link
                 :content="contentRef2"
                 :tooltip="$i18nKey('common.label.commonCopy', 'api.label.mockResponseBody')"
               />
@@ -286,11 +286,11 @@ watch(contentRef2, val => {
                   icon="ContentPasteSearchFilled"
                 />
               </el-link>
-              <mock-generate-sample
+              <api-generate-sample
                 v-if="schemaBody"
                 @generate-sample="generateSample"
               />
-              <mock-data-example
+              <api-data-example
                 v-if="examples.length"
                 :examples="examples"
                 @select-example="selectExample"

@@ -2,11 +2,11 @@
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { computed, ref } from 'vue'
 import { cloneDeep, isString } from 'lodash-es'
-import MockUrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { $i18nKey, $i18nBundle } from '@/messages'
 import { showCodeWindow } from '@/utils/DynamicUtils'
-import MockGenerateSample from '@/views/components/api/form/MockGenerateSample.vue'
-import MockDataExample from '@/views/components/api/form/MockDataExample.vue'
+import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
+import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import { generateSchemaSample, useContentTypeOption } from '@/services/api/ApiCommonService'
 import { loadSchemas } from '@/api/api/MockRequestApi'
 import { calcContentType } from '@/consts/ApiConstants'
@@ -100,7 +100,7 @@ const langOption = {
         :option="langOption"
       >
         <template #childAfter>
-          <mock-url-copy-link
+          <url-copy-link
             :content="contentRef"
             :tooltip="$i18nKey('common.label.commonCopy', 'api.label.responseBody1')"
           />
@@ -129,11 +129,11 @@ const langOption = {
               icon="ContentPasteSearchFilled"
             />
           </el-link>
-          <mock-generate-sample
+          <ApiGenerateSample
             v-if="schemaBody"
             @generate-sample="generateSample"
           />
-          <mock-data-example
+          <ApiDataExample
             v-if="responseExamples.length"
             :examples="responseExamples"
             @select-example="selectExample"

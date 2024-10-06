@@ -2,7 +2,7 @@
 import { reactive, ref, computed, isRef } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { $i18nBundle, $i18nKey } from '@/messages'
-import MockUrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 
 const showWindow = ref(false)
 const { contentRef: codeText, languageRef, languageModel, languageSelectOption, normalLanguageSelectOption, formatDocument, editorRef, monacoEditorOptions } = useMonacoEditorOptions()
@@ -82,7 +82,7 @@ const langOption = computed(() => {
         :option="langOption"
       >
         <template #childAfter>
-          <mock-url-copy-link
+          <url-copy-link
             :content="codeText"
             :tooltip="$i18nKey('common.label.commonCopy', 'common.label.code')"
           />

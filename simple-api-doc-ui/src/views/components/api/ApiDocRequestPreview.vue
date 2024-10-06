@@ -8,7 +8,7 @@ import MockDataApi, {
   previewRequest,
   processResponse
 } from '@/api/api/MockDataApi'
-import MockRequestForm from '@/views/components/api/form/MockRequestForm.vue'
+import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
@@ -174,7 +174,7 @@ defineExpose({
 
 <template>
   <el-container class="flex-column">
-    <mock-request-form
+    <api-request-form
       v-if="requestItem && paramTarget"
       v-model="paramTarget"
       :request-path="requestPath"

@@ -29,6 +29,7 @@ const docParam = ref({
   baseUrl: ''
 })
 
+const emit = defineEmits(['doc-load-error'])
 const loading = ref(false)
 const loadDocDetail = async () => {
   if (loading.value) {
@@ -36,7 +37,13 @@ const loadDocDetail = async () => {
   }
   loading.value = true
   if (props.shareId) {
-    apiDocDetail.value = await loadShareDoc({ shareId: props.shareId, docId: apiDoc.value.id }).then(data => data.resultData).finally(() => (loading.value = false))
+    apiDocDetail.value = await loadShareDoc({ shareId: props.shareId, docId: apiDoc.value.id })
+      .then(data => data.resultData)
+      .catch(err => {
+        emit('doc-load-error', err)
+        return err
+      })
+      .finally(() => (loading.value = false))
   } else {
     apiDocDetail.value = await loadDoc(apiDoc.value.id).then(data => data.resultData).finally(() => {
       loading.value = false

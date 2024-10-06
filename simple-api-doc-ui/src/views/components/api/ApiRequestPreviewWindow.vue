@@ -1,6 +1,6 @@
 <script setup>
 import { ref, nextTick } from 'vue'
-import MockRequestPreview from '@/views/components/api/MockRequestPreview.vue'
+import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 
 const showWindow = ref(false)
 const loading = ref(true)
@@ -34,7 +34,7 @@ defineExpose({
         {{ $t('api.msg.requestTest') }}
       </span>
     </template>
-    <mock-request-preview
+    <api-doc-request-preview
       ref="mockPreviewRef"
       v-loading="loading"
       style="min-height:200px;"
