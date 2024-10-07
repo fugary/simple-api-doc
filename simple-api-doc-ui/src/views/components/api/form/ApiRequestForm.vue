@@ -4,7 +4,7 @@ import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import ApiRequestFormRes from '@/views/components/api/form/ApiRequestFormRes.vue'
 import ApiRequestFormReq from '@/views/components/api/form/ApiRequestFormReq.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-import { $copyText } from '@/utils'
+import { $copyText, joinPath } from '@/utils'
 
 const props = defineProps({
   envConfigs: {
@@ -35,7 +35,7 @@ const requestUrl = computed(() => {
     reqUrl = reqUrl.replace(new RegExp(`:${pathParam.name}`, 'g'), pathParam.value)
       .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), pathParam.value)
   })
-  return reqUrl
+  return joinPath(paramTarget.value.targetUrl, reqUrl)
 })
 
 const emit = defineEmits(['sendRequest'])
@@ -76,7 +76,8 @@ const docFormOption = computed(() => {
       }
     }),
     attrs: {
-      clearable: false
+      clearable: false,
+      style: 'width: 150px'
     }
   }
 })
@@ -90,17 +91,18 @@ const docFormOption = computed(() => {
       :model="paramTarget"
     >
       <template #default="{form}">
-        <el-row class="el-header">
-          <el-col :span="4">
-            <common-form-control
-              :option="docFormOption"
-              :model="paramTarget"
-              class="margin-top1 margin-right2"
-            />
-          </el-col>
-          <el-col
-            :span="14"
-            class="padding-top1"
+        <div
+          class="el-header"
+          style="display: flex;"
+        >
+          <common-form-control
+            :option="docFormOption"
+            :model="paramTarget"
+            class="margin-right2"
+          />
+          <div
+            class="api-path-url padding-top1"
+            style="margin-right:auto;"
           >
             <api-method-tag
               size="large"
@@ -118,19 +120,16 @@ const docFormOption = computed(() => {
               class="margin-left1 margin-top1"
               :url-path="requestUrl"
             />
-          </el-col>
-          <el-col
-            :span="4"
-            class="padding-top1 padding-left2"
-          >
+          </div>
+          <div class="padding-top1">
             <el-button
               type="primary"
               @click="sendRequest(form)"
             >
               {{ $t('api.label.sendRequest') }}
             </el-button>
-          </el-col>
-        </el-row>
+          </div>
+        </div>
         <ApiRequestFormReq
           v-model="paramTarget"
           show-authorization

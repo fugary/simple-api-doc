@@ -10,8 +10,9 @@ import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.v
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
-import { previewMockRequest } from '@/utils/DynamicUtils'
+import { previewApiRequest } from '@/utils/DynamicUtils'
 import { useWindowSize } from '@vueuse/core'
+import emitter from '@/vendors/emitter'
 
 const props = defineProps({
   shareId: {
@@ -28,7 +29,6 @@ const apiDocDetail = ref()
 const projectInfoDetail = ref()
 const envConfigs = ref([])
 
-const emit = defineEmits(['doc-load-error'])
 const loading = ref(false)
 const loadDocDetail = async () => {
   if (loading.value) {
@@ -39,7 +39,7 @@ const loadDocDetail = async () => {
     apiDocDetail.value = await loadShareDoc({ shareId: props.shareId, docId: apiDoc.value.id })
       .then(data => data.resultData)
       .catch(err => {
-        emit('doc-load-error', err)
+        emitter.emit('share-doc-error', err)
         return err
       })
       .finally(() => (loading.value = false))
@@ -77,7 +77,7 @@ const isMobile = computed(() => width.value <= 768)
       v-model="apiDocDetail"
       :env-configs="envConfigs"
       :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareId)"
-      @debug-api="previewMockRequest(projectInfoDetail, apiDocDetail)"
+      @debug-api="previewApiRequest(projectInfoDetail, apiDocDetail)"
     />
     <el-container
       :style="{height:folderContainerHeight}"

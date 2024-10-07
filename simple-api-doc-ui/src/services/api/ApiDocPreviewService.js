@@ -1,7 +1,14 @@
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
 import { isArray, isString } from 'lodash-es'
 import { hasLoading } from '@/vendors/axios'
-import { FORM_DATA, FORM_URL_ENCODED, LANG_TO_CONTENT_TYPES, MOCK_META_DATA_REQ, NONE } from '@/consts/ApiConstants'
+import {
+  FORM_DATA,
+  FORM_URL_ENCODED,
+  LANG_TO_CONTENT_TYPES,
+  SIMPLE_API_META_DATA_REQ,
+  NONE,
+  REQUEST_SEND_MODES
+} from '@/consts/ApiConstants'
 import axios from 'axios'
 import { processEvnParams } from '@/services/api/ApiCommonService'
 
@@ -38,10 +45,10 @@ export const processResponse = function (response) {
     status,
     duration: config.__startTime ? new Date().getTime() - config.__startTime : 0
   }
-  const requestHeaders = JSON.parse(headers[MOCK_META_DATA_REQ] || '[]').sort((a, b) => a.name.localeCompare(b.name))
+  const requestHeaders = JSON.parse(headers[SIMPLE_API_META_DATA_REQ] || '[]').sort((a, b) => a.name.localeCompare(b.name))
   const responseHeaders = []
   for (const name in headers) {
-    if (name !== MOCK_META_DATA_REQ) {
+    if (name !== SIMPLE_API_META_DATA_REQ) {
       responseHeaders.push({
         name,
         value: headers[name]
@@ -69,7 +76,8 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     method: apiDocDetail?.method || 'GET',
     contentType: apiDocDetail?.contentType || 'application/json',
     targetUrl: apiDocDetail?.targetUrl,
-    requestPath: apiDocDetail.url
+    requestPath: apiDocDetail.url,
+    sendType: REQUEST_SEND_MODES[0].value
   }
   // if (value) {
   //   const pathParams = target.pathParams

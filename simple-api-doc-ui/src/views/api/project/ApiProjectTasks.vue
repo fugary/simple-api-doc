@@ -183,7 +183,7 @@ const editFormOptions = computed(() => {
     rules: [{
       message: $i18nBundle('api.msg.proxyUrlMsg'),
       validator: () => {
-        return !currentModel.value.sourceUrl || /^https?:\/\//.test(currentModel.value.sourceUrl)
+        return !currentModel.value.sourceUrl || /^https?:\/\//.test(currentModel.value.sourceUrl.trim())
       }
     }]
   }, {

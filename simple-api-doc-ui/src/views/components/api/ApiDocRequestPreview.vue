@@ -1,6 +1,5 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
-// import MockRequestApi, { loadSchemas } from '@/api/api/MockRequestApi'
 import {
   calcParamTarget,
   calcRequestBody,
@@ -11,39 +10,22 @@ import {
 import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { processEvnParams } from '@/services/api/ApiCommonService'
+import { joinPath } from '@/utils'
+import { SIMPLE_API_ACCESS_TOKEN_HEADER, SIMPLE_API_TARGET_URL_HEADER } from '@/consts/ApiConstants'
+import { useLoginConfigStore } from '@/stores/LoginConfigStore'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import emitter from '@/vendors/emitter'
 
 const projectInfoDetail = ref()
 const apiDocDetail = ref()
 const envConfigs = ref([])
-// const docParam = ref({
-//   baseUrl: ''
-// })
-// const requestItem = ref()
-// const previewData = ref()
 const paramTarget = ref()
 const responseTarget = ref()
 const schemas = ref([])
 
-let saveCallback
-const toPreviewRequest = async (projectInfo, apiDoc, callback) => {
+const toPreviewRequest = async (projectInfo, apiDoc) => {
   projectInfoDetail.value = projectInfo
   apiDocDetail.value = apiDoc
-  // const requestDataPromise = MockRequestApi.getById(mockRequest.id)
-  // loadSchemas({
-  //   requestId: mockRequest.id,
-  //   dataId: viewData?.id
-  // }).then(schemasData => {
-  //   schemas.value = schemasData?.resultData || []
-  // })
-  // if (viewData?.id) {
-  //   const viewDataPromise = MockDataApi.getById(viewData.id)
-  //   const requestViewData = await viewDataPromise
-  //   previewData.value = requestViewData.resultData
-  // }
-  // const requestData = await requestDataPromise
-  // requestItem.value = requestData.resultData
-  saveCallback = callback
-  console.log(saveCallback)
   clearParamsAndResponse()
   return nextTick(() => {
     paramTarget.value = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
@@ -56,19 +38,19 @@ const toPreviewRequest = async (projectInfo, apiDoc, callback) => {
 
 const requestPath = computed(() => {
   if (apiDocDetail.value) {
-    console.log('=========================================requestPath', `${paramTarget.value.targetUrl}${apiDocDetail.value.url}`)
-    return `${paramTarget.value.targetUrl}${apiDocDetail.value.url}`
+    return apiDocDetail.value.url
   }
   return ''
 })
 
 const doDataPreview = async () => {
-  console.log('========================paramTarget1', paramTarget.value)
-  let requestUrl = requestPath.value
+  console.log('========================paramTarget1', paramTarget.value, apiDocDetail.value)
+  const serverSend = paramTarget.value?.sendType === 'server'
+  let processedPath = requestPath.value
   paramTarget.value?.pathParams?.forEach(pathParam => {
     const pathValue = processEvnParams(paramTarget.value.groupConfig, pathParam.value)
     if (pathValue) {
-      requestUrl = requestUrl.replace(new RegExp(`:${pathParam.name}`, 'g'), pathValue)
+      processedPath = processedPath.replace(new RegExp(`:${pathParam.name}`, 'g'), pathValue)
         .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), pathValue)
     }
   })
@@ -82,88 +64,41 @@ const doDataPreview = async () => {
       results[item.name] = processEvnParams(paramTarget.value.groupConfig, item.value)
       return results
     }, {}))
+  let targetUrl = paramTarget.value?.targetUrl
+  if (serverSend) {
+    headers[SIMPLE_API_TARGET_URL_HEADER] = targetUrl
+    headers[SIMPLE_API_ACCESS_TOKEN_HEADER] = useLoginConfigStore().accessToken
+    targetUrl = '/admin/proxy' // 服务端代理发送
+    if (apiDocDetail.value?.apiShare) {
+      targetUrl = '/shares/proxy'
+      headers[SIMPLE_API_ACCESS_TOKEN_HEADER] = useShareConfigStore().getShareToken(apiDocDetail.value.apiShare.shareId)
+    }
+  }
   const config = {
     loading: true,
     params,
     data,
     headers
   }
-  // requestItem.value?.id && (headers[MOCK_REQUEST_ID_HEADER] = requestItem.value?.id)
-  // previewData.value?.id && (headers[MOCK_DATA_ID_HEADER] = previewData.value?.id)
-  // if (previewData.value?.id) {
-  //   await doSaveMockResponseBody()// data保存
-  // } else {
-  // await doSaveMockParams() // request mockParams保存
-  // }
   const authContent = paramTarget.value.authContent
   if (authContent) {
     await AUTH_OPTION_CONFIG[authContent.authType]?.parseAuthInfo(authContent, headers, params, paramTarget)
   }
   previewRequest({
-    url: requestUrl,
+    url: joinPath(targetUrl, processedPath),
     method: apiDocDetail.value.method
   }, config).then(calcResponse, calcResponse)
 }
 
 const calcResponse = (response) => {
   responseTarget.value = processResponse(response)
-  console.log('===============================responseTarget', responseTarget.value)
+  if (response.status === 200 && response.data?.includes('{"code":401')) {
+    console.log('===============================responseTarget', responseTarget.value)
+    emitter.emit('preview-401-error', {
+      data: JSON.parse(responseTarget.value?.data)
+    })
+  }
 }
-
-// const calcMockParams = () => {
-//   const paramTargetVal = cloneDeep(paramTarget.value)
-//   delete paramTargetVal.responseBody
-//   delete paramTargetVal.responseFormat
-//   delete paramTargetVal.method
-//   delete paramTargetVal.groupConfig
-//   delete paramTargetVal.contentType
-//   paramTargetVal.formData?.forEach(nv => {
-//     if (isArray(nv.value)) {
-//       nv.value = []
-//     }
-//   })
-//   return paramTargetVal
-// }
-
-// const doSaveMockParams = () => {
-//   if (paramTarget.value) {
-//     const requestId = requestItem.value?.id
-//     const id = previewData.value?.id
-//     const paramTargetVal = calcMockParams()
-//     const mockParams = JSON.stringify(paramTargetVal)
-//     return saveMockParams({
-//       requestId,
-//       id,
-//       mockParams
-//     }, { loading: false })
-//   }
-// }
-
-// const doSaveMockResponseBody = () => {
-//   if (previewData.value && checkDataChange()) {
-//     return MockDataApi.saveOrUpdate(previewData.value)
-//       .then(() => {
-//         ElMessage.success($i18nBundle('common.msg.saveSuccess'))
-//         saveCallback?.(previewData.value)
-//       })
-//   }
-// }
-
-// const checkDataChange = () => {
-//   let changed = false;
-//   ['responseBody', 'responseFormat', 'contentType'].forEach(key => {
-//     if (paramTarget.value[key] !== previewData.value[key]) {
-//       previewData.value[key] = paramTarget.value[key]
-//       changed = true
-//     }
-//   })
-//   const paramTargetVal = calcMockParams()
-//   if (JSON.stringify(paramTargetVal) !== previewData.value.mockParams) {
-//     previewData.value.mockParams = JSON.stringify(paramTargetVal)
-//     changed = true
-//   }
-//   return changed
-// }
 
 const clearParamsAndResponse = () => {
   responseTarget.value = undefined

@@ -1,5 +1,6 @@
 package com.fugary.simple.api.utils;
 
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.entity.api.ModelBase;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -16,13 +17,20 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
+
+import static com.fugary.simple.api.utils.servlet.HttpRequestUtils.getBodyResource;
 
 /**
  * Created on 2020/5/6 9:06 .<br>
@@ -109,7 +117,7 @@ public class SimpleModelUtils {
     public static boolean isExcludeHeaders(String headerName){
         headerName = StringUtils.trimToEmpty(headerName).toLowerCase();
         return getExcludeHeaders().contains(headerName)
-                || headerName.matches("^(sec-|mock-).*");
+                || headerName.matches("^(sec-|simple-).*");
     }
 
     /**
@@ -133,12 +141,37 @@ public class SimpleModelUtils {
     /**
      * 解析成ApiParamsVo
      *
-     * @param paramVo
      * @param request
      * @return
      */
-    public static ApiParamsVo toApiParams(ApiParamsVo paramVo, HttpServletRequest request) {
-        List<NameValueObj> formData = paramVo.getFormData();
+    public static ApiParamsVo toApiParams(HttpServletRequest request) {
+        ApiParamsVo apiParams = new ApiParamsVo();
+        String pathPrefix = request.getContextPath() + "/\\w+/proxy(/.*)";
+        String requestPath = request.getRequestURI();
+        Matcher matcher = Pattern.compile(pathPrefix).matcher(requestPath);
+        if (matcher.matches()) {
+            requestPath = matcher.group(1);
+        }
+        apiParams.setTargetUrl(request.getHeader(ApiDocConstants.SIMPLE_API_TARGET_URL_HEADER));
+        apiParams.setRequestPath(requestPath);
+        apiParams.setMethod(request.getMethod());
+        Enumeration<String> headerNames = request.getHeaderNames();
+        List<NameValue> headers = apiParams.getHeaderParams();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            String headerValue = request.getHeader(headerName);
+            boolean excludeHeader = SimpleModelUtils.getExcludeHeaders().contains(headerName.toLowerCase());
+            if (!excludeHeader) {
+                excludeHeader = SimpleModelUtils.isExcludeHeaders(headerName.toLowerCase());
+            }
+            if (!excludeHeader && StringUtils.isNotBlank(headerValue)) {
+                headers.add(new NameValue(headerName, headerValue));
+            }
+        }
+        headers.add(new NameValue(ApiDocConstants.SIMPLE_API_DEBUG_HEADER, "1"));
+        Enumeration<String> parameterNames = request.getParameterNames();
+        List<NameValue> parameters = apiParams.getRequestParams();
+        List<NameValueObj> formData = apiParams.getFormData();
         boolean isUrlencoded = HttpRequestUtils.isCompatibleWith(request, MediaType.APPLICATION_FORM_URLENCODED);
         boolean isFormData = HttpRequestUtils.isCompatibleWith(request, MediaType.MULTIPART_FORM_DATA);
         if (isFormData) {
@@ -153,8 +186,6 @@ public class SimpleModelUtils {
                 }
             });
         } else if (!isUrlencoded) {
-            Enumeration<String> parameterNames = request.getParameterNames();
-            List<NameValue> parameters = paramVo.getRequestParams();
             while (parameterNames.hasMoreElements()) {
                 String parameterName = parameterNames.nextElement();
                 String parameterValue = request.getParameter(parameterName);
@@ -163,7 +194,13 @@ public class SimpleModelUtils {
                 }
             }
         }
-        return paramVo;
+        apiParams.setContentType(request.getContentType());
+        try {
+            apiParams.setRequestBody(StreamUtils.copyToString(getBodyResource(request).getInputStream(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            log.error("Body解析错误", e);
+        }
+        return apiParams;
     }
 
     /**

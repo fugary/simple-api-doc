@@ -1,10 +1,15 @@
 package com.fugary.simple.api.push;
 
+import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -16,6 +21,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -28,13 +35,25 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
-public class DefaultApiPushProcessorImpl implements ApiPushProcessor {
+public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
 
     @Autowired
     private RestTemplate restTemplate;
 
     @Override
-    public ResponseEntity<byte[]> doPush(ApiParamsVo mockParams) {
+    public ResponseEntity<?> invoke(HttpServletRequest request, HttpServletResponse response) {
+        String targetUrl = request.getHeader(ApiDocConstants.SIMPLE_API_TARGET_URL_HEADER);
+        if (StringUtils.isBlank(targetUrl)) {
+            return ResponseEntity.ok(SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404));
+        }
+        ResponseEntity<byte[]> responseEntity = invoke(SimpleModelUtils.toApiParams(request));
+        List<NameValue> requestHeaders = HttpRequestUtils.getRequestHeaders(request);
+        response.addHeader(ApiDocConstants.SIMPLE_API_META_DATA_REQ, JsonUtils.toJson(requestHeaders));
+        return responseEntity;
+    }
+
+    @Override
+    public ResponseEntity<byte[]> invoke(ApiParamsVo mockParams) {
         String requestUrl = getRequestUrl(mockParams.getTargetUrl(), mockParams);
         HttpEntity<?> entity = new HttpEntity<>(mockParams.getRequestBody(), getHeaders(mockParams));
         if (HttpRequestUtils.isCompatibleWith(mockParams, MediaType.MULTIPART_FORM_DATA)) {

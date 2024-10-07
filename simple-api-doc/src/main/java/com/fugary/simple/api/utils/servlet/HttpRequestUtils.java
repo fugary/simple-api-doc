@@ -5,6 +5,7 @@ package com.fugary.simple.api.utils.servlet;
 
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.XmlUtils;
+import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.http.HttpRequestVo;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import lombok.AccessLevel;
@@ -28,10 +29,7 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author gary.fu
@@ -224,5 +222,19 @@ public class HttpRequestUtils {
 			}
 		}
 		return bodyResource;
+	}
+
+	/**
+	 * 请求头获取
+	 * @param request
+	 */
+	public static List<NameValue> getRequestHeaders(HttpServletRequest request){
+		Enumeration<String> reqHeaders = request.getHeaderNames();
+		ArrayList<NameValue> requestHeaders = new ArrayList<>();
+		while (reqHeaders.hasMoreElements()) {
+			String key = reqHeaders.nextElement();
+			requestHeaders.add(new NameValue(key, request.getHeader(key)));
+		}
+		return requestHeaders;
 	}
 }

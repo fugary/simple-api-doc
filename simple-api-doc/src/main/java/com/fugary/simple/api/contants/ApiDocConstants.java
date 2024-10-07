@@ -21,6 +21,14 @@ public class ApiDocConstants {
 
     public static final String AUTHORIZED_SHARED_KEY = "simple-api-share-id";
 
+    public static final String SIMPLE_API_TARGET_URL_HEADER = "simple-api-target-url";
+
+    public static final String SIMPLE_API_DEBUG_HEADER = "simple-api-debug";
+
+    public static final String SIMPLE_API_META_DATA_REQ = "simple-api-meta-req";
+
+    public static final String SIMPLE_API_ACCESS_TOKEN_HEADER = "simple-api-access-token";
+
     public static final String API_LOCALE_KEY = "locale";
 
     public static final String ALL_PATH_PATTERN = "/**";

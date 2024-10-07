@@ -46,6 +46,9 @@ api.label.folderName = '文件夹名称'
 api.label.targetFolder = '目标文件夹'
 api.label.pathId = '路径ID'
 api.label.proxyUrl = '代理地址'
+api.label.browserSend = '浏览器发送'
+api.label.serverSend = '服务端发送'
+api.label.sendType = '发送类型'
 api.label.export = '导出'
 api.label.exportAll = '导出全部'
 api.label.exportSelected = '导出选中部分'
@@ -103,14 +106,4 @@ api.msg.pasteToProcess = '支持浏览器GET字符串或者JSON'
 api.msg.authParamNameTooltip = '认证默认值为：{0}，不能为空'
 api.msg.authPrefixTooltip = '前缀默认值为：{0}，可以为空'
 api.msg.requestTest = '请求测试'
-api.msg.matchPatternTest = '匹配规则测试'
-api.msg.requestNameTooltip = '简单接口名称，可不填写'
-api.msg.requestIntro = `request.body——body内容对象<br>
-                        request.bodyStr——body内容字符串<br>
-                        request.headers——头信息对象<br>
-                        request.parameters——请求参数对象<br>
-                        request.pathParameters——路径参数对象<br>
-                        request.params——请求参数和路径参数合并`
-api.msg.matchPatternTooltip = `匹配规则支持javascript表达式，支持的request请求数据: <br>${api.msg.requestIntro}`
-api.msg.projectCodeTooltip = '字母、数字、_-组成，唯一标识'
-api.msg.responseBodyTooltip = `响应内容支持请求参数替换，使用{0}格式替换数据，支持的request请求数据: <br>${api.msg.requestIntro}`
+api.msg.sendTypeTooltip = '浏览器发送需要接口支持跨域请求，否则仅能用服务端发送'

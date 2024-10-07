@@ -109,6 +109,20 @@ export const fromGetParams = (queryStr) => {
   return Object.fromEntries(new URLSearchParams(queryStr).entries())
 }
 /**
+ * 连接path路径
+ * @param baseUrl
+ * @param path
+ * @return {`/${string|string}`}
+ */
+export const joinPath = (baseUrl = '', path = '') => {
+  while (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.substring(0, baseUrl.length - 1)
+  }
+  path = path.startsWith('/') ? path.substring(1) : path
+  return `${baseUrl}/${path}`
+}
+
+/**
  * 给指定URL增加GET参数
  * @param url {String} url地址
  * @param params {Object} 参数

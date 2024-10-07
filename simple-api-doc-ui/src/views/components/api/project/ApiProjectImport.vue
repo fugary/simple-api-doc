@@ -93,7 +93,7 @@ const formOptions = computed(() => {
     rules: [{
       message: $i18nBundle('api.msg.proxyUrlMsg'),
       validator: () => {
-        return !importModel.value.url || /^https?:\/\//.test(importModel.value.url)
+        return !importModel.value.url || /^https?:\/\//.test(importModel.value.url.trim())
       }
     }]
   }, {

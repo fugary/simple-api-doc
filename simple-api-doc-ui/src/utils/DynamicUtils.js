@@ -2,9 +2,8 @@ import { isFunction } from 'lodash-es'
 import { DynamicHelper } from '@/components/directives'
 import { h, defineComponent, defineAsyncComponent } from 'vue'
 
-const MockRequestPreviewWindow = () => import('@/views/components/api/ApiRequestPreviewWindow.vue')
-const MockMatchPatternPreview = () => import('@/views/components/api/ApiMatchPatternPreview.vue')
-const MockEnvParams = () => import('@/views/components/api/ApiEnvParams.vue')
+const ApiRequestPreviewWindow = () => import('@/views/components/api/ApiRequestPreviewWindow.vue')
+const ApiEnvParams = () => import('@/views/components/api/ApiEnvParams.vue')
 const ShowUserInfo = () => import('@/views/components/user/ShowUserInfo.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
 
@@ -21,25 +20,17 @@ export const showUserInfo = async (id) => {
   vnode.component?.exposed?.showUserInfo(id)
 }
 
-export const previewMockRequest = async (...args) => {
+export const previewApiRequest = async (...args) => {
   const dynamicHelper = new DynamicHelper()
-  const vnode = await dynamicHelper.createAndRender(MockRequestPreviewWindow, {
+  const vnode = await dynamicHelper.createAndRender(ApiRequestPreviewWindow, {
     onClosed: () => dynamicHelper.destroy()
   })
   vnode.component?.exposed?.toPreviewRequest(...args)
 }
 
-export const toTestMatchPattern = async (...args) => {
-  const dynamicHelper = new DynamicHelper()
-  const vnode = await dynamicHelper.createAndRender(MockMatchPatternPreview, {
-    onClosed: () => dynamicHelper.destroy()
-  })
-  return vnode.component?.exposed?.toTestMatchPattern(...args)
-}
-
 export const toEditGroupEnvParams = async (...args) => {
   const dynamicHelper = new DynamicHelper()
-  const vnode = await dynamicHelper.createAndRender(MockEnvParams, {
+  const vnode = await dynamicHelper.createAndRender(ApiEnvParams, {
     onClosed: () => dynamicHelper.destroy()
   })
   return vnode.component?.exposed?.toEditGroupEnvParams(...args)

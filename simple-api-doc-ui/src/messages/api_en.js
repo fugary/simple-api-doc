@@ -46,6 +46,10 @@ api.label.folderName = 'Folder Name'
 api.label.targetFolder = 'Target Folder'
 api.label.pathId = 'Path ID'
 api.label.proxyUrl = 'Proxy URL'
+api.label.browserSend = 'Browser Send'
+api.label.serverSend = 'Server Send'
+api.label.sendType = 'Send Type'
+api.label.corsMode = 'CORS Mode'
 api.label.export = 'Export'
 api.label.exportAll = 'Export All'
 api.label.exportSelected = 'Export Selected'
@@ -103,14 +107,4 @@ api.msg.pasteToProcess = 'Supports url query string or JSON'
 api.msg.authParamNameTooltip = 'Default value is: {0}, cannot be empty'
 api.msg.authPrefixTooltip = 'Default value is: {0}, can be empty'
 api.msg.requestTest = 'Test Request'
-api.msg.matchPatternTest = 'Test Match Pattern'
-api.msg.requestNameTooltip = 'Simple interface name, not required.'
-api.msg.requestIntro = `request.body — The body content object (only JSON)<br>
-                        request.bodyStr — The body content string<br>
-                        request.headers — The headers object<br>
-                        request.parameters — The request parameters object<br>
-                        request.pathParameters — The path parameters object<br>
-                        request.params — The merged request parameters and path parameters`
-api.msg.matchPatternTooltip = `Matching rules support JavaScript expressions. You can use the following to request data:<br>${api.msg.requestIntro}`
-api.msg.projectCodeTooltip = 'Only letters, numbers, and underscores are allowed, and it is unique.'
-api.msg.responseBodyTooltip = `Response content supports replacing by request parameters. Use {0} format to replace with request data:<br>${api.msg.requestIntro}`
+api.msg.sendTypeTooltip = 'Browser send requires the API support cross-domain requests, otherwise only server-side sending is allowed'

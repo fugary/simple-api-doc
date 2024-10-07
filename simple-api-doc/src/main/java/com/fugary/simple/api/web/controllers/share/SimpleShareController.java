@@ -2,6 +2,7 @@ package com.fugary.simple.api.web.controllers.share;
 
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.push.ApiInvokeProcessor;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -14,8 +15,11 @@ import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.Date;
 
 /**
@@ -47,6 +51,9 @@ public class SimpleShareController {
 
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private ApiInvokeProcessor apiInvokeProcessor;
 
     @GetMapping("/loadShare/{shareId}")
     public SimpleResult<ApiProjectShareVo> loadShare(@PathVariable("shareId") String shareId, @RequestParam(name = "pwd") String password) {
@@ -119,4 +126,13 @@ public class SimpleShareController {
         return SimpleResultUtils.createSimpleResult(apiDocVo);
     }
 
+    /**
+     * 调试API
+     *
+     * @return
+     */
+    @RequestMapping("/proxy/**")
+    public ResponseEntity<?> proxyApi(HttpServletRequest request, HttpServletResponse response) {
+        return apiInvokeProcessor.invoke(request, response);
+    }
 }

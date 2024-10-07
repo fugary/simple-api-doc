@@ -9,6 +9,7 @@ import { $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { APP_VERSION } from '@/config'
 import { useWindowSize } from '@vueuse/core'
+import emitter from '@/vendors/emitter'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -33,6 +34,8 @@ const errorHandler = (err) => {
     projectItem.value = null
   }
 }
+emitter.on('share-doc-error', errorHandler)
+emitter.on('preview-401-error', errorHandler)
 
 const loadShareData = async (input) => {
   loading.value = true
@@ -53,7 +56,7 @@ const loadShareData = async (input) => {
     loadProject(shareId, { loading: true }).then(data => {
       projectItem.value = data.resultData
       console.log('=========================projectItem.value', projectItem.value)
-    }).catch(err => errorHandler(err))
+    }).catch(err => emitter.emit('share-doc-error', err))
   }
 }
 onMounted(() => loadShareData())
@@ -167,7 +170,6 @@ watch(currentDoc, () => {
               v-if="currentDoc?.docType==='api'"
               v-model="currentDoc"
               :share-id="projectShare?.shareId"
-              @doc-load-error="errorHandler"
             />
             <el-container class="text-center padding-10 flex-center">
               <span>
@@ -203,7 +205,6 @@ watch(currentDoc, () => {
             v-if="currentDoc?.docType==='api'"
             v-model="currentDoc"
             :share-id="projectShare?.shareId"
-            @doc-load-error="errorHandler"
           />
           <el-container class="text-center padding-10 flex-center">
             <span>

@@ -1,18 +1,14 @@
 import dayjs from 'dayjs'
 
-export const MOCK_REQUEST_ID_HEADER = 'mock-request-id'
-
-export const MOCK_DATA_ID_HEADER = 'mock-data-id'
-
-export const MOCK_DATA_MATCH_PATTERN_HEADER = 'mock-data-match-pattern'
-
-export const MOCK_DATA_PATH_PARAMS_HEADER = 'mock-data-path-params'
-
-export const MOCK_META_DATA_REQ = 'mock-meta-req'
+export const SIMPLE_API_META_DATA_REQ = 'simple-api-meta-req'
 
 export const AUTHORIZATION_KEY = 'Authorization'
 
 export const BEARER_KEY = 'Bearer'
+
+export const SIMPLE_API_TARGET_URL_HEADER = 'simple-api-target-url'
+
+export const SIMPLE_API_ACCESS_TOKEN_HEADER = 'simple-api-access-token'
 
 export const DEFAULT_HEADERS = ['Accept',
   'Accept-Charset',
@@ -112,6 +108,14 @@ export const IMPORT_TASK_TYPES = [{
 }, {
   value: 'auto',
   labelKey: 'api.label.autoImportData1'
+}]
+
+export const REQUEST_SEND_MODES = [{
+  value: 'server',
+  labelKey: 'api.label.serverSend'
+}, {
+  value: 'browser',
+  labelKey: 'api.label.browserSend'
 }]
 
 export const TASK_TRIGGER_RATES = [5, 10, 30, 60, 60 * 3, 60 * 12, 60 * 24, 60 * 24 * 3, 60 * 24 * 7].map(minutes => {

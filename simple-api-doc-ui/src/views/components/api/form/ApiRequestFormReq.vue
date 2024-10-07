@@ -11,10 +11,10 @@ import {
   FORM_DATA,
   FORM_URL_ENCODED,
   SPECIAL_LANGS,
-  DEFAULT_HEADERS
+  DEFAULT_HEADERS, REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
-import { $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { getSingleSelectOptions } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString } from 'lodash-es'
@@ -122,14 +122,41 @@ const selectExample = (example) => {
 }
 
 const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.groupConfig))
+
+const proxyModeOption = computed(() => {
+  return {
+    labelKey: 'api.label.sendType',
+    tooltip: $i18nBundle('api.msg.sendTypeTooltip'),
+    prop: 'sendType',
+    type: 'select',
+    children: REQUEST_SEND_MODES,
+    style: 'margin-top:15px;',
+    attrs: {
+      clearable: false,
+      style: {
+        width: '150px'
+      }
+    }
+  }
+})
+
 </script>
 
 <template>
   <el-tabs
     v-model="currentTabName"
     type="border-card"
-    class="form-edit-width-100"
+    class="form-edit-width-100 common-tabs"
+    addable
   >
+    <template
+      #add-icon
+    >
+      <common-form-control
+        :option="proxyModeOption"
+        :model="paramTarget"
+      />
+    </template>
     <el-tab-pane
       v-if="paramTarget.pathParams?.length"
       name="pathParamsTab"
