@@ -19,6 +19,8 @@ public class ApiDocSchema extends ModelBase {
     private String schemaContent;
     private String schemaName;
     private String schemaKey;
+    private Integer statusCode;
+    private String examples;
     private String contentType;
     private String description;
 }

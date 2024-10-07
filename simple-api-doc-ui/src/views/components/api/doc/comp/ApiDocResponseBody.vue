@@ -16,7 +16,7 @@ const projectInfoDetail = computed(() => {
 <template>
   <el-container class="flex-column">
     <h3 id="api-doc-parameters">
-      响应数据
+      {{ $t('api.label.responseBody') }}
     </h3>
     <el-tabs>
       <el-tab-pane
@@ -39,11 +39,19 @@ const projectInfoDetail = computed(() => {
           <el-container class="padding-10">
             <el-text
               type="info"
-              class="margin-right1"
+              class="margin-right3"
             >
-              ContentType:
+              Content Type:
+              <el-text>{{ responseSchema.contentType }}</el-text>
             </el-text>
-            <el-text>{{ responseSchema.contentType }}</el-text>
+            <el-text
+              v-if="responseSchema.statusCode"
+              type="info"
+              class="margin-right3"
+            >
+              Status Code:
+              <el-text>{{ responseSchema.statusCode }}</el-text>
+            </el-text>
           </el-container>
           <api-doc-schema-tree
             v-if="projectInfoDetail"

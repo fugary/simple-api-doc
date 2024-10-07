@@ -17,6 +17,10 @@ public class ApiDocConstants {
 
     public static final String STATUS_KEY = "status";
 
+    public static final String MODIFIER_KEY = "modifier";
+
+    public static final String MODIFY_DATE_KEY = "modifyDate";
+
     public static final String API_USER_KEY = "simple-api-user";
 
     public static final String AUTHORIZED_SHARED_KEY = "simple-api-share-id";

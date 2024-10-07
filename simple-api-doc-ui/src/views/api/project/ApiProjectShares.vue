@@ -136,7 +136,9 @@ const newOrEdit = async (id) => {
       projectId: projectItem.value.id,
       status: 1,
       exportEnabled: true,
-      debugEnabled: true
+      debugEnabled: true,
+      defaultTheme: 'dark',
+      defaultShowLabel: 'docName'
     }
   }
   showEditWindow.value = true
@@ -153,6 +155,27 @@ const editFormOptions = computed(() => defineFormOptions([{
   labelKey: 'api.label.debugEnabled',
   prop: 'debugEnabled',
   type: 'switch'
+}, {
+  labelKey: 'common.label.defaultTheme',
+  prop: 'defaultTheme',
+  type: 'select',
+  children: [{
+    value: 'dark',
+    labelKey: 'Dark'
+  }, {
+    value: 'light',
+    labelKey: 'Light'
+  }]
+}, {
+  labelKey: 'common.label.defaultShowLabel',
+  prop: 'defaultShowLabel',
+  children: [{
+    value: 'docName',
+    labelKey: 'api.label.docLabelShowName'
+  }, {
+    value: 'url',
+    labelKey: 'api.label.docLabelShowUrl'
+  }]
 }, {
   labelKey: 'api.label.accessPassword',
   prop: 'sharePassword',

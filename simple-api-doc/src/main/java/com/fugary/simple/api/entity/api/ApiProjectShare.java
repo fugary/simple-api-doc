@@ -18,6 +18,8 @@ public class ApiProjectShare extends ModelBase {
     private String shareName;
     private Boolean exportEnabled;
     private Boolean debugEnabled;
+    private String defaultTheme;
+    private String defaultShowLabel;
     private String envContent;
     private String sharePassword;
     private Date expireDate;

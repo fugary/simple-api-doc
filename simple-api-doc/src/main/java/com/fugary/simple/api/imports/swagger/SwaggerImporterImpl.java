@@ -11,16 +11,20 @@ import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.tags.Tag;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -251,6 +255,10 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     if (schema != null) {
                         requestBodySchema.setSchemaName(schema.getName());
                     }
+                    List<Example> examples = getExamples(mediaType);
+                    if (CollectionUtils.isNotEmpty(examples)) {
+                        requestBodySchema.setExamples(JsonUtils.toJson(examples));
+                    }
                     apiDoc.getRequestsSchemas().add(requestBodySchema);
                 }
             });
@@ -267,12 +275,41 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                         responseSchema.setContentType(contentType);
                         responseSchema.setSchemaContent(JsonUtils.toJson(mediaType));
                         responseSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
+                        List<Example> examples = getExamples(mediaType);
+                        if (CollectionUtils.isNotEmpty(examples)) {
+                            responseSchema.setExamples(JsonUtils.toJson(examples));
+                        }
+                        responseSchema.setStatusCode(calcStatusCode(responseCode).value());
                         apiDoc.getResponsesSchemas().add(responseSchema);
                     });
                 }
             });
         }
     }
+
+    protected HttpStatus calcStatusCode(String responseCode) {
+        if (NumberUtils.isDigits(responseCode)) {
+            HttpStatus statusCode = HttpStatus.resolve(NumberUtils.toInt(responseCode));
+            if (statusCode != null) {
+                return statusCode;
+            }
+        }
+        return HttpStatus.OK;
+    }
+
+    protected List<Example> getExamples(io.swagger.v3.oas.models.media.MediaType mediaType){
+        List<Example> examples = new ArrayList<>();
+        if (mediaType != null) {
+            if (mediaType.getExamples() != null) {
+                examples.addAll(mediaType.getExamples().values());
+            }
+            if (mediaType.getExample() != null) {
+                examples.add(new Example().summary("Example").value(mediaType.getExample()));
+            }
+        }
+        return examples;
+    }
+
 
     protected Pair<ExportApiFolderVo, ExportApiFolderVo> getOperationFolder(OpenAPI openAPI, List<ExportApiFolderVo> folders, Pair<String, Operation> operationPair) {
         // 获取Operation所在的Folder
