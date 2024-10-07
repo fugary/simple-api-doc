@@ -1,24 +1,13 @@
 <script setup>
-import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { computed, watch, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
-import { showCodeWindow } from '@/utils/DynamicUtils'
 import { $i18nKey } from '@/messages'
-import { generateSchemaSample, useContentTypeOption } from '@/services/api/ApiCommonService'
-import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
-import { isString } from 'lodash-es'
-import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
-import { calcContentType } from '@/consts/ApiConstants'
-import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 
 const props = defineProps({
   responseTarget: {
     type: Object,
     default: undefined
-  },
-  mockResponseEditable: {
-    type: Boolean,
-    default: false
   },
   schemaType: {
     type: String,
@@ -34,11 +23,7 @@ const props = defineProps({
   }
 })
 
-const paramTarget = defineModel('modelValue', {
-  type: Object,
-  default: true
-})
-const currentTabName = ref(props.responseTarget ? 'responseData' : 'mockResponseBody')
+const currentTabName = ref('responseData')
 
 const {
   contentRef, languageRef, editorRef, monacoEditorOptions,
@@ -46,7 +31,7 @@ const {
 } = useMonacoEditorOptions()
 
 watch(() => props.responseTarget, (responseTarget) => {
-  currentTabName.value = responseTarget ? 'responseData' : 'mockResponseBody'
+  currentTabName.value = 'responseData'
   contentRef.value = responseTarget?.data
   setTimeout(() => formatDocument())
 }, { immediate: true })
@@ -55,43 +40,7 @@ const requestInfo = computed(() => {
   return props.responseTarget?.requestInfo
 })
 
-const {
-  contentRef: contentRef2, languageRef: languageRef2, editorRef: editorRef2, monacoEditorOptions: monacoEditorOptions2,
-  languageModel: languageModel2, languageSelectOption: languageSelectOption2, formatDocument: formatDocument2, checkEditorLang
-} = useMonacoEditorOptions({ readOnly: false, language: paramTarget.value.responseFormat })
-
-watch(languageRef2, language => {
-  paramTarget.value.responseFormat = language
-})
-
-contentRef2.value = paramTarget.value?.responseBody
-
 const codeHeight = '300px'
-
-const emit = defineEmits(['saveMockResponseBody'])
-
-const generateSample = async (type) => {
-  contentRef2.value = await generateSchemaSample(props.schemaBody, type)
-  setTimeout(() => checkEditorLang())
-}
-const selectExample = (example) => {
-  contentRef2.value = isString(example.value) ? example.value : JSON.stringify(example.value)
-  setTimeout(() => checkEditorLang())
-}
-
-const contentTypeOption = useContentTypeOption('contentType')
-const langOption = {
-  ...languageSelectOption2.value,
-  change (language) {
-    if (paramTarget.value) {
-      paramTarget.value.responseFormat = language
-      paramTarget.value.contentType = calcContentType(language, paramTarget.value?.responseBody)
-    }
-  }
-}
-watch(contentRef2, val => {
-  paramTarget.value.responseBody = val
-})
 </script>
 
 <template>
@@ -148,7 +97,7 @@ watch(contentRef2, val => {
             @change="languageRef=$event"
           >
             <template #childAfter>
-              <mock-url-copy-link
+              <url-copy-link
                 :content="contentRef"
                 :tooltip="$i18nKey('common.label.commonCopy', 'api.label.responseBody')"
               />
@@ -215,97 +164,6 @@ watch(contentRef2, val => {
             {{ info.value }}
           </el-descriptions-item>
         </el-descriptions>
-      </el-tab-pane>
-      <el-tab-pane
-        v-if="mockResponseEditable"
-        name="mockResponseBody"
-      >
-        <template #label>
-          <el-badge
-            type="primary"
-            :hidden="!paramTarget.responseBody?.length"
-            is-dot
-          >
-            {{ $t('api.label.mockResponseBody') }}
-          </el-badge>
-        </template>
-        <el-container class="flex-column">
-          <common-form-control
-            :model="paramTarget"
-            :option="contentTypeOption"
-          />
-          <common-form-control
-            :model="languageModel2"
-            :option="langOption"
-            @change="languageRef2=$event"
-          >
-            <template #childAfter>
-              <url-copy-link
-                :content="contentRef2"
-                :tooltip="$i18nKey('common.label.commonCopy', 'api.label.mockResponseBody')"
-              />
-              <new-window-edit-link
-                v-model="contentRef2"
-                class="margin-left3"
-                full-editor
-              />
-              <el-link
-                v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.mockResponseBody')"
-                type="primary"
-                :underline="false"
-                class="margin-left3"
-                @click="formatDocument2"
-              >
-                <common-icon
-                  :size="18"
-                  icon="FormatIndentIncreaseFilled"
-                />
-              </el-link>
-              <el-link
-                v-common-tooltip="$t('api.msg.saveMockResponse')"
-                type="primary"
-                :underline="false"
-                class="margin-left3"
-                @click="emit('saveMockResponseBody', paramTarget)"
-              >
-                <common-icon
-                  :size="18"
-                  icon="SaveOutlined"
-                />
-              </el-link>
-              <el-link
-                v-if="schemaBody"
-                v-common-tooltip="$i18nKey('common.label.commonView', 'common.label.schema')"
-                type="primary"
-                :underline="false"
-                class="margin-left3"
-                @click="showCodeWindow(schemaBody)"
-              >
-                <common-icon
-                  :size="18"
-                  icon="ContentPasteSearchFilled"
-                />
-              </el-link>
-              <api-generate-sample
-                v-if="schemaBody"
-                @generate-sample="generateSample"
-              />
-              <api-data-example
-                v-if="examples.length"
-                :examples="examples"
-                @select-example="selectExample"
-              />
-            </template>
-          </common-form-control>
-          <vue-monaco-editor
-            v-model:value="contentRef2"
-            class="common-resize-vertical"
-            :language="languageRef2"
-            :height="codeHeight"
-            :options="monacoEditorOptions2"
-            @mount="editorRef2=$event"
-          />
-        </el-container>
       </el-tab-pane>
     </el-tabs>
   </el-container>

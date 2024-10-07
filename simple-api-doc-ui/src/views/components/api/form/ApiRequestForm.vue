@@ -3,10 +3,14 @@ import { computed } from 'vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import ApiRequestFormRes from '@/views/components/api/form/ApiRequestFormRes.vue'
 import ApiRequestFormReq from '@/views/components/api/form/ApiRequestFormReq.vue'
-import ApiRequestFormUrl from '@/views/components/api/form/ApiRequestFormUrl.vue'
-import ApiRequestFormMatchPattern from '@/views/components/api/form/ApiRequestFormMatchPattern.vue'
+import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
+import { $copyText } from '@/utils'
 
 const props = defineProps({
+  envConfigs: {
+    type: Array,
+    default: () => []
+  },
   responseTarget: {
     type: Object,
     default: () => undefined
@@ -14,14 +18,6 @@ const props = defineProps({
   requestPath: {
     type: String,
     required: true
-  },
-  matchPatternMode: {
-    type: Boolean,
-    default: false
-  },
-  mockResponseEditable: {
-    type: Boolean,
-    default: false
   },
   schemas: {
     type: Array,
@@ -42,7 +38,7 @@ const requestUrl = computed(() => {
   return reqUrl
 })
 
-const emit = defineEmits(['sendRequest', 'saveMockResponseBody'])
+const emit = defineEmits(['sendRequest'])
 
 const sendRequest = (form) => {
   form.validate(valid => {
@@ -67,6 +63,24 @@ const responseExamples = computed(() => {
   return examples ? JSON.parse(examples) : []
 })
 
+const docFormOption = computed(() => {
+  return {
+    labelWidth: '1px',
+    showLabel: false,
+    type: 'select',
+    prop: 'targetUrl',
+    children: props.envConfigs?.map(env => {
+      return {
+        value: env.url,
+        label: env.name || '默认地址'
+      }
+    }),
+    attrs: {
+      clearable: false
+    }
+  }
+})
+
 </script>
 
 <template>
@@ -76,34 +90,34 @@ const responseExamples = computed(() => {
       :model="paramTarget"
     >
       <template #default="{form}">
-        <el-row>
-          <el-col :span="20">
-            <ApiRequestFormUrl
-              v-if="matchPatternMode"
-              v-model="paramTarget"
+        <el-row class="el-header">
+          <el-col :span="4">
+            <common-form-control
+              :option="docFormOption"
+              :model="paramTarget"
+              class="margin-top1 margin-right2"
             />
-            <el-descriptions
-              v-else
-              :column="1"
-              class="form-edit-width-100 margin-bottom3"
-              border
+          </el-col>
+          <el-col
+            :span="14"
+            class="padding-top1"
+          >
+            <api-method-tag
+              size="large"
+              effect="dark"
+              :method="paramTarget?.method"
+              class="margin-right2"
+            />
+            <el-link
+              type="primary"
+              @click="$copyText(requestUrl)"
             >
-              <el-descriptions-item
-                :label="paramTarget.method"
-                min-width="40px"
-              >
-                <el-text
-                  class="padding-right1"
-                  truncated
-                >
-                  {{ requestUrl }}
-                </el-text>
-                <url-copy-link
-                  style="vertical-align: unset;"
-                  :url-path="requestUrl"
-                />
-              </el-descriptions-item>
-            </el-descriptions>
+              {{ requestUrl }}
+            </el-link>
+            <url-copy-link
+              class="margin-left1 margin-top1"
+              :url-path="requestUrl"
+            />
           </el-col>
           <el-col
             :span="4"
@@ -117,17 +131,9 @@ const responseExamples = computed(() => {
             </el-button>
           </el-col>
         </el-row>
-        <el-row>
-          <el-col>
-            <ApiRequestFormMatchPattern
-              v-if="matchPatternMode"
-              v-model="paramTarget"
-            />
-          </el-col>
-        </el-row>
         <ApiRequestFormReq
           v-model="paramTarget"
-          :show-authorization="!matchPatternMode"
+          show-authorization
           :response-target="responseTarget"
           :schema-type="schema?.requestMediaType"
           :schema-body="schema?.requestBodySchema"
@@ -136,14 +142,12 @@ const responseExamples = computed(() => {
       </template>
     </common-form>
     <ApiRequestFormRes
-      v-if="responseTarget||mockResponseEditable"
+      v-if="responseTarget"
       v-model="paramTarget"
-      :mock-response-editable="mockResponseEditable"
       :response-target="responseTarget"
       :schema-type="schema?.responseMediaType"
       :schema-body="schema?.responseBodySchema"
       :examples="responseExamples"
-      @save-mock-response-body="emit('saveMockResponseBody', $event)"
     />
   </el-container>
 </template>

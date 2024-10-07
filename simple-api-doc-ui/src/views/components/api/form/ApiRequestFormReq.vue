@@ -2,7 +2,7 @@
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
 import { computed, ref, watch } from 'vue'
-import { checkParamsFilled } from '@/api/api/MockRequestApi'
+import { checkParamsFilled } from '@/services/api/ApiDocPreviewService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import {
   AUTH_TYPE,

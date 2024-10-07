@@ -5,21 +5,17 @@ import { computed } from 'vue'
 import { $copyText } from '@/utils'
 
 const props = defineProps({
-  apiDocDetail: {
-    type: Object,
-    default: undefined
-  },
   envConfigs: {
     type: Array,
     default: () => []
   },
   debugEnabled: {
     type: Boolean,
-    default: true
+    default: false
   }
 })
 
-const docParam = defineModel({
+const apiDocDetail = defineModel({
   type: Object,
   default: () => ({})
 })
@@ -27,7 +23,7 @@ const docFormOption = computed(() => {
   return {
     showLabel: false,
     type: 'select',
-    prop: 'baseUrl',
+    prop: 'targetUrl',
     children: props.envConfigs.map(env => {
       return {
         value: env.url,
@@ -42,13 +38,14 @@ const docFormOption = computed(() => {
     }
   }
 })
+defineEmits(['debug-api'])
 </script>
 
 <template>
   <el-header class="doc-path-header">
     <common-form-control
       :option="docFormOption"
-      :model="docParam"
+      :model="apiDocDetail"
       class="margin-right2"
     />
     <span
@@ -68,21 +65,19 @@ const docFormOption = computed(() => {
         {{ apiDocDetail?.url }}
       </el-link>
     </span>
-    <span
+    <el-button
       v-if="debugEnabled"
-      class="padding-top1"
+      class="margin-top1"
+      type="primary"
+      style="padding-left: 5px;"
+      @click="$emit('debug-api', apiDocDetail)"
     >
-      <el-button
-        type="primary"
-        style="padding-left: 5px;"
-      >
-        <common-icon
-          icon="PlayArrowFilled"
-          :size="18"
-        />
-        {{ $t('api.label.debugAPI') }}
-      </el-button>
-    </span>
+      <common-icon
+        icon="PlayArrowFilled"
+        :size="18"
+      />
+      {{ $t('api.label.debugAPI') }}
+    </el-button>
   </el-header>
 </template>
 

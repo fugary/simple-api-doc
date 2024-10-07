@@ -2,7 +2,7 @@
 
 import { getSingleSelectOptions } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
-import { ALL_METHODS } from '@/api/api/MockRequestApi'
+import { ALL_METHODS } from '@/consts/ApiConstants'
 
 const paramTarget = defineModel('modelValue', {
   type: Object,

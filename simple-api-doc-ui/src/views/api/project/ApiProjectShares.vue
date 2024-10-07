@@ -28,8 +28,10 @@ const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
 
 onMounted(async () => {
   await loadProjectItem(projectCode)
-  searchParam.value.projectId = projectItem.value.id
-  loadProjectShares(1)
+  searchParam.value.projectId = projectItem.value?.id
+  if (searchParam.value.projectId) {
+    loadProjectShares(1)
+  }
 })
 
 const columns = [{

@@ -10,6 +10,8 @@ import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.v
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
+import { previewMockRequest } from '@/utils/DynamicUtils'
+import { useWindowSize } from '@vueuse/core'
 
 const props = defineProps({
   shareId: {
@@ -25,9 +27,6 @@ const apiDoc = defineModel({
 const apiDocDetail = ref()
 const projectInfoDetail = ref()
 const envConfigs = ref([])
-const docParam = ref({
-  baseUrl: ''
-})
 
 const emit = defineEmits(['doc-load-error'])
 const loading = ref(false)
@@ -52,7 +51,7 @@ const loadDocDetail = async () => {
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
   if (projectInfoDetail.value?.envContent) {
     envConfigs.value = JSON.parse(projectInfoDetail.value?.envContent) || []
-    docParam.value.baseUrl = envConfigs.value[0]?.url
+    apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
   }
   console.log('====================================apiDocDetail', apiDocDetail.value, apiDoc.value)
 }
@@ -62,6 +61,8 @@ watch(apiDoc, loadDocDetail, {
 })
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 const folderContainerHeight = useFolderLayoutHeight(!props.shareId, props.shareId ? -70 : -40)
+const { width } = useWindowSize()
+const isMobile = computed(() => width.value <= 768)
 </script>
 
 <template>
@@ -73,9 +74,10 @@ const folderContainerHeight = useFolderLayoutHeight(!props.shareId, props.shareI
   >
     <api-doc-view-header v-model="apiDoc" />
     <api-doc-path-header
-      v-model="docParam"
-      :api-doc-detail="apiDocDetail"
+      v-model="apiDocDetail"
       :env-configs="envConfigs"
+      :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareId)"
+      @debug-api="previewMockRequest(projectInfoDetail, apiDocDetail)"
     />
     <el-container
       :style="{height:folderContainerHeight}"

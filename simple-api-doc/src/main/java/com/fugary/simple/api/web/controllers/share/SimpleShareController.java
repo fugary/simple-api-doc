@@ -108,13 +108,14 @@ public class SimpleShareController {
         if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDoc.getInfoId());
         ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);
-        ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDocVo.getInfoId());
         if (apiInfo == null || !apiDocVo.getProjectId().equals(apiInfo.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
+        apiDocVo.setApiShare(apiShare);
         return SimpleResultUtils.createSimpleResult(apiDocVo);
     }
 

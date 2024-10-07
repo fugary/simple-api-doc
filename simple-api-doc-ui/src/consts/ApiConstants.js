@@ -8,6 +8,8 @@ export const MOCK_DATA_MATCH_PATTERN_HEADER = 'mock-data-match-pattern'
 
 export const MOCK_DATA_PATH_PARAMS_HEADER = 'mock-data-path-params'
 
+export const MOCK_META_DATA_REQ = 'mock-meta-req'
+
 export const AUTHORIZATION_KEY = 'Authorization'
 
 export const BEARER_KEY = 'Bearer'
@@ -55,6 +57,16 @@ export const AUTH_TYPE = {
 
 export const AUTH_PARAM_NAMES = [AUTHORIZATION_KEY, 'accessToken', 'access_token', 'token', 'jwt_token', 'api_key', 'X-API-Key']
 export const AUTH_PREFIX_NAMES = [BEARER_KEY, 'Basic']
+
+export const ALL_METHODS = [
+  { method: 'GET', type: 'primary' },
+  { method: 'POST', type: 'success' },
+  { method: 'DELETE', type: 'danger' },
+  { method: 'PUT', type: 'warning' },
+  { method: 'PATCH', type: 'info' },
+  { method: 'HEAD', type: 'info' },
+  { method: 'OPTIONS', type: 'info' },
+  { method: 'TRACE', type: 'info' }]
 
 export const AUTH_OPTIONS = [{
   value: AUTH_TYPE.NONE,

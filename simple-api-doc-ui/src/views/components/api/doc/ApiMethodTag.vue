@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { ALL_METHODS } from '@/consts/ApiConstants'
 
 const props = defineProps({
   method: {
@@ -16,16 +17,7 @@ const methodName = computed(() => {
   return (props.method || 'get').toUpperCase()
 })
 
-const methodColors = {
-  GET: 'success',
-  POST: 'primary',
-  PUT: 'warning',
-  DELETE: 'danger',
-  PATCH: 'info',
-  HEAD: 'info',
-  OPTIONS: 'info',
-  TRACE: 'info'
-}
+const methodColors = Object.fromEntries(ALL_METHODS.map(method => [method.method, method.type]))
 
 </script>
 
