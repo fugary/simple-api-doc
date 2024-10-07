@@ -169,6 +169,7 @@ const editFormOptions = computed(() => defineFormOptions([{
 }, {
   labelKey: 'common.label.defaultShowLabel',
   prop: 'defaultShowLabel',
+  type: 'select',
   children: [{
     value: 'docName',
     labelKey: 'api.label.docLabelShowName'

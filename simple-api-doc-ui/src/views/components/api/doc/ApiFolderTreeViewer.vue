@@ -64,7 +64,7 @@ const calcProjectItemInfo = () => {
 
 //* ************搜索框**************//
 const searchParam = ref({
-  showDocLabelType: 'docName'
+  showDocLabelType: props?.shareDoc?.defaultShowLabel || 'docName'
 })
 const searchFormOption = computed(() => {
   return {
@@ -190,6 +190,10 @@ const saveFolder = () => {
       showEditWindow.value = false
     }
   })
+}
+
+if (props.shareDoc?.defaultTheme) {
+  globalConfigStore.changeTheme(props.shareDoc?.defaultTheme === 'dark')
 }
 
 const handlerData = {

@@ -61,8 +61,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
         Map<String, Pair<String, ApiDoc>> existsDocMap = calcDocMap(apiDocService.loadByProject(project.getId()), folderPathMap);
         ApiFolder finalMountFolder = mountFolder; // 挂载目录
-        apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, folder, folderMapPair, existsDocMap));
-        this.saveApiDocs(projectInfo, mountFolder, null, extraDocs, folderMapPair, existsDocMap);
+        apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, finalMountFolder, folder, folderMapPair, existsDocMap));
+        this.saveApiDocs(projectInfo, mountFolder, mountFolder, null, extraDocs, folderMapPair, existsDocMap);
         return apiFolders.size();
     }
 
@@ -75,16 +75,16 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         return docMap;
     }
 
-    protected void saveApiFolderVo(ApiProjectInfo projectInfo, ApiFolder mountFolder, ExportApiFolderVo folder,
+    protected void saveApiFolderVo(ApiProjectInfo projectInfo, ApiFolder rootFolder, ApiFolder parentFolder, ExportApiFolderVo folder,
                                    Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
                                    Map<String, Pair<String, ApiDoc>> existsDocMap) {
         Map<String, ApiFolder> pathFolderMap = folderMapPair.getKey();
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
-        String folderPath = folderPathMap.get(mountFolder.getId()) + "/" + folder.getFolderPath();
+        String folderPath = folderPathMap.get(rootFolder.getId()) + "/" + folder.getFolderPath();
         ApiFolder existsFolder = pathFolderMap.get(folderPath);
         if (existsFolder == null) {
-            folder.setParentId(mountFolder.getId());
-            folder.setProjectId(mountFolder.getProjectId());
+            folder.setParentId(parentFolder.getId());
+            folder.setProjectId(parentFolder.getProjectId());
             save(SimpleModelUtils.addAuditInfo(folder));
             existsFolder = folder;
         } else {
@@ -95,10 +95,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         }
         pathFolderMap.put(folderPath, folder);
         folderPathMap.put(folder.getId(), folderPath);
-        saveApiDocs(projectInfo, mountFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
+        saveApiDocs(projectInfo, rootFolder, parentFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
         if (!CollectionUtils.isEmpty(folder.getFolders())) { // 子目录
             for (ExportApiFolderVo subFolder : folder.getFolders()) {
-                saveApiFolderVo(projectInfo, existsFolder, subFolder, folderMapPair, existsDocMap);
+                saveApiFolderVo(projectInfo, rootFolder, existsFolder, subFolder, folderMapPair, existsDocMap);
             }
         }
     }
@@ -107,20 +107,21 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
      * 保存doc信息
      *
      * @param projectInfo 项目基本信息
-     * @param mountFolder   挂载目录
+     * @param rootFolder    根目录
+     * @param parentFolder   挂载目录
      * @param folder        父级目录
      * @param docs          文档列表
      * @param folderMapPair 文档解析map
      * @param existsDocMap  已保存文档map
      */
-    protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder mountFolder, ExportApiFolderVo folder, List<ExportApiDocVo> docs,
+    protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder rootFolder, ApiFolder parentFolder, ExportApiFolderVo folder, List<ExportApiDocVo> docs,
                                Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
                                Map<String, Pair<String, ApiDoc>> existsDocMap) {
         Map<Integer, String> folderPathMap = folderMapPair.getRight();
         if (!CollectionUtils.isEmpty(docs)) {
-            String folderPath = folderPathMap.get(mountFolder.getId());
-            Integer projectId = mountFolder.getProjectId();
-            Integer folderId = mountFolder.getId();
+            String folderPath = folderPathMap.get(rootFolder.getId());
+            Integer projectId = parentFolder.getProjectId();
+            Integer folderId = parentFolder.getId();
             if (folder != null) {
                 folderPath = folderPath + "/" + folder.getFolderPath(); // 子目录挂载上去
                 folderId = folder.getId();
