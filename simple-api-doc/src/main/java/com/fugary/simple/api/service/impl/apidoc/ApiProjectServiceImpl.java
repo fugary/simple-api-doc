@@ -93,6 +93,14 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     }
 
     @Override
+    public boolean deleteApiProjects(List<Integer> ids) {
+        for (Integer id : ids) {
+            deleteApiProject(id);
+        }
+        return true;
+    }
+
+    @Override
     public boolean existsApiProject(ApiProject project) {
         List<ApiProject> existProjects = list(Wrappers.<ApiProject>query().eq("user_name", project.getUserName())
                 .eq("project_code", project.getProjectCode()));

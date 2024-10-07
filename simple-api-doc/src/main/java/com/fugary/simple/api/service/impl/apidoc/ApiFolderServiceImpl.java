@@ -93,6 +93,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             folder.setSortId(existsFolder.getSortId());
             updateById(SimpleModelUtils.addAuditInfo(folder)); // 更新
         }
+        pathFolderMap.put(folderPath, folder);
+        folderPathMap.put(folder.getId(), folderPath);
         saveApiDocs(projectInfo, mountFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
         if (!CollectionUtils.isEmpty(folder.getFolders())) { // 子目录
             for (ExportApiFolderVo subFolder : folder.getFolders()) {

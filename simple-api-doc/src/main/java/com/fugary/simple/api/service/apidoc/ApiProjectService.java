@@ -7,6 +7,8 @@ import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 
+import java.util.List;
+
 /**
  * Create date 2024/7/15<br>
  *
@@ -29,6 +31,14 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @return
      */
     boolean deleteApiProject(Integer id);
+
+    /**
+     * 级联删除
+     *
+     * @param ids
+     * @return
+     */
+    boolean deleteApiProjects(List<Integer> ids);
 
     /**
      * 检查是否有重复

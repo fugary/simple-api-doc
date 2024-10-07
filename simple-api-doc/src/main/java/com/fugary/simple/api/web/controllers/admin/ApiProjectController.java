@@ -64,8 +64,13 @@ public class ApiProjectController {
     }
 
     @DeleteMapping("/{id}")
-    public SimpleResult remove(@PathVariable("id") Integer id) {
+    public SimpleResult<Boolean> remove(@PathVariable("id") Integer id) {
         return SimpleResultUtils.createSimpleResult(apiProjectService.deleteApiProject(id));
+    }
+
+    @DeleteMapping("/removeByIds/{ids}")
+    public SimpleResult<Boolean> removeByIds(@PathVariable("ids") List<Integer> ids) {
+        return SimpleResultUtils.createSimpleResult(apiProjectService.deleteApiProjects(ids));
     }
 
     @PostMapping
