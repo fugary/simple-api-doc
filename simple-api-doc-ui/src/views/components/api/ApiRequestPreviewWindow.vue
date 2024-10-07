@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onUnmounted } from 'vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import emitter from '@/vendors/emitter'
 
@@ -14,7 +14,12 @@ const toPreviewRequest = async (...args) => {
   })
 }
 
-emitter.on('preview-401-error', () => (showWindow.value = false))
+const errorHandler = () => (showWindow.value = false)
+
+emitter.on('preview-401-error', errorHandler)
+onUnmounted(() => {
+  emitter.off('preview-401-error', errorHandler)
+})
 
 defineExpose({
   toPreviewRequest

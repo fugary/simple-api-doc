@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, ref, computed, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
@@ -36,6 +36,10 @@ const errorHandler = (err) => {
 }
 emitter.on('share-doc-error', errorHandler)
 emitter.on('preview-401-error', errorHandler)
+onUnmounted(() => {
+  emitter.off('preview-401-error', errorHandler)
+  emitter.off('share-doc-error', errorHandler)
+})
 
 const loadShareData = async (input) => {
   loading.value = true
