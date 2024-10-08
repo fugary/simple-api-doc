@@ -89,12 +89,7 @@ const processSchemas = (docSchema) => {
   } else {
     resultArr = [processSchema(saveSchema)]
   }
-  return resultArr.flatMap(data => {
-    // if (data.schema?.properties && Object.keys(data.schema.properties).length) { // 对象不保留名称，仅用属性
-    //   return processProperties(data.schema)
-    // }
-    return [data]
-  })
+  return resultArr
 }
 
 const processSchema = apiSchema => {

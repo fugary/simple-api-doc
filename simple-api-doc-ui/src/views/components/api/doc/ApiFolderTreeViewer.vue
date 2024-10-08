@@ -42,12 +42,14 @@ const currentDoc = defineModel('currentDoc', {
   type: Object,
   default: undefined
 })
-let folderView = reactive({
-  expandedKeys: [],
-  currentDocId: undefined
+let sharePreference = reactive({
+  lastExpandKeys: [],
+  lastDocId: undefined,
+  defaultTheme: props.shareDoc?.defaultTheme || 'dark',
+  defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName'
 })
 if (props.shareDoc) {
-  folderView = shareConfigStore.shareFolderView[props.shareDoc.shareId] = shareConfigStore.shareFolderView[props.shareDoc.shareId] || folderView
+  sharePreference = shareConfigStore.sharePreferenceView[props.shareDoc.shareId] = shareConfigStore.sharePreferenceView[props.shareDoc.shareId] || sharePreference
 }
 const treeNodes = ref([])
 
@@ -56,16 +58,14 @@ const calcProjectItemInfo = () => {
   const {
     docTreeNodes,
     currentSelectDoc
-  } = calcProjectItem(filteredItem, searchParam.value, folderView.expandedKeys, folderView.currentDocId)
+  } = calcProjectItem(filteredItem, searchParam.value, sharePreference)
   currentDoc.value = currentSelectDoc
-  folderView.currentDocId = currentSelectDoc?.id
+  sharePreference.currentDocId = currentSelectDoc?.id
   treeNodes.value = docTreeNodes
 }
 
 //* ************搜索框**************//
-const searchParam = ref({
-  showDocLabelType: props?.shareDoc?.defaultShowLabel || 'docName'
-})
+const searchParam = ref({})
 const searchFormOption = computed(() => {
   return {
     labelWidth: '1px',
@@ -91,7 +91,7 @@ const showDocDetails = (doc, edit) => {
     }
     doc.editing = !!edit
     currentDoc.value = doc
-    folderView.currentDocId = doc.id
+    sharePreference.currentDocId = doc.id
   }
 }
 
@@ -104,17 +104,17 @@ const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
   if (rootFolder.value) {
-    return [calcShowDocLabelHandler(rootFolder.value, searchParam.value)]
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference)]
   }
   return []
 })
 
 const expandOrCollapse = (nodeData, expand) => {
   if (expand) {
-    folderView.expandedKeys = [...folderView.expandedKeys, nodeData.treeId]
+    sharePreference.lastExpandKeys = [...sharePreference.lastExpandKeys, nodeData.treeId]
   } else {
     getFolderTreeIds(nodeData).forEach(nodeId => {
-      folderView.expandedKeys = folderView.expandedKeys.filter(item => item !== nodeId)
+      sharePreference.lastExpandKeys = sharePreference.lastExpandKeys.filter(item => item !== nodeId)
     })
   }
 }
@@ -192,8 +192,13 @@ const saveFolder = () => {
   })
 }
 
-if (props.shareDoc?.defaultTheme) {
-  globalConfigStore.changeTheme(props.shareDoc?.defaultTheme === 'dark')
+if (sharePreference.defaultTheme) {
+  globalConfigStore.changeTheme(sharePreference.defaultTheme === 'dark')
+}
+
+const toggleTheme = () => {
+  globalConfigStore.toggleTheme()
+  sharePreference.defaultTheme = globalConfigStore.isDarkTheme ? 'dark' : 'light'
 }
 
 const handlerData = {
@@ -226,7 +231,7 @@ defineExpose(handlerData)
         <common-icon
           :icon="globalConfigStore.isDarkTheme ? 'sunny' : 'moon'"
           :size="20"
-          @click="globalConfigStore.toggleTheme"
+          @click="toggleTheme()"
         />
       </el-link>
       <more-actions-link
@@ -243,7 +248,7 @@ defineExpose(handlerData)
         style="font-size:18px;margin-right: auto"
       >{{ $t('menu.label.apiManagement') }}</span>
       <span class="margin-right2">
-        <more-actions-link :handlers="getFolderHandlers(rootFolder, searchParam, handlerData)" />
+        <more-actions-link :handlers="getFolderHandlers(rootFolder, sharePreference, handlerData)" />
       </span>
     </el-header>
     <common-form-control
@@ -257,9 +262,9 @@ defineExpose(handlerData)
           v-if="showFolderTree"
           ref="treeRef"
           node-key="treeId"
-          :default-expanded-keys="folderView.expandedKeys"
+          :default-expanded-keys="sharePreference.lastExpandKeys"
           highlight-current
-          :current-node-key="folderView.currentDocId"
+          :current-node-key="sharePreference.currentDocId"
           lazy
           :props="treeProps"
           :load="loadTreeNode"
@@ -293,7 +298,7 @@ defineExpose(handlerData)
                 class="more-actions"
               >
                 <more-actions-link
-                  :handlers="data.isDoc ? getDocHandlers(data, handlerData) : getFolderHandlers(data, searchParam, handlerData)"
+                  :handlers="data.isDoc ? getDocHandlers(data, handlerData) : getFolderHandlers(data, sharePreference, handlerData)"
                   @show-dropdown="showDropdown(data)"
                   @enter-dropdown="enterDropdown(data)"
                   @leave-dropdown="leaveDropdown(data)"

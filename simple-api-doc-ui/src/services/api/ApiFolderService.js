@@ -8,16 +8,16 @@ import { useWindowSize } from '@vueuse/core'
 /**
  * 根目是否显示url或者名称
  * @param folder
- * @param searchParam
+ * @param preference
  * @return {{handler: *, icon: string, labelKey: (string), enabled: boolean}}
  */
-export const calcShowDocLabelHandler = (folder, searchParam) => {
+export const calcShowDocLabelHandler = (folder, preference) => {
   return {
     enabled: !!folder.rootFlag,
-    icon: searchParam.showDocLabelType === 'docName' ? 'Link' : 'TextSnippetOutlined',
-    labelKey: searchParam.showDocLabelType === 'docName' ? 'api.label.docLabelShowUrl' : 'api.label.docLabelShowName',
+    icon: preference.defaultShowLabel === 'docName' ? 'Link' : 'TextSnippetOutlined',
+    labelKey: preference.defaultShowLabel === 'docName' ? 'api.label.docLabelShowUrl' : 'api.label.docLabelShowName',
     handler: () => {
-      searchParam.showDocLabelType = searchParam.showDocLabelType === 'url' ? 'docName' : 'url'
+      preference.defaultShowLabel = preference.defaultShowLabel === 'url' ? 'docName' : 'url'
     }
   }
 }
@@ -25,10 +25,10 @@ export const calcShowDocLabelHandler = (folder, searchParam) => {
 /**
  * folder处理工具
  * @param folder
- * @param searchParam
+ * @param preference
  * @param handlerData
  */
-export const getFolderHandlers = (folder, searchParam, handlerData) => {
+export const getFolderHandlers = (folder, preference, handlerData) => {
   const statusLabel = folder.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
   return [{
     icon: 'FolderAdd',
@@ -74,7 +74,7 @@ export const getFolderHandlers = (folder, searchParam, handlerData) => {
         sortId: getChildrenSortId(folder)
       }, true)
     }
-  }, calcShowDocLabelHandler(folder, searchParam), {
+  }, calcShowDocLabelHandler(folder, preference), {
     enabled: !folder.rootFlag,
     icon: 'FolderDelete',
     type: 'danger',

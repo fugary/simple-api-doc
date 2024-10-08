@@ -460,20 +460,6 @@ export const processTreeData = (items, parent, config) => {
   })
   return results
 }
-/**
- * 转换成对象，提供有序key存储在_orderedKeys中
- * @param jsonStr
- * @return {any}
- */
-export const $jsonParse = (jsonStr) => {
-  const keys = []
-  const obj = JSON.parse(jsonStr, (key, value) => {
-    keys && keys.push(key)
-    return value
-  })
-  obj._orderedKeys = keys
-  return obj
-}
 
 export default {
   install (app) {

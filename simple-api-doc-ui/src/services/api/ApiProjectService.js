@@ -20,11 +20,10 @@ export const filterFoldersWithDocs = (folders) => {
  * 计算ProjectItem
  * @param projectItem
  * @param searchParam
- * @param lastExpandKeys
- * @param lastDocId
+ * @param preference {{showDocLabelType: string, lastExpandKeys: string[], lastDocId: number, defaultShowLabel}}
  * @return {{treeNodes: *[], defaultExpandedKeys: *[]}}
  */
-export const calcProjectItem = (projectItem, searchParam, lastExpandKeys, lastDocId) => {
+export const calcProjectItem = (projectItem, searchParam, preference) => {
   let docTreeNodes = []
   let currentSelectDoc = null
   if (projectItem) {
@@ -38,7 +37,7 @@ export const calcProjectItem = (projectItem, searchParam, lastExpandKeys, lastDo
       const parentFolder = folderMap[doc.folderId]
       const children = parentFolder.children = parentFolder.children || []
       children.push(doc)
-      doc.label = doc[searchParam.showDocLabelType] || doc.docName
+      doc.label = doc[preference.defaultShowLabel] || doc.docName
       doc.isDoc = true
       doc.parent = parentFolder
       doc.treeId = doc.id
@@ -54,15 +53,14 @@ export const calcProjectItem = (projectItem, searchParam, lastExpandKeys, lastDo
     if (searchParam?.keyword) {
       docTreeNodes = filterFoldersWithDocs(docTreeNodes)
     }
-    if (docTreeNodes[0]?.id && !lastExpandKeys.includes(docTreeNodes[0]?.treeId)) {
-      lastExpandKeys.push(docTreeNodes[0]?.treeId)
+    if (docTreeNodes[0]?.id && !preference.lastExpandKeys.includes(docTreeNodes[0]?.treeId)) {
+      preference.lastExpandKeys.push(docTreeNodes[0]?.treeId)
     }
-    currentSelectDoc = docs.find(doc => doc.id === lastDocId) || docs[0]
-    console.log('=============================treeNodes', lastExpandKeys, docTreeNodes)
+    currentSelectDoc = docs.find(doc => doc.id === preference.lastDocId) || docs[0]
+    preference.lastDocId = currentSelectDoc?.id
   }
   return {
     docTreeNodes,
-    docExpandedKeys: lastExpandKeys,
     currentSelectDoc,
     projectItem
   }
