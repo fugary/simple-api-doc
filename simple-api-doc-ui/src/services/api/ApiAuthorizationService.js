@@ -81,7 +81,7 @@ export const AUTH_OPTION_CONFIG = {
         labelKey: 'common.label.username',
         prop: 'userName',
         required: true,
-        type: 'autocomplete',
+        type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
           triggerOnFocus: false
@@ -90,7 +90,7 @@ export const AUTH_OPTION_CONFIG = {
         labelKey: 'common.label.password',
         prop: 'userPassword',
         required: true,
-        type: 'autocomplete',
+        type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
           triggerOnFocus: false
@@ -112,7 +112,7 @@ export const AUTH_OPTION_CONFIG = {
         label: 'Token',
         prop: 'token',
         required: true,
-        type: 'autocomplete',
+        type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
           triggerOnFocus: false
@@ -141,7 +141,7 @@ export const AUTH_OPTION_CONFIG = {
         label: 'Secret',
         prop: 'secret',
         required: true,
-        type: 'autocomplete',
+        type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
           triggerOnFocus: false

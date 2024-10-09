@@ -33,7 +33,8 @@ const importModel = ref({
   importType: IMPORT_TYPES[0].value,
   authType: AUTH_TYPE.NONE,
   sourceType: IMPORT_SOURCE_TYPES[0].value,
-  overwriteMode: IMPORT_DUPLICATE_STRATEGY[0].value
+  overwriteMode: IMPORT_DUPLICATE_STRATEGY[0].value,
+  authContentModel: {}
 })
 const authOptions = computed(() => {
   let options = []
@@ -43,7 +44,12 @@ const authOptions = computed(() => {
       options = options()
     }
   }
-  return options
+  return options.map(option => {
+    return {
+      ...option,
+      prop: `authContentModel.${option.prop}`
+    }
+  })
 })
 const { folderTreeNodes, loadValidFolders } = useFolderTreeNodes()
 loadValidFolders(props.project?.id).then(() => {
@@ -151,7 +157,12 @@ const emit = defineEmits(['import-success'])
 const doImportProject = () => {
   if (importFiles.value?.length || importModel.value.importType === 'url') {
     importModel.value.projectId = props.project?.id
-    importProject(importFiles.value, importModel.value, {
+    const modelParam = { ...importModel.value }
+    if (importModel.value.authType !== AUTH_TYPE.NONE) {
+      modelParam.authContent = JSON.stringify(modelParam.authContentModel)
+      delete modelParam.authContentModel
+    }
+    importProject(importFiles.value, modelParam, {
       loading: true
     }).then(data => {
       if (data.success) {
