@@ -29,6 +29,7 @@ const apiDocDetail = ref()
 const projectInfoDetail = ref()
 const envConfigs = ref([])
 
+const lastParamTarget = ref({})
 const loading = ref(false)
 const loadDocDetail = async () => {
   if (loading.value) {
@@ -51,6 +52,12 @@ const loadDocDetail = async () => {
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
   apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
+  lastParamTarget.value = {}
+}
+
+const handlerConfig = {
+  preHandler: target => Object.assign(target, lastParamTarget.value),
+  changeHandler: target => (lastParamTarget.value = target)
 }
 
 watch(apiDoc, loadDocDetail, {
@@ -74,7 +81,7 @@ const isMobile = computed(() => width.value <= 768)
       v-model="apiDocDetail"
       :env-configs="envConfigs"
       :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareId)"
-      @debug-api="previewApiRequest(projectInfoDetail, apiDocDetail)"
+      @debug-api="previewApiRequest(projectInfoDetail, apiDocDetail, handlerConfig)"
     />
     <el-container
       :style="{height:folderContainerHeight}"

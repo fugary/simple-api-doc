@@ -132,7 +132,6 @@ const docFormOption = computed(() => {
       v-if="responseTarget"
       v-model="paramTarget"
       :response-target="responseTarget"
-      :examples="responseExamples"
     />
   </el-container>
 </template>

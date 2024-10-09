@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import {
   calcParamTarget,
   calcRequestBody,
@@ -16,6 +16,7 @@ import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import emitter from '@/vendors/emitter'
 import { getEnvConfigs } from '@/api/SimpleShareApi'
+import { isFunction } from 'lodash-es'
 
 const projectInfoDetail = ref()
 const apiDocDetail = ref()
@@ -24,16 +25,24 @@ const paramTarget = ref()
 const responseTarget = ref()
 const schemas = ref([])
 
-const toPreviewRequest = async (projectInfo, apiDoc) => {
+let handlerConfig = {}
+const toPreviewRequest = async (projectInfo, apiDoc, handConfig) => {
   projectInfoDetail.value = projectInfo
   apiDocDetail.value = apiDoc
+  handlerConfig = handConfig
   clearParamsAndResponse()
   return nextTick(() => {
-    paramTarget.value = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
+    const target = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
+    paramTarget.value = isFunction(handlerConfig.preHandler) ? handlerConfig.preHandler(target) : target
     envConfigs.value = getEnvConfigs(apiDocDetail.value)
     paramTarget.value.targetUrl = envConfigs.value[0]?.url
   })
 }
+watch(paramTarget, () => {
+  if (isFunction(handlerConfig.changeHandler) && paramTarget.value) {
+    handlerConfig.changeHandler(paramTarget.value)
+  }
+}, { deep: true })
 
 const requestPath = computed(() => {
   if (apiDocDetail.value) {
