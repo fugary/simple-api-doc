@@ -7,13 +7,13 @@ import { isArray } from 'lodash-es'
 const API_PROJECT_URL = '/admin/projects'
 const ApiProjectApi = useResourceApi(API_PROJECT_URL)
 
-export const useApiProjectItem = (projectCode, autoLoad = true) => {
+export const useApiProjectItem = (projectCode, config = {}) => {
   const projectItem = ref()
   const loadSuccess = ref(false)
   const loading = ref(true)
-
+  const { autoLoad, detail } = Object.assign({ autoLoad: true, detail: true }, config)
   const loadProjectItem = (code) => {
-    return loadByCode(code).then(data => {
+    return (detail ? loadDetail : loadBasic)(code).then(data => {
       projectItem.value = data
       loadSuccess.value = !!data
       console.log(projectItem.value)
@@ -47,9 +47,20 @@ export const selectProjects = (data, config) => {
  * 加载项目详情
  * @return {Promise<T>}
  */
-export const loadByCode = (projectCode, config) => {
+export const loadDetail = (projectCode, config) => {
   return $http(Object.assign({
-    url: `${API_PROJECT_URL}/loadByCode/${projectCode}`,
+    url: `${API_PROJECT_URL}/loadDetail/${projectCode}`,
+    method: 'get'
+  }, config)).then(response => response.data?.resultData)
+}
+
+/**
+ * 加载项目基本信息
+ * @return {Promise<T>}
+ */
+export const loadBasic = (projectCode, config) => {
+  return $http(Object.assign({
+    url: `${API_PROJECT_URL}/loadBasic/${projectCode}`,
     method: 'get'
   }, config)).then(response => response.data?.resultData)
 }

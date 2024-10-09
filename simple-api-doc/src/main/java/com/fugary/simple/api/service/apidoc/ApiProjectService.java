@@ -19,10 +19,12 @@ public interface ApiProjectService extends IService<ApiProject> {
     /**
      * 加载project详情
      *
-     * @param projectCode
+     * @param projectCode  项目代码
+     * @param forceEnabled 仅启用数据
+     * @param includeDocs  是否包含doc等信息
      * @return
      */
-    ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled);
+    ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled, boolean includeDocs);
 
     /**
      * 级联删除

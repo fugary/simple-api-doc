@@ -15,7 +15,7 @@ import {
   calcNodeLeaf,
   calcShowDocLabelHandler, useFolderLayoutHeight, getChildrenSortId
 } from '@/services/api/ApiFolderService'
-import { loadByCode } from '@/api/ApiProjectApi'
+import { loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import ApiFolderApi from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
@@ -150,7 +150,7 @@ const refreshFolderTree = () => {
 const refreshProjectItem = (...args) => {
   return new Promise((resolve, reject) => {
     if (projectItem.value?.projectCode) {
-      loadByCode(projectItem.value.projectCode).then(data => {
+      loadDetail(projectItem.value.projectCode).then(data => {
         projectItem.value = data
         resolve(projectItem.value, ...args)
         refreshFolderTree()

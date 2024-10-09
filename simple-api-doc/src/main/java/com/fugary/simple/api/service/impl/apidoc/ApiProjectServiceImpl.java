@@ -60,7 +60,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @SneakyThrows
     @Override
-    public ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled) {
+    public ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled, boolean includeDocs) {
         ApiProject apiProject = getOne(Wrappers.<ApiProject>query().eq("project_code", projectCode)
                 .eq(forceEnabled, ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
         if (apiProject != null) {
@@ -68,12 +68,14 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             BeanUtils.copyProperties(apiProjectVo, apiProject);
             List<ApiProjectInfo> infoList = apiProjectInfoService.listByProjectId(apiProject.getId());
             apiProjectVo.setInfoList(infoList);
-            List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())
-                    : apiFolderService.loadApiFolders(apiProject.getId());
-            apiProjectVo.setFolders(folders);
-            List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId())
-                    : apiDocService.loadByProject(apiProject.getId());
-            apiProjectVo.setDocs(docs);
+            if (includeDocs) {
+                List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())
+                        : apiFolderService.loadApiFolders(apiProject.getId());
+                apiProjectVo.setFolders(folders);
+                List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId())
+                        : apiDocService.loadByProject(apiProject.getId());
+                apiProjectVo.setDocs(docs);
+            }
             return apiProjectVo;
         }
         return null;

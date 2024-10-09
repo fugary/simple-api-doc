@@ -104,7 +104,7 @@ public class SimpleShareController {
         if (apiShare == null || (project = apiProjectService.getById(apiShare.getProjectId())) == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(project.getProjectCode(), true));
+        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(project.getProjectCode(), true, true));
     }
 
 

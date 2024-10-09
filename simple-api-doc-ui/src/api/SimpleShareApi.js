@@ -12,6 +12,21 @@ const getShareConfig = (shareId) => {
     }
   }
 }
+/**
+ * 获取envConfigs
+ *
+ * @param apiDocDetail
+ * @returns {any|*[]}
+ */
+export const getEnvConfigs = (apiDocDetail) => {
+  const apiShare = apiDocDetail?.apiShare
+  const projectInfoDetail = apiDocDetail?.projectInfoDetail
+  const envContent = apiShare?.envContent || projectInfoDetail?.envContent
+  if (envContent) {
+    return JSON.parse(envContent) || []
+  }
+  return []
+}
 
 export const loadShare = function ({ shareId, password }, config) {
   return $httpGet(`${BASE_URL}/loadShare/${shareId}?pwd=${password}`, config)

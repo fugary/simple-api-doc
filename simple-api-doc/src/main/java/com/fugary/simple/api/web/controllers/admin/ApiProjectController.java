@@ -58,9 +58,22 @@ public class ApiProjectController {
         return SimpleResultUtils.createSimpleResult(apiProjectService.getById(id));
     }
 
-    @GetMapping("/loadByCode/{projectCode}")
-    public SimpleResult<ApiProjectDetailVo> loadByCode(@PathVariable("projectCode") String projectCode) {
-        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(projectCode, false));
+    @GetMapping("/loadDetail/{projectCode}")
+    public SimpleResult<ApiProjectDetailVo> loadDetail(@PathVariable("projectCode") String projectCode) {
+        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(projectCode, false, true);
+        if (detailVo == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(detailVo);
+    }
+
+    @GetMapping("/loadBasic/{projectCode}")
+    public SimpleResult<ApiProjectDetailVo> loadBasic(@PathVariable("projectCode") String projectCode) throws Exception {
+        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(projectCode, false, false);
+        if (detailVo == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(detailVo);
     }
 
     @DeleteMapping("/{id}")

@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $copyText, $coreConfirm, $openNewWin, formatDate, useBackUrl } from '@/utils'
+import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -12,13 +12,13 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { ElTag } from 'element-plus'
+import { ElTag, ElButton } from 'element-plus'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
 
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
-const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, false)
+const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -130,6 +130,10 @@ const newOrEdit = async (id) => {
   if (id) {
     await ApiProjectShareApi.getById(id).then(data => {
       data.resultData && (currentShare.value = data.resultData)
+      if (currentShare.value.envContent) {
+        currentShare.value.shareEnvs = JSON.parse(currentShare.value.envContent)
+          .map(env => env.url)
+      }
     })
   } else {
     currentShare.value = {
@@ -143,53 +147,102 @@ const newOrEdit = async (id) => {
   }
   showEditWindow.value = true
 }
-const editFormOptions = computed(() => defineFormOptions([{
-  labelKey: 'api.label.shareName',
-  prop: 'shareName',
-  required: true
-}, useFormStatus(), {
-  labelKey: 'api.label.exportEnabled',
-  prop: 'exportEnabled',
-  type: 'switch'
-}, {
-  labelKey: 'api.label.debugEnabled',
-  prop: 'debugEnabled',
-  type: 'switch'
-}, {
-  labelKey: 'common.label.defaultTheme',
-  prop: 'defaultTheme',
-  type: 'select',
-  children: [{
-    value: 'dark',
-    labelKey: 'Dark'
-  }, {
-    value: 'light',
-    labelKey: 'Light'
-  }]
-}, {
-  labelKey: 'common.label.defaultShowLabel',
-  prop: 'defaultShowLabel',
-  type: 'select',
-  children: [{
-    value: 'docName',
-    labelKey: 'api.label.docLabelShowName'
-  }, {
-    value: 'url',
-    labelKey: 'api.label.docLabelShowUrl'
-  }]
-}, {
-  labelKey: 'api.label.accessPassword',
-  prop: 'sharePassword',
-  attrs: {
-    showPassword: true
+
+const envConfigs = computed(() => {
+  if (projectItem.value?.infoList?.length) {
+    return projectItem.value?.infoList.flatMap(info => {
+      let envs = []
+      if (info.envContent && (envs = JSON.parse(info.envContent))?.length) {
+        return envs
+      }
+      return []
+    })
   }
-}, {
-  labelKey: 'api.label.expireDate',
-  prop: 'expireDate',
-  type: 'date-picker'
-}]))
+  return []
+})
+
+const editFormOptions = computed(() => {
+  console.log('==========================projectItem', projectItem.value)
+  const envOptions = envConfigs.value.map(env => {
+    return {
+      value: env.url,
+      label: env.name || $i18nBundle('api.label.defaultAddress')
+    }
+  })
+  return defineFormOptions([{
+    labelKey: 'api.label.shareName',
+    prop: 'shareName',
+    required: true
+  }, useFormStatus(), {
+    labelKey: 'api.label.exportEnabled',
+    prop: 'exportEnabled',
+    type: 'switch'
+  }, {
+    labelKey: 'api.label.debugEnabled',
+    prop: 'debugEnabled',
+    type: 'switch'
+  }, {
+    labelKey: 'api.label.accessPassword',
+    prop: 'sharePassword',
+    slots: {
+      append () {
+        const generatePass = () => {
+          currentShare.value.sharePassword = $randomStr(8)
+        }
+        return <ElButton type="primary" onClick={generatePass}>
+          {$i18nBundle('common.label.generate')}
+        </ElButton>
+      }
+    }
+  }, {
+    labelKey: 'api.label.expireDate',
+    prop: 'expireDate',
+    type: 'date-picker'
+  }, {
+    labelKey: 'api.label.environments',
+    prop: 'shareEnvs',
+    type: 'select',
+    attrs: {
+      clearable: false,
+      multiple: true
+    },
+    children: envOptions
+  }, {
+    labelKey: 'common.label.defaultTheme',
+    prop: 'defaultTheme',
+    type: 'select',
+    attrs: {
+      clearable: false
+    },
+    children: [{
+      value: 'dark',
+      labelKey: 'Dark'
+    }, {
+      value: 'light',
+      labelKey: 'Light'
+    }]
+  }, {
+    labelKey: 'common.label.defaultShowLabel',
+    prop: 'defaultShowLabel',
+    type: 'select',
+    attrs: {
+      clearable: false
+    },
+    children: [{
+      value: 'docName',
+      labelKey: 'api.label.docLabelShowName'
+    }, {
+      value: 'url',
+      labelKey: 'api.label.docLabelShowUrl'
+    }]
+  }])
+})
 
 const saveProjectShare = (item) => {
+  item = { ...item, envContent: undefined }
+  if (item.shareEnvs?.length) {
+    item.envContent = JSON.stringify(envConfigs.value.filter(env => item.shareEnvs.includes(env.url)))
+  }
   return ApiProjectShareApi.saveOrUpdate(item).then(() => loadProjectShares())
 }
 

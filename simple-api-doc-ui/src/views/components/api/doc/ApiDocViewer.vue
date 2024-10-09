@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { loadShareDoc } from '@/api/SimpleShareApi'
+import { getEnvConfigs, loadShareDoc } from '@/api/SimpleShareApi'
 import { loadDoc } from '@/api/ApiDocApi'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import ApiDocPathHeader from '@/views/components/api/doc/comp/ApiDocPathHeader.vue'
@@ -49,10 +49,8 @@ const loadDocDetail = async () => {
     })
   }
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
-  if (projectInfoDetail.value?.envContent) {
-    envConfigs.value = JSON.parse(projectInfoDetail.value?.envContent) || []
-    apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
-  }
+  envConfigs.value = getEnvConfigs(apiDocDetail.value)
+  apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
 }
 
 watch(apiDoc, loadDocDetail, {

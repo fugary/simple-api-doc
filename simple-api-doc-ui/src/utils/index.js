@@ -460,6 +460,18 @@ export const processTreeData = (items, parent, config) => {
   })
   return results
 }
+/**
+ * 产生随机字符，数字加字母
+ * @param len
+ * @returns {string}
+ */
+export const $randomStr = (len = 8) => {
+  const str = Math.random().toString(36).substring(2)
+  if (str.length >= len) {
+    return str.substring(0, len)
+  }
+  return str + $randomStr(len - str.length)
+}
 
 export default {
   install (app) {
@@ -482,7 +494,8 @@ export default {
       $coreError,
       $coreConfirm,
       $openNewWin,
-      $openWin
+      $openWin,
+      $randomStr
     })
   }
 }

@@ -15,6 +15,7 @@ import { SIMPLE_API_ACCESS_TOKEN_HEADER, SIMPLE_API_TARGET_URL_HEADER } from '@/
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import emitter from '@/vendors/emitter'
+import { getEnvConfigs } from '@/api/SimpleShareApi'
 
 const projectInfoDetail = ref()
 const apiDocDetail = ref()
@@ -29,10 +30,8 @@ const toPreviewRequest = async (projectInfo, apiDoc) => {
   clearParamsAndResponse()
   return nextTick(() => {
     paramTarget.value = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
-    if (projectInfoDetail.value?.envContent) {
-      envConfigs.value = JSON.parse(projectInfoDetail.value?.envContent) || []
-      paramTarget.value.targetUrl = envConfigs.value[0]?.url
-    }
+    envConfigs.value = getEnvConfigs(apiDocDetail.value)
+    paramTarget.value.targetUrl = envConfigs.value[0]?.url
   })
 }
 

@@ -3,6 +3,7 @@
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { computed } from 'vue'
 import { $copyText } from '@/utils'
+import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
   envConfigs: {
@@ -27,7 +28,7 @@ const docFormOption = computed(() => {
     children: props.envConfigs.map(env => {
       return {
         value: env.url,
-        label: env.name || '默认地址'
+        label: env.name || $i18nBundle('api.label.defaultAddress')
       }
     }),
     attrs: {

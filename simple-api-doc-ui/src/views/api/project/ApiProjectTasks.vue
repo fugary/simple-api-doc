@@ -27,7 +27,7 @@ import dayjs from 'dayjs'
 const route = useRoute()
 const projectCode = route.params.projectCode
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
-const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, false)
+const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
 const { folderTreeNodes, folders, loadValidFolders } = useFolderTreeNodes()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
