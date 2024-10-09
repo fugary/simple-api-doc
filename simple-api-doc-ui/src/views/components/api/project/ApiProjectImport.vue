@@ -154,7 +154,7 @@ const formOptions = computed(() => {
   }])
 })
 const emit = defineEmits(['import-success'])
-const doImportProject = () => {
+const doImportProject = (autoAlert = true) => {
   if (importFiles.value?.length || importModel.value.importType === 'url') {
     importModel.value.projectId = props.project?.id
     const modelParam = { ...importModel.value }
@@ -166,8 +166,10 @@ const doImportProject = () => {
       loading: true
     }).then(data => {
       if (data.success) {
-        $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
-        emit('import-success', data)
+        if (autoAlert) {
+          $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+        }
+        emit('import-success', data.resultData)
       }
     })
   } else {

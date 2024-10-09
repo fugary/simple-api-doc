@@ -134,7 +134,7 @@ watch(currentDoc, () => {
           <el-alert
             show-icon
             :title="projectShare?.shareName"
-            description="当前文档需要密码才可访问"
+            :description="$t('api.msg.docNeedPassword')"
             type="warning"
             :closable="false"
             class="margin-bottom3"

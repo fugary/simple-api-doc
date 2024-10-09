@@ -27,7 +27,6 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   searchMethod: search
 })
 const loadApiProjects = (pageNumber) => {
-  showImportWindow.value = false
   searchMethod(pageNumber)
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
@@ -41,9 +40,7 @@ onActivated(async () => {
   loadApiProjects()
 })
 const toEditProject = (project) => {
-  if (project.status === 1) {
-    $goto(`/api/projects/${project.projectCode}?backUrl=${route.fullPath}`)
-  }
+  $goto(`/api/projects/${project.projectCode}?backUrl=${route.fullPath}`)
 }
 
 //* ************搜索框**************//
@@ -134,7 +131,7 @@ const tableProjectItems = computed(() => {
       projectItems: [{
         labelKey: 'common.label.status',
         formatter () {
-          return <DelFlagTag v-model={project.status}
+          return <DelFlagTag v-model={project.status} clickToToggle={true}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
         }
       }, {
@@ -157,6 +154,16 @@ const dataRows = computed(() => {
 const selectedRows = computed(() => tableProjectItems.value.map(item => item.project).filter(project => project?.selected))
 
 const showImportWindow = ref(false)
+
+const importSuccessCallback = (apiProject) => {
+  loadApiProjects()
+  showImportWindow.value = false
+  const message = $i18nBundle('api.msg.importFileSuccess', [apiProject?.projectName]) +
+      ', ' + $i18nBundle('api.msg.gotoProjectDetails')
+  $coreConfirm(message).then(() => {
+    toEditProject(apiProject)
+  })
+}
 
 </script>
 
@@ -217,9 +224,9 @@ const showImportWindow = ref(false)
         >
           <el-card
             shadow="hover"
-            class="small-card operation-card"
+            class="small-card operation-card pointer"
             style="border-radius: 15px;"
-            :class="{pointer: project.status===1, 'project-selected': project.selected}"
+            :class="{'project-selected': project.selected}"
             @click="toEditProject(project)"
           >
             <div
@@ -278,7 +285,8 @@ const showImportWindow = ref(false)
     />
     <api-project-import-window
       v-model="showImportWindow"
-      @import-success="loadApiProjects()"
+      :auto-alert="false"
+      @import-success="importSuccessCallback"
     />
   </el-container>
 </template>

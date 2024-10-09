@@ -2,16 +2,20 @@
 import { ref } from 'vue'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 
-defineProps({
+const props = defineProps({
   project: {
     type: Object,
     default: null
+  },
+  autoAlert: {
+    type: Boolean,
+    default: true
   }
 })
 const showWindow = defineModel('modelValue', { type: Boolean, default: false })
 const importRef = ref()
 const doImportProject = () => {
-  importRef.value?.doImportProject()
+  importRef.value?.doImportProject(props.autoAlert)
   return false
 }
 defineEmits(['import-success'])

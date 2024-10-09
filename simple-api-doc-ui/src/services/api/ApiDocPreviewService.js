@@ -209,7 +209,13 @@ export const calcComponentMap = (componentSchemas) => {
 }
 
 export const checkLeaf = schema => {
-  return !['array'].includes(schema?.type) && !schema?.$ref && !Object.keys(schema?.properties || {}).length
+  if (schema?.$ref || Object.keys(schema?.properties || {}).length) {
+    return false
+  }
+  if (schema?.type === 'array') {
+    return checkLeaf(schema.items)
+  }
+  return true
 }
 
 export const $ref2Schema = $ref => {
@@ -231,9 +237,11 @@ export const processProperties = schema => {
       value.name = $ref2Schema(value.$ref)
     }
     if (value?.type === 'array' && value?.items) {
-      if (value?.items?.$ref) {
+      value.name = value.items.name
+      if (value.items?.$ref) {
         value.items.name = $ref2Schema(value.items.$ref)
-        value.name = value.items.name
+      } else if (value.items.type !== 'object') {
+        value.name = value.items.type
       }
     }
     if (schemaParent.required?.length) {
