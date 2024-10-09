@@ -56,6 +56,7 @@ public class ProjectAutoImportInvoker {
                 importVo.setUrl(projectTask.getSourceUrl());
                 importVo.setAuthType(projectTask.getAuthType());
                 importVo.setAuthContent(projectTask.getAuthContent());
+                importVo.setSourceType(projectTask.getSourceType());
                 String content = urlDocContentProvider.getContent(importVo);
                 SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
                 if (!parseResult.isSuccess()) {

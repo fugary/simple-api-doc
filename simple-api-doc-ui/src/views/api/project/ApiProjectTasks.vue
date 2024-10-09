@@ -125,7 +125,12 @@ const currentModel = ref()
 const newOrEdit = async (id) => {
   if (id) {
     await ApiProjectTaskApi.getById(id).then(data => {
-      data.resultData && (currentModel.value = data.resultData)
+      if (data.resultData) {
+        currentModel.value = data.resultData
+        if (currentModel.value.authContent) {
+          currentModel.value.authContentModel = JSON.parse(currentModel.value.authContent)
+        }
+      }
     })
   } else {
     currentModel.value = {
@@ -135,7 +140,8 @@ const newOrEdit = async (id) => {
       sourceType: IMPORT_SOURCE_TYPES[0].value,
       authType: AUTH_TYPE.NONE,
       toFolder: folderTreeNodes.value[0]?.id,
-      scheduleRate: TASK_TRIGGER_RATES[TASK_TRIGGER_RATES.length - 1].value
+      scheduleRate: TASK_TRIGGER_RATES[TASK_TRIGGER_RATES.length - 1].value,
+      authContentModel: {}
     }
   }
   showEditWindow.value = true
@@ -146,6 +152,12 @@ const editFormOptions = computed(() => {
   if (isFunction(authOptions)) {
     authOptions = authOptions()
   }
+  authOptions = authOptions.map(option => {
+    return {
+      ...option,
+      prop: `authContentModel.${option.prop}`
+    }
+  })
   return defineFormOptions([{
     labelKey: 'api.label.taskName',
     prop: 'taskName',
@@ -207,7 +219,12 @@ const editFormOptions = computed(() => {
 })
 
 const saveProjectTask = (item) => {
-  return ApiProjectTaskApi.saveOrUpdate(item).then(() => loadProjectTasks())
+  const modelParam = { ...item }
+  if (modelParam.authType !== AUTH_TYPE.NONE) {
+    modelParam.authContent = JSON.stringify(modelParam.authContentModel)
+    delete modelParam.authContentModel
+  }
+  return ApiProjectTaskApi.saveOrUpdate(modelParam).then(() => loadProjectTasks())
 }
 
 const importRef = ref()

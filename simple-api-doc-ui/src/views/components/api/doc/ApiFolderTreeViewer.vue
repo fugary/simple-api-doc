@@ -44,7 +44,7 @@ const currentDoc = defineModel('currentDoc', {
   default: undefined
 })
 
-const preferenceId = props.shareDoc?.shareId || DEFAULT_PREFERENCE_ID_KEY
+const preferenceId = props.shareDoc?.shareId || projectItem.value?.projectCode || DEFAULT_PREFERENCE_ID_KEY
 
 const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = shareConfigStore.sharePreferenceView[preferenceId] || reactive({
   lastExpandKeys: [],
