@@ -19,6 +19,7 @@ import { loadByCode } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import ApiFolderApi from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
+import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -42,15 +43,16 @@ const currentDoc = defineModel('currentDoc', {
   type: Object,
   default: undefined
 })
-let sharePreference = reactive({
+
+const preferenceId = props.shareDoc?.shareId || DEFAULT_PREFERENCE_ID_KEY
+
+const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = shareConfigStore.sharePreferenceView[preferenceId] || reactive({
   lastExpandKeys: [],
   lastDocId: undefined,
   defaultTheme: props.shareDoc?.defaultTheme || 'dark',
   defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName'
 })
-if (props.shareDoc) {
-  sharePreference = shareConfigStore.sharePreferenceView[props.shareDoc.shareId] = shareConfigStore.sharePreferenceView[props.shareDoc.shareId] || sharePreference
-}
+
 const treeNodes = ref([])
 
 const calcProjectItemInfo = () => {
@@ -60,7 +62,7 @@ const calcProjectItemInfo = () => {
     currentSelectDoc
   } = calcProjectItem(filteredItem, searchParam.value, sharePreference)
   currentDoc.value = currentSelectDoc
-  sharePreference.currentDocId = currentSelectDoc?.id
+  sharePreference.lastDocId = currentSelectDoc?.id
   treeNodes.value = docTreeNodes
 }
 
@@ -77,7 +79,7 @@ const searchFormOption = computed(() => {
     }
   }
 })
-watch(searchParam, () => {
+watch([searchParam, () => sharePreference?.defaultShowLabel], () => {
   if (projectItem.value) {
     refreshFolderTree()
   }
@@ -91,7 +93,7 @@ const showDocDetails = (doc, edit) => {
     }
     doc.editing = !!edit
     currentDoc.value = doc
-    sharePreference.currentDocId = doc.id
+    sharePreference.lastDocId = doc.id
   }
 }
 
@@ -264,7 +266,7 @@ defineExpose(handlerData)
           node-key="treeId"
           :default-expanded-keys="sharePreference.lastExpandKeys"
           highlight-current
-          :current-node-key="sharePreference.currentDocId"
+          :current-node-key="sharePreference.lastDocId"
           lazy
           :props="treeProps"
           :load="loadTreeNode"

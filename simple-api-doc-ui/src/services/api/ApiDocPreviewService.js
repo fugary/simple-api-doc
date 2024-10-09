@@ -1,5 +1,5 @@
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
-import { isArray, isString } from 'lodash-es'
+import { cloneDeep, isArray, isString } from 'lodash-es'
 import { hasLoading } from '@/vendors/axios'
 import {
   FORM_DATA,
@@ -69,15 +69,24 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   // const requestPath = `/mock/${groupItem.groupPath}${requestItem?.requestPath}`
   const target = {
     pathParams: calcParamTargetByUrl(apiDocDetail.url),
-    requestParams: [],
-    headerParams: [],
+    requestParams: calcSchemaParameters(apiDocDetail.parametersSchema),
+    headerParams: calcSchemaParameters(apiDocDetail.parametersSchema, item => item.in === 'header'),
     [FORM_DATA]: [],
     [FORM_URL_ENCODED]: [],
     method: apiDocDetail?.method || 'GET',
     contentType: apiDocDetail?.contentType || 'application/json',
+    requestContentType: apiDocDetail?.contentType || 'application/json',
+    requestFormat: 'json',
     targetUrl: apiDocDetail?.targetUrl,
     requestPath: apiDocDetail.url,
     sendType: REQUEST_SEND_MODES[0].value
+  }
+  const componentMap = calcComponentMap(projectInfoDetail.componentSchemas)
+  console.log('======================target', target, projectInfoDetail, apiDocDetail, componentMap)
+  if (apiDocDetail.requestsSchemas?.length) {
+    const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true))
+    console.log('======================requestSchemas', requestSchemas)
+    target.requestBodySchema = requestSchemas[0]?.schema
   }
   // if (value) {
   //   const pathParams = target.pathParams
@@ -160,6 +169,166 @@ export const calcParamTargetByUrl = (calcRequestUrl) => {
     })
 }
 
+/**
+ * 请求参数Schema计算
+ * @param parametersSchema
+ * @param filter
+ * @returns {*[]}
+ */
+export const calcSchemaParameters = (parametersSchema, filter = item => item.in === 'query') => {
+  if (parametersSchema?.schemaContent) {
+    const paramSchemas = JSON.parse(parametersSchema.schemaContent)
+    if (isArray(paramSchemas)) {
+      return paramSchemas.filter(filter).map(param => {
+        return {
+          name: param.name,
+          enabled: true,
+          valueRequired: param.required,
+          dynamicOption: () => ({ required: param.required })
+        }
+      })
+    }
+  }
+  return []
+}
+
 export const checkParamsFilled = (params) => {
   return !params?.length || params.filter(param => param.enabled).every(param => param.name && param.value)
+}
+
+//* **************************schema处理***************************
+
+export const calcComponentMap = (componentSchemas) => {
+  return componentSchemas.reduce((res, apiSchema) => {
+    if (!apiSchema.schema && apiSchema.schemaContent) {
+      apiSchema.schema = JSON.parse(apiSchema.schemaContent) // 从文本解析出来
+    }
+    res[apiSchema.schemaKey] = apiSchema
+    return res
+  }, {})
+}
+
+export const checkLeaf = schema => {
+  return !['array'].includes(schema?.type) && !schema?.$ref && !Object.keys(schema?.properties || {}).length
+}
+
+export const $ref2Schema = $ref => {
+  // #/components/schemas/xxx截取
+  return $ref.substring($ref.lastIndexOf('/') + 1)
+}
+
+/**
+ * 特殊处理schema的属性为数组
+ * @param schema
+ * @return {{schema: *, name: *}[]}
+ */
+export const processProperties = schema => {
+  const properties = schema.items?.properties || schema.properties || {}
+  const schemaParent = schema.items || schema
+  return Object.keys(properties).map(key => {
+    const value = properties[key]
+    if (value.$ref) {
+      value.name = $ref2Schema(value.$ref)
+    }
+    if (value?.type === 'array' && value?.items) {
+      if (value?.items?.$ref) {
+        value.items.name = $ref2Schema(value.items.$ref)
+        value.name = value.items.name
+      }
+    }
+    if (schemaParent.required?.length) {
+      value.isRequired = schemaParent.required.includes(key)
+    }
+    return {
+      name: key,
+      schema: value,
+      isLeaf: checkLeaf(value)
+    }
+  })
+}
+
+export const processSchemas = (docSchema, componentsMap, recursive = false) => {
+  const saveSchema = JSON.parse(docSchema.schemaContent)
+  let resultArr = []
+  if (isArray(saveSchema)) {
+    resultArr = saveSchema.map(schema => processSchema(schema, componentsMap, recursive))
+  } else {
+    resultArr = [processSchema(saveSchema, componentsMap, recursive)]
+  }
+  return resultArr
+}
+
+export const processSchema = (apiSchema, componentsMap, recursive = false) => {
+  if (apiSchema) {
+    let parent = {}
+    let schema = apiSchema
+    if (apiSchema.schema) {
+      parent = apiSchema
+      schema = apiSchema.schema
+    }
+    const isArraySchema = schema?.type === 'array'
+    if (isArraySchema) {
+      parent = schema
+      schema = schema.items
+    }
+    parent.isLeaf = checkLeaf(schema)
+    if (schema?.$ref) {
+      processSchemaRef(schema, componentsMap)
+    }
+    processSchemaAllOf(schema)
+    parent.isLeaf = checkLeaf(schema)
+    const properties = schema.properties
+    if (recursive && properties) {
+      Object.keys(properties).forEach(key => {
+        const property = properties[key]
+        processSchema(property, componentsMap, recursive)
+      })
+    }
+    // processSchemaAllOf(apiSchema.schema)
+    // apiSchema.isLeaf = checkLeaf(apiSchema.schema)
+    // if (isArraySchema && schema.items) {
+    //   if (schema.items?.$ref) {
+    //     processSchemaRef(schema.items, componentsMap)
+    //   }
+    //   processSchemaAllOf(schema.items)
+    //   properties = schema.items.properties
+    // } else {
+    //   if (schema?.$ref) {
+    //     processSchemaRef(schema, componentsMap)
+    //   }
+    //   processSchemaAllOf(schema)
+    //   parent.isLeaf = checkLeaf(schema)
+    //   properties = schema.properties
+    // }
+    // if (recursive && properties) {
+    //   properties.forEach(property => {
+    //     processSchema(property, componentsMap, recursive)
+    //   })
+    // }
+  }
+  return apiSchema
+}
+
+export const processSchemaRef = (schema, componentsMap) => {
+  if (schema.$ref) {
+    const apiSchema = cloneDeep(componentsMap[schema.$ref]?.schema)
+    if (!apiSchema) {
+      console.log('==============================$ref-null', schema.$ref, apiSchema)
+    }
+    apiSchema.name = $ref2Schema(schema.$ref)
+    Object.assign(schema, apiSchema)
+    delete schema.$ref
+  }
+  return schema
+}
+
+export const processSchemaAllOf = schema => {
+  if (schema?.allOf?.length && !schema.properties) {
+    let properties = {}
+    schema.allOf.forEach(child => {
+      properties = { ...properties, ...child.properties }
+    })
+    schema.properties = properties
+  }
+  return schema
 }

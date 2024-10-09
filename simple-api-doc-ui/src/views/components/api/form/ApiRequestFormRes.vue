@@ -8,18 +8,6 @@ const props = defineProps({
   responseTarget: {
     type: Object,
     default: undefined
-  },
-  schemaType: {
-    type: String,
-    default: 'json'
-  },
-  schemaBody: {
-    type: String,
-    default: ''
-  },
-  examples: {
-    type: Array,
-    default: () => []
   }
 })
 

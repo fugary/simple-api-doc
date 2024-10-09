@@ -53,7 +53,6 @@ const loadDocDetail = async () => {
     envConfigs.value = JSON.parse(projectInfoDetail.value?.envContent) || []
     apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
   }
-  console.log('====================================apiDocDetail', apiDocDetail.value, apiDoc.value)
 }
 
 watch(apiDoc, loadDocDetail, {

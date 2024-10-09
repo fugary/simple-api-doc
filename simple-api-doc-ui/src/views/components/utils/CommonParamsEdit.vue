@@ -5,6 +5,7 @@ import { getSingleSelectOptions, toFlatKeyValue } from '@/utils'
 import { $i18nBundle } from '@/messages'
 import { ElMessage, ElButton } from 'element-plus'
 import { calcSuggestionsFunc } from '@/services/api/ApiCommonService'
+import { isFunction } from 'lodash-es'
 
 const props = defineProps({
   formProp: {
@@ -129,7 +130,7 @@ const paramsOptions = computed(() => {
   const nameSuggestions = calcSuggestions('name')
   const valueSuggestions = calcSuggestions('value')
   return params.value.map((param) => {
-    const nvSpan = 9
+    const nvSpan = 8
     return defineFormOptions([{
       labelWidth: '30px',
       prop: 'enabled',
@@ -141,12 +142,17 @@ const paramsOptions = computed(() => {
       prop: props.nameKey,
       required: props.nameReadOnly || props.nameRequired,
       disabled: props.nameReadOnly,
+      colSpan: nvSpan,
       type: nameSuggestions ? 'autocomplete' : 'input',
       attrs: {
         fetchSuggestions: nameSuggestions,
         triggerOnFocus: false
       },
-      colSpan: nvSpan
+      dynamicOption: (item, ...args) => {
+        if (isFunction(item.dynamicOption)) {
+          return item.dynamicOption(item, ...args)
+        }
+      }
     }, {
       labelWidth: '1px',
       prop: 'type',
@@ -171,6 +177,11 @@ const paramsOptions = computed(() => {
       attrs: {
         fetchSuggestions: valueSuggestions,
         triggerOnFocus: false
+      },
+      dynamicOption: (item, ...args) => {
+        if (isFunction(item.dynamicOption)) {
+          return item.dynamicOption(item, ...args)
+        }
       }
     }, {
       label: 'Files',
@@ -220,7 +231,7 @@ const paramsOptions = computed(() => {
         </el-col>
       </template>
       <el-col
-        :span="4"
+        :span="3"
         class="padding-left2 padding-top1"
       >
         <el-button

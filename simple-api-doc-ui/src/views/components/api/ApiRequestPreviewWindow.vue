@@ -30,7 +30,7 @@ defineExpose({
 <template>
   <common-window
     v-model="showWindow"
-    width="1000px"
+    width="1024px"
     :show-cancel="false"
     :close-on-click-modal="false"
     :ok-label="$t('common.label.close')"

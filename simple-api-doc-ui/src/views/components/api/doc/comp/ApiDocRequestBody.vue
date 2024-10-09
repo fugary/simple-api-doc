@@ -20,7 +20,7 @@ const projectInfoDetail = computed(() => {
         id="api-doc-parameters"
         class="margin-right2"
       >
-        Body参数
+        {{ $t('api.label.requestBody') }}
       </h3>
       <el-text
         v-if="apiDocDetail.requestsSchemas?.[0].contentType"

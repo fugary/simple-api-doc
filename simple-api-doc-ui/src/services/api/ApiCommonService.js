@@ -8,7 +8,7 @@ import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
     .then(() => {
-      const schema = JSON.parse(schemaBody)
+      const schema = isString(schemaBody) ? JSON.parse(schemaBody) : schemaBody
       const json = sample(schema)
       let resStr
       if (type?.includes('xml')) {

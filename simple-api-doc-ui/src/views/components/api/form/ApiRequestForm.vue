@@ -18,10 +18,6 @@ const props = defineProps({
   requestPath: {
     type: String,
     required: true
-  },
-  schemas: {
-    type: Array,
-    default: () => []
   }
 })
 const paramTarget = defineModel('modelValue', {
@@ -49,17 +45,8 @@ const sendRequest = (form) => {
   })
 }
 
-const schema = computed(() => {
-  return props.schemas[0]
-})
-
 const requestExamples = computed(() => {
-  const examples = schema.value?.requestExamples
-  return examples ? JSON.parse(examples) : []
-})
-
-const responseExamples = computed(() => {
-  const examples = schema.value?.responseExamples
+  const examples = paramTarget.value?.requestExamples
   return examples ? JSON.parse(examples) : []
 })
 
@@ -134,8 +121,8 @@ const docFormOption = computed(() => {
           v-model="paramTarget"
           show-authorization
           :response-target="responseTarget"
-          :schema-type="schema?.requestMediaType"
-          :schema-body="schema?.requestBodySchema"
+          :schema-type="paramTarget.requestContentType"
+          :schema-body="paramTarget.requestBodySchema"
           :examples="requestExamples"
         />
       </template>
@@ -144,8 +131,6 @@ const docFormOption = computed(() => {
       v-if="responseTarget"
       v-model="paramTarget"
       :response-target="responseTarget"
-      :schema-type="schema?.responseMediaType"
-      :schema-body="schema?.responseBodySchema"
       :examples="responseExamples"
     />
   </el-container>

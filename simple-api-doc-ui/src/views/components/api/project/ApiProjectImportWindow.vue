@@ -12,6 +12,7 @@ const showWindow = defineModel('modelValue', { type: Boolean, default: false })
 const importRef = ref()
 const doImportProject = () => {
   importRef.value?.doImportProject()
+  return false
 }
 defineEmits(['import-success'])
 </script>
@@ -29,7 +30,7 @@ defineEmits(['import-success'])
     <api-project-import
       ref="importRef"
       :project="project"
-      @import-success="$emit('import-success')"
+      @import-success="$emit('import-success', $event)"
     />
   </common-window>
 </template>

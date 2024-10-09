@@ -1,8 +1,9 @@
 <script setup>
 import { computed, watch, ref, nextTick } from 'vue'
-import { cloneDeep, isArray } from 'lodash-es'
+import { isArray } from 'lodash-es'
 import markdownit from 'markdown-it'
 import { $i18nBundle } from '@/messages'
+import { processSchema, processSchemas, processProperties, calcComponentMap } from '@/services/api/ApiDocPreviewService'
 const md = markdownit({
   html: true,
   linkify: true
@@ -32,116 +33,15 @@ watch(schemaModel, () => {
   })
 }, { immediate: true })
 
-const componentsMap = computed(() => {
-  return props.componentSchemas.reduce((res, apiSchema) => {
-    if (!apiSchema.schema && apiSchema.schemaContent) {
-      apiSchema.schema = JSON.parse(apiSchema.schemaContent) // 从文本解析出来
-    }
-    res[apiSchema.schemaKey] = apiSchema
-    return res
-  }, {})
-})
-
-const checkLeaf = schema => {
-  return !['array'].includes(schema?.type) && !schema?.$ref && !Object.keys(schema?.properties || {}).length
-}
-
-const $ref2Schema = $ref => {
-  // #/components/schemas/xxx截取
-  return $ref.substring($ref.lastIndexOf('/') + 1)
-}
-
-/**
- * 特殊处理schema的属性为数组
- * @param schema
- * @return {{schema: *, name: *}[]}
- */
-const processProperties = schema => {
-  const properties = schema.items?.properties || schema.properties || {}
-  const schemaParent = schema.items || schema
-  return Object.keys(properties).map(key => {
-    const value = properties[key]
-    if (value.$ref) {
-      value.name = $ref2Schema(value.$ref)
-    }
-    if (value?.type === 'array' && value?.items) {
-      if (value?.items?.$ref) {
-        value.items.name = $ref2Schema(value.items.$ref)
-        value.name = value.items.name
-      }
-    }
-    if (schemaParent.required?.length) {
-      value.isRequired = schemaParent.required.includes(key)
-    }
-    return {
-      name: key,
-      schema: value,
-      isLeaf: checkLeaf(value)
-    }
-  })
-}
-
-const processSchemas = (docSchema) => {
-  const saveSchema = JSON.parse(docSchema.schemaContent)
-  let resultArr = []
-  if (isArray(saveSchema)) {
-    resultArr = saveSchema.map(schema => processSchema(schema))
-  } else {
-    resultArr = [processSchema(saveSchema)]
-  }
-  return resultArr
-}
-
-const processSchema = apiSchema => {
-  if (apiSchema) {
-    const schema = apiSchema.schema
-    const isArray = schema?.type === 'array'
-    if (isArray && schema.items) {
-      if (schema.items?.$ref) {
-        schema.items = processSchemaRef(schema.items)
-      }
-      processSchemaAllOf(schema.items)
-    } else {
-      if (schema?.$ref) {
-        apiSchema.schema = processSchemaRef(schema)
-      }
-      processSchemaAllOf(apiSchema.schema)
-      apiSchema.isLeaf = checkLeaf(apiSchema.schema)
-    }
-  }
-  return apiSchema
-}
-
-const processSchemaRef = schema => {
-  if (schema.$ref) {
-    const apiSchema = cloneDeep(componentsMap.value[schema.$ref]?.schema)
-    if (!apiSchema) {
-      console.log('==============================$ref-null', schema.$ref, apiSchema)
-    }
-    apiSchema.name = $ref2Schema(schema.$ref)
-    schema = apiSchema
-  }
-  return schema
-}
-
-const processSchemaAllOf = schema => {
-  if (schema?.allOf?.length && !schema.properties) {
-    let properties = {}
-    schema.allOf.forEach(child => {
-      properties = { ...properties, ...child.properties }
-    })
-    schema.properties = properties
-  }
-  return schema
-}
+const componentsMap = computed(() => calcComponentMap(props.componentSchemas))
 
 const loadTreeNode = (node, resolve) => {
   if (!node.parent) { // 第一级
     let firstArr = []
     if (isArray(schemaModel.value)) {
-      firstArr = schemaModel.value.flatMap(docSchema => processSchemas(docSchema))
+      firstArr = schemaModel.value.flatMap(docSchema => processSchemas(docSchema, componentsMap.value))
     } else {
-      firstArr = processSchemas(schemaModel.value)
+      firstArr = processSchemas(schemaModel.value, componentsMap.value)
     }
     resolve(firstArr.map(data => {
       data.id = '_root'
@@ -149,7 +49,7 @@ const loadTreeNode = (node, resolve) => {
     }))
   } else {
     // 下级node
-    resolve(processProperties(processSchema(node.data)?.schema))
+    resolve(processProperties(processSchema(node.data, componentsMap.value)?.schema))
   }
 }
 

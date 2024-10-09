@@ -10,6 +10,8 @@ export const SIMPLE_API_TARGET_URL_HEADER = 'simple-api-target-url'
 
 export const SIMPLE_API_ACCESS_TOKEN_HEADER = 'simple-api-access-token'
 
+export const DEFAULT_PREFERENCE_ID_KEY = 'simple-api-preference-id'
+
 export const DEFAULT_HEADERS = ['Accept',
   'Accept-Charset',
   'Accept-Encoding',

@@ -28,6 +28,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  newWindowEdit: {
+    type: Boolean,
+    default: false
+  },
   responseTarget: {
     type: Object,
     default: undefined
@@ -37,8 +41,8 @@ const props = defineProps({
     default: 'json'
   },
   schemaBody: {
-    type: String,
-    default: ''
+    type: [String, Object],
+    default: undefined
   },
   examples: {
     type: Array,
@@ -139,6 +143,11 @@ const proxyModeOption = computed(() => {
     }
   }
 })
+
+const viewSchemaBody = () => {
+  const schemaBody = isString(props.schemaBody) ? props.schemaBody : JSON.stringify(props.schemaBody)
+  showCodeWindow(schemaBody)
+}
 
 </script>
 
@@ -252,7 +261,7 @@ const proxyModeOption = computed(() => {
               :tooltip="$i18nKey('common.label.commonCopy', 'api.label.requestBody')"
             />
             <new-window-edit-link
-              v-if="!isSpecialLang"
+              v-if="newWindowEdit&&!isSpecialLang"
               v-model="contentRef"
               class="margin-left3"
             />
@@ -274,7 +283,7 @@ const proxyModeOption = computed(() => {
               type="primary"
               :underline="false"
               class="margin-left3"
-              @click="showCodeWindow(schemaBody)"
+              @click="viewSchemaBody()"
             >
               <common-icon
                 :size="18"
