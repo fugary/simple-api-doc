@@ -24,4 +24,14 @@ public interface ApiProjectShareService extends IService<ApiProjectShare> {
      * @return
      */
     ApiProjectShare loadByShareId(String shareId);
+
+    /**
+     * 复制数据
+     *
+     * @param fromProjectId
+     * @param toProjectId
+     * @param id
+     * @return
+     */
+    int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id);
 }

@@ -35,7 +35,7 @@ const toPreviewRequest = async (projectInfo, apiDoc, handConfig) => {
     const target = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
     paramTarget.value = isFunction(handlerConfig.preHandler) ? handlerConfig.preHandler(target) : target
     envConfigs.value = getEnvConfigs(apiDocDetail.value)
-    paramTarget.value.targetUrl = envConfigs.value[0]?.url
+    paramTarget.value.targetUrl = apiDocDetail.value.targetUrl || envConfigs.value[0]?.url
   })
 }
 watch(paramTarget, () => {

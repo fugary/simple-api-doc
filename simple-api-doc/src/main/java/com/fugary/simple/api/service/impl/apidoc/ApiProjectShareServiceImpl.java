@@ -5,7 +5,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.mapper.api.ApiProjectShareMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Create date 2024/9/23<br>
@@ -22,5 +25,22 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
     @Override
     public ApiProjectShare loadByShareId(String shareId) {
         return this.getOne(Wrappers.<ApiProjectShare>query().eq("share_id", shareId));
+    }
+
+    @Override
+    public int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id) {
+        List<ApiProjectShare> shares = list(Wrappers.<ApiProjectShare>query()
+                .eq("project_id", fromProjectId)
+                .eq(id != null, "id", id));
+        shares.forEach(share -> {
+            share.setId(null);
+            share.setShareId(SimpleModelUtils.uuid());
+            share.setProjectId(toProjectId);
+            if (fromProjectId.equals(toProjectId)) {
+                share.setShareName(share.getShareName() + "-copy");
+            }
+            save(share);
+        });
+        return shares.size();
     }
 }

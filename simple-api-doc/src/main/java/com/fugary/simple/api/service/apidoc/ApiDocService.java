@@ -2,8 +2,12 @@ package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiDoc;
+import com.fugary.simple.api.entity.api.ApiFolder;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Create date 2024/9/23<br>
@@ -58,4 +62,17 @@ public interface ApiDocService extends IService<ApiDoc> {
      * @return
      */
     boolean existsApiDoc(ApiDoc doc);
+
+    /**
+     * 复制文档
+     *
+     * @param fromProjectId
+     * @param toProjectId
+     * @param foldersMap
+     * @param infosMap
+     * @return
+     */
+    int copyProjectDocs(Integer fromProjectId, Integer toProjectId,
+                        Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap,
+                        Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap);
 }

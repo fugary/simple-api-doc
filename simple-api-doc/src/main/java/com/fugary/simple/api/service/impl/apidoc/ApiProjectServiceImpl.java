@@ -13,19 +13,16 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
-import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import lombok.SneakyThrows;
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
 
@@ -64,9 +61,8 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         ApiProject apiProject = getOne(Wrappers.<ApiProject>query().eq("project_code", projectCode)
                 .eq(forceEnabled, ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
         if (apiProject != null) {
-            ApiProjectDetailVo apiProjectVo = new ApiProjectDetailVo();
-            BeanUtils.copyProperties(apiProjectVo, apiProject);
-            List<ApiProjectInfo> infoList = apiProjectInfoService.listByProjectId(apiProject.getId());
+            ApiProjectDetailVo apiProjectVo = SimpleModelUtils.copy(apiProject, ApiProjectDetailVo.class);
+            List<ApiProjectInfo> infoList = apiProjectInfoService.loadByProjectId(apiProject.getId());
             apiProjectVo.setInfoList(infoList);
             if (includeDocs) {
                 List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())
@@ -150,19 +146,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Override
     public SimpleResult<ApiProject> importNewProject(ExportApiProjectVo exportVo, ApiProjectImportVo importVo) {
-        try {
-            ApiProject apiProject = new ApiProject();
-            BeanUtils.copyProperties(apiProject, exportVo);
-            ApiUser loginUser = getLoginUser();
-            if (loginUser != null) {
-                apiProject.setUserName(loginUser.getUserName());
-            }
-            this.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiProject)); // 保存apiProject信息
-            return this.importUpdateProject(apiProject, exportVo, importVo);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            log.error("import project error", e);
+        ApiProject apiProject = SimpleModelUtils.copy(exportVo, ApiProject.class);
+        ApiUser loginUser = getLoginUser();
+        if (loginUser != null) {
+            apiProject.setUserName(loginUser.getUserName());
         }
-        return null;
+        this.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiProject)); // 保存apiProject信息
+        return this.importUpdateProject(apiProject, exportVo, importVo);
     }
 
     @Override
@@ -181,5 +171,22 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         apiProjectInfoDetailService.saveApiProjectInfoDetails(apiProject, projectInfo, exportVo.getProjectInfoDetails());
         apiFolderService.saveApiFolders(apiProject, projectInfo, mountFolder, Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), exportVo.getDocs());
         return SimpleResultUtils.createSimpleResult(apiProject);
+    }
+
+    @Override
+    public SimpleResult<ApiProject> copyProject(ApiProject project) {
+        Integer lastProjectId = project.getId();
+        project.setId(null);
+        project.setProjectCode(SimpleModelUtils.uuid());
+        project.setProjectName(project.getProjectName() + "-copy");
+        save(project); // 复制新的project
+        // share和task比较好处理
+        apiProjectShareService.copyProjectShares(lastProjectId, project.getId(), null);
+        apiProjectTaskService.copyProjectTasks(lastProjectId, project.getId(), null);
+        // folder和doc
+        Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap = apiFolderService.copyProjectFolders(lastProjectId, project.getId(), null);
+        Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap = apiProjectInfoService.copyProjectInfos(lastProjectId, project.getId(), foldersMap);
+        apiDocService.copyProjectDocs(lastProjectId, project.getId(), foldersMap, infosMap);
+        return SimpleResultUtils.createSimpleResult(project);
     }
 }

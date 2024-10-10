@@ -58,6 +58,15 @@ public class ApiProjectController {
         return SimpleResultUtils.createSimpleResult(apiProjectService.getById(id));
     }
 
+    @PostMapping("/copy/{id}")
+    public SimpleResult<ApiProject> copy(@PathVariable("id") Integer id) {
+        ApiProject project = apiProjectService.getById(id);
+        if (project == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(apiProjectService.copyProject(project));
+    }
+
     @GetMapping("/loadDetail/{projectCode}")
     public SimpleResult<ApiProjectDetailVo> loadDetail(@PathVariable("projectCode") String projectCode) {
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(projectCode, false, true);

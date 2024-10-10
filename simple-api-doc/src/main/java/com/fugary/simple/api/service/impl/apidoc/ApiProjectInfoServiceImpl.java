@@ -5,13 +5,20 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.mapper.api.ApiProjectInfoMapper;
+import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
+import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created on 2020/5/3 22:37 .<br>
@@ -21,8 +28,11 @@ import java.util.List;
 @Service
 public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper, ApiProjectInfo> implements ApiProjectInfoService {
 
+    @Autowired
+    private ApiProjectInfoDetailService apiProjectInfoDetailService;
+
     @Override
-    public List<ApiProjectInfo> listByProjectId(Integer projectId) {
+    public List<ApiProjectInfo> loadByProjectId(Integer projectId) {
         return list(Wrappers.<ApiProjectInfo>query().eq("project_id", projectId));
     }
 
@@ -49,5 +59,32 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
     @Override
     public boolean deleteByProject(Integer projectId) {
         return this.remove(Wrappers.<ApiProjectInfo>query().eq("project_id", projectId));
+    }
+
+    @Override
+    public Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> copyProjectInfos(Integer fromProjectId, Integer toProjectId,
+                                                                               Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap) {
+        List<ApiProjectInfo> projectInfos = loadByProjectId(fromProjectId);
+        Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> results = new HashMap<>();
+        projectInfos.forEach(projectInfo -> {
+            ApiProjectInfo newProjectInfo = SimpleModelUtils.copy(projectInfo, ApiProjectInfo.class);
+            newProjectInfo.setId(null);
+            newProjectInfo.setProjectId(toProjectId);
+            Pair<ApiFolder, ApiFolder> folderPair = foldersMap.get(projectInfo.getFolderId());
+            if (folderPair != null && folderPair.getRight() != null) {
+                newProjectInfo.setFolderId(folderPair.getRight().getId());
+            }
+            save(newProjectInfo);
+            results.put(projectInfo.getId(), Pair.of(projectInfo, newProjectInfo));
+            List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.loadByProjectAndInfo(fromProjectId,
+                    projectInfo.getId(), Set.of());
+            infoDetails.forEach(infoDetail -> {
+                infoDetail.setId(null);
+                infoDetail.setProjectId(toProjectId);
+                infoDetail.setInfoId(newProjectInfo.getId());
+                apiProjectInfoDetailService.save(infoDetail);
+            });
+        });
+        return results;
     }
 }

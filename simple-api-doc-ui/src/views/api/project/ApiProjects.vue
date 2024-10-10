@@ -4,7 +4,7 @@ import { useDefaultPage } from '@/config'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { defineFormOptions } from '@/components/utils'
 import { useAllUsers } from '@/api/ApiUserApi'
-import ApiProjectApi from '@/api/ApiProjectApi'
+import ApiProjectApi, { copyProject } from '@/api/ApiProjectApi'
 import { $coreConfirm, $goto, formatDate, isAdminUser, useCurrentUserName } from '@/utils'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { $i18nBundle } from '@/messages'
@@ -15,6 +15,7 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
+import { ElMessage } from 'element-plus'
 
 const { width } = useWindowSize()
 
@@ -165,6 +166,16 @@ const importSuccessCallback = (apiProject) => {
   })
 }
 
+const toCopyProject = (project, $event) => {
+  $event?.stopPropagation()
+  $coreConfirm($i18nBundle('common.msg.confirmCopy'))
+    .then(() => copyProject(project.id))
+    .then(() => {
+      ElMessage.success($i18nBundle('common.msg.operationSuccess'))
+      loadApiProjects()
+    })
+}
+
 </script>
 
 <template>
@@ -254,6 +265,16 @@ const importSuccessCallback = (apiProject) => {
                 @click="newOrEdit(project.id, $event)"
               >
                 <common-icon icon="Edit" />
+              </el-button>
+              <el-button
+                v-if="project.showOperations"
+                v-common-tooltip="$t('common.label.copy')"
+                type="warning"
+                size="small"
+                round
+                @click="toCopyProject(project, $event)"
+              >
+                <common-icon icon="FileCopyFilled" />
               </el-button>
               <el-button
                 v-if="project.showOperations"

@@ -76,6 +76,8 @@ public class ProjectAutoImportInvoker {
                 }
                 projectTask.setExecDate(new Date());
                 apiProjectTaskService.updateById(projectTask);
+            } else {
+                log.error("project not found {}", projectTask.getProjectId());
             }
         }
         log.info("import project task {}/{} cost {}ms", projectTask.getProjectId(), projectTask.getId(), System.currentTimeMillis() - start);

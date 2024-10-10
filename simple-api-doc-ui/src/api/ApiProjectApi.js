@@ -64,6 +64,18 @@ export const loadBasic = (projectCode, config) => {
     method: 'get'
   }, config)).then(response => response.data?.resultData)
 }
+/**
+ * 分组复制
+ * @param id
+ * @param [config]
+ * @returns {Promise<axios.AxiosResponse<any>>}
+ */
+export const copyProject = (id, config) => {
+  return $http(Object.assign({
+    url: `${API_PROJECT_URL}/copy/${id}`,
+    method: 'POST'
+  }, config)).then(response => response.data?.resultData)
+}
 
 export const useSelectProjects = (searchParam) => {
   const projects = ref([])

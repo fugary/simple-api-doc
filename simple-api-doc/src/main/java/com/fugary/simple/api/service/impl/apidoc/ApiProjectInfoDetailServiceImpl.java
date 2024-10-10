@@ -14,7 +14,6 @@ import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -66,8 +65,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail) {
-        ApiProjectInfoDetailVo apiInfoVo = new ApiProjectInfoDetailVo();
-        BeanUtils.copyProperties(apiInfo, apiInfoVo);
+        ApiProjectInfoDetailVo apiInfoVo = SimpleModelUtils.copy(apiInfo, ApiProjectInfoDetailVo.class);
         List<ApiProjectInfoDetail> apiInfoDetails = loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(),
                 Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
         Map<String, ApiProjectInfoDetail> schemaKeyMap = toSchemaKeyMap(apiInfoDetails);

@@ -7,6 +7,7 @@ import com.fugary.simple.api.push.ApiInvokeProcessor;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.YamlUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -20,7 +21,6 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -75,7 +75,7 @@ public class SimpleShareController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiProjectShareVo shareVo = new ApiProjectShareVo();
-        BeanUtils.copyProperties(apiShare, shareVo);
+        SimpleModelUtils.copy(apiShare, shareVo);
         shareVo.setNeedPassword(StringUtils.isNotBlank(apiShare.getSharePassword()));
         if (apiShare.getExpireDate() != null) {
             shareVo.setExpired(new Date().after(apiShare.getExpireDate()));
@@ -131,7 +131,7 @@ public class SimpleShareController {
         List<ApiProjectInfoDetail> details;
         ApiProjectInfoDetail detail;
         if (apiShare == null
-                || (infoList = apiProjectInfoService.listByProjectId(apiShare.getProjectId())).isEmpty()
+                || (infoList = apiProjectInfoService.loadByProjectId(apiShare.getProjectId())).isEmpty()
                 || (currentInfo = infoList.get(0)) == null
                 || (details = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), currentInfo.getId(),
                     Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT))).isEmpty()
@@ -147,7 +147,7 @@ public class SimpleShareController {
                                                          @PathVariable("shareId") String shareId,
                                                          HttpServletResponse response) throws IOException {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
-        ApiProjectInfo currentInfo = apiProjectInfoService.listByProjectId(apiShare.getProjectId()).get(0);
+        ApiProjectInfo currentInfo = apiProjectInfoService.loadByProjectId(apiShare.getProjectId()).get(0);
         ApiProjectInfoDetail detail = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), currentInfo.getId(),
                 Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT)).get(0);
         String fileName = apiShare.getShareName() + "." + type;

@@ -109,4 +109,14 @@ public interface ApiFolderService extends IService<ApiFolder> {
      * @return
      */
     boolean existsApiFolder(ApiFolder folder);
+
+    /**
+     * 复制文件夹
+     *
+     * @param fromProjectId
+     * @param toProjectId
+     * @param id
+     * @return
+     */
+    Map<Integer, Pair<ApiFolder, ApiFolder>> copyProjectFolders(Integer fromProjectId, Integer toProjectId, Integer id);
 }

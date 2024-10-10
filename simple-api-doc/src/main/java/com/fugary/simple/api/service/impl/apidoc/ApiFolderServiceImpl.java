@@ -23,10 +23,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.PathMatcher;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -190,7 +187,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
 
     @Override
     public List<ApiFolder> loadApiFolders(Integer projectId) {
-        return list(Wrappers.<ApiFolder>query().eq("project_id", projectId));
+        return list(Wrappers.<ApiFolder>query().eq("project_id", projectId).orderByAsc("sort_id"));
     }
 
     @Override
@@ -212,7 +209,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     @Override
     public List<ApiFolder> loadEnabledApiFolders(Integer projectId) {
         return list(Wrappers.<ApiFolder>query().eq("project_id", projectId)
-                .eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
+                .eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED)
+                .orderByAsc("sort_id"));
     }
 
     @Override
@@ -253,5 +251,34 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                 .eq("parent_id", folder.getParentId())
                 .eq("folder_name", folder.getFolderName()));
         return existsItems.stream().anyMatch(item -> !item.getId().equals(folder.getId()));
+    }
+
+    @Override
+    public Map<Integer, Pair<ApiFolder, ApiFolder>> copyProjectFolders(Integer fromProjectId, Integer toProjectId, Integer id) {
+        List<ApiFolder> folders = loadApiFolders(fromProjectId);
+        Map<Integer, Pair<ApiFolder, ApiFolder>> results = new HashMap<>();
+        Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMap = calcFolderMap(folders);
+        Map<String, ApiFolder> pathFolderMap = folderMap.getKey();
+        Map<Integer, ApiFolder> oldToNewFolderMap = new HashMap<>();
+        pathFolderMap.keySet().stream().sorted(Comparator.comparingInt(String::length)) // 父文件夹总比子文件夹短
+                .forEach(key -> {
+                    ApiFolder fromFolder = pathFolderMap.get(key);
+                    ApiFolder toFolder = SimpleModelUtils.copy(fromFolder, ApiFolder.class);
+                    toFolder.setId(null);
+                    toFolder.setProjectId(toProjectId);
+                    if (fromProjectId.equals(toProjectId)) {
+                        toFolder.setFolderName(fromFolder.getFolderName() + "-copy");
+                    }
+                    if (toFolder.getParentId() != null) {
+                        ApiFolder apiFolder = oldToNewFolderMap.get(toFolder.getParentId());
+                        if (apiFolder != null) {
+                            toFolder.setParentId(apiFolder.getId());
+                        }
+                    }
+                    save(SimpleModelUtils.addAuditInfo(toFolder));
+                    oldToNewFolderMap.put(fromFolder.getId(), toFolder);
+                    results.put(fromFolder.getId(), Pair.of(fromFolder, toFolder));
+                });
+        return results;
     }
 }

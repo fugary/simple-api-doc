@@ -7,6 +7,7 @@ import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiDocSchema;
 import com.fugary.simple.api.mapper.api.ApiDocSchemaMapper;
 import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ public class ApiDocSchemaServiceImpl extends ServiceImpl<ApiDocSchemaMapper, Api
     @Override
     public ApiDocDetailVo loadDetailVo(ApiDoc apiDoc) {
         ApiDocDetailVo apiDocVo = new ApiDocDetailVo();
-        BeanUtils.copyProperties(apiDoc, apiDocVo);
+        SimpleModelUtils.copy(apiDoc, apiDocVo);
         List<ApiDocSchema> docSchemas = loadByDoc(apiDoc.getId());
         docSchemas.forEach(schema -> {
             switch (schema.getBodyType()) {

@@ -5,8 +5,10 @@ import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created on 2024/7/31 11:42 .<br>
@@ -21,7 +23,7 @@ public interface ApiProjectInfoService extends IService<ApiProjectInfo> {
      * @param projectId
      * @return
      */
-    List<ApiProjectInfo> listByProjectId(Integer projectId);
+    List<ApiProjectInfo> loadByProjectId(Integer projectId);
 
     /**
      * 按照projectId查找
@@ -49,4 +51,15 @@ public interface ApiProjectInfoService extends IService<ApiProjectInfo> {
      * @return
      */
     boolean deleteByProject(Integer projectId);
+
+    /**
+     * 复制info信息
+     *
+     * @param fromProjectId
+     * @param toProjectId
+     * @param foldersMap
+     * @return
+     */
+    Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> copyProjectInfos(Integer fromProjectId, Integer toProjectId,
+                                                                        Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap);
 }

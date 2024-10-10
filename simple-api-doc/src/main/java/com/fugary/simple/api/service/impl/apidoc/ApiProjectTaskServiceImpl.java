@@ -7,6 +7,8 @@ import com.fugary.simple.api.mapper.api.ApiProjectTaskMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * Create date 2024/9/23<br>
  *
@@ -17,5 +19,21 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
     @Override
     public boolean deleteByProject(Integer projectId) {
         return this.remove(Wrappers.<ApiProjectTask>query().eq("project_id", projectId));
+    }
+
+    @Override
+    public int copyProjectTasks(Integer fromProjectId, Integer toProjectId, Integer id) {
+        List<ApiProjectTask> tasks = list(Wrappers.<ApiProjectTask>query()
+                .eq("project_id", fromProjectId)
+                .eq(id != null, "id", id));
+        tasks.forEach(task -> {
+            task.setId(null);
+            task.setProjectId(toProjectId);
+            if (fromProjectId.equals(toProjectId)) {
+                task.setTaskName(task.getTaskName() + "-copy");
+            }
+            save(task);
+        });
+        return tasks.size();
     }
 }

@@ -93,4 +93,12 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @return
      */
     SimpleResult<ApiProject> importUpdateProject(ApiProject currentProject, ExportApiProjectVo exportVo, ApiProjectImportVo importVo);
+
+    /**
+     * 复制项目
+     *
+     * @param project
+     * @return
+     */
+    SimpleResult<ApiProject> copyProject(ApiProject project);
 }

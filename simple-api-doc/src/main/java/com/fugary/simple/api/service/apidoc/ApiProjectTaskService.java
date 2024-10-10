@@ -16,4 +16,14 @@ public interface ApiProjectTaskService extends IService<ApiProjectTask> {
      * @return
      */
     boolean deleteByProject(Integer projectId);
+
+    /**
+     * 复制数据
+     *
+     * @param fromProjectId
+     * @param toProjectId
+     * @param id
+     * @return
+     */
+    int copyProjectTasks(Integer fromProjectId, Integer toProjectId, Integer id);
 }
