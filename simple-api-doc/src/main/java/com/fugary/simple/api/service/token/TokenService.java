@@ -31,11 +31,4 @@ public interface TokenService {
      * @return
      */
     SimpleResult<ApiUser> validate(String accessToken);
-
-    /**
-     * 仅验证格式
-     * @param token
-     * @return
-     */
-    SimpleResult<ApiUser> validateTokenOnly(String token);
 }

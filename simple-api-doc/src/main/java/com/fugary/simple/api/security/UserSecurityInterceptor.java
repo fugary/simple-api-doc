@@ -1,8 +1,10 @@
 package com.fugary.simple.api.security;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiUser;
+import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -35,6 +37,9 @@ public class UserSecurityInterceptor implements HandlerInterceptor {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private ApiUserService apiUserService;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
         String authorization = StringUtils.defaultIfBlank(request.getHeader(ApiDocConstants.SIMPLE_API_ACCESS_TOKEN_HEADER), request.getHeader(HttpHeaders.AUTHORIZATION));
@@ -44,8 +49,12 @@ public class UserSecurityInterceptor implements HandlerInterceptor {
             String accessToken = authorization.replaceFirst("Bearer ", StringUtils.EMPTY).trim();
             userResult = getTokenService().validate(accessToken);
             if (userResult.isSuccess()) {
-                request.setAttribute(ApiDocConstants.API_USER_KEY, userResult.getResultData());
-                return true;
+                ApiUser user = apiUserService.getOne(Wrappers.<ApiUser>query()
+                        .eq("user_name", userResult.getResultData().getUserName()));
+                if (user != null) {
+                    request.setAttribute(ApiDocConstants.API_USER_KEY, user);
+                    return true;
+                }
             }
         }
         responseJson(response, userResult == null ? SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401) : userResult);

@@ -84,7 +84,7 @@ public class SimpleShareController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2008);
         }
         if (shareVo.isNeedPassword()) {
-            SimpleResult<ApiUser> validateResult = validateSharePwd(password, apiShare);
+            SimpleResult<ApiUser> validateResult = apiProjectShareService.validateSharePwd(password, apiShare);
             if (!validateResult.isSuccess()) {
                 SimpleResult<ApiProjectShareVo> result = SimpleResultUtils.createSimpleResult(validateResult);
                 result.setResultData(shareVo);
@@ -92,19 +92,9 @@ public class SimpleShareController {
             }
         }
         ApiUser apiUser = new ApiUser();
-        apiUser.setUserName(apiShare.getShareId());
+        apiUser.setUserName(SecurityUtils.getShareUserName(apiShare));
         shareVo.setShareToken(tokenService.createToken(apiUser));
         return SimpleResultUtils.createSimpleResult(shareVo);
-    }
-
-    protected SimpleResult<ApiUser> validateSharePwd(String password, ApiProjectShare apiShare) {
-        if (StringUtils.isNotBlank(password)) {
-            if (StringUtils.equals(apiShare.getSharePassword(), password)) {
-                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_0);
-            }
-            return tokenService.validateTokenOnly(password);
-        }
-        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
     }
 
     @GetMapping("/loadProject/{shareId}")

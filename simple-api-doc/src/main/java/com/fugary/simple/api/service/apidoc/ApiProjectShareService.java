@@ -2,6 +2,8 @@ package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
+import com.fugary.simple.api.entity.api.ApiUser;
+import com.fugary.simple.api.web.vo.SimpleResult;
 
 /**
  * Create date 2024/9/23<br>
@@ -34,4 +36,13 @@ public interface ApiProjectShareService extends IService<ApiProjectShare> {
      * @return
      */
     int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id);
+
+    /**
+     * 密码验证
+     *
+     * @param password
+     * @param apiShare
+     * @return
+     */
+    SimpleResult<ApiUser> validateSharePwd(String password, ApiProjectShare apiShare);
 }

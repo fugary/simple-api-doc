@@ -5,14 +5,12 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.config.SimpleApiConfigProperties;
-import com.fugary.simple.api.utils.SimpleResultUtils;
-import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiUser;
-import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.service.token.TokenService;
+import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -36,9 +34,6 @@ public class TokenServiceImpl implements TokenService {
 
     @Autowired
     private SimpleApiConfigProperties simpleApiConfigProperties;
-
-    @Autowired
-    private ApiUserService apiUserService;
 
     @Override
     public String createToken(ApiUser user) {
@@ -74,29 +69,6 @@ public class TokenServiceImpl implements TokenService {
         try {
             DecodedJWT decoded = getDecoded1(accessToken);
             ApiUser user = toApiUser(decoded);
-            if (user != null) {
-                return SimpleResultUtils.createSimpleResult(user);
-            } else {
-                errorCode = SystemErrorConstants.CODE_404;
-            }
-        } catch (JWTVerificationException e) {
-            // Invalid signature/claims
-            log.error("Token Error", e);
-        }
-        return SimpleResultUtils.createSimpleResult(errorCode);
-    }
-
-    @Override
-    public SimpleResult<ApiUser> validateTokenOnly(String accessToken) {
-        int errorCode = SystemErrorConstants.CODE_401;
-        try {
-            DecodedJWT decoded = getDecoded1(accessToken);
-            String userName = decoded.getClaim(USER_NAME_KEY).asString();
-            ApiUser user = null;
-            if (StringUtils.isNotBlank(userName)) {
-                user = new ApiUser();
-                user.setUserName(userName);
-            }
             return SimpleResultUtils.createSimpleResult(user);
         } catch (JWTVerificationException e) {
             // Invalid signature/claims
@@ -107,7 +79,12 @@ public class TokenServiceImpl implements TokenService {
 
     protected ApiUser toApiUser(DecodedJWT decoded) {
         String userName = decoded.getClaim(USER_NAME_KEY).asString();
-        return apiUserService.getOne(Wrappers.<ApiUser>query().eq("user_name", userName));
+        ApiUser user = null;
+        if (StringUtils.isNotBlank(userName)) {
+            user = new ApiUser();
+            user.setUserName(userName);
+        }
+        return user;
     }
 
     protected DecodedJWT getDecoded(String accessToken) {

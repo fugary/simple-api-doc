@@ -3,9 +3,11 @@ package com.fugary.simple.api.security;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiUser;
+import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
 import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,6 +37,9 @@ public class ShareSecurityInterceptor implements HandlerInterceptor {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private ApiProjectShareService apiProjectShareService;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
         String authorization = StringUtils.defaultIfBlank(request.getHeader(ApiDocConstants.SIMPLE_API_ACCESS_TOKEN_HEADER), request.getHeader(HttpHeaders.AUTHORIZATION));
@@ -42,9 +47,9 @@ public class ShareSecurityInterceptor implements HandlerInterceptor {
         SimpleResult<ApiUser> userResult = null;
         if (StringUtils.isNotBlank(authorization)) {
             String accessToken = authorization.replaceFirst("Bearer ", StringUtils.EMPTY).trim();
-            userResult = getTokenService().validateTokenOnly(accessToken);
+            userResult = apiProjectShareService.validateSharePwd(accessToken, null);
             if (userResult.isSuccess()) {
-                request.setAttribute(ApiDocConstants.AUTHORIZED_SHARED_KEY, userResult.getResultData().getUserName());
+                request.setAttribute(ApiDocConstants.AUTHORIZED_SHARED_KEY, SecurityUtils.getUserShareId(userResult.getResultData()));
                 return true;
             }
         }
