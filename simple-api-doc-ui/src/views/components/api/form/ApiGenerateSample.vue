@@ -18,15 +18,17 @@ const emit = defineEmits(['generateSample'])
     >
       <common-icon
         :size="18"
-        icon="DataObjectFilled"
+        icon="custom-icon-json"
       />
     </el-link>
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item @click="emit('generateSample', 'json')">
+          <common-icon icon="custom-icon-json" />
           {{ $t('common.label.generateJsonData') }}
         </el-dropdown-item>
         <el-dropdown-item @click="emit('generateSample', 'xml')">
+          <common-icon icon="custom-icon-xml" />
           {{ $t('common.label.generateXmlData') }}
         </el-dropdown-item>
       </el-dropdown-menu>

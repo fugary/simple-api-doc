@@ -149,6 +149,11 @@ const viewSchemaBody = () => {
   showCodeWindow(schemaBody)
 }
 
+const supportXml = computed(() => {
+  const schemaBody = isString(props.schemaBody) ? JSON.parse(props.schemaBody) : props.schemaBody
+  return !!schemaBody?.xml
+})
+
 </script>
 
 <template>
@@ -291,9 +296,23 @@ const viewSchemaBody = () => {
               />
             </el-link>
             <api-generate-sample
-              v-if="schemaBody"
+              v-if="schemaBody&&supportXml"
+              :title="$t('common.label.generateRequestData')"
               @generate-sample="generateSample"
             />
+            <el-link
+              v-if="schemaBody&&!supportXml"
+              v-common-tooltip="$t('common.label.generateRequestData')"
+              type="primary"
+              :underline="false"
+              class="margin-left3"
+              @click="generateSample('json')"
+            >
+              <common-icon
+                :size="18"
+                icon="custom-icon-json"
+              />
+            </el-link>
             <api-data-example
               v-if="examples.length"
               :examples="examples"
