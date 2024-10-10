@@ -173,7 +173,7 @@ watch(currentDoc, () => {
             <api-doc-viewer
               v-if="currentDoc?.docType==='api'"
               v-model="currentDoc"
-              :share="projectShare"
+              :share-doc="projectShare"
               :project-item="projectItem"
             />
             <el-container class="text-center padding-10 flex-center">
@@ -209,7 +209,7 @@ watch(currentDoc, () => {
           <api-doc-viewer
             v-if="currentDoc?.docType==='api'"
             v-model="currentDoc"
-            :share="projectShare"
+            :share-doc="projectShare"
             :project-item="projectItem"
           />
           <el-container class="text-center padding-10 flex-center">
