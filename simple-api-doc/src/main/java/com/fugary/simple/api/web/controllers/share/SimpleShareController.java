@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -144,9 +145,13 @@ public class SimpleShareController {
         response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
         response.addHeader("Content-Disposition", "attachment; filename="
                 + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        response.getWriter().write(getContent(type, detail.getSchemaContent()));
-        response.getWriter().flush();
-        response.getWriter().close();
+        try (OutputStream out = response.getOutputStream()) {
+            // 获取文件内容（确保 getContent 返回的是字节数据）
+            byte[] contentBytes = getContent(type, detail.getSchemaContent()).getBytes(StandardCharsets.UTF_8);
+            // 将内容写入输出流
+            out.write(contentBytes);
+            out.flush();
+        }
     }
 
     protected String getContent(String type, String content) {
