@@ -1,11 +1,12 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, reactive } from 'vue'
 import { getEnvConfigs, loadShareDoc } from '@/api/SimpleShareApi'
 import { loadDoc } from '@/api/ApiDocApi'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import ApiDocPathHeader from '@/views/components/api/doc/comp/ApiDocPathHeader.vue'
 import { MdPreview } from 'md-editor-v3'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.vue'
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
@@ -13,11 +14,16 @@ import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 import { previewApiRequest } from '@/utils/DynamicUtils'
 import { useWindowSize } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
+import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 
 const props = defineProps({
-  shareId: {
-    type: String,
-    default: ''
+  shareDoc: {
+    type: Object,
+    default: undefined
+  },
+  projectItem: {
+    type: Object,
+    default: undefined
   }
 })
 
@@ -25,19 +31,25 @@ const apiDoc = defineModel({
   type: Object
 })
 
+const shareConfigStore = useShareConfigStore()
+const globalConfigStore = useGlobalConfigStore()
+
 const apiDocDetail = ref()
 const projectInfoDetail = ref()
 const envConfigs = ref([])
 
-const lastParamTarget = ref({})
+const paramTargetId = props.shareDoc?.shareId || props.projectItem?.projectCode || DEFAULT_PREFERENCE_ID_KEY
+
+let lastParamTarget = reactive({})
 const loading = ref(false)
 const loadDocDetail = async () => {
   if (loading.value) {
     return
   }
   loading.value = true
-  if (props.shareId) {
-    apiDocDetail.value = await loadShareDoc({ shareId: props.shareId, docId: apiDoc.value.id })
+  if (props.shareDoc?.shareId) {
+    const shareId = props.shareDoc.shareId
+    apiDocDetail.value = await loadShareDoc({ shareId, docId: apiDoc.value.id })
       .then(data => data.resultData)
       .catch(err => {
         emitter.emit('share-doc-error', err)
@@ -52,21 +64,28 @@ const loadDocDetail = async () => {
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
   apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
-  lastParamTarget.value = {}
+  const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
+  lastParamTarget = shareConfigStore.shareParamTargets[calcParamTargetId] = shareConfigStore.shareParamTargets[calcParamTargetId] || reactive({})
 }
 
 const handlerConfig = {
-  preHandler: target => Object.assign(target, lastParamTarget.value),
-  changeHandler: target => (lastParamTarget.value = target)
+  preHandler: target => Object.assign(target, lastParamTarget),
+  changeHandler: target => Object.assign(lastParamTarget, target)
 }
 
 watch(apiDoc, loadDocDetail, {
   immediate: true
 })
-const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-const folderContainerHeight = useFolderLayoutHeight(!props.shareId, props.shareId ? -70 : -40)
+const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
+const folderContainerHeight = useFolderLayoutHeight(!props.shareDoc, props.shareDoc ? -70 : -40)
 const { width } = useWindowSize()
 const isMobile = computed(() => width.value <= 768)
+
+const emit = defineEmits(['toPreviewApi'])
+const toDebugApi = () => {
+  previewApiRequest(projectInfoDetail.value, apiDocDetail.value, handlerConfig)
+  emit('toPreviewApi', projectInfoDetail.value, apiDocDetail.value, handlerConfig)
+}
 </script>
 
 <template>
@@ -80,8 +99,8 @@ const isMobile = computed(() => width.value <= 768)
     <api-doc-path-header
       v-model="apiDocDetail"
       :env-configs="envConfigs"
-      :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareId)"
-      @debug-api="previewApiRequest(projectInfoDetail, apiDocDetail, handlerConfig)"
+      :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareDoc)"
+      @debug-api="toDebugApi"
     />
     <el-container
       :style="{height:folderContainerHeight}"

@@ -89,6 +89,7 @@ const savedApiDoc = () => {
               <api-doc-viewer
                 v-if="currentDoc?.docType==='api'"
                 v-model="currentDoc"
+                :project-item="projectItem"
               />
             </el-container>
             <el-container v-else>
@@ -101,6 +102,7 @@ const savedApiDoc = () => {
               <api-doc-viewer
                 v-if="currentDoc?.docType==='api'"
                 v-model="currentDoc"
+                :project-item="projectItem"
               />
             </el-container>
           </template>

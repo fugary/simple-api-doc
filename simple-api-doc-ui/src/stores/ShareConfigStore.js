@@ -7,9 +7,11 @@ import { defineStore } from 'pinia'
 export const useShareConfigStore = defineStore('shareConfigStore', () => {
   const shareConfig = ref({})
   const sharePreferenceView = ref({})
+  const shareParamTargets = ref({})
   return {
     shareConfig,
     sharePreferenceView,
+    shareParamTargets,
     getShareToken (shareId) {
       return shareConfig.value[shareId]
     },
@@ -18,11 +20,15 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
     },
     clearShareToken (shareId) {
       delete shareConfig.value[shareId]
+      delete sharePreferenceView.value[shareId]
     },
     clearAllShareToken: () => {
       shareConfig.value = {}
+      sharePreferenceView.value = {}
     }
   }
 }, {
-  persist: true
+  persist: {
+    paths: ['shareConfig', 'sharePreferenceView']
+  }
 })
