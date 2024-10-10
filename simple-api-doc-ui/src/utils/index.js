@@ -472,6 +472,16 @@ export const $randomStr = (len = 8) => {
   }
   return str + $randomStr(len - str.length)
 }
+/**
+ * 下载链接点击
+ * @param downloadUrl
+ */
+export const $downloadWithLinkClick = (downloadUrl) => {
+  const downloadLink = document.createElement('a')
+  downloadLink.href = downloadUrl
+  downloadLink.download = 'download'
+  downloadLink.click()
+}
 
 export default {
   install (app) {

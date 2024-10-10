@@ -93,6 +93,8 @@ common.label.generateXmlData = '生成XML'
 common.label.generateJsonData = '生成JSON'
 common.label.codeEdit = '代码编辑'
 common.label.newWindowEdit = '新窗口编辑'
+common.label.json = 'JSON'
+common.label.yaml = 'YAML'
 
 //= ============通用============
 common.label.commonCode = '{0}代码'
@@ -113,6 +115,7 @@ common.label.commonCollapse = '收起{0}'
 common.label.commonEnable = '启用{0}'
 common.label.commonDisable = '禁用{0}'
 common.label.commonDelay = '延迟{0}毫秒'
+common.label.commonDownload = '下载{0}'
 
 //* =======================msg=====================//
 common.msg.nonNull = '{0}不能为空'

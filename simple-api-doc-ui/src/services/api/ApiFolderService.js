@@ -4,6 +4,7 @@ import { $coreAlert, $coreConfirm, calcAffixOffset, processTreeData } from '@/ut
 import { $i18nBundle, $i18nKey } from '@/messages'
 import ApiDocApi from '@/api/ApiDocApi'
 import { useWindowSize } from '@vueuse/core'
+import { checkDownloadDocs, downloadShareDocs } from '@/api/SimpleShareApi'
 
 /**
  * 根目是否显示url或者名称
@@ -20,6 +21,22 @@ export const calcShowDocLabelHandler = (folder, preference) => {
       preference.defaultShowLabel = preference.defaultShowLabel === 'url' ? 'docName' : 'url'
     }
   }
+}
+
+export const getDownloadDocsHandlers = (shareId) => {
+  const supportedTypes = ['json', 'yaml']
+  return supportedTypes.map(type => {
+    return {
+      icon: `custom-icon-${type}`,
+      label: $i18nKey('common.label.commonDownload', `common.label.${type}`),
+      handler: () => {
+        checkDownloadDocs(shareId).then(data => {
+          console.log('===========================data', data)
+          downloadShareDocs({ type, shareId })
+        })
+      }
+    }
+  })
 }
 
 /**

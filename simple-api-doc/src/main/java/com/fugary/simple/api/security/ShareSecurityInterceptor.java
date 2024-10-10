@@ -38,6 +38,7 @@ public class ShareSecurityInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
         String authorization = StringUtils.defaultIfBlank(request.getHeader(ApiDocConstants.SIMPLE_API_ACCESS_TOKEN_HEADER), request.getHeader(HttpHeaders.AUTHORIZATION));
+        authorization = StringUtils.defaultIfBlank(authorization, request.getParameter("access_token"));
         SimpleResult<ApiUser> userResult = null;
         if (StringUtils.isNotBlank(authorization)) {
             String accessToken = authorization.replaceFirst("Bearer ", StringUtils.EMPTY).trim();

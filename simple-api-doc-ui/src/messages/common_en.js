@@ -93,6 +93,8 @@ common.label.generateXmlData = 'Generate XML'
 common.label.generateJsonData = 'Generate JSON'
 common.label.codeEdit = 'Code Edit'
 common.label.newWindowEdit = 'Edit in new window'
+common.label.json = 'JSON'
+common.label.yaml = 'YAML'
 
 //= ============通用============
 common.label.commonConfig = 'Config {0}'
@@ -113,6 +115,7 @@ common.label.commonCollapse = 'Collapse {0}'
 common.label.commonEnable = 'Enable {0}'
 common.label.commonDisable = 'Disable {0}'
 common.label.commonDelay = 'Delay {0}ms'
+common.label.commonDownload = 'Download {0}'
 
 //* =======================msg=====================//
 common.msg.nonNull = '{0} is required.'

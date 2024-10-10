@@ -13,7 +13,7 @@ import {
   getFolderHandlers,
   getDocHandlers,
   calcNodeLeaf,
-  calcShowDocLabelHandler, useFolderLayoutHeight, getChildrenSortId
+  calcShowDocLabelHandler, useFolderLayoutHeight, getChildrenSortId, getDownloadDocsHandlers
 } from '@/services/api/ApiFolderService'
 import { loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
@@ -105,8 +105,8 @@ defineEmits(['toAddFolder', 'deleteFolder', 'toEditFolder', 'toAddDoc', 'toEditD
 const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
-  if (rootFolder.value) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference)]
+  if (rootFolder.value && props.shareDoc) {
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc.shareId)]
   }
   return []
 })
