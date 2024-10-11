@@ -63,7 +63,7 @@ const columns = [{
   labelKey: 'api.label.runningStatus',
   formatter (data) {
     if (data.taskStatus) {
-      const type = TASK_STATUS_MAPPING[data.taskStatus]
+      const type = TASK_STATUS_MAPPING[data.taskStatus] || 'info'
       return <ElTag type={type}>{data.taskStatus}</ElTag>
     }
   },
@@ -74,7 +74,9 @@ const columns = [{
   labelKey: 'api.label.scheduleStatus',
   formatter (data) {
     if (data.scheduleStatus) {
-      return <ElTag type={data.scheduleStatus === 'started' ? 'success' : 'danger'}>{data.scheduleStatus}</ElTag>
+      return <ElTag type={data.scheduleStatus === 'started' ? 'success' : 'danger'}>
+        {data.scheduleStatus}
+      </ElTag>
     }
   },
   attrs: {

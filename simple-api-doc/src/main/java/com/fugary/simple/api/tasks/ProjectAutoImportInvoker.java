@@ -57,6 +57,10 @@ public class ProjectAutoImportInvoker {
                 importVo.setAuthType(projectTask.getAuthType());
                 importVo.setAuthContent(projectTask.getAuthContent());
                 importVo.setSourceType(projectTask.getSourceType());
+                importVo.setProjectName(apiProject.getProjectName());
+                importVo.setTaskName(projectTask.getTaskName());
+                importVo.setTaskType(projectTask.getTaskType());
+                importVo.setToFolder(projectTask.getToFolder());
                 String content = urlDocContentProvider.getContent(importVo);
                 SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
                 if (!parseResult.isSuccess()) {
@@ -65,10 +69,12 @@ public class ProjectAutoImportInvoker {
                 }
                 ExportApiProjectVo exportProjectVo = parseResult.getResultData();
                 ExportApiProjectInfoVo projectInfo = exportProjectVo.getProjectInfo();
+                projectInfo.setImportType(importVo.getImportType());
                 projectInfo.setSourceType(importVo.getSourceType());
                 projectInfo.setAuthType(importVo.getAuthType());
                 projectInfo.setAuthContent(importVo.getAuthContent());
                 projectInfo.setUrl(importVo.getUrl());
+                projectInfo.setFolderId(projectTask.getToFolder());
                 SimpleResult<ApiProject> importResult = apiProjectService.importUpdateProject(apiProject, parseResult.getResultData(), importVo);
                 if (!importResult.isSuccess()) {
                     log.error("import project task {}/{} error {}", projectTask.getProjectId(), projectTask.getId(), importResult.getMessage());
