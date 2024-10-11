@@ -16,6 +16,7 @@ import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
+import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -108,7 +109,9 @@ public class SimpleShareController {
         if (apiShare == null || (project = apiProjectService.getById(apiShare.getProjectId())) == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(project.getProjectCode(), true, true));
+        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+                .projectCode(project.getProjectCode())
+                .includeDocs(true).build()));
     }
 
     @GetMapping("/checkDownloadDocs/{shareId}")

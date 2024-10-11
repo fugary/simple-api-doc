@@ -45,18 +45,32 @@ const savedApiDoc = () => {
           >
             {{ $t('common.label.back') }}
           </el-button>
-          <el-button
+          <el-badge
+            :value="projectItem.shares?.filter(share=>share.status).length"
+            :show-zero="false"
             type="primary"
-            @click="$goto(`/api/projects/shares/${projectItem.projectCode}`)"
+            class="padding-left2"
           >
-            {{ $t('api.label.shareDocs') }}
-          </el-button>
-          <el-button
-            type="success"
-            @click="$goto(`/api/projects/tasks/${projectItem.projectCode}`)"
+            <el-button
+              type="primary"
+              @click="$goto(`/api/projects/shares/${projectItem.projectCode}`)"
+            >
+              {{ $t('api.label.shareDocs') }}
+            </el-button>
+          </el-badge>
+          <el-badge
+            :value="projectItem.tasks?.filter(task=>task.status).length"
+            :show-zero="false"
+            type="primary"
+            class="padding-left2"
           >
-            {{ $t('api.label.importData') }}
-          </el-button>
+            <el-button
+              type="success"
+              @click="$goto(`/api/projects/tasks/${projectItem.projectCode}`)"
+            >
+              {{ $t('api.label.importData') }}
+            </el-button>
+          </el-badge>
         </div>
       </template>
     </el-page-header>

@@ -16,6 +16,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
+import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -57,7 +58,10 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @SneakyThrows
     @Override
-    public ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled, boolean includeDocs) {
+    public ApiProjectDetailVo loadProjectVo(ProjectDetailQueryVo queryVo) {
+        String projectCode = queryVo.getProjectCode();
+        boolean forceEnabled = queryVo.isForceEnabled();
+        boolean includeDocs = queryVo.isIncludeDocs();
         ApiProject apiProject = getOne(Wrappers.<ApiProject>query().eq("project_code", projectCode)
                 .eq(forceEnabled, ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
         if (apiProject != null) {
@@ -71,6 +75,16 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId())
                         : apiDocService.loadByProject(apiProject.getId());
                 apiProjectVo.setDocs(docs);
+            }
+            if (queryVo.isIncludesShares()) {
+                List<ApiProjectShare> shares = apiProjectShareService.list(Wrappers.<ApiProjectShare>query()
+                        .eq("project_id", apiProject.getId()));
+                apiProjectVo.setShares(shares);
+            }
+            if (queryVo.isIncludeTasks()) {
+                List<ApiProjectTask> tasks = apiProjectTaskService.list(Wrappers.<ApiProjectTask>query()
+                        .eq("project_id", apiProject.getId()));
+                apiProjectVo.setTasks(tasks);
             }
             return apiProjectVo;
         }

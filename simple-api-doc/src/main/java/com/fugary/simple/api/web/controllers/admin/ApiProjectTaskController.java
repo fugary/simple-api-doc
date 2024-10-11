@@ -4,22 +4,27 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.config.SimpleApiConfigProperties;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
+import com.fugary.simple.api.tasks.SimpleAutoTask;
 import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.project.ApiProjectTaskVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.config.ScheduledTask;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Create date 2024/9/27<br>
@@ -52,7 +57,27 @@ public class ApiProjectTaskController {
         QueryWrapper<ApiProjectTask> queryWrapper = Wrappers.<ApiProjectTask>query()
                 .eq("project_id", queryVo.getProjectId())
                 .like(StringUtils.isNotBlank(keyword), "task_name", keyword);
-        return SimpleResultUtils.createSimpleResult(apiProjectTaskService.page(page, queryWrapper));
+        Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, queryWrapper);
+        List<ApiProjectTask> apiTasks = pageResult.getRecords().stream().map(task -> {
+            String taskId = SimpleTaskUtils.getTaskId(task.getId());
+            ApiProjectTaskVo taskVo = SimpleModelUtils.copy(task, ApiProjectTaskVo.class);
+            taskVo.setTaskId(taskId);
+            if (ApiDocConstants.PROJECT_TASK_TYPE_AUTO.equals(task.getTaskType())) {
+                String scheduleStatus = ApiDocConstants.TASK_STATUS_STOPPED;
+                SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(taskId);
+                if (autoTask != null) {
+                    ScheduledTask scheduledTask = simpleTaskManager.getScheduledTask(taskId);
+                    if (scheduledTask != null) {
+                        scheduleStatus = ApiDocConstants.TASK_STATUS_STARTED;
+                    }
+                    taskVo.setTaskStatus(SimpleTaskUtils.calcTaskStatus(scheduledTask, autoTask.getTaskWrapper()));
+                }
+                taskVo.setScheduleStatus(scheduleStatus);
+            }
+            return taskVo;
+        }).collect(Collectors.toList());
+        pageResult.setRecords(apiTasks);
+        return SimpleResultUtils.createSimpleResult(pageResult);
     }
 
     @GetMapping("/{id}")

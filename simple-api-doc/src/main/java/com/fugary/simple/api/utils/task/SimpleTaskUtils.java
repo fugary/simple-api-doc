@@ -2,14 +2,22 @@ package com.fugary.simple.api.utils.task;
 
 import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.ProjectAutoImportTask;
 import com.fugary.simple.api.tasks.SimpleAutoTask;
 import com.fugary.simple.api.tasks.SimpleTaskWrapper;
+import com.fugary.simple.api.web.vo.task.SimpleTaskVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.springframework.scheduling.config.ScheduledTask;
+
+import java.lang.reflect.Field;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * Create date 2024/9/29<br>
@@ -62,5 +70,61 @@ public class SimpleTaskUtils {
         return new ProjectAutoImportTask(projectTaskWrapper,
                 () -> projectAutoImportInvoker.importProject(projectTask),
                 simpleApiConfigProperties.getDefaultTaskDelay());
+    }
+
+    /**
+     * 计算任务状态
+     *
+     * @param scheduledTask
+     * @param taskWrapper
+     * @return
+     * @throws IllegalAccessException
+     */
+    public static String calcTaskStatus(ScheduledTask scheduledTask, SimpleTaskWrapper<?> taskWrapper) {
+        String status = ApiDocConstants.TASK_STATUS_STOPPED;
+        if (scheduledTask != null && taskWrapper != null) {
+            status = ApiDocConstants.TASK_STATUS_STARTED;
+            Field futureField = FieldUtils.getField(scheduledTask.getClass(), "future", true);
+            ScheduledFuture<?> scheduledFuture = null;
+            try {
+                scheduledFuture = (ScheduledFuture<?>) futureField.get(scheduledTask);
+            } catch (IllegalAccessException e) {
+                log.error("无法获取ScheduledFuture", e);
+            }
+            if (scheduledFuture != null && scheduledFuture.isCancelled()) {
+                status = ApiDocConstants.TASK_STATUS_STOPPED;
+            } else {
+                if (StringUtils.isNotBlank(taskWrapper.getRunningStatus())) {
+                    status = taskWrapper.getRunningStatus();
+                }
+            }
+        }
+        return status;
+    }
+
+    /**
+     * 计算TaskVo
+     *
+     * @param scheduledTask
+     * @param autoTask
+     * @param project
+     * @return
+     */
+    public static SimpleTaskVo getSimpleTaskVo(ScheduledTask scheduledTask, SimpleAutoTask<?> autoTask, ApiProject project) {
+        SimpleTaskWrapper<?> taskWrapper = autoTask.getTaskWrapper();
+        SimpleTaskVo taskVo = new SimpleTaskVo();
+        taskVo.setTaskId(taskWrapper.getTaskId());
+        taskVo.setTaskName(taskWrapper.getTaskName());
+        if (taskWrapper.getData() instanceof ApiProjectTask) {
+            ApiProjectTask apiProjectTask = (ApiProjectTask) taskWrapper.getData();
+            taskVo.setProjectId(apiProjectTask.getProjectId());
+            if (project != null) {
+                taskVo.setProjectName(project.getProjectName());
+                taskVo.setUserName(project.getUserName());
+            }
+        }
+        String status = SimpleTaskUtils.calcTaskStatus(scheduledTask, taskWrapper);
+        taskVo.setTaskStatus(status);
+        return taskVo;
     }
 }

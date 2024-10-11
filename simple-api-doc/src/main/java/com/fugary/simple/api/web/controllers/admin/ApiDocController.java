@@ -89,6 +89,9 @@ public class ApiDocController {
         if (apiDocService.existsApiDoc(apiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
+        if (StringUtils.isBlank(apiDoc.getDocKey())) {
+            apiDoc.setDocKey(SimpleModelUtils.uuid());
+        }
         return SimpleResultUtils.createSimpleResult(apiDocService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiDoc)));
     }
 

@@ -66,6 +66,7 @@ const loadDocDetail = async () => {
   apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
   lastParamTarget = shareConfigStore.shareParamTargets[calcParamTargetId] = shareConfigStore.shareParamTargets[calcParamTargetId] || reactive({})
+  console.log('======================apiDocDetail', apiDocDetail.value)
 }
 
 const handlerConfig = {
@@ -116,7 +117,7 @@ const toDebugApi = () => {
           :model-value="apiDocDetail?.description"
         />
         <api-doc-parameters
-          v-if="apiDocDetail?.parametersSchema || !apiDocDetail?.requestsSchemas?.length"
+          v-if="!apiDocDetail?.requestsSchemas?.length"
           v-model="apiDocDetail"
         />
         <api-doc-request-body

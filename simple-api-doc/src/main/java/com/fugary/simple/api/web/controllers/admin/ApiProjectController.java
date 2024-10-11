@@ -17,6 +17,7 @@ import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.JwtParamVo;
+import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -69,7 +70,11 @@ public class ApiProjectController {
 
     @GetMapping("/loadDetail/{projectCode}")
     public SimpleResult<ApiProjectDetailVo> loadDetail(@PathVariable("projectCode") String projectCode) {
-        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(projectCode, false, true);
+        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+                .projectCode(projectCode)
+                .includeDocs(true)
+                .includeTasks(true)
+                .includesShares(true).build());
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
@@ -78,7 +83,8 @@ public class ApiProjectController {
 
     @GetMapping("/loadBasic/{projectCode}")
     public SimpleResult<ApiProjectDetailVo> loadBasic(@PathVariable("projectCode") String projectCode) throws Exception {
-        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(projectCode, false, false);
+        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+                .projectCode(projectCode).build());
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }

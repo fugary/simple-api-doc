@@ -6,6 +6,7 @@ import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
+import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 
 import java.util.List;
 
@@ -19,12 +20,10 @@ public interface ApiProjectService extends IService<ApiProject> {
     /**
      * 加载project详情
      *
-     * @param projectCode  项目代码
-     * @param forceEnabled 仅启用数据
-     * @param includeDocs  是否包含doc等信息
+     * @param queryVo  项目查询条件
      * @return
      */
-    ApiProjectDetailVo loadProjectVo(String projectCode, boolean forceEnabled, boolean includeDocs);
+    ApiProjectDetailVo loadProjectVo(ProjectDetailQueryVo queryVo);
 
     /**
      * 级联删除

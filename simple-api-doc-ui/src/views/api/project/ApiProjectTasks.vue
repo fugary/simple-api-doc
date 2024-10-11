@@ -16,13 +16,14 @@ import {
   AUTH_TYPE,
   IMPORT_AUTH_TYPES,
   IMPORT_SOURCE_TYPES,
-  IMPORT_TASK_TYPES,
+  IMPORT_TASK_TYPES, TASK_STATUS_MAPPING,
   TASK_TRIGGER_RATES
 } from '@/consts/ApiConstants'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
+import { ElTag } from 'element-plus'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -59,6 +60,27 @@ const columns = [{
     align: 'center'
   }
 }, {
+  labelKey: 'api.label.runningStatus',
+  formatter (data) {
+    if (data.taskStatus) {
+      const type = TASK_STATUS_MAPPING[data.taskStatus]
+      return <ElTag type={type}>{data.taskStatus}</ElTag>
+    }
+  },
+  attrs: {
+    align: 'center'
+  }
+}, {
+  labelKey: 'api.label.scheduleStatus',
+  formatter (data) {
+    if (data.scheduleStatus) {
+      return <ElTag type={data.scheduleStatus === 'started' ? 'success' : 'danger'}>{data.scheduleStatus}</ElTag>
+    }
+  },
+  attrs: {
+    align: 'center'
+  }
+}, {
   labelKey: 'api.label.targetFolder',
   formatter (data) {
     return folders.value.find(folder => folder.id === data.toFolder)?.folderName
@@ -70,15 +92,13 @@ const columns = [{
     return labelKey ? $i18nBundle(labelKey) : ''
   }
 }, {
-  labelKey: 'api.label.importData',
-  formatter (data) {
-    const labelKey = IMPORT_TASK_TYPES.find(type => type.value === data.taskType)?.labelKey
-    return labelKey ? $i18nBundle(labelKey) : ''
-  }
-}, {
   labelKey: 'api.label.triggerRate',
   formatter (data) {
-    return data.taskType === 'auto' ? dayjs.duration(data.scheduleRate, 'minutes').humanize() : $i18nBundle('api.label.manualImportData1')
+    if (data.taskType === 'auto') {
+      return data.taskType === 'auto' ? dayjs.duration(data.scheduleRate, 'seconds').humanize() : $i18nBundle('api.label.manualImportData1')
+    }
+    const labelKey = IMPORT_TASK_TYPES.find(type => type.value === data.taskType)?.labelKey
+    return labelKey ? $i18nBundle(labelKey) : ''
   }
 }, {
   labelKey: 'api.label.execDate',

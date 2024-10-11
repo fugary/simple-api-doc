@@ -127,6 +127,14 @@ export const TASK_TRIGGER_RATES = [5, 10, 30, 60, 60 * 3, 60 * 12, 60 * 24, 60 *
   }
 })
 
+export const TASK_STATUS_MAPPING = {
+  started: 'primary',
+  done: 'success',
+  running: 'success',
+  error: 'danger',
+  stopped: 'danger'
+}
+
 export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH_TYPE.JWT)
 
 export const ALL_STATUS_CODES = [200, 201, 202, 301, 302, 307, 400, 401, 404, 405, 415, 500, 502, 503]
