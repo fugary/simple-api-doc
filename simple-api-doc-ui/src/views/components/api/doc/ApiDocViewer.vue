@@ -107,7 +107,7 @@ const toDebugApi = () => {
       :style="{height:folderContainerHeight}"
       class="flex-column"
     >
-      <el-scrollbar>
+      <el-scrollbar class="api-doc-viewer">
         <h3 v-if="apiDocDetail?.description">
           {{ $t('api.label.apiDescription') }}
         </h3>
@@ -130,6 +130,12 @@ const toDebugApi = () => {
         />
       </el-scrollbar>
     </el-container>
+    <el-backtop
+      v-common-tooltip="$t('common.label.backtop')"
+      target=".api-doc-viewer .el-scrollbar__wrap"
+      :right="70"
+      :bottom="70"
+    />
   </el-container>
 </template>
 

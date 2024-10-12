@@ -8,7 +8,8 @@ import { useWindowSize } from '@vueuse/core'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 
 const { width } = useWindowSize()
-const docMargin = computed(() => width.value <= 768 ? 0 : '220px')
+const isMobile = computed(() => width.value <= 768)
+const docMargin = computed(() => isMobile.value ? 0 : '220px')
 
 const props = defineProps({
   scrollElement: {
@@ -52,13 +53,19 @@ const folderContainerHeight = useFolderLayoutHeight(props.editable)
         :model-value="currentDoc.docContent"
       />
       <md-catalog
-        v-if="width>=800"
+        v-if="!isMobile"
         class="md-catalog"
         :editor-id="id"
         :scroll-element="scrollElement"
         :scroll-element-offset-top="scrollElementOffsetTop"
       />
     </el-container>
+    <el-backtop
+      v-common-tooltip="$t('common.label.backtop')"
+      target=".md-editor-preview-wrapper"
+      :right="70"
+      :bottom="70"
+    />
   </el-container>
 </template>
 
