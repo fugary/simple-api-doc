@@ -61,7 +61,7 @@ const savedApiDoc = () => {
           <el-badge
             :value="projectItem.tasks?.filter(task=>task.status).length"
             :show-zero="false"
-            type="primary"
+            type="success"
             class="padding-left2"
           >
             <el-button

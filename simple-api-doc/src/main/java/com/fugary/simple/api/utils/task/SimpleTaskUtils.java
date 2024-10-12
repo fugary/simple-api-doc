@@ -14,9 +14,12 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.springframework.scheduling.config.CronTask;
+import org.springframework.scheduling.config.FixedRateTask;
 import org.springframework.scheduling.config.ScheduledTask;
 
 import java.lang.reflect.Field;
+import java.util.Date;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -39,6 +42,7 @@ public class SimpleTaskUtils {
         try {
             log.info("开始任务:{}", projectTaskWrapper.getTaskName());
             projectTaskWrapper.setRunningStatus(ApiDocConstants.TASK_STATUS_RUNNING);
+            projectTaskWrapper.setLastExecDate(new Date());
             runnable.run();
             log.info("结束任务:{}，耗时：{}", projectTaskWrapper.getTaskName(), System.currentTimeMillis() - start);
         } catch (Exception e) {
@@ -115,13 +119,25 @@ public class SimpleTaskUtils {
         SimpleTaskVo taskVo = new SimpleTaskVo();
         taskVo.setTaskId(taskWrapper.getTaskId());
         taskVo.setTaskName(taskWrapper.getTaskName());
+        taskVo.setLastExecDate(taskWrapper.getLastExecDate());
         if (taskWrapper.getData() instanceof ApiProjectTask) {
             ApiProjectTask apiProjectTask = (ApiProjectTask) taskWrapper.getData();
             taskVo.setProjectId(apiProjectTask.getProjectId());
+            taskVo.setTid(apiProjectTask.getId());
             if (project != null) {
                 taskVo.setProjectName(project.getProjectName());
                 taskVo.setUserName(project.getUserName());
             }
+        }
+        if (autoTask instanceof CronTask) {
+            CronTask cronTask = (CronTask) autoTask;
+            taskVo.setType(ApiDocConstants.SIMPLE_TASK_TYPE_CRON);
+            taskVo.setCron(cronTask.getExpression());
+        } else if (autoTask instanceof FixedRateTask) {
+            FixedRateTask fixedRateTask = (FixedRateTask) autoTask;
+            taskVo.setType(ApiDocConstants.SIMPLE_TASK_TYPE_FIXED);
+            taskVo.setTriggerRate(fixedRateTask.getInterval());
+            taskVo.setTriggerDelay(fixedRateTask.getInitialDelay());
         }
         String status = SimpleTaskUtils.calcTaskStatus(scheduledTask, taskWrapper);
         taskVo.setTaskStatus(status);

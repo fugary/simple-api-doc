@@ -46,11 +46,12 @@ public class ApiProjectController {
     @GetMapping
     public SimpleResult<List<ApiProject>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProject> page = SimpleResultUtils.toPage(queryVo);
-        QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query();
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
-        queryWrapper.and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("project_name", keyword));
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
-        queryWrapper.and(wrapper -> wrapper.and(wrapper1 -> wrapper1.eq("user_name", userName)));
+        QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query()
+                .like(StringUtils.isNotBlank(keyword), "project_name", keyword)
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
+                .eq("user_name", userName);
         return SimpleResultUtils.createSimpleResult(apiProjectService.page(page, queryWrapper));
     }
 
@@ -93,6 +94,13 @@ public class ApiProjectController {
 
     @DeleteMapping("/{id}")
     public SimpleResult<Boolean> remove(@PathVariable("id") Integer id) {
+        ApiProject project = apiProjectService.getById(id);
+        if (project == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!SecurityUtils.validateUserUpdate(project.getUserName())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(apiProjectService.deleteApiProject(id));
     }
 

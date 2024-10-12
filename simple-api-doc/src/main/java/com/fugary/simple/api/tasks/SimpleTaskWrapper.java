@@ -3,6 +3,8 @@ package com.fugary.simple.api.tasks;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Date;
+
 /**
  * Create date 2024/9/29<br>
  *
@@ -20,4 +22,5 @@ public class SimpleTaskWrapper<T>{
 
     private final T data;
 
+    private Date lastExecDate;
 }

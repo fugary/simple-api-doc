@@ -79,6 +79,10 @@ public class ApiDocConstants {
 
     public static final String PROJECT_TASK_TYPE_AUTO = "auto";
 
+    public static final String SIMPLE_TASK_TYPE_FIXED = "FixedRate";
+
+    public static final String SIMPLE_TASK_TYPE_CRON = "Cron";
+
     public static final String TASK_STATUS_STARTED = "started";
 
     public static final String TASK_STATUS_DONE = "done";

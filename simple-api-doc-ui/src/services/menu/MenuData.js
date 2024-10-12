@@ -2,7 +2,7 @@ import { BASE_URL } from '@/config'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { ref } from 'vue'
 import { $i18nBundle } from '@/messages'
-import { getPathUrl } from '@/utils'
+import { getPathUrl, isAdminUser } from '@/utils'
 
 const dbUrl = getPathUrl(`${BASE_URL}${BASE_URL.endsWith('/') ? '' : '/'}h2-console`)
 const editorContent = ref('')
@@ -34,6 +34,15 @@ export const ALL_MENUS = [
     nameCn: '用户管理',
     nameEn: 'Users',
     menuUrl: '/admin/users'
+  },
+  {
+    id: 52,
+    parentId: 5,
+    iconCls: 'Timer',
+    nameCn: '任务管理',
+    nameEn: 'Tasks',
+    menuUrl: '/admin/simple-tasks',
+    checkEnabled: isAdminUser
   },
   {
     id: 9,

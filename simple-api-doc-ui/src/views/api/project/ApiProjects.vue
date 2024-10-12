@@ -8,7 +8,7 @@ import ApiProjectApi, { copyProject } from '@/api/ApiProjectApi'
 import { $coreConfirm, $goto, formatDate, isAdminUser, useCurrentUserName } from '@/utils'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { $i18nBundle } from '@/messages'
-import { useFormStatus } from '@/consts/GlobalConstants'
+import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
@@ -59,6 +59,7 @@ const searchFormOptions = computed(() => {
       loadApiProjects(1)
     }
   },
+  useSearchStatus(),
   {
     labelKey: 'common.label.keywords',
     prop: 'keyword'

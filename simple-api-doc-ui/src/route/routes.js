@@ -1,8 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '@/views/Login.vue'
 import ShareDoc from '@/views/share/ShareDoc.vue'
-import AdminRoutes from '@/route/AdminRoutes'
-import MockRoutes from '@/route/ApiRoutes'
+import UserRoutes from '@/route/UserRoutes'
+import SimpleTasksRoutes from '@/route/SimpleTasksRoutes'
+import ApiRoutes from '@/route/ApiRoutes'
 import ToolsRoutes from '@/route/ToolsRoutes'
 import { checkRouteAuthority, processRouteLoading } from '@/authority'
 import { checkReplaceHistoryShouldReplace } from '@/route/RouteUtils'
@@ -50,8 +51,9 @@ const router = createRouter({
           label: 'Not Found'
         }
       },
-      ...AdminRoutes,
-      ...MockRoutes,
+      ...UserRoutes,
+      ...SimpleTasksRoutes,
+      ...ApiRoutes,
       ...ToolsRoutes
       ]
     }, {

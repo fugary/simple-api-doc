@@ -15,7 +15,7 @@ import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { I18N_ENABLED, THEME_ENABLED } from '@/config'
 import { $logout } from '@/utils'
 import { ALL_MENUS } from '@/services/menu/MenuData'
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep, isFunction } from 'lodash-es'
 
 /**
  * @param menu {MenuDto}
@@ -62,7 +62,15 @@ export const loadAndParseMenus = async () => {
    */
   // const menus = await $httpPost('/api/menus', param, config).then(data => data.resultData?.menuList || [])
   const loginConfigStore = useLoginConfigStore()
-  const menus = cloneDeep(ALL_MENUS).filter(menu => !menu.dbConsole || (menu.dbConsole && loginConfigStore.consoleEnabled))
+  const menus = cloneDeep(ALL_MENUS).filter(menu => {
+    if (menu.dbConsole) {
+      return loginConfigStore.consoleEnabled
+    }
+    if (isFunction(menu.checkEnabled)) {
+      return menu.checkEnabled()
+    }
+    return true
+  })
   return processMenus(menus)
 }
 /**
