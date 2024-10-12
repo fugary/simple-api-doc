@@ -103,7 +103,7 @@ const getMarkdownStr = data => {
             type="info"
             class="margin-right2"
           >
-            <strong>{{ data.schema?.type }}&nbsp;</strong>
+            <strong>{{ data.schema?.type||data.schema?.types?.[0] }}&nbsp;</strong>
             <span v-if="data.schema?.format||data.schema?.name">
               &lt;{{ data.schema?.format || data.schema?.name }}&gt;
             </span>

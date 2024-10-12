@@ -129,6 +129,7 @@ watch(currentDoc, () => {
         :title="projectShare?.shareName"
         :ok-label="$t('api.label.accessDocs')"
         :ok-click="toAccessDocs"
+        :close-on-click-modal="false"
       >
         <el-container class="flex-column">
           <el-alert

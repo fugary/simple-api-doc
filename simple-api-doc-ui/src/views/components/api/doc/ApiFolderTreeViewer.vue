@@ -159,7 +159,7 @@ const refreshProjectItem = (...args) => {
   })
 }
 
-const folderContainerHeight = useFolderLayoutHeight(props.editable, -10, true)
+const folderContainerHeight = useFolderLayoutHeight(props.editable, 0, true)
 //* *********文件夹编辑****************//
 const currentEditFolder = ref()
 const showEditWindow = ref(false)
