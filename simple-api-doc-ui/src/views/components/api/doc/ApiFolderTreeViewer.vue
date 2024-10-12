@@ -263,6 +263,7 @@ defineExpose(handlerData)
         <el-tree
           v-if="showFolderTree"
           ref="treeRef"
+          class="folder-schema-tree"
           node-key="treeId"
           :default-expanded-keys="sharePreference.lastExpandKeys"
           highlight-current

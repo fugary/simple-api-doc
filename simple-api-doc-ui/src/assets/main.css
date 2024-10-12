@@ -492,6 +492,11 @@ html, body, #app, .index-container {
     overflow: auto;
 }
 
+.folder-schema-tree .el-tree-node__content{
+    min-height: 35px;
+    height: unset;
+}
+
 .doc-schema-tree .el-tree-node__content{
     min-height: 40px;
     height: unset;
