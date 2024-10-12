@@ -95,6 +95,7 @@ api.label.setDefault = 'Set default'
 api.label.dataFormat = 'Data Format'
 api.label.projectCode = 'Project Code'
 api.label.projectName = 'Project Name'
+api.label.enum = 'Enums'
 
 api.msg.noExportData = 'No data to export'
 api.msg.exportConfirm = 'Confirm to export mock data?'

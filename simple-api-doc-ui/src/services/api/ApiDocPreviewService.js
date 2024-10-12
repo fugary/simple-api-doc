@@ -212,10 +212,14 @@ export const checkLeaf = schema => {
   if (schema?.$ref || Object.keys(schema?.properties || {}).length) {
     return false
   }
-  if (schema?.type === 'array') {
+  if (isArraySchema(schema)) {
     return checkLeaf(schema.items)
   }
   return true
+}
+
+export const isArraySchema = schema => {
+  return (schema?.type === 'array' || schema?.types?.includes('array')) && !!schema.items
 }
 
 export const $ref2Schema = $ref => {
@@ -236,7 +240,7 @@ export const processProperties = schema => {
     if (value.$ref) {
       value.name = $ref2Schema(value.$ref)
     }
-    if (value?.type === 'array' && value?.items) {
+    if (isArraySchema(value)) {
       value.name = value.items.name
       if (value.items?.$ref) {
         value.items.name = $ref2Schema(value.items.$ref)
@@ -274,8 +278,7 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
       parent = apiSchema
       schema = apiSchema.schema
     }
-    const isArraySchema = schema?.type === 'array'
-    if (isArraySchema) {
+    if (isArraySchema(schema)) {
       parent = schema
       schema = schema.items
     }

@@ -94,6 +94,7 @@ api.label.setDefault = '设为默认'
 api.label.dataFormat = '数据格式'
 api.label.projectCode = '项目编码'
 api.label.projectName = '项目名称'
+api.label.enum = '枚举值'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出Mock数据？'

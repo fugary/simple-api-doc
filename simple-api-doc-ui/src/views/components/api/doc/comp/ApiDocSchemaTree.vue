@@ -83,18 +83,18 @@ const getMarkdownStr = data => {
       <template #empty>
         <el-empty :description="$t('common.msg.noData')" />
       </template>
-      <template #default="{node}">
+      <template #default="{data}">
         <div class="custom-tree-node">
           <el-tag
-            v-if="node.data.name"
+            v-if="data.name"
             type="primary"
             size="small"
             class="margin-right2"
           >
             <strong>
-              {{ node.data.name }}
+              {{ data.name }}
               <span
-                v-if="node.data.required || node.data.schema?.isRequired"
+                v-if="data.required || data.schema?.isRequired"
                 class="doc-schema-required"
               >*</span>
             </strong>
@@ -103,20 +103,35 @@ const getMarkdownStr = data => {
             type="info"
             class="margin-right2"
           >
-            <strong>{{ node.data.schema?.type }}&nbsp;</strong>
-            <span v-if="node.data.schema?.format||node.data.schema?.name">
-              &lt;{{ node.data.schema?.format || node.data.schema?.name }}&gt;
+            <strong>{{ data.schema?.type }}&nbsp;</strong>
+            <span v-if="data.schema?.format||data.schema?.name">
+              &lt;{{ data.schema?.format || data.schema?.name }}&gt;
             </span>
           </el-text>
           <el-text
-            v-if="node.data.schema?.description"
+            v-if="data.schema?.enum?.length"
+            type="info"
+            size="small"
+            style="white-space: normal;"
+          >
+            {{ $t('api.label.enum') }}: <el-tag
+              v-for="enumVal in data.schema?.enum"
+              :key="enumVal"
+              class="margin-left1"
+              type="info"
+            >
+              {{ enumVal }}
+            </el-tag>
+          </el-text>
+          <el-text
+            v-if="data.schema?.description||data.schema?.example"
             type="info"
             size="small"
             class="padding-left2"
             style="white-space: normal;"
           >
             <!--eslint-disable-next-line vue/no-v-html-->
-            <span v-html="getMarkdownStr(node.data)" />
+            <span v-html="getMarkdownStr(data)" />
           </el-text>
         </div>
       </template>

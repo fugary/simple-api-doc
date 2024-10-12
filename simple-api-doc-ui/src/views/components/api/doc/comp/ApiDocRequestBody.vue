@@ -15,26 +15,36 @@ const projectInfoDetail = computed(() => {
 
 <template>
   <el-container class="flex-column">
-    <div style="display: flex;">
-      <h3
-        id="api-doc-parameters"
-        class="margin-right2"
+    <h3 id="api-doc-parameters">
+      {{ $t('api.label.requestBody') }}
+    </h3>
+    <el-tabs>
+      <el-tab-pane
+        v-for="(requestsSchema, index) in apiDocDetail.requestsSchemas"
+        :key="index"
+        lazy
       >
-        {{ $t('api.label.requestBody') }}
-      </h3>
-      <el-text
-        v-if="apiDocDetail.requestsSchemas?.[0].contentType"
-        type="info"
-      >
-        {{ apiDocDetail.requestsSchemas?.[0].contentType }}
-      </el-text>
-    </div>
-    <api-doc-schema-tree
-      v-if="projectInfoDetail"
-      v-model="apiDocDetail.requestsSchemas"
-      :spec-version="projectInfoDetail.specVersion"
-      :component-schemas="projectInfoDetail.componentSchemas"
-    />
+        <template #label>
+          <span>
+            {{ $t('api.label.requestBody') }}
+            <el-text
+              type="info"
+              size="small"
+            >
+              {{ requestsSchema.contentType }}
+            </el-text>
+          </span>
+        </template>
+        <el-container class="flex-column">
+          <api-doc-schema-tree
+            v-if="projectInfoDetail"
+            :model-value="requestsSchema"
+            :spec-version="projectInfoDetail.specVersion"
+            :component-schemas="projectInfoDetail.componentSchemas"
+          />
+        </el-container>
+      </el-tab-pane>
+    </el-tabs>
   </el-container>
 </template>
 
