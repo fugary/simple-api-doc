@@ -36,6 +36,7 @@ onMounted(async () => {
   if (projectCode) {
     await loadProjectItem(projectCode)
     searchParam.value.projectId = projectItem.value?.id
+    searchParam.value.userName = projectItem.value?.userName
     infoList.value = projectItem.value?.infoList
   } else {
     loadUsersAndRefreshOptions()
@@ -51,6 +52,7 @@ onActivated(async () => {
 
 const columns = [{
   labelKey: 'api.label.shareName',
+  minWidth: '120px',
   formatter (data) {
     let shareUrl = getShareUrl(data.shareId)
     if (data.sharePassword) {
@@ -66,7 +68,8 @@ const columns = [{
   }
 }, {
   labelKey: 'api.label.project',
-  prop: 'project.projectName'
+  prop: 'project.projectName',
+  minWidth: '120px'
 }, {
   labelKey: 'common.label.status',
   minWidth: '100px',
@@ -93,7 +96,8 @@ const columns = [{
 }, {
   labelKey: 'common.label.createDate',
   property: 'createDate',
-  dateFormat: 'YYYY-MM-DD HH:mm:ss'
+  dateFormat: 'YYYY-MM-DD HH:mm:ss',
+  minWidth: '120px'
 }, {
   labelKey: 'api.label.expireDate',
   formatter: (row) => {

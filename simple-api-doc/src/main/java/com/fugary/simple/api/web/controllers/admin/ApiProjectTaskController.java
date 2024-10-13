@@ -125,16 +125,15 @@ public class ApiProjectTaskController {
     }
 
     @PostMapping("/trigger/{id}")
-    public SimpleResult<Boolean> triggerNow(@PathVariable("id") Integer id) {
+    public SimpleResult<ApiProject> triggerNow(@PathVariable("id") Integer id) {
         ApiProjectTask apiTask = apiProjectTaskService.getById(id);
+        if (apiTask == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
         if (!validateOperateUser(apiTask)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        if (apiTask != null) {
-            SimpleTaskUtils.projectTask2SimpleTask(apiTask,
-                    projectAutoImportInvoker, simpleApiConfigProperties).triggerNow();
-        }
-        return SimpleResultUtils.createSimpleResult(true);
+        return projectAutoImportInvoker.importProject(apiTask);
     }
 
     protected boolean validateOperateUser(ApiProjectTask projectTask) {

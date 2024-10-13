@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $coreConfirm, isAdminUser, useBackUrl } from '@/utils'
+import { $coreAlert, $coreConfirm, isAdminUser, useBackUrl } from '@/utils'
 import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -46,10 +46,9 @@ onMounted(async () => {
   if (inProject) {
     await loadProjectItem(projectCode)
     const projectId = projectItem.value?.id
-    if (projectId) {
-      searchParam.value.projectId = projectId
-      loadValidFolders(searchParam.value.projectId)
-    }
+    searchParam.value.projectId = projectId
+    searchParam.value.userName = projectItem.value?.userName
+    loadValidFolders(searchParam.value.projectId)
   } else {
     loadUsersAndRefreshOptions()
     loadProjectsAndRefreshOptions()
@@ -64,10 +63,12 @@ onActivated(async () => {
 
 const columns = [{
   labelKey: 'api.label.taskName',
-  prop: 'taskName'
+  prop: 'taskName',
+  minWidth: '120px'
 }, {
   labelKey: 'api.label.project',
-  prop: 'project.projectName'
+  prop: 'project.projectName',
+  minWidth: '120px'
 }, {
   labelKey: 'common.label.status',
   formatter (data) {
@@ -118,7 +119,8 @@ const columns = [{
 }, {
   labelKey: 'api.label.execDate',
   property: 'execDate',
-  dateFormat: 'YYYY-MM-DD HH:mm:ss'
+  dateFormat: 'YYYY-MM-DD HH:mm:ss',
+  minWidth: '120px'
 }]
 
 const buttons = computed(() => {
@@ -127,7 +129,12 @@ const buttons = computed(() => {
     type: 'success',
     click: item => {
       triggerTask(item.id, { loading: true })
-        .then(() => loadProjectTasks())
+        .then((data) => {
+          if (data.success) {
+            $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+            loadProjectTasks()
+          }
+        })
     }
   }, {
     labelKey: 'common.label.edit',

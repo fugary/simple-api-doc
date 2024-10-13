@@ -1,11 +1,13 @@
 package com.fugary.simple.api.tasks;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
+import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import java.text.MessageFormat;
 import java.util.Date;
 
 /**
@@ -45,7 +48,7 @@ public class ProjectAutoImportInvoker {
      * @param projectTask
      */
     @SneakyThrows
-    public void importProject(ApiProjectTask projectTask) {
+    public SimpleResult<ApiProject> importProject(ApiProjectTask projectTask) {
         long start = System.currentTimeMillis();
         if (StringUtils.isNotBlank(projectTask.getSourceUrl())) {
             ApiProject apiProject = apiProjectService.getById(projectTask.getProjectId());
@@ -64,8 +67,9 @@ public class ProjectAutoImportInvoker {
                 String content = urlDocContentProvider.getContent(importVo);
                 SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
                 if (!parseResult.isSuccess()) {
-                    log.error("parse project task {}/{} error {}", projectTask.getProjectId(), projectTask.getId(), parseResult.getMessage());
-                    return;
+                    String errorMessage = MessageFormat.format("[{0}]项目任务[{1}]解析文档错误：{2}", apiProject.getProjectName(), projectTask.getTaskName(), parseResult.getMessage());
+                    log.error(errorMessage);
+                    return SimpleResultUtils.createError(errorMessage);
                 }
                 ExportApiProjectVo exportProjectVo = parseResult.getResultData();
                 ExportApiProjectInfoVo projectInfo = exportProjectVo.getProjectInfo();
@@ -77,15 +81,16 @@ public class ProjectAutoImportInvoker {
                 projectInfo.setFolderId(projectTask.getToFolder());
                 SimpleResult<ApiProject> importResult = apiProjectService.importUpdateProject(apiProject, parseResult.getResultData(), importVo);
                 if (!importResult.isSuccess()) {
-                    log.error("import project task {}/{} error {}", projectTask.getProjectId(), projectTask.getId(), importResult.getMessage());
-                    return;
+                    String errorMessage = MessageFormat.format("[{0}]项目任务[{1}]执行导入错误：{2}", apiProject.getProjectName(), projectTask.getTaskName(), parseResult.getMessage());
+                    log.error(errorMessage);
+                    return SimpleResultUtils.createError(errorMessage);
                 }
                 projectTask.setExecDate(new Date());
                 apiProjectTaskService.updateById(projectTask);
-            } else {
-                log.error("project not found {}", projectTask.getProjectId());
+                log.info("import project task {}/{} cost {}ms", apiProject.getProjectName(), projectTask.getTaskName(), System.currentTimeMillis() - start);
+                return SimpleResultUtils.createSimpleResult(apiProject);
             }
         }
-        log.info("import project task {}/{} cost {}ms", projectTask.getProjectId(), projectTask.getId(), System.currentTimeMillis() - start);
+        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
     }
 }

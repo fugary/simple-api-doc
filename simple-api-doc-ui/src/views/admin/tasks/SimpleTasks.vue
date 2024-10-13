@@ -27,10 +27,12 @@ onActivated(async () => {
 
 const columns = [{
   labelKey: 'api.label.taskName',
-  prop: 'taskName'
+  prop: 'taskName',
+  minWidth: '120px'
 }, {
   labelKey: 'api.label.projectName',
-  prop: 'projectName'
+  prop: 'projectName',
+  minWidth: '120px'
 }, {
   labelKey: 'common.label.user',
   prop: 'userName'
@@ -56,7 +58,8 @@ const columns = [{
 }, {
   labelKey: 'api.label.execDate',
   property: 'lastExecDate',
-  dateFormat: 'YYYY-MM-DD HH:mm:ss'
+  dateFormat: 'YYYY-MM-DD HH:mm:ss',
+  minWidth: '120px'
 }]
 
 const buttons = computed(() => {

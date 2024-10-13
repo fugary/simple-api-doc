@@ -18,6 +18,11 @@ useRoutePopStateEvent()
   <el-config-provider :locale="elementLocale.localeData">
     <router-view />
   </el-config-provider>
+  <el-backtop
+    v-common-tooltip="$t('common.label.backtop')"
+    :right="70"
+    :bottom="70"
+  />
 </template>
 
 <style scoped>
