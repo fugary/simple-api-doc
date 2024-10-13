@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
@@ -14,6 +15,7 @@ import com.fugary.simple.api.tasks.SimpleAutoTask;
 import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiProjectTaskVo;
@@ -24,6 +26,8 @@ import org.springframework.scheduling.config.ScheduledTask;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -54,10 +58,15 @@ public class ApiProjectTaskController {
     public SimpleResult<List<ApiProjectTask>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProjectTask> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
+        String userName = SecurityUtils.getUserName(queryVo.getUserName());
         QueryWrapper<ApiProjectTask> queryWrapper = Wrappers.<ApiProjectTask>query()
-                .eq("project_id", queryVo.getProjectId())
-                .like(StringUtils.isNotBlank(keyword), "task_name", keyword);
+                .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
+                .like(StringUtils.isNotBlank(keyword), "task_name", keyword)
+                .exists("select 1 from t_api_project p where p.id = t_api_project_task.project_id and p.user_name={0}", userName);
         Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, queryWrapper);
+        Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id",
+                        pageResult.getRecords().stream().map(ApiProjectTask::getProjectId).collect(Collectors.toList())))
+                .stream().collect(Collectors.toMap(ApiProject::getId, Function.identity()));
         List<ApiProjectTask> apiTasks = pageResult.getRecords().stream().map(task -> {
             String taskId = SimpleTaskUtils.getTaskId(task.getId());
             ApiProjectTaskVo taskVo = SimpleModelUtils.copy(task, ApiProjectTaskVo.class);
@@ -74,6 +83,7 @@ public class ApiProjectTaskController {
                 }
                 taskVo.setScheduleStatus(scheduleStatus);
             }
+            taskVo.setProject(projectMap.get(taskVo.getProjectId()));
             return taskVo;
         }).collect(Collectors.toList());
         pageResult.setRecords(apiTasks);

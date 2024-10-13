@@ -64,6 +64,28 @@ export const loadBasic = (projectCode, config) => {
     method: 'get'
   }, config)).then(response => response.data?.resultData)
 }
+
+/**
+ * 加载项目详情
+ * @return {Promise<T>}
+ */
+export const loadDetailById = (projectId, config) => {
+  return $http(Object.assign({
+    url: `${API_PROJECT_URL}/loadDetailById/${projectId}`,
+    method: 'get'
+  }, config)).then(response => response.data?.resultData)
+}
+
+/**
+ * 加载项目基本信息
+ * @return {Promise<T>}
+ */
+export const loadBasicById = (projectId, config) => {
+  return $http(Object.assign({
+    url: `${API_PROJECT_URL}/loadBasicById/${projectId}`,
+    method: 'get'
+  }, config)).then(response => response.data?.resultData)
+}
 /**
  * 分组复制
  * @param id
@@ -83,7 +105,7 @@ export const useSelectProjects = (searchParam) => {
   const loadSelectProjects = (data, config) => {
     return selectProjects(data, config).then(result => {
       projects.value = result || []
-      projectOptions.value = projects.value.map(project => ({ label: project.projectName, value: project.projectCode }))
+      projectOptions.value = projects.value.map(project => ({ label: project.projectName, value: project.id }))
     })
   }
   const loadProjectsAndRefreshOptions = async () => {

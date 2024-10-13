@@ -17,6 +17,7 @@ import { $i18nBundle } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
+import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 
 const props = defineProps({
   project: {
@@ -150,6 +151,9 @@ const formOptions = computed(() => {
       data: folderTreeNodes.value,
       clearable: false,
       defaultExpandedKeys: folderTreeNodes.value[0]?.id ? [folderTreeNodes.value[0]?.id] : []
+    },
+    slots: {
+      default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder"/>
     }
   }])
 })

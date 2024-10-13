@@ -22,6 +22,22 @@ export const ALL_MENUS = [
     menuUrl: '/api/projects'
   },
   {
+    id: 13,
+    parentId: 1,
+    iconCls: 'Share',
+    nameCn: '分享管理',
+    nameEn: 'Share Management',
+    menuUrl: '/admin/shares'
+  },
+  {
+    id: 15,
+    parentId: 1,
+    iconCls: 'InputFilled',
+    nameCn: '导入管理',
+    nameEn: 'Import Management',
+    menuUrl: '/admin/imports'
+  },
+  {
     id: 5,
     iconCls: 'setting',
     nameCn: '系统管理',
@@ -40,7 +56,7 @@ export const ALL_MENUS = [
     parentId: 5,
     iconCls: 'Timer',
     nameCn: '任务管理',
-    nameEn: 'Tasks',
+    nameEn: 'Task Management',
     menuUrl: '/admin/simple-tasks',
     checkEnabled: isAdminUser
   },

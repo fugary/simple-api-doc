@@ -14,6 +14,7 @@ import java.io.Serializable;
 @Data
 public class ProjectDetailQueryVo implements Serializable {
 
+    private Integer projectId;
     private String projectCode;
     private boolean forceEnabled;
     private boolean includeDocs;

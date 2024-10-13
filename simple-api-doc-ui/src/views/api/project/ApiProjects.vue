@@ -32,7 +32,8 @@ const loadApiProjects = (pageNumber) => {
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 
-onMounted(() => {
+onMounted(async () => {
+  await loadUsersAndRefreshOptions()
   loadApiProjects()
 })
 

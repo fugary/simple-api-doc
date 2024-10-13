@@ -2,7 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import Login from '@/views/Login.vue'
 import ShareDoc from '@/views/share/ShareDoc.vue'
 import UserRoutes from '@/route/UserRoutes'
-import SimpleTasksRoutes from '@/route/SimpleTasksRoutes'
+import SimpleAdminRoutes from '@/route/SimpleAdminRoutes'
 import ApiRoutes from '@/route/ApiRoutes'
 import ToolsRoutes from '@/route/ToolsRoutes'
 import { checkRouteAuthority, processRouteLoading } from '@/authority'
@@ -52,7 +52,7 @@ const router = createRouter({
         }
       },
       ...UserRoutes,
-      ...SimpleTasksRoutes,
+      ...SimpleAdminRoutes,
       ...ApiRoutes,
       ...ToolsRoutes
       ]

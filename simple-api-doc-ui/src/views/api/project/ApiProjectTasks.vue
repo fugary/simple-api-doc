@@ -1,8 +1,8 @@
 <script setup lang="jsx">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $coreConfirm, useBackUrl } from '@/utils'
-import { useApiProjectItem } from '@/api/ApiProjectApi'
+import { $coreConfirm, isAdminUser, useBackUrl } from '@/utils'
+import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectTaskApi, { triggerTask } from '@/api/ApiProjectTaskApi'
@@ -12,6 +12,7 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
+import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import {
   AUTH_TYPE,
   IMPORT_AUTH_TYPES,
@@ -24,32 +25,49 @@ import { isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
 import { ElTag } from 'element-plus'
+import { useAllUsers } from '@/api/ApiUserApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
+const inProject = !!projectCode
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
-const { folderTreeNodes, folders, loadValidFolders } = useFolderTreeNodes()
+const { folderTreeNodes, loadValidFolders } = useFolderTreeNodes()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
   searchMethod: ApiProjectTaskApi.search
 })
 const loadProjectTasks = (pageNumber) => searchMethod(pageNumber)
+const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
+const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
 
 onMounted(async () => {
-  await loadProjectItem(projectCode)
-  const projectId = projectItem.value?.id
-  if (projectId) {
-    searchParam.value.projectId = projectId
-    loadProjectTasks(1)
-    loadValidFolders(searchParam.value.projectId)
+  if (inProject) {
+    await loadProjectItem(projectCode)
+    const projectId = projectItem.value?.id
+    if (projectId) {
+      searchParam.value.projectId = projectId
+      loadValidFolders(searchParam.value.projectId)
+    }
+  } else {
+    loadUsersAndRefreshOptions()
+    loadProjectsAndRefreshOptions()
   }
+  loadProjectTasks(1)
+})
+
+onActivated(async () => {
+  await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  loadProjectTasks()
 })
 
 const columns = [{
   labelKey: 'api.label.taskName',
   prop: 'taskName'
+}, {
+  labelKey: 'api.label.project',
+  prop: 'project.projectName'
 }, {
   labelKey: 'common.label.status',
   formatter (data) {
@@ -81,11 +99,6 @@ const columns = [{
   },
   attrs: {
     align: 'center'
-  }
-}, {
-  labelKey: 'api.label.targetFolder',
-  formatter (data) {
-    return folders.value.find(folder => folder.id === data.toFolder)?.folderName
   }
 }, {
   labelKey: 'api.label.source',
@@ -136,6 +149,29 @@ const buttons = computed(() => {
 const searchFormOptions = computed(() => {
   return [
     {
+      labelKey: 'common.label.user',
+      prop: 'userName',
+      type: 'select',
+      enabled: !inProject && isAdminUser(),
+      children: userOptions.value,
+      attrs: {
+        clearable: false
+      },
+      change: async () => {
+        await loadProjectsAndRefreshOptions()
+        loadProjectTasks(1)
+      }
+    }, {
+      labelKey: 'api.label.project',
+      prop: 'projectId',
+      type: 'select',
+      enabled: !inProject && projectOptions.value.length > 1,
+      children: projectOptions.value,
+      change () {
+        loadProjectTasks(1)
+      }
+    },
+    {
       labelKey: 'common.label.keywords',
       prop: 'keyword'
     }
@@ -152,6 +188,9 @@ const newOrEdit = async (id) => {
         if (currentModel.value.authContent) {
           currentModel.value.authContentModel = JSON.parse(currentModel.value.authContent)
         }
+        if (!inProject) {
+          loadValidFolders(currentModel.value.projectId)
+        }
       }
     })
   } else {
@@ -161,9 +200,12 @@ const newOrEdit = async (id) => {
       taskType: IMPORT_TASK_TYPES[1].value,
       sourceType: IMPORT_SOURCE_TYPES[0].value,
       authType: AUTH_TYPE.NONE,
-      toFolder: folderTreeNodes.value[0]?.id,
+      toFolder: inProject ? folderTreeNodes.value[0]?.id : undefined,
       scheduleRate: TASK_TRIGGER_RATES[TASK_TRIGGER_RATES.length - 1].value,
       authContentModel: {}
+    }
+    if (!inProject) {
+      folderTreeNodes.value = []
     }
   }
   showEditWindow.value = true
@@ -184,6 +226,18 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.taskName',
     prop: 'taskName',
     required: true
+  }, {
+    labelKey: 'api.label.project',
+    prop: 'projectId',
+    required: true,
+    type: 'select',
+    enabled: !inProject,
+    disabled: !!currentModel.value?.id,
+    children: projectOptions.value,
+    change: async (projectId) => {
+      await loadValidFolders(projectId)
+      currentModel.value.toFolder = folderTreeNodes.value[0]?.id
+    }
   }, {
     labelKey: 'api.label.importData',
     prop: 'taskType',
@@ -236,6 +290,9 @@ const editFormOptions = computed(() => {
       data: folderTreeNodes.value,
       clearable: false,
       defaultExpandedKeys: folderTreeNodes.value[0]?.id ? [folderTreeNodes.value[0]?.id] : []
+    },
+    slots: {
+      default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder"/>
     }
   }])
 })
@@ -256,6 +313,7 @@ const importRef = ref()
 <template>
   <el-container class="flex-column">
     <el-page-header
+      v-if="inProject"
       class="margin-bottom3"
       @back="goBack"
     >
@@ -267,7 +325,11 @@ const importRef = ref()
         </el-container>
       </template>
     </el-page-header>
-    <el-tabs lazy>
+    <div class="admin-project-tasks" />
+    <el-tabs
+      v-show="inProject"
+      lazy
+    >
       <el-tab-pane>
         <template #label>
           {{ $t('api.label.manualImportData') }}
@@ -286,36 +348,42 @@ const importRef = ref()
         <template #label>
           {{ $t('api.label.autoImportData') }}
         </template>
-        <el-container class="flex-column padding-top2">
-          <common-form
-            inline
-            :model="searchParam"
-            :options="searchFormOptions"
-            :submit-label="$t('common.label.search')"
-            :back-url="goBack"
-            @submit-form="loadProjectTasks(1)"
-          >
-            <template #buttons>
-              <el-button
-                type="info"
-                @click="newOrEdit()"
-              >
-                {{ $t('common.label.new') }}
-              </el-button>
-            </template>
-          </common-form>
-          <common-table
-            v-model:page="searchParam.page"
-            :data="tableData"
-            :columns="columns"
-            :buttons="buttons"
-            :buttons-column-attrs="{minWidth:'250px'}"
-            buttons-slot="buttons"
-            :loading="loading"
-            @page-size-change="loadProjectTasks()"
-            @current-page-change="loadProjectTasks()"
-          />
-        </el-container>
+        <Teleport
+          defer
+          to=".admin-project-tasks"
+          :disabled="inProject"
+        >
+          <el-container class="flex-column padding-top2">
+            <common-form
+              inline
+              :model="searchParam"
+              :options="searchFormOptions"
+              :submit-label="$t('common.label.search')"
+              :back-url="inProject?goBack:''"
+              @submit-form="loadProjectTasks(1)"
+            >
+              <template #buttons>
+                <el-button
+                  type="info"
+                  @click="newOrEdit()"
+                >
+                  {{ $t('common.label.new') }}
+                </el-button>
+              </template>
+            </common-form>
+            <common-table
+              v-model:page="searchParam.page"
+              :data="tableData"
+              :columns="columns"
+              :buttons="buttons"
+              :buttons-column-attrs="{minWidth:'250px'}"
+              buttons-slot="buttons"
+              :loading="loading"
+              @page-size-change="loadProjectTasks()"
+              @current-page-change="loadProjectTasks()"
+            />
+          </el-container>
+        </Teleport>
       </el-tab-pane>
     </el-tabs>
     <simple-edit-window

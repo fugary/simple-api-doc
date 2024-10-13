@@ -82,10 +82,33 @@ public class ApiProjectController {
         return SimpleResultUtils.createSimpleResult(detailVo);
     }
 
+    @GetMapping("/loadDetailById/{projectId}")
+    public SimpleResult<ApiProjectDetailVo> loadDetail(@PathVariable("projectId") Integer projectId) {
+        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+                .projectId(projectId)
+                .includeDocs(true)
+                .includeTasks(true)
+                .includesShares(true).build());
+        if (detailVo == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(detailVo);
+    }
+
     @GetMapping("/loadBasic/{projectCode}")
     public SimpleResult<ApiProjectDetailVo> loadBasic(@PathVariable("projectCode") String projectCode) throws Exception {
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
                 .projectCode(projectCode).build());
+        if (detailVo == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(detailVo);
+    }
+
+    @GetMapping("/loadBasicById/{projectId}")
+    public SimpleResult<ApiProjectDetailVo> loadBasicById(@PathVariable("projectId") Integer projectId) throws Exception {
+        ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+                .projectId(projectId).build());
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }

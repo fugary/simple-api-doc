@@ -1,5 +1,6 @@
 package com.fugary.simple.api.web.vo.project;
 
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import lombok.Data;
 
@@ -15,4 +16,5 @@ public class ApiProjectTaskVo extends ApiProjectTask {
     private String taskId;
     private String scheduleStatus;
     private String taskStatus;
+    private ApiProject project;
 }

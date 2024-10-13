@@ -334,11 +334,13 @@ defineExpose(handlerData)
 
 .custom-tree-node {
   width: 100%;
-  height: 25px;
+  height: 35px;
+  line-height: 35px;
 }
 
 .custom-tree-node .more-actions {
   position: absolute;
   right: 5px;
+  margin-top: 8px;
 }
 </style>

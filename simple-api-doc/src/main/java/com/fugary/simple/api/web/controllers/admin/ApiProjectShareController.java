@@ -4,18 +4,24 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.project.AdminProjectShareVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Create date 2024/9/27<br>
@@ -36,10 +42,24 @@ public class ApiProjectShareController {
     public SimpleResult<List<ApiProjectShare>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProjectShare> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
+        String userName = SecurityUtils.getUserName(queryVo.getUserName());
         QueryWrapper<ApiProjectShare> queryWrapper = Wrappers.<ApiProjectShare>query()
-                .eq("project_id", queryVo.getProjectId())
-                .like(StringUtils.isNotBlank(keyword), "share_name", keyword);
-        return SimpleResultUtils.createSimpleResult(apiProjectShareService.page(page, queryWrapper));
+                .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
+                .like(StringUtils.isNotBlank(keyword), "share_name", keyword)
+                .exists("select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.user_name={0}", userName);
+        Page<ApiProjectShare> pageResult = apiProjectShareService.page(page, queryWrapper);
+        if (!pageResult.getRecords().isEmpty()) {
+            Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id",
+                            pageResult.getRecords().stream().map(ApiProjectShare::getProjectId).collect(Collectors.toList())))
+                    .stream().collect(Collectors.toMap(ApiProject::getId, Function.identity()));
+            List<ApiProjectShare> shareList = pageResult.getRecords().stream().map(share -> {
+                AdminProjectShareVo shareVo = SimpleModelUtils.copy(share, AdminProjectShareVo.class);
+                shareVo.setProject(projectMap.get(shareVo.getProjectId()));
+                return shareVo;
+            }).collect(Collectors.toList());
+            pageResult.setRecords(shareList);
+        }
+        return SimpleResultUtils.createSimpleResult(pageResult);
     }
 
     @GetMapping("/{id}")

@@ -53,8 +53,13 @@ const savedApiDoc = () => {
           >
             <el-button
               type="primary"
+              class="padding-left1"
               @click="$goto(`/api/projects/shares/${projectItem.projectCode}`)"
             >
+              <common-icon
+                icon="Share"
+                class="margin-right1"
+              />
               {{ $t('api.label.shareDocs') }}
             </el-button>
           </el-badge>
@@ -66,8 +71,13 @@ const savedApiDoc = () => {
           >
             <el-button
               type="success"
+              class="padding-left1"
               @click="$goto(`/api/projects/tasks/${projectItem.projectCode}`)"
             >
+              <common-icon
+                icon="InputFilled"
+                class="margin-right1"
+              />
               {{ $t('api.label.importData') }}
             </el-button>
           </el-badge>

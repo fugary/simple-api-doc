@@ -62,7 +62,8 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         String projectCode = queryVo.getProjectCode();
         boolean forceEnabled = queryVo.isForceEnabled();
         boolean includeDocs = queryVo.isIncludeDocs();
-        ApiProject apiProject = getOne(Wrappers.<ApiProject>query().eq("project_code", projectCode)
+        ApiProject apiProject = getOne(Wrappers.<ApiProject>query().eq(StringUtils.isNotBlank(projectCode), "project_code", projectCode)
+                .eq(queryVo.getProjectId() != null, "id", queryVo.getProjectId())
                 .eq(forceEnabled, ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
         if (apiProject != null) {
             ApiProjectDetailVo apiProjectVo = SimpleModelUtils.copy(apiProject, ApiProjectDetailVo.class);

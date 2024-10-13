@@ -1,8 +1,8 @@
 <script setup lang="jsx">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
-import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl } from '@/utils'
-import { useApiProjectItem } from '@/api/ApiProjectApi'
+import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl, isAdminUser } from '@/utils'
+import { loadBasicById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectShareApi, { getShareUrl } from '@/api/ApiProjectShareApi'
@@ -13,9 +13,11 @@ import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElTag, ElButton } from 'element-plus'
+import { useAllUsers } from '@/api/ApiUserApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
+const inProject = !!projectCode
 
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
@@ -26,12 +28,25 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
 })
 const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
 
+const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
+const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
+const infoList = ref([])
+
 onMounted(async () => {
-  await loadProjectItem(projectCode)
-  searchParam.value.projectId = projectItem.value?.id
-  if (searchParam.value.projectId) {
-    loadProjectShares(1)
+  if (projectCode) {
+    await loadProjectItem(projectCode)
+    searchParam.value.projectId = projectItem.value?.id
+    infoList.value = projectItem.value?.infoList
+  } else {
+    loadUsersAndRefreshOptions()
+    loadProjectsAndRefreshOptions()
   }
+  loadProjectShares(1)
+})
+
+onActivated(async () => {
+  await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  loadProjectShares()
 })
 
 const columns = [{
@@ -49,6 +64,9 @@ const columns = [{
                    onClick={() => $openNewWin(shareUrl)} />
       </>
   }
+}, {
+  labelKey: 'api.label.project',
+  prop: 'project.projectName'
 }, {
   labelKey: 'common.label.status',
   minWidth: '100px',
@@ -118,6 +136,29 @@ const buttons = computed(() => {
 const searchFormOptions = computed(() => {
   return [
     {
+      labelKey: 'common.label.user',
+      prop: 'userName',
+      type: 'select',
+      enabled: !inProject && isAdminUser(),
+      children: userOptions.value,
+      attrs: {
+        clearable: false
+      },
+      change: async () => {
+        await loadProjectsAndRefreshOptions()
+        loadProjectShares(1)
+      }
+    }, {
+      labelKey: 'api.label.project',
+      prop: 'projectId',
+      type: 'select',
+      enabled: !inProject && projectOptions.value.length > 1,
+      children: projectOptions.value,
+      change () {
+        loadProjectShares(1)
+      }
+    },
+    {
       labelKey: 'common.label.keywords',
       prop: 'keyword'
     }
@@ -134,23 +175,31 @@ const newOrEdit = async (id) => {
         currentShare.value.shareEnvs = JSON.parse(currentShare.value.envContent)
           .map(env => env.url)
       }
+      if (!inProject) {
+        loadBasicById(currentShare.value.projectId).then(data => {
+          infoList.value = data?.infoList
+        })
+      }
     })
   } else {
     currentShare.value = {
-      projectId: projectItem.value.id,
+      projectId: projectItem.value?.id,
       status: 1,
       exportEnabled: true,
       debugEnabled: true,
       defaultTheme: 'dark',
       defaultShowLabel: 'docName'
     }
+    if (!inProject) {
+      infoList.value = []
+    }
   }
   showEditWindow.value = true
 }
 
 const envConfigs = computed(() => {
-  if (projectItem.value?.infoList?.length) {
-    return projectItem.value?.infoList.flatMap(info => {
+  if (infoList.value?.length) {
+    return infoList.value.flatMap(info => {
       let envs = []
       if (info.envContent && (envs = JSON.parse(info.envContent))?.length) {
         return envs
@@ -162,7 +211,6 @@ const envConfigs = computed(() => {
 })
 
 const editFormOptions = computed(() => {
-  console.log('==========================projectItem', projectItem.value)
   const envOptions = envConfigs.value.map(env => {
     return {
       value: env.url,
@@ -173,6 +221,20 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.shareName',
     prop: 'shareName',
     required: true
+  }, {
+    labelKey: 'api.label.project',
+    prop: 'projectId',
+    required: true,
+    type: 'select',
+    enabled: !inProject,
+    disabled: !!currentShare.value?.id,
+    children: projectOptions.value,
+    change (projectId) {
+      loadBasicById(projectId).then(data => {
+        infoList.value = data?.infoList
+      })
+      currentShare.value.shareEnvs = []
+    }
   }, useFormStatus(), {
     labelKey: 'api.label.exportEnabled',
     prop: 'exportEnabled',
@@ -251,6 +313,7 @@ const saveProjectShare = (item) => {
 <template>
   <el-container class="flex-column">
     <el-page-header
+      v-if="inProject"
       class="margin-bottom3"
       @back="goBack"
     >
@@ -267,7 +330,7 @@ const saveProjectShare = (item) => {
       :model="searchParam"
       :options="searchFormOptions"
       :submit-label="$t('common.label.search')"
-      :back-url="goBack"
+      :back-url="inProject?goBack:''"
       @submit-form="loadProjectShares(1)"
     >
       <template #buttons>

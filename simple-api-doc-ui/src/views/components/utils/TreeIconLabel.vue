@@ -54,7 +54,7 @@ defineProps({
 
 <style scoped>
 .tree-label-icon {
-  vertical-align: bottom;
+  vertical-align: middle;
   margin-right: 4px;
 }
 </style>
