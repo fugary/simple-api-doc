@@ -264,6 +264,7 @@ defineExpose(handlerData)
           v-if="showFolderTree"
           ref="treeRef"
           class="folder-schema-tree"
+          :default-expand-all="projectItem.docs?.length && projectItem.docs.length<=20"
           node-key="treeId"
           :default-expanded-keys="sharePreference.lastExpandKeys"
           highlight-current
