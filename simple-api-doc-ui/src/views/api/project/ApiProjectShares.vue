@@ -33,7 +33,7 @@ const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(sear
 const infoList = ref([])
 
 onMounted(async () => {
-  if (projectCode) {
+  if (inProject) {
     await loadProjectItem(projectCode)
     searchParam.value.projectId = projectItem.value?.id
     searchParam.value.userName = projectItem.value?.userName
@@ -46,7 +46,9 @@ onMounted(async () => {
 })
 
 onActivated(async () => {
-  await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  if (!inProject) {
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  }
   loadProjectShares()
 })
 

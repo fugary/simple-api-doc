@@ -57,7 +57,9 @@ onMounted(async () => {
 })
 
 onActivated(async () => {
-  await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  if (!inProject) {
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  }
   loadProjectTasks()
 })
 
