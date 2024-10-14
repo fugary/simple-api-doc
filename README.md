@@ -18,7 +18,8 @@
 
 ### 安装方式
 
-找到https://github.com/fugary/simple-api-doc/releases，下载最新版本后解压，进入`bin`目录
+找到https://github.com/fugary/simple-api-doc/releases
+下载最新版本后解压，进入`bin`目录
 
 点击`start.bat`即可启动
 
