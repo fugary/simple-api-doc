@@ -20,7 +20,7 @@ const folderPaths = computed(() => {
 </script>
 
 <template>
-  <el-header class="margin-bottom3">
+  <el-header style="min-height: var(--el-header-height);height:auto;">
     <el-breadcrumb v-if="folderPaths.length>1">
       <el-breadcrumb-item
         v-for="(folderPath, index) in folderPaths"
