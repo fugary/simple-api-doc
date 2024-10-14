@@ -207,9 +207,22 @@ export const calcComponentMap = (componentSchemas) => {
     return res
   }, {})
 }
+/**
+ * 判断是否有xxxOf
+ *
+ * @param schema
+ * @returns {string}
+ */
+export const hasXxxOf = schema => {
+  for (const xxxOf of ['allOf', 'anyOf', 'oneOf']) {
+    if (schema?.[xxxOf]?.length) {
+      return xxxOf
+    }
+  }
+}
 
 export const checkLeaf = schema => {
-  if (schema?.$ref || Object.keys(schema?.properties || {}).length) {
+  if (schema?.$ref || Object.keys(schema?.properties || {}).length || hasXxxOf(schema)) {
     return false
   }
   if (isArraySchema(schema)) {
@@ -225,6 +238,20 @@ export const isArraySchema = schema => {
 export const $ref2Schema = $ref => {
   // #/components/schemas/xxx截取
   return $ref.substring($ref.lastIndexOf('/') + 1)
+}
+
+export const processSchemaChildren = schema => {
+  const xxxOf = hasXxxOf(schema)
+  if (xxxOf) {
+    return schema[xxxOf].map(value => {
+      return {
+        name: value.name,
+        schema: value,
+        isLeaf: checkLeaf(value)
+      }
+    })
+  }
+  return processProperties(schema)
 }
 
 /**
@@ -286,7 +313,8 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
     if (schema?.$ref) {
       processSchemaRef(schema, componentsMap)
     }
-    processSchemaAllOf(schema)
+    // processSchemaAllOf(schema)
+    processSchemaXxxOf(schema, componentsMap, recursive)
     parent.isLeaf = checkLeaf(schema)
     const properties = schema.properties
     if (recursive && properties) {
@@ -295,27 +323,6 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
         processSchema(property, componentsMap, recursive)
       })
     }
-    // processSchemaAllOf(apiSchema.schema)
-    // apiSchema.isLeaf = checkLeaf(apiSchema.schema)
-    // if (isArraySchema && schema.items) {
-    //   if (schema.items?.$ref) {
-    //     processSchemaRef(schema.items, componentsMap)
-    //   }
-    //   processSchemaAllOf(schema.items)
-    //   properties = schema.items.properties
-    // } else {
-    //   if (schema?.$ref) {
-    //     processSchemaRef(schema, componentsMap)
-    //   }
-    //   processSchemaAllOf(schema)
-    //   parent.isLeaf = checkLeaf(schema)
-    //   properties = schema.properties
-    // }
-    // if (recursive && properties) {
-    //   properties.forEach(property => {
-    //     processSchema(property, componentsMap, recursive)
-    //   })
-    // }
   }
   return apiSchema
 }
@@ -333,13 +340,12 @@ export const processSchemaRef = (schema, componentsMap) => {
   return schema
 }
 
-export const processSchemaAllOf = schema => {
-  if (schema?.allOf?.length && !schema.properties) {
-    let properties = {}
-    schema.allOf.forEach(child => {
-      properties = { ...properties, ...child.properties }
-    })
-    schema.properties = properties
-  }
-  return schema
+export const processSchemaXxxOf = (schema, componentsMap, recursive) => {
+  ['allOf', 'anyOf', 'oneOf'].forEach(xxxOf => {
+    if (schema?.[xxxOf]?.length) {
+      schema[xxxOf].forEach(child => {
+        processSchema(child, componentsMap, recursive)
+      })
+    }
+  })
 }
