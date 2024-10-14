@@ -60,18 +60,10 @@ self.MonacoEnvironment = {
 }
 
 const langCheckConfig = [{
-  type: 'xmlWithJs',
-  checkReg: (val) => {
-    return /^(<[\s\S]*>)/.test(val) && /\{\{[\s\S]*}}/m.test(val)
-  }
-}, {
   type: 'html',
   checkReg: (val) => {
     return /^(<[\s\S]*>)/.test(val) && !/(^\{[\s\S]*})|(^\[[\s\S]*])/.test(val)
   }
-}, {
-  type: 'javascript',
-  checkReg: /function|var\s+|let\s+|const\s+|return\s+|=>|Mock\.mock/
 }, {
   type: 'json',
   checkReg: /(^\{[\s\S]*})|(^\[[\s\S]*])/
@@ -134,7 +126,6 @@ export const useMonacoEditorOptions = (config) => {
     model: languageModel,
     children: [
       { label: 'JSON', value: 'json' },
-      { label: 'JavaScript', value: 'javascript' },
       { label: 'XML/HTML', value: 'html' },
       { label: 'PlainText', value: 'text' }
     ],
