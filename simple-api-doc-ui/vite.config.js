@@ -55,6 +55,8 @@ export default ({ mode }) => {
           manualChunks (id) {
             if (id.includes('element-plus')) {
               return 'elp'
+            } else if (id.includes('node_modules/monaco-editor')) {
+              return 'monaco-editor'
             }
           }
         }
