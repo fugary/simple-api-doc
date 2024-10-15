@@ -64,8 +64,10 @@ public class ApiProjectTaskController {
                 .like(StringUtils.isNotBlank(keyword), "task_name", keyword)
                 .exists("select 1 from t_api_project p where p.id = t_api_project_task.project_id and p.user_name={0}", userName);
         Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, queryWrapper);
-        Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id",
-                        pageResult.getRecords().stream().map(ApiProjectTask::getProjectId).collect(Collectors.toList())))
+        Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query()
+                        .in(!pageResult.getRecords().isEmpty(), "id",
+                                pageResult.getRecords().stream().map(ApiProjectTask::getProjectId)
+                                .collect(Collectors.toList())))
                 .stream().collect(Collectors.toMap(ApiProject::getId, Function.identity()));
         List<ApiProjectTask> apiTasks = pageResult.getRecords().stream().map(task -> {
             String taskId = SimpleTaskUtils.getTaskId(task.getId());
