@@ -188,6 +188,7 @@ const newOrEdit = async (id) => {
         currentShare.value.shareEnvs = JSON.parse(currentShare.value.envContent)
           .map(env => env.url)
       }
+      currentShare.value.showChildrenLength = currentShare.value.showChildrenLength ?? true
       if (!inProject) {
         loadBasicById(currentShare.value.projectId).then(data => {
           infoList.value = data?.infoList
@@ -201,7 +202,8 @@ const newOrEdit = async (id) => {
       exportEnabled: true,
       debugEnabled: true,
       defaultTheme: 'dark',
-      defaultShowLabel: 'docName'
+      defaultShowLabel: 'docName',
+      showChildrenLength: true
     }
     if (!inProject) {
       infoList.value = []
@@ -257,6 +259,10 @@ const editFormOptions = computed(() => {
     prop: 'debugEnabled',
     type: 'switch'
   }, {
+    labelKey: 'api.label.showChildrenLength',
+    prop: 'showChildrenLength',
+    type: 'switch'
+  }, {
     labelKey: 'api.label.accessPassword',
     prop: 'sharePassword',
     slots: {
@@ -282,6 +288,12 @@ const editFormOptions = computed(() => {
       multiple: true
     },
     children: envOptions
+  }, {
+    labelKey: 'api.label.copyRight',
+    prop: 'copyRight',
+    attrs: {
+      type: 'textarea'
+    }
   }, {
     labelKey: 'common.label.defaultTheme',
     prop: 'defaultTheme',

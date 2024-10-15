@@ -179,7 +179,7 @@ watch(currentDoc, () => {
             />
             <el-container class="text-center padding-10 flex-center">
               <span>
-                <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
+                <el-text>Copyright © 2024 {{ projectShare?.copyRight||'' }} Version: {{ APP_VERSION }}</el-text>
               </span>
             </el-container>
           </template>
@@ -215,7 +215,7 @@ watch(currentDoc, () => {
           />
           <el-container class="text-center padding-10 flex-center">
             <span>
-              <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
+              <el-text>Copyright © 2024 {{ projectShare?.copyRight||'' }} Version: {{ APP_VERSION }}</el-text>
             </span>
           </el-container>
         </el-container>

@@ -296,7 +296,7 @@ defineExpose(handlerData)
                 />
                 {{ node.label }}
                 <el-text
-                  v-if="data.children?.length"
+                  v-if="data.children?.length&&shareDoc?.showChildrenLength!==false"
                   type="info"
                 >
                   ({{ data.children?.length }})
