@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted } from 'vue'
-import { $coreConfirm, isAdminUser } from '@/utils'
+import { $coreConfirm, $goto, isAdminUser } from '@/utils'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import SimpleTaskApi, { removeAndDisable } from '@/api/SimpleTaskApi'
 import { $i18nKey } from '@/messages'
@@ -8,6 +8,9 @@ import { TASK_STATUS_MAPPING } from '@/consts/ApiConstants'
 import { ElTag } from 'element-plus'
 import dayjs from 'dayjs'
 import { useAllUsers } from '@/api/ApiUserApi'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const { tableData, loading, searchParam, searchMethod: loadSimpleTasks } = useTableAndSearchForm({
   defaultParam: { keyword: '' },
@@ -32,7 +35,12 @@ const columns = [{
 }, {
   labelKey: 'api.label.projectName',
   prop: 'projectName',
-  minWidth: '120px'
+  minWidth: '120px',
+  click (item) {
+    if (item.projectCode) {
+      $goto(`/api/projects/${item.projectCode}?backUrl=${route.fullPath}`)
+    }
+  }
 }, {
   labelKey: 'common.label.user',
   prop: 'userName'

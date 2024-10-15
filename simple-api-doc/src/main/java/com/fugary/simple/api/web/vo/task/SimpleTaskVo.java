@@ -15,6 +15,7 @@ public class SimpleTaskVo implements Serializable {
     private String userName;
     private Integer projectId;
     private String projectName;
+    private String projectCode;
     private Integer tid;
     private String taskId;
     private String taskName;

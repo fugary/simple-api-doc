@@ -126,6 +126,7 @@ public class SimpleTaskUtils {
             taskVo.setTid(apiProjectTask.getId());
             if (project != null) {
                 taskVo.setProjectName(project.getProjectName());
+                taskVo.setProjectCode(project.getProjectCode());
                 taskVo.setUserName(project.getUserName());
             }
         }
