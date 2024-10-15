@@ -116,9 +116,11 @@ public class ApiProjectTaskController {
         }
         boolean saved = apiProjectTaskService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiTask));
         if (apiTask.getId() != null) {
-            if (!apiTask.isEnabled()) {
+            if (ApiDocConstants.PROJECT_TASK_TYPE_MANUAL.equals(apiTask.getTaskType())
+                    || !apiTask.isEnabled()) {
                 simpleTaskManager.removeAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId()));
-            } else {
+            }
+            if (apiTask.isEnabled() && ApiDocConstants.PROJECT_TASK_TYPE_AUTO.equals(apiTask.getTaskType())) {
                 simpleTaskManager.addOrUpdateAutoTask(SimpleTaskUtils.projectTask2SimpleTask(apiTask,
                         projectAutoImportInvoker, simpleApiConfigProperties));
             }
