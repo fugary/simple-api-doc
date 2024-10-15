@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.fugary.simple.api.contants.ApiDocConstants.ALL_PATH_PATTERN;
-import static com.fugary.simple.api.contants.ApiDocConstants.API_PATTERN;
 
 /**
  * Created on 2020/5/5 20:44 .<br>
@@ -64,11 +63,7 @@ public class ApplicationConfig implements WebMvcConfigurer {
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration allConfig = getCorsConfiguration();
-        CorsConfiguration mockConfig = getCorsConfiguration();
-        mockConfig.setExposedHeaders(Arrays.asList(" * ")); // spring boot目前强制不能使用*，但是没有trim处理，因此这样配置算是一个漏洞
-        source.registerCorsConfiguration(API_PATTERN + ALL_PATH_PATTERN, mockConfig);
-        source.registerCorsConfiguration(ALL_PATH_PATTERN, allConfig);
+        source.registerCorsConfiguration(ALL_PATH_PATTERN, getCorsConfiguration());
         return new CorsFilter(source);
     }
 

@@ -53,7 +53,6 @@ const savedApiDoc = () => {
           >
             <el-button
               type="primary"
-              class="padding-left1"
               @click="$goto(`/api/projects/shares/${projectItem.projectCode}`)"
             >
               <common-icon
@@ -71,7 +70,6 @@ const savedApiDoc = () => {
           >
             <el-button
               type="success"
-              class="padding-left1"
               @click="$goto(`/api/projects/tasks/${projectItem.projectCode}`)"
             >
               <common-icon
