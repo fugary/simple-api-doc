@@ -171,7 +171,7 @@ const importSuccessCallback = (apiProject) => {
 const toCopyProject = (project, $event) => {
   $event?.stopPropagation()
   $coreConfirm($i18nBundle('common.msg.confirmCopy'))
-    .then(() => copyProject(project.id))
+    .then(() => copyProject(project.id, { loading: true }))
     .then(() => {
       ElMessage.success($i18nBundle('common.msg.operationSuccess'))
       loadApiProjects()

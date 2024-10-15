@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $coreAlert, $coreConfirm, isAdminUser, useBackUrl } from '@/utils'
+import { $coreAlert, $coreConfirm, $goto, isAdminUser, useBackUrl } from '@/utils'
 import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -70,7 +70,14 @@ const columns = [{
 }, {
   labelKey: 'api.label.project',
   prop: 'project.projectName',
-  minWidth: '120px'
+  minWidth: '120px',
+  click (item) {
+    if (!inProject && item.project?.projectCode) {
+      $goto(`/api/projects/${item.project?.projectCode}?backUrl=${route.fullPath}`)
+    } else {
+      goBack()
+    }
+  }
 }, {
   labelKey: 'common.label.status',
   formatter (data) {
@@ -130,7 +137,7 @@ const buttons = computed(() => {
     labelKey: 'api.label.importNow',
     type: 'success',
     click: item => {
-      triggerTask(item.id, { loading: true })
+      triggerTask(item.id, { loading: true, timeout: 60000 })
         .then((data) => {
           if (data.success) {
             $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))

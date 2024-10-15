@@ -175,6 +175,8 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         ApiFolder mountFolder = null;
         boolean importExists = importVo instanceof ApiProjectTaskImportVo;
         if (importExists) {
+            SimpleModelUtils.copyNoneNullValue(exportVo, apiProject);
+            updateById(SimpleModelUtils.addAuditInfo(apiProject));
             ApiProjectTaskImportVo taskImportVo = (ApiProjectTaskImportVo) importVo;
             if (taskImportVo.getToFolder() != null && (mountFolder = apiFolderService.getById(taskImportVo.getToFolder())) != null
                     && !Objects.equals(mountFolder.getProjectId(), apiProject.getId())) { // folder不属于project属于配置错误忽略该配置

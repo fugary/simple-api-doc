@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onMounted, ref, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
-import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl, isAdminUser } from '@/utils'
+import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl, isAdminUser, $goto } from '@/utils'
 import { loadBasicById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -71,7 +71,14 @@ const columns = [{
 }, {
   labelKey: 'api.label.project',
   prop: 'project.projectName',
-  minWidth: '120px'
+  minWidth: '120px',
+  click (item) {
+    if (!inProject && item.project?.projectCode) {
+      $goto(`/api/projects/${item.project?.projectCode}?backUrl=${route.fullPath}`)
+    } else {
+      goBack()
+    }
+  }
 }, {
   labelKey: 'common.label.status',
   minWidth: '100px',
