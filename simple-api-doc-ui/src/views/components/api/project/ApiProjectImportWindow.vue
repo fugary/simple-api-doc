@@ -27,6 +27,7 @@ defineEmits(['import-success'])
     :title="$t('api.msg.importFileTitle')"
     append-to-body
     destroy-on-close
+    :close-on-click-modal="false"
     width="800px"
     :ok-click="doImportProject"
     :ok-label="$t('api.label.importData')"

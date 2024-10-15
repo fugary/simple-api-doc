@@ -142,7 +142,7 @@ export const importProject = (files, params = {}, config = {}) => {
   }
   const url = params.projectId ? `${API_PROJECT_URL}/importExistsProject` : `${API_PROJECT_URL}/importProject`
   return $httpPost(url,
-    formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true }, config))
+    formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 60000 }, config))
 }
 
 export const generateJWT = function (data, config) {
