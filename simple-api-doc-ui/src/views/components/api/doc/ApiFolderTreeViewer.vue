@@ -295,6 +295,12 @@ defineExpose(handlerData)
                   :method="data.method"
                 />
                 {{ node.label }}
+                <el-text
+                  v-if="data.children?.length"
+                  type="info"
+                >
+                  ({{ data.children?.length }})
+                </el-text>
               </tree-icon-label>
               <span
                 v-if="editable"

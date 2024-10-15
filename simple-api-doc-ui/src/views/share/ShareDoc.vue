@@ -151,7 +151,7 @@ watch(currentDoc, () => {
       </common-window>
       <el-container
         v-if="projectItem"
-        class="form-edit-width-100 flex-column padding-15"
+        class="form-edit-width-100 flex-column padding-top3 padding-left3 padding-right3"
       >
         <common-split
           v-if="!isMobile"
