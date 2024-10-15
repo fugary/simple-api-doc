@@ -23,20 +23,24 @@ export const calcShowDocLabelHandler = (folder, preference) => {
   }
 }
 
-export const getDownloadDocsHandlers = (shareId) => {
-  const supportedTypes = ['json', 'yaml']
-  return supportedTypes.map(type => {
-    return {
-      icon: `custom-icon-${type}`,
-      label: $i18nKey('common.label.commonDownload', `common.label.${type}`),
-      handler: () => {
-        checkDownloadDocs(shareId).then(data => {
-          console.log('===========================data', data)
-          downloadShareDocs({ type, shareId })
-        })
+export const getDownloadDocsHandlers = (shareDoc) => {
+  if (shareDoc.shareId && shareDoc.exportEnabled) {
+    const supportedTypes = ['json', 'yaml']
+    const shareId = shareDoc.shareId
+    return supportedTypes.map(type => {
+      return {
+        icon: `custom-icon-${type}`,
+        label: $i18nKey('common.label.commonDownload', `common.label.${type}`),
+        handler: () => {
+          checkDownloadDocs(shareId).then(data => {
+            console.log('===========================data', data)
+            downloadShareDocs({ type, shareId })
+          })
+        }
       }
-    }
-  })
+    })
+  }
+  return []
 }
 
 /**

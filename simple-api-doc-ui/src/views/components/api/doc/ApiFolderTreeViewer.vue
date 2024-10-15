@@ -106,7 +106,7 @@ const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
   if (rootFolder.value && props.shareDoc) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc.shareId)]
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc)]
   }
   return []
 })
