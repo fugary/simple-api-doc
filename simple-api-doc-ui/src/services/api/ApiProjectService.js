@@ -74,7 +74,9 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
 export const filterProjectItem = (projectItem, keyword) => {
   projectItem = cloneDeep(projectItem)
   if (keyword && projectItem) {
-    projectItem.docs = projectItem.docs?.filter(doc => doc.docName?.includes(keyword) || doc.url?.includes(keyword))
+    keyword = keyword.toLowerCase()
+    projectItem.docs = projectItem.docs?.filter(doc => doc.docName?.toLowerCase().includes(keyword) ||
+        doc.url?.toLowerCase().includes(keyword))
   }
   return projectItem
 }
