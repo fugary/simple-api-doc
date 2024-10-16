@@ -21,6 +21,7 @@ public class ApiProjectShareVo implements Serializable {
     private String defaultTheme;
     private String defaultShowLabel;
     private String envContent;
+    private Integer status;
     private boolean needPassword;
     private boolean expired;
     private String shareToken;
