@@ -7,6 +7,8 @@ import {
   LANG_TO_CONTENT_TYPES,
   SIMPLE_API_META_DATA_REQ,
   NONE,
+  AUTH_TYPE,
+  BEARER_KEY,
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
 import axios from 'axios'
@@ -348,4 +350,63 @@ export const processSchemaXxxOf = (schema, componentsMap, recursive) => {
       })
     }
   })
+}
+
+export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supportedAuthTypes) => {
+  if (projectInfoDetail?.securitySchemas?.length) {
+    const secSchemas = JSON.parse(projectInfoDetail.securitySchemas[0].schemaContent)
+    Object.keys(secSchemas).forEach((key) => {
+      const secSchema = secSchemas[key]
+      secSchema.authType = calcAuthType(secSchema)
+      secSchema.isSupported = Object.values(AUTH_TYPE).includes(secSchema.authType)
+    })
+    securitySchemas.value = secSchemas
+    supportedAuthTypes.value = Object.values(secSchemas).filter(s => s.isSupported)
+      .map(s => s.authType)
+    return secSchemas
+  }
+  return undefined
+}
+
+export const calcAuthType = (schema) => {
+  const typeStr = schema?.type?.toLowerCase()
+  if (!typeStr) {
+    return AUTH_TYPE.NONE
+  }
+  const schemeStr = schema?.scheme?.toLowerCase()
+  if (schemeStr === AUTH_TYPE.BASIC) {
+    return AUTH_TYPE.BASIC
+  }
+  if (schemeStr === BEARER_KEY.toLowerCase() || typeStr === 'apikey') {
+    if (schema.bearerFormat?.toLowerCase() === AUTH_TYPE.JWT) {
+      return AUTH_TYPE.JWT
+    }
+    return AUTH_TYPE.TOKEN
+  }
+  return schema?.type
+}
+
+export const calcDefaultAuthModel = (authContentModel, authSchema) => {
+  if (authContentModel && authSchema) {
+    authContentModel.authType = authSchema.authType || AUTH_TYPE.NONE
+    if (authSchema.name) {
+      authContentModel.headerName = authSchema.name
+    }
+    authContentModel.tokenToType = authSchema.in === 'query' ? 'parameter' : 'header'
+    if (authSchema.in === 'query') {
+      authContentModel.tokenToType = 'parameter'
+    }
+    if (authContentModel.authType === AUTH_TYPE.TOKEN) {
+      authContentModel.tokenPrefix = authSchema.scheme || ''
+    }
+  }
+}
+
+export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
+  // 找到匹配的模式，优先考虑 authType 相同的模式
+  const foundSchema = Object.values(securitySchemas).find(authSchema =>
+    authContentModel.authType !== AUTH_TYPE.NONE && authContentModel.authType === authSchema.authType
+  ) || Object.values(securitySchemas).find(authSchema => authSchema.isSupported)
+  // 使用找到的模式或处理默认值
+  calcDefaultAuthModel(authContentModel, foundSchema)
 }

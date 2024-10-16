@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -104,6 +105,8 @@ public class ApiDocController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
+        ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
+        apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         return SimpleResultUtils.createSimpleResult(apiDocVo);
     }

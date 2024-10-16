@@ -176,7 +176,9 @@ public class SimpleShareController {
         if (apiInfo == null || !apiDocVo.getProjectId().equals(apiInfo.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
         ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
+        apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         apiDocVo.setApiShare(SimpleModelUtils.toShareVo(apiShare));
         return SimpleResultUtils.createSimpleResult(apiDocVo);

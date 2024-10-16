@@ -346,7 +346,7 @@ const supportXml = computed(() => {
       <template #label>
         <el-badge
           :type="authValid ? 'primary' : 'danger'"
-          :hidden="authContentModel.authType === AUTH_TYPE.NONE"
+          :hidden="[AUTH_TYPE.NONE, AUTH_TYPE.INHERIT].includes(authContentModel.authType)"
           is-dot
         >
           {{ $t('api.label.authorization') }}
@@ -355,6 +355,7 @@ const supportXml = computed(() => {
       <ApiRequestFormAuthorization
         v-model="authContentModel"
         v-model:auth-valid="authValid"
+        :inherit-enabled="!!paramTarget.hasInheritAuth"
         :group-config="paramTarget.groupConfig"
       />
     </el-tab-pane>

@@ -13,6 +13,14 @@ const props = defineProps({
   debugEnabled: {
     type: Boolean,
     default: false
+  },
+  authEnabled: {
+    type: Boolean,
+    default: false
+  },
+  authConfigured: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -39,7 +47,7 @@ const docFormOption = computed(() => {
     }
   }
 })
-defineEmits(['debug-api'])
+defineEmits(['debug-api', 'config-auth'])
 </script>
 
 <template>
@@ -70,7 +78,7 @@ defineEmits(['debug-api'])
       v-if="debugEnabled"
       class="margin-top1"
       type="primary"
-      style="padding-left: 5px;"
+      style="padding-left: 10px;"
       @click="$emit('debug-api', apiDocDetail)"
     >
       <common-icon
@@ -79,6 +87,26 @@ defineEmits(['debug-api'])
       />
       {{ $t('api.label.debugAPI') }}
     </el-button>
+    <el-badge
+      v-if="authEnabled"
+      type="primary"
+      :hidden="!authConfigured"
+      is-dot
+      class="margin-top1 margin-left2"
+    >
+      <el-button
+        v-if="authEnabled"
+        type="success"
+        style="padding-left: 10px;"
+        @click="$emit('config-auth', apiDocDetail)"
+      >
+        <common-icon
+          icon="Lock"
+          :size="18"
+        />
+        {{ $t('api.label.authorization') }}
+      </el-button>
+    </el-badge>
   </el-header>
 </template>
 

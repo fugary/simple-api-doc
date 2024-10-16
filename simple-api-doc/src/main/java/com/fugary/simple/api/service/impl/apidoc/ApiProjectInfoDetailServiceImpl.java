@@ -105,9 +105,12 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         }
         docDetailVo.getRequestsSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
         docDetailVo.getResponsesSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
-        projectInfoDetails = projectInfoDetails.stream()
-                .filter(detail -> StringUtils.isNotBlank(detail.getSchemaKey()) && schemaKeys.contains(detail.getSchemaKey()))
-                .collect(Collectors.toList());
+        projectInfoDetails = projectInfoDetails.stream().filter(detail -> {
+            if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(detail.getBodyType())) {
+                return StringUtils.isNotBlank(detail.getSchemaKey()) && schemaKeys.contains(detail.getSchemaKey());
+            }
+            return true;
+        }).collect(Collectors.toList());
         return projectInfoDetails;
     }
 

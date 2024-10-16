@@ -11,7 +11,12 @@ import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { processEvnParams } from '@/services/api/ApiCommonService'
 import { joinPath } from '@/utils'
-import { SIMPLE_API_ACCESS_TOKEN_HEADER, SIMPLE_API_TARGET_URL_HEADER } from '@/consts/ApiConstants'
+import {
+  AUTH_TYPE,
+  DEFAULT_PREFERENCE_ID_KEY,
+  SIMPLE_API_ACCESS_TOKEN_HEADER,
+  SIMPLE_API_TARGET_URL_HEADER
+} from '@/consts/ApiConstants'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import emitter from '@/vendors/emitter'
@@ -88,8 +93,15 @@ const doDataPreview = async () => {
     data,
     headers
   }
-  const authContent = paramTarget.value.authContent
+  let authContent = paramTarget.value.authContent
   if (authContent) {
+    if (authContent.authType === AUTH_TYPE.INHERIT) {
+      const preferenceId = apiDocDetail.value.apiShare?.shareId || projectInfoDetail.value?.projectCode || DEFAULT_PREFERENCE_ID_KEY
+      const authModel = useShareConfigStore().sharePreferenceView[preferenceId]?.defaultAuthModel
+      if (authModel) {
+        authContent = authModel
+      }
+    }
     await AUTH_OPTION_CONFIG[authContent.authType]?.parseAuthInfo(authContent, headers, params, paramTarget)
   }
   previewRequest({

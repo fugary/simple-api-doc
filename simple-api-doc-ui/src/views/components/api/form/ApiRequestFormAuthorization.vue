@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, computed, watch, nextTick } from 'vue'
+import { computed, watch, nextTick } from 'vue'
 import { AUTH_OPTIONS, AUTH_TYPE } from '@/consts/ApiConstants'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
@@ -15,6 +15,18 @@ const props = defineProps({
   groupConfig: {
     type: Object,
     default: () => ({})
+  },
+  supportedAuthTypes: {
+    type: Array,
+    default: undefined
+  },
+  showAuthTypes: {
+    type: Boolean,
+    default: true
+  },
+  inheritEnabled: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -28,13 +40,22 @@ const authValid = defineModel('authValid', {
   default: true
 })
 
-const authTypeSelectOption = ref({
-  labelKey: 'api.label.authType',
-  type: 'radio-group',
-  prop: 'authType',
-  children: AUTH_OPTIONS,
-  attrs: {
-    clearable: false
+const authTypeSelectOption = computed(() => {
+  return {
+    labelKey: 'api.label.authType',
+    type: 'radio-group',
+    prop: 'authType',
+    children: AUTH_OPTIONS.filter(authOpt => !props.supportedAuthTypes ||
+        props.supportedAuthTypes.includes(authOpt.value)).map(authOpt => {
+      const returnOpt = { ...authOpt }
+      if (props.inheritEnabled && authOpt.value === AUTH_TYPE.INHERIT) {
+        returnOpt.enabled = true
+      }
+      return returnOpt
+    }),
+    attrs: {
+      clearable: false
+    }
   }
 })
 
@@ -73,11 +94,15 @@ const jwtPayloadOption = {
   }
 }
 
+const calcFormProp = computed(() => {
+  return props.formProp ? `${props.formProp}.` : ''
+})
+
 const { form } = useFormItem()
 watch([vModel, authOptions], () => {
   nextTick(async () => {
     if (form?.validateField) {
-      authValid.value = await form?.validateField(authOptions.value.map(option => `${props.formProp}.${option.prop}`))
+      authValid.value = await form?.validateField(authOptions.value.map(option => `${calcFormProp.value}${option.prop}`))
         .then(() => true).catch(() => false)
     }
   })
@@ -88,6 +113,7 @@ watch([vModel, authOptions], () => {
 <template>
   <el-container class="flex-column">
     <common-form-control
+      v-show="showAuthTypes"
       :model="vModel"
       label-width="130px"
       :option="authTypeSelectOption"
@@ -98,7 +124,7 @@ watch([vModel, authOptions], () => {
       :model="vModel"
       :option="option"
       label-width="130px"
-      :prop="`${formProp}.${option.prop}`"
+      :prop="`${calcFormProp}${option.prop}`"
     />
   </el-container>
 </template>

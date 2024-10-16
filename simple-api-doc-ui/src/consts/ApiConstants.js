@@ -47,6 +47,7 @@ export const calcContentType = (lang, body) => {
 }
 
 export const AUTH_TYPE = {
+  INHERIT: 'inherit',
   NONE,
   BASIC: 'basic',
   TOKEN: 'token',
@@ -67,6 +68,10 @@ export const ALL_METHODS = [
   { method: 'TRACE', type: 'info' }]
 
 export const AUTH_OPTIONS = [{
+  value: AUTH_TYPE.INHERIT,
+  labelKey: 'api.label.authTypeInherit',
+  enabled: false
+}, {
   value: AUTH_TYPE.NONE,
   labelKey: 'api.label.authTypeNone'
 }, {
