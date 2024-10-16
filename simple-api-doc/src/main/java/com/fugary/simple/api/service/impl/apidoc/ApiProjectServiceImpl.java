@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
 
@@ -85,7 +86,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             if (queryVo.isIncludesShares()) {
                 List<ApiProjectShare> shares = apiProjectShareService.list(Wrappers.<ApiProjectShare>query()
                         .eq("project_id", apiProject.getId()));
-                apiProjectVo.setShares(shares);
+                apiProjectVo.setShares(shares.stream().map(SimpleModelUtils::toShareVo).collect(Collectors.toList()));
             }
             if (queryVo.isIncludeTasks()) {
                 List<ApiProjectTask> tasks = apiProjectTaskService.list(Wrappers.<ApiProjectTask>query()
