@@ -8,6 +8,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.*;
 import io.swagger.parser.OpenAPIParser;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -86,10 +87,11 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     }
 
     protected void processApiSecurity(OpenAPI openAPI, ExportApiProjectVo projectVo) {
-        if (openAPI.getComponents() != null && openAPI.getComponents().getSecuritySchemes() != null) {
+        Components components = openAPI.getComponents();
+        if (components != null && components.getSecuritySchemes() != null && !components.getSecuritySchemes().isEmpty()) {
             ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
             detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY);
-            detailVo.setSchemaContent(JsonUtils.toJson(openAPI.getComponents().getSecuritySchemes()));
+            detailVo.setSchemaContent(JsonUtils.toJson(components.getSecuritySchemes()));
             detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
             projectVo.getProjectInfoDetails().add(detailVo);
         }
