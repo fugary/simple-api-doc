@@ -76,12 +76,7 @@ public class SimpleShareController {
         if (apiShare == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        ApiProjectShareVo shareVo = new ApiProjectShareVo();
-        SimpleModelUtils.copy(apiShare, shareVo);
-        shareVo.setNeedPassword(StringUtils.isNotBlank(apiShare.getSharePassword()));
-        if (apiShare.getExpireDate() != null) {
-            shareVo.setExpired(new Date().after(apiShare.getExpireDate()));
-        }
+        ApiProjectShareVo shareVo = SimpleModelUtils.toShareVo(apiShare);
         if (shareVo.isExpired()) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2008);
         }
@@ -183,7 +178,7 @@ public class SimpleShareController {
         }
         ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
-        apiDocVo.setApiShare(apiShare);
+        apiDocVo.setApiShare(SimpleModelUtils.toShareVo(apiShare));
         return SimpleResultUtils.createSimpleResult(apiDocVo);
     }
 

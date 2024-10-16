@@ -2,7 +2,6 @@ package com.fugary.simple.api.web.vo.project;
 
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiDocSchema;
-import com.fugary.simple.api.entity.api.ApiProjectShare;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -21,5 +20,5 @@ public class ApiDocDetailVo extends ApiDoc {
     private List<ApiDocSchema> requestsSchemas = new ArrayList<>();
     private List<ApiDocSchema> responsesSchemas = new ArrayList<>();
     private ApiProjectInfoDetailVo projectInfoDetail;
-    private ApiProjectShare apiShare;
+    private ApiProjectShareVo apiShare;
 }

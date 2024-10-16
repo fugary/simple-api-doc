@@ -1,12 +1,14 @@
 package com.fugary.simple.api.utils;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.entity.api.ModelBase;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.NameValueObj;
+import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -221,6 +223,24 @@ public class SimpleModelUtils {
             return files;
         }
         return new ArrayList<>();
+    }
+
+    /**
+     * 转换成ShareVo
+     * @param apiShare
+     * @return
+     */
+    public static ApiProjectShareVo toShareVo(ApiProjectShare apiShare){
+        ApiProjectShareVo shareVo = new ApiProjectShareVo();
+        SimpleModelUtils.copy(apiShare, shareVo);
+        shareVo.setNeedPassword(StringUtils.isNotBlank(apiShare.getSharePassword()));
+        if (apiShare.getExpireDate() != null) {
+            shareVo.setExpired(new Date().after(apiShare.getExpireDate()));
+        }
+        if (apiShare.getShowChildrenLength() == null) {
+            apiShare.setShowChildrenLength(true);
+        }
+        return shareVo;
     }
 
     /**

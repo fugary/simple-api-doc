@@ -80,6 +80,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
                     break;
             }
         });
+        if (StringUtils.isNotBlank(apiInfoVo.getAuthContent())) {
+            apiInfoVo.setAuthContent(ApiDocConstants.SECURITY_CONFUSION_VALUE);
+        }
         return apiInfoVo;
     }
 

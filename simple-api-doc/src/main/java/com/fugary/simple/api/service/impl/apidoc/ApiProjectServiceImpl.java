@@ -68,6 +68,11 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         if (apiProject != null) {
             ApiProjectDetailVo apiProjectVo = SimpleModelUtils.copy(apiProject, ApiProjectDetailVo.class);
             List<ApiProjectInfo> infoList = apiProjectInfoService.loadByProjectId(apiProject.getId());
+            infoList.forEach(info -> {
+                if (StringUtils.isNotBlank(info.getAuthContent())) {
+                    info.setAuthContent(ApiDocConstants.SECURITY_CONFUSION_VALUE);
+                }
+            });
             apiProjectVo.setInfoList(infoList);
             if (includeDocs) {
                 List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())

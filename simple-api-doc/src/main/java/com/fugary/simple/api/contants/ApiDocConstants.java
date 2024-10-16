@@ -93,6 +93,8 @@ public class ApiDocConstants {
 
     public static final String SCHEMA_COMPONENT_PREFIX = "#/components/schemas/";
 
+    public static final String SECURITY_CONFUSION_VALUE = "***";
+
     /**
      * 中止导入
      */
