@@ -28,7 +28,8 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
     }
   }
 }, {
-  persist: {
-    paths: ['shareConfig', 'sharePreferenceView']
-  }
+  // persist: {
+  //   paths: ['shareConfig', 'sharePreferenceView']
+  // }
+  persist: true
 })
