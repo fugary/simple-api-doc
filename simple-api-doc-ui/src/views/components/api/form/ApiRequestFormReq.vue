@@ -111,6 +111,9 @@ if (paramTarget.value) {
   if (paramTarget.value.authContent) {
     authContentModel.value = paramTarget.value.authContent
   } else {
+    if (paramTarget.value.hasInheritAuth) {
+      authContentModel.value.authType = AUTH_TYPE.INHERIT
+    }
     paramTarget.value.authContent = authContentModel.value
   }
 }
