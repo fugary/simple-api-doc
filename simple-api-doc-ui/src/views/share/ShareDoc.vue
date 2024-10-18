@@ -2,14 +2,12 @@
 import { onMounted, ref, computed, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
-import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
-import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import { $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { APP_VERSION } from '@/config'
 import { useWindowSize } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
+import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.vue'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -166,22 +164,11 @@ watch(currentDoc, () => {
             />
           </template>
           <template #split-1>
-            <markdown-doc-viewer
-              v-if="currentDoc?.docType==='md'"
+            <share-doc-right-viewer
               v-model="currentDoc"
-              scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
-            />
-            <api-doc-viewer
-              v-if="currentDoc?.docType==='api'"
-              v-model="currentDoc"
-              :share-doc="projectShare"
+              :project-share="projectShare"
               :project-item="projectItem"
             />
-            <el-container class="text-center padding-10 flex-center">
-              <span>
-                <el-text>Copyright © 2024 {{ projectShare?.copyRight||'' }} Version: {{ APP_VERSION }}</el-text>
-              </span>
-            </el-container>
           </template>
         </common-split>
         <el-container
@@ -202,22 +189,11 @@ watch(currentDoc, () => {
               :share-doc="projectShare"
             />
           </el-drawer>
-          <markdown-doc-viewer
-            v-if="currentDoc?.docType==='md'"
+          <share-doc-right-viewer
             v-model="currentDoc"
-            scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
-          />
-          <api-doc-viewer
-            v-if="currentDoc?.docType==='api'"
-            v-model="currentDoc"
-            :share-doc="projectShare"
+            :project-share="projectShare"
             :project-item="projectItem"
           />
-          <el-container class="text-center padding-10 flex-center">
-            <span>
-              <el-text>Copyright © 2024 {{ projectShare?.copyRight||'' }} Version: {{ APP_VERSION }}</el-text>
-            </span>
-          </el-container>
         </el-container>
       </el-container>
     </el-container>
