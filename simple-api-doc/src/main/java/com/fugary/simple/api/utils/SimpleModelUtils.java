@@ -156,7 +156,11 @@ public class SimpleModelUtils {
         if (matcher.matches()) {
             requestPath = matcher.group(1);
         }
-        apiParams.setTargetUrl(request.getHeader(ApiDocConstants.SIMPLE_API_TARGET_URL_HEADER));
+        String targetUrl = request.getHeader(ApiDocConstants.SIMPLE_API_TARGET_URL_HEADER);
+        if (StringUtils.startsWith(targetUrl, "//")) { // 没有协议
+            targetUrl = request.getScheme() + ":" + targetUrl;
+        }
+        apiParams.setTargetUrl(targetUrl);
         apiParams.setRequestPath(requestPath);
         apiParams.setMethod(request.getMethod());
         Enumeration<String> headerNames = request.getHeaderNames();
