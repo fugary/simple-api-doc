@@ -21,10 +21,16 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
     clearShareToken (shareId) {
       delete shareConfig.value[shareId]
       delete sharePreferenceView.value[shareId]
+      Object.keys(shareParamTargets.value).forEach(key => {
+        if (key.startsWith(shareId)) {
+          delete shareParamTargets.value[key]
+        }
+      })
     },
     clearAllShareToken: () => {
       shareConfig.value = {}
       sharePreferenceView.value = {}
+      shareParamTargets.value = {}
     }
   }
 }, {
