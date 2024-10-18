@@ -95,7 +95,7 @@ watch(() => authContentModel.value?.authType, () => {
   calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
 })
 const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
-const folderContainerHeight = useFolderLayoutHeight(!props.shareDoc, props.shareDoc ? -70 : -40)
+const folderContainerHeight = useFolderLayoutHeight(!props.shareDoc, -90)
 const { width } = useWindowSize()
 const isMobile = computed(() => width.value <= 768)
 

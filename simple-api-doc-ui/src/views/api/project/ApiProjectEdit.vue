@@ -7,6 +7,7 @@ import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
+import { APP_VERSION } from '@/config'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -114,7 +115,10 @@ const savedApiDoc = () => {
                 :project-item="projectItem"
               />
             </el-container>
-            <el-container v-else>
+            <el-container
+              v-else
+              class="flex-column"
+            >
               <markdown-doc-viewer
                 v-if="currentDoc?.docType==='md'"
                 v-model="currentDoc"
@@ -126,6 +130,11 @@ const savedApiDoc = () => {
                 v-model="currentDoc"
                 :project-item="projectItem"
               />
+              <el-container class="text-center padding-10 flex-center">
+                <span>
+                  <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
+                </span>
+              </el-container>
             </el-container>
           </template>
         </common-split>

@@ -10,7 +10,9 @@ import { useMenuConfigStore } from '@/stores/MenuConfigStore'
 import { useBreadcrumbConfigStore } from '@/stores/BreadcrumbConfigStore'
 import { APP_VERSION } from '@/config'
 import { useTabModeScrollSaver, getParentRootKey } from '@/route/RouteUtils'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const globalConfigStore = useGlobalConfigStore()
 const tabsViewStore = useTabsViewStore()
 const breadcrumbConfigStore = useBreadcrumbConfigStore()
@@ -74,7 +76,10 @@ useMenuConfigStore().loadBusinessMenus()
             />
           </transition>
         </router-view>
-        <el-container class="text-center padding-10 flex-center">
+        <el-container
+          v-if="!route.meta?.hideCopyRight"
+          class="text-center padding-10 flex-center"
+        >
           <span>
             <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
           </span>

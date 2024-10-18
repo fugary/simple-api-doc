@@ -19,7 +19,8 @@ export default [{
     meta: {
       replaceTabHistory: 'ApiProjects',
       labelKey: 'api.label.apiProjects',
-      icon: 'List'
+      icon: 'List',
+      hideCopyRight: true
     }
   }, {
     path: 'shares/:projectCode',

@@ -210,7 +210,7 @@ export const useFolderLayoutHeight = (editable, heightFix = 0, force = false) =>
   }
   offset = offset - heightFix
   return computed(() => {
-    return `calc(100vh - ${220 + offset}px)`
+    return `calc(100vh - ${200 + offset}px)`
   })
 }
 
