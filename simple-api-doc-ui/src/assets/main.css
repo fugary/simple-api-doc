@@ -509,3 +509,7 @@ html, body, #app, .index-container {
 .doc-schema-required {
     color: var(--el-color-danger);
 }
+
+.project-selected {
+    border-color: var(--el-color-primary);
+}

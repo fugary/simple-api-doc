@@ -315,7 +315,5 @@ const toCopyProject = (project, $event) => {
 </template>
 
 <style scoped>
-.project-selected {
-  border-color: var(--el-color-primary);
-}
+
 </style>
