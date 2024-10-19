@@ -8,7 +8,7 @@ LABEL maintainer="fugary"
 VOLUME /tmp
 
 # Expose Port 9086
-EXPOSE 9086
+EXPOSE 9089
 
 ENV JAVA_OPTS="-Xmx512M"
 # 类型支持h2和mysql
@@ -24,7 +24,6 @@ ENV DB_MYSQL_DBNAME=apidoc-db
 ENV DB_USERNAME="root"
 ENV DB_PASSWORD="12345678"
 ENV DB_POOL_SIZE=5
-EXPOSE 9086
 
 # Application Jar File
 ARG JAR_FILE=simple-api-doc/target/simple-api-doc*.jar
