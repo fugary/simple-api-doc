@@ -19,6 +19,8 @@ const currentDoc = defineModel({
   default: undefined
 })
 
+defineEmits(['toDebugApi'])
+
 </script>
 
 <template>
@@ -33,6 +35,7 @@ const currentDoc = defineModel({
       v-model="currentDoc"
       :share-doc="projectShare"
       :project-item="projectItem"
+      @to-debug-api="(...args)=>$emit('toDebugApi', ...args)"
     />
     <el-container class="text-center padding-10 flex-center">
       <span>

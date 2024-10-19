@@ -20,6 +20,7 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import ApiFolderApi from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
 import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
+import { useElementSize } from '@vueuse/core'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -211,53 +212,66 @@ const handlerData = {
 
 defineExpose(handlerData)
 
+const currentRef = ref()
+const { width } = useElementSize(currentRef)
+
 </script>
 
 <template>
-  <el-container class="padding-right2">
-    <el-header
-      v-if="shareDoc"
-      class="share-name-header margin-bottom3"
-    >
-      <common-icon
-        :size="30"
-        icon="custom-logo"
-        class="margin-right1"
-        style="color: #FF821A;"
-      />
-      <span style="margin-right: auto;">{{ shareDoc.shareName }}</span>
-      <el-link
-        :underline="false"
-        class="margin-right2"
+  <el-container
+    ref="currentRef"
+    class="padding-right2 flex-column"
+    style="height: 100%;"
+  >
+    <template v-if="width>80">
+      <el-header
+        v-if="shareDoc"
+        class="share-name-header margin-bottom3"
       >
         <common-icon
-          :icon="globalConfigStore.isDarkTheme ? 'sunny' : 'moon'"
-          :size="20"
-          @click="toggleTheme()"
+          :size="30"
+          icon="custom-logo"
+          class="margin-right1"
+          style="color: #FF821A;"
+          :style="width<150?'margin-right:auto;':''"
         />
-      </el-link>
-      <more-actions-link
-        :icon-size="20"
-        :handlers="shareTopHandlers"
+        <span
+          v-if="width>=150"
+          style="margin-right: auto;"
+        >{{ shareDoc.shareName }}</span>
+        <el-link
+          :underline="false"
+          class="margin-right2"
+        >
+          <common-icon
+            :icon="globalConfigStore.isDarkTheme ? 'sunny' : 'moon'"
+            :size="20"
+            @click="toggleTheme()"
+          />
+        </el-link>
+        <more-actions-link
+          :icon-size="20"
+          :handlers="shareTopHandlers"
+        />
+      </el-header>
+      <el-header
+        v-if="editable"
+        class="share-name-header"
+      >
+        <span
+          class="margin-left1"
+          style="font-size:18px;margin-right: auto"
+        >{{ $t('menu.label.apiManagement') }}</span>
+        <span class="margin-right2">
+          <more-actions-link :handlers="getFolderHandlers(rootFolder, sharePreference, handlerData)" />
+        </span>
+      </el-header>
+      <common-form-control
+        style="margin-left: -10px;"
+        :option="searchFormOption"
+        :model="searchParam"
       />
-    </el-header>
-    <el-header
-      v-if="editable"
-      class="share-name-header"
-    >
-      <span
-        class="margin-left1"
-        style="font-size:18px;margin-right: auto"
-      >{{ $t('menu.label.apiManagement') }}</span>
-      <span class="margin-right2">
-        <more-actions-link :handlers="getFolderHandlers(rootFolder, sharePreference, handlerData)" />
-      </span>
-    </el-header>
-    <common-form-control
-      style="margin-left: -10px;"
-      :option="searchFormOption"
-      :model="searchParam"
-    />
+    </template>
     <el-container :style="{height:folderContainerHeight}">
       <el-scrollbar style="flex-grow: 1;">
         <el-tree

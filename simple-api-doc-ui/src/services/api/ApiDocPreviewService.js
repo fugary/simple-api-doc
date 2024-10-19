@@ -13,6 +13,8 @@ import {
 } from '@/consts/ApiConstants'
 import axios from 'axios'
 import { processEvnParams } from '@/services/api/ApiCommonService'
+import { nextTick, ref, watch, computed } from 'vue'
+import { previewApiRequest } from '@/utils/DynamicUtils'
 
 export const previewRequest = function (reqData, config) {
   const req = axios.create({
@@ -90,29 +92,6 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     console.log('======================requestSchemas', requestSchemas)
     target.requestBodySchema = requestSchemas[0]?.schema
   }
-  // if (value) {
-  //   const pathParams = target.pathParams
-  //   const savedTarget = JSON.parse(value)
-  //   delete savedTarget.method
-  //   delete savedTarget.responseBody
-  //   if (target.method === 'GET') {
-  //     delete savedTarget.requestBody
-  //   }
-  //   Object.assign(target, savedTarget || {})
-  //   if (savedTarget.pathParams && savedTarget.pathParams.length) {
-  //     const savePathParams = savedTarget.pathParams.reduce((result, item) => {
-  //       result[item.name] = item.value
-  //       return result
-  //     }, {})
-  //     pathParams.forEach(item => {
-  //       item.value = savePathParams[item.name] || ''
-  //     })
-  //   }
-  //   target.pathParams = pathParams
-  // }
-  // if (groupItem.groupConfig) {
-  //   target.groupConfig = JSON.parse(groupItem.groupConfig)
-  // }
   return target
 }
 
@@ -409,4 +388,48 @@ export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
   ) || Object.values(securitySchemas).find(authSchema => authSchema.isSupported)
   // 使用找到的模式或处理默认值
   calcDefaultAuthModel(authContentModel, foundSchema)
+}
+
+export const useApiDocDebugConfig = (smallScreen) => {
+  const apiDocPreviewRef = ref()
+  const splitSizes = ref([20, 80])
+  const previewLoading = ref(false)
+  const defaultMinSizes = ref([0, 500, 600])
+  const defaultMaxSizes = ref([500, Infinity, Infinity])
+  const isShowDebug = computed(() => splitSizes.value?.length === 3)
+  const hideDebugSplit = () => {
+    splitSizes.value = [20, 80]
+  }
+  const toDebugApi = (...args) => {
+    if (smallScreen.value) {
+      hideDebugSplit()
+      previewApiRequest(...args)
+    } else {
+      if (splitSizes.value.length === 2) {
+        splitSizes.value = [10, 50, 50]
+        previewLoading.value = true
+        nextTick(() => { // 延迟才能获取到Ref实例
+          apiDocPreviewRef.value?.toPreviewRequest(...args)
+            .finally(() => { previewLoading.value = false })
+        })
+      } else {
+        hideDebugSplit()
+      }
+    }
+  }
+  watch(smallScreen, () => {
+    if (smallScreen.value) {
+      hideDebugSplit()
+    }
+  })
+  return {
+    apiDocPreviewRef,
+    splitSizes,
+    defaultMinSizes,
+    defaultMaxSizes,
+    isShowDebug,
+    previewLoading,
+    hideDebugSplit,
+    toDebugApi
+  }
 }

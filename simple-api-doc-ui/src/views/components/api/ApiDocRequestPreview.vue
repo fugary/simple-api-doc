@@ -30,6 +30,10 @@ const paramTarget = ref()
 const responseTarget = ref()
 const schemas = ref([])
 
+defineOptions({
+  inheritAttrs: false
+})
+
 let handlerConfig = {}
 const toPreviewRequest = async (projectInfo, apiDoc, handConfig) => {
   projectInfoDetail.value = projectInfo
@@ -141,6 +145,7 @@ defineExpose({
       :request-path="requestPath"
       :response-target="responseTarget"
       :schemas="schemas"
+      v-bind="$attrs"
       @send-request="doDataPreview"
     />
   </el-container>

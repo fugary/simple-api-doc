@@ -8,6 +8,9 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { useWindowSize } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
 import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.vue'
+import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
+import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
+import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -89,7 +92,11 @@ const showDrawerMenu = ref(true)
 const isMobile = computed(() => width.value <= 768)
 watch(currentDoc, () => {
   showDrawerMenu.value = false
+  hideDebugSplit()
 })
+const isSmallScreen = computed(() => width.value <= 1200 && !isMobile.value)
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isSmallScreen)
+const folderContainerHeight = useFolderLayoutHeight(false)
 </script>
 
 <template>
@@ -153,8 +160,9 @@ watch(currentDoc, () => {
       >
         <common-split
           v-if="!isMobile"
-          :min-size="150"
-          :max-size="[500, Infinity]"
+          :sizes="splitSizes"
+          :min-size="defaultMinSizes"
+          :max-size="defaultMaxSizes"
         >
           <template #split-0>
             <api-folder-tree-viewer
@@ -168,7 +176,29 @@ watch(currentDoc, () => {
               v-model="currentDoc"
               :project-share="projectShare"
               :project-item="projectItem"
+              @to-debug-api="toDebugApi"
             />
+          </template>
+          <template #split-2>
+            <el-container
+              class="flex-column padding-left2"
+              style="height:100%"
+            >
+              <el-page-header
+                class="padding-bottom2"
+                @back="hideDebugSplit"
+              >
+                <template #content>
+                  <span>{{ currentDoc?.docName }} </span>
+                </template>
+              </el-page-header>
+              <api-doc-request-preview
+                ref="apiDocPreviewRef"
+                v-loading="previewLoading"
+                style="min-height:200px;"
+                :form-height="folderContainerHeight"
+              />
+            </el-container>
           </template>
         </common-split>
         <el-container

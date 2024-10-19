@@ -234,6 +234,10 @@ html, body, #app, .index-container {
     white-space: break-spaces;
 }
 
+.common-tabs {
+    box-sizing: border-box;
+}
+
 .common-tabs .el-tabs__new-tab {
     width: auto;
     border: none;

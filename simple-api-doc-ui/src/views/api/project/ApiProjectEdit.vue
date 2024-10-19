@@ -1,13 +1,17 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
 import { $goto, useBackUrl } from '@/utils'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
 import { APP_VERSION } from '@/config'
+import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
+import { useWindowSize } from '@vueuse/core'
+import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
+import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -21,6 +25,17 @@ const savedApiDoc = () => {
   currentDoc.value.editing = false
   folderTreeRef.value?.refreshProjectItem()
 }
+
+watch(currentDoc, () => {
+  if (currentDoc.value?.docType === 'md') {
+    hideDebugSplit()
+  }
+})
+const { width } = useWindowSize()
+const isMobile = computed(() => width.value <= 768)
+const isSmallScreen = computed(() => width.value <= 1200 && !isMobile.value)
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isSmallScreen)
+const folderContainerHeight = useFolderLayoutHeight(true, 20)
 </script>
 
 <template>
@@ -90,8 +105,9 @@ const savedApiDoc = () => {
       <div class="form-edit-width-100">
         <common-split
           v-if="projectItem"
-          :min-size="150"
-          :max-size="[500, Infinity]"
+          :sizes="splitSizes"
+          :min-size="defaultMinSizes"
+          :max-size="defaultMaxSizes"
         >
           <template #split-0>
             <api-folder-tree-viewer
@@ -129,12 +145,31 @@ const savedApiDoc = () => {
                 v-if="currentDoc?.docType==='api'"
                 v-model="currentDoc"
                 :project-item="projectItem"
+                @to-debug-api="toDebugApi"
               />
               <el-container class="text-center padding-10 flex-center">
                 <span>
                   <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
                 </span>
               </el-container>
+            </el-container>
+          </template>
+          <template #split-2>
+            <el-container class="flex-column padding-left2">
+              <el-page-header
+                class="padding-bottom2"
+                @back="hideDebugSplit"
+              >
+                <template #content>
+                  <span>{{ currentDoc?.docName }} </span>
+                </template>
+              </el-page-header>
+              <api-doc-request-preview
+                ref="apiDocPreviewRef"
+                v-loading="previewLoading"
+                style="min-height:200px;"
+                :form-height="folderContainerHeight"
+              />
             </el-container>
           </template>
         </common-split>

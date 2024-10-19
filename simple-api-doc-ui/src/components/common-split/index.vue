@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, useAttrs } from 'vue'
+import { onMounted, ref, useAttrs, shallowRef, watch, nextTick } from 'vue'
 import Split from 'split.js'
 
 /**
@@ -37,9 +37,10 @@ const props = defineProps({
 const itemRefs = ref([])
 
 const attrs = useAttrs()
-
-onMounted(() => {
-  Split(itemRefs.value.map(itemRef => itemRef), {
+const splitInstance = shallowRef()
+const newSplitInstance = () => {
+  splitInstance.value?.destroy()
+  splitInstance.value = Split(itemRefs.value.map(itemRef => itemRef), {
     sizes: props.sizes,
     minSize: props.minSize,
     maxSize: props.maxSize,
@@ -47,6 +48,17 @@ onMounted(() => {
     direction: props.direction,
     ...attrs
   })
+}
+onMounted(newSplitInstance)
+
+watch(() => props.sizes, () => {
+  nextTick(() => {
+    newSplitInstance()
+  })
+})
+
+defineExpose({
+  splitInstance
 })
 
 </script>

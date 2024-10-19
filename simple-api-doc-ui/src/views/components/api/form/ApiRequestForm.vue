@@ -19,6 +19,10 @@ const props = defineProps({
   requestPath: {
     type: String,
     required: true
+  },
+  formHeight: {
+    type: String,
+    default: ''
   }
 })
 const paramTarget = defineModel('modelValue', {
@@ -118,21 +122,26 @@ const docFormOption = computed(() => {
             </el-button>
           </div>
         </div>
-        <ApiRequestFormReq
-          v-model="paramTarget"
-          show-authorization
-          :response-target="responseTarget"
-          :schema-type="paramTarget.requestContentType"
-          :schema-body="paramTarget.requestBodySchema"
-          :examples="requestExamples"
-        />
+        <el-container
+          class="flex-column"
+          :style="{height:formHeight, overflow:'auto'}"
+        >
+          <ApiRequestFormReq
+            v-model="paramTarget"
+            show-authorization
+            :response-target="responseTarget"
+            :schema-type="paramTarget.requestContentType"
+            :schema-body="paramTarget.requestBodySchema"
+            :examples="requestExamples"
+          />
+          <ApiRequestFormRes
+            v-if="responseTarget"
+            v-model="paramTarget"
+            :response-target="responseTarget"
+          />
+        </el-container>
       </template>
     </common-form>
-    <ApiRequestFormRes
-      v-if="responseTarget"
-      v-model="paramTarget"
-      :response-target="responseTarget"
-    />
   </el-container>
 </template>
 

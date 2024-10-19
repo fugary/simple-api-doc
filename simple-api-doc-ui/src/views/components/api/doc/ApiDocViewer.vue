@@ -11,7 +11,6 @@ import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.v
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
-import { previewApiRequest } from '@/utils/DynamicUtils'
 import { useWindowSize } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
 import { AUTH_TYPE, DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
@@ -99,11 +98,7 @@ const folderContainerHeight = useFolderLayoutHeight(!props.shareDoc, props.share
 const { width } = useWindowSize()
 const isMobile = computed(() => width.value <= 768)
 
-const emit = defineEmits(['toPreviewApi'])
-const toDebugApi = () => {
-  previewApiRequest(projectInfoDetail.value, apiDocDetail.value, handlerConfig)
-  emit('toPreviewApi', projectInfoDetail.value, apiDocDetail.value, handlerConfig)
-}
+defineEmits(['toDebugApi'])
 
 const showAuthorizationWindow = ref(false)
 const toEditAuthorization = () => {
@@ -139,7 +134,7 @@ const saveAuthorization = ({ form }) => {
       :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareDoc)"
       :auth-enabled="!isMobile&&!!securitySchemas"
       :auth-configured="lastParamTarget.hasInheritAuth"
-      @debug-api="toDebugApi"
+      @debug-api="$emit('toDebugApi', projectInfoDetail, apiDocDetail, handlerConfig)"
       @config-auth="toEditAuthorization"
     />
     <el-container
