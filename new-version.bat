@@ -1,7 +1,6 @@
 @echo off
 chcp 65001
 if "%1" equ "" goto paramError
-cd ../simple-api-doc
 echo 更新simple-api-doc版本号
 call mvn versions:set -DnewVersion=%1
 cd simple-api-doc-ui
