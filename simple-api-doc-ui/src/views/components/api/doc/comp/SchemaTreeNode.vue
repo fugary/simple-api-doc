@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { $i18nBundle } from '@/messages'
 import markdownit from 'markdown-it'
 import { hasXxxOf } from '@/services/api/ApiDocPreviewService'
+import { $copyText } from '@/utils'
 
 const props = defineProps({
   data: {
@@ -39,6 +40,7 @@ const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
       type="primary"
       size="small"
       class="margin-right2"
+      @click="$copyText(data.name)"
     >
       <strong>
         {{ data.name }}

@@ -398,15 +398,17 @@ export const useApiDocDebugConfig = (smallScreen) => {
   const defaultMaxSizes = ref([500, Infinity, Infinity])
   const isShowDebug = computed(() => splitSizes.value?.length === 3)
   const hideDebugSplit = () => {
-    splitSizes.value = [20, 80]
+    if (isShowDebug.value) {
+      splitSizes.value = [20, 80]
+    }
   }
   const toDebugApi = (...args) => {
     if (smallScreen.value) {
       hideDebugSplit()
       previewApiRequest(...args)
     } else {
-      if (splitSizes.value.length === 2) {
-        splitSizes.value = [10, 50, 50]
+      if (!isShowDebug.value) {
+        splitSizes.value = [10, 45, 45]
         previewLoading.value = true
         nextTick(() => { // 延迟才能获取到Ref实例
           apiDocPreviewRef.value?.toPreviewRequest(...args)

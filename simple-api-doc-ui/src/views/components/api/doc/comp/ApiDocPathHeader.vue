@@ -2,7 +2,7 @@
 
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { computed } from 'vue'
-import { $copyText } from '@/utils'
+import { $copyText, joinPath } from '@/utils'
 import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
@@ -48,6 +48,9 @@ const docFormOption = computed(() => {
   }
 })
 defineEmits(['debug-api', 'config-auth'])
+const requestUrl = computed(() => {
+  return joinPath(apiDocDetail.value.targetUrl, apiDocDetail.value?.url)
+})
 </script>
 
 <template>
@@ -69,7 +72,7 @@ defineEmits(['debug-api', 'config-auth'])
       />
       <el-link
         type="primary"
-        @click="$copyText(apiDocDetail?.url)"
+        @click="$copyText(requestUrl)"
       >
         {{ apiDocDetail?.url }}
       </el-link>
