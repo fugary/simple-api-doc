@@ -106,6 +106,7 @@ public class SimpleShareController {
         }
         return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
                 .projectCode(project.getProjectCode())
+                .forceEnabled(true)
                 .includeDocs(true).build()));
     }
 
