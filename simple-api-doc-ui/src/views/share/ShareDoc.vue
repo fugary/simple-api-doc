@@ -90,8 +90,10 @@ const submitForm = form => {
 const { width } = useWindowSize()
 const showDrawerMenu = ref(true)
 const isMobile = computed(() => width.value <= 768)
-watch(currentDoc, () => {
-  showDrawerMenu.value = false
+watch(currentDoc, (newDoc, oldDoc) => {
+  if (newDoc?.id !== oldDoc?.id) {
+    showDrawerMenu.value = false
+  }
   hideDebugSplit()
 })
 const isSmallScreen = computed(() => width.value <= 1200 && !isMobile.value)
@@ -104,6 +106,7 @@ const folderContainerHeight = useFolderLayoutHeight(false)
     <el-affix
       v-if="isMobile"
       :offset="20"
+      class="form-edit-width-100"
     >
       <el-button
         type="info"
@@ -206,7 +209,6 @@ const folderContainerHeight = useFolderLayoutHeight(false)
           class="flex-column min-width-container"
         >
           <el-drawer
-            v-show="!!currentDoc"
             v-model="showDrawerMenu"
             style="min-width: 320px;"
             :with-header="false"
