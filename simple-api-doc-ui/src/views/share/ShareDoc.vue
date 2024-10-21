@@ -107,6 +107,7 @@ const splitRef = ref()
     <el-affix
       v-if="isMobile||splitRef?.elementSizes?.[0]<50"
       :offset="20"
+      style="position: absolute;"
       class="form-edit-width-100"
     >
       <el-button
