@@ -94,8 +94,8 @@ const { isMobile, isSmallScreen } = useScreenCheck()
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc?.id !== oldDoc?.id) {
     showDrawerMenu.value = false
+    hideDebugSplit()
   }
-  hideDebugSplit()
 })
 const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isSmallScreen)
 const folderContainerHeight = useFolderLayoutHeight(false)
