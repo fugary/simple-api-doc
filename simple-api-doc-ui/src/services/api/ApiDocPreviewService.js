@@ -408,7 +408,7 @@ export const useApiDocDebugConfig = (smallScreen) => {
       previewApiRequest(...args)
     } else {
       if (!isShowDebug.value) {
-        splitSizes.value = [10, 45, 45]
+        splitSizes.value = [0, 50, 50]
         previewLoading.value = true
         nextTick(() => { // 延迟才能获取到Ref实例
           apiDocPreviewRef.value?.toPreviewRequest(...args)

@@ -4,11 +4,10 @@ import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
-import { useWindowSize } from '@vueuse/core'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
+import { useScreenCheck } from '@/services/api/ApiCommonService'
 
-const { width } = useWindowSize()
-const isMobile = computed(() => width.value <= 768)
+const { isMobile } = useScreenCheck()
 const docMargin = computed(() => isMobile.value ? 0 : '220px')
 
 const props = defineProps({

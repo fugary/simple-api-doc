@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted, ref, useAttrs, shallowRef, watch, nextTick } from 'vue'
+import { onMounted, ref, useAttrs, shallowRef, watch, nextTick, computed } from 'vue'
 import Split from 'split.js'
+import { useElementSize } from '@vueuse/core'
 
 /**
  * 更多属性配置可以参考文档
@@ -34,13 +35,18 @@ const props = defineProps({
     }
   }
 })
+const elementSizesRefs = ref([])
 const itemRefs = ref([])
 
 const attrs = useAttrs()
 const splitInstance = shallowRef()
 const newSplitInstance = () => {
   splitInstance.value?.destroy()
-  splitInstance.value = Split(itemRefs.value.map(itemRef => itemRef), {
+  splitInstance.value = Split(itemRefs.value.map(itemRef => {
+    const { width } = useElementSize(itemRef)
+    elementSizesRefs.value.push(width)
+    return itemRef
+  }), {
     sizes: props.sizes,
     minSize: props.minSize,
     maxSize: props.maxSize,
@@ -57,8 +63,11 @@ watch(() => props.sizes, () => {
   })
 })
 
+const elementSizes = computed(() => elementSizesRefs.value?.map(sizeRef => sizeRef.value))
+
 defineExpose({
-  splitInstance
+  splitInstance,
+  elementSizes
 })
 
 </script>

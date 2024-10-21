@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
 import { $goto, useBackUrl } from '@/utils'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
@@ -9,9 +9,9 @@ import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.
 import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
 import { APP_VERSION } from '@/config'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
-import { useWindowSize } from '@vueuse/core'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
+import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -31,10 +31,8 @@ watch(currentDoc, () => {
     hideDebugSplit()
   }
 })
-const { width } = useWindowSize()
-const isMobile = computed(() => width.value <= 768)
-const isSmallScreen = computed(() => width.value <= 1200 && !isMobile.value)
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isSmallScreen)
+const { isMediumScreen } = useScreenCheck()
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isMediumScreen)
 const folderContainerHeight = useFolderLayoutHeight(true, 20)
 </script>
 

@@ -11,11 +11,11 @@ import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.v
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
-import { useWindowSize } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
 import { AUTH_TYPE, DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { calcAuthModelBySchemas, calcSecuritySchemas } from '@/services/api/ApiDocPreviewService'
+import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const props = defineProps({
   shareDoc: {
@@ -95,8 +95,7 @@ watch(() => authContentModel.value?.authType, () => {
 })
 const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
 const folderContainerHeight = useFolderLayoutHeight(!props.shareDoc, props.shareDoc ? -90 : -70)
-const { width } = useWindowSize()
-const isMobile = computed(() => width.value <= 768)
+const { isMobile } = useScreenCheck()
 
 defineEmits(['toDebugApi'])
 

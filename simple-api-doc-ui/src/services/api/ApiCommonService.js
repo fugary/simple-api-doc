@@ -4,6 +4,7 @@ import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
 import { isArray, isFunction, isString } from 'lodash-es'
 import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
+import { useMediaQuery } from '@vueuse/core'
 
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
@@ -72,5 +73,20 @@ export const useContentTypeOption = (prop = 'contentType') => {
     attrs: {
       clearable: false
     }
+  }
+}
+
+/**
+ * 屏幕大小判断
+ * @returns {{isMediumScreen: vue_demi.Ref<boolean>, isSmallScreen: vue_demi.Ref<boolean>, isMobile: vue_demi.Ref<boolean>}}
+ */
+export const useScreenCheck = () => {
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const isSmallScreen = useMediaQuery('(max-width: 1200px)')
+  const isMediumScreen = useMediaQuery('(max-width: 1400px)')
+  return {
+    isMobile,
+    isSmallScreen,
+    isMediumScreen
   }
 }

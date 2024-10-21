@@ -1,16 +1,17 @@
 <script setup>
-import { onMounted, ref, computed, watch, onUnmounted } from 'vue'
+import { onMounted, ref, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import { $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { useTitle, useWindowSize } from '@vueuse/core'
+import { useTitle } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
 import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
+import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -88,24 +89,23 @@ const submitForm = form => {
   })
 }
 
-const { width } = useWindowSize()
 const showDrawerMenu = ref(true)
-const isMobile = computed(() => width.value <= 768)
+const { isMobile, isSmallScreen } = useScreenCheck()
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc?.id !== oldDoc?.id) {
     showDrawerMenu.value = false
   }
   hideDebugSplit()
 })
-const isSmallScreen = computed(() => width.value <= 1200 && !isMobile.value)
 const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isSmallScreen)
 const folderContainerHeight = useFolderLayoutHeight(false)
+const splitRef = ref()
 </script>
 
 <template>
   <el-container class="flex-column">
     <el-affix
-      v-if="isMobile"
+      v-if="isMobile||splitRef?.elementSizes?.[0]<50"
       :offset="20"
       class="form-edit-width-100"
     >
@@ -164,6 +164,7 @@ const folderContainerHeight = useFolderLayoutHeight(false)
       >
         <common-split
           v-if="!isMobile"
+          ref="splitRef"
           :sizes="splitSizes"
           :min-size="defaultMinSizes"
           :max-size="defaultMaxSizes"
@@ -209,25 +210,25 @@ const folderContainerHeight = useFolderLayoutHeight(false)
           v-else
           class="flex-column min-width-container"
         >
-          <el-drawer
-            v-model="showDrawerMenu"
-            style="min-width: 320px;"
-            :with-header="false"
-            direction="ltr"
-            append-to-body
-          >
-            <api-folder-tree-viewer
-              v-model="projectItem"
-              v-model:current-doc="currentDoc"
-              :share-doc="projectShare"
-            />
-          </el-drawer>
           <share-doc-right-viewer
             v-model="currentDoc"
             :project-share="projectShare"
             :project-item="projectItem"
           />
         </el-container>
+        <el-drawer
+          v-model="showDrawerMenu"
+          style="min-width: 320px;"
+          :with-header="false"
+          direction="ltr"
+          append-to-body
+        >
+          <api-folder-tree-viewer
+            v-model="projectItem"
+            v-model:current-doc="currentDoc"
+            :share-doc="projectShare"
+          />
+        </el-drawer>
       </el-container>
     </el-container>
   </el-container>
