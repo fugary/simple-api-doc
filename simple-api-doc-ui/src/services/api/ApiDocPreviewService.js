@@ -383,11 +383,13 @@ export const calcDefaultAuthModel = (authContentModel, authSchema) => {
 
 export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
   // 找到匹配的模式，优先考虑 authType 相同的模式
-  const foundSchema = Object.values(securitySchemas).find(authSchema =>
-    authContentModel.authType !== AUTH_TYPE.NONE && authContentModel.authType === authSchema.authType
-  ) || Object.values(securitySchemas).find(authSchema => authSchema.isSupported)
-  // 使用找到的模式或处理默认值
-  calcDefaultAuthModel(authContentModel, foundSchema)
+  if (securitySchemas) {
+    const foundSchema = Object.values(securitySchemas).find(authSchema =>
+      authContentModel.authType !== AUTH_TYPE.NONE && authContentModel.authType === authSchema.authType
+    ) || Object.values(securitySchemas).find(authSchema => authSchema.isSupported)
+    // 使用找到的模式或处理默认值
+    calcDefaultAuthModel(authContentModel, foundSchema)
+  }
 }
 
 export const useApiDocDebugConfig = (editable = false) => {

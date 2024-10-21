@@ -33,6 +33,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -133,7 +134,7 @@ public class SimpleHttpClientUtils {
             } catch (URISyntaxException e) {
                 logger.error("处理URL错误", e);
             }
-        });
+        }, null);
     }
 
     /**
@@ -146,6 +147,20 @@ public class SimpleHttpClientUtils {
      * @return
      */
     public static <T> T sendHttpGet(String url, Class<T> clazz, HttpClientRequestCallback callback) {
+        return sendHttpGet(url, clazz, callback, null);
+    }
+
+    /**
+     * 发送GET请求
+     *
+     * @param url      请求地址
+     * @param clazz    返回类型
+     * @param callback 回调，构建请求
+     * @param responseCallback 响应处理
+     * @param <T>
+     * @return
+     */
+    public static <T> T sendHttpGet(String url, Class<T> clazz, HttpClientRequestCallback callback, BiFunction<HttpResponse, Class<T>, T> responseCallback) {
         HttpClient client = getHttpClient();
         HttpGet httpGet = new HttpGet(url);
         HttpResponse response = null;
@@ -154,7 +169,10 @@ public class SimpleHttpClientUtils {
                 callback.processRequest(client, httpGet);
             }
             response = client.execute(httpGet);
-            return calcResponse(response, clazz);
+            if (responseCallback == null) {
+                return calcResponse(response, clazz);
+            }
+            return responseCallback.apply(response, clazz);
         } catch (Exception e) {
             logger.error("执行GET请求错误", e);
         } finally {
@@ -173,7 +191,21 @@ public class SimpleHttpClientUtils {
      * @param <T>
      * @return
      */
-    public static <T> T sendHttpPost(String url, Class<T> clazz, HttpClientRequestCallback callback) {
+    public static <T> T sendHttpPost(String url, Class<T> clazz, HttpClientRequestCallback callback){
+        return sendHttpPost(url, clazz, callback, null);
+    }
+
+    /**
+     * 发送post请求
+     *
+     * @param url      请求地址
+     * @param clazz    返回类型
+     * @param callback 回调，构建请求
+     * @param responseCallback 响应处理
+     * @param <T>
+     * @return
+     */
+    public static <T> T sendHttpPost(String url, Class<T> clazz, HttpClientRequestCallback callback, BiFunction<HttpResponse, Class<T>, T> responseCallback) {
         HttpClient client = getHttpClient();
         HttpPost httpPost = new HttpPost(url);
         HttpResponse response = null;
@@ -182,7 +214,10 @@ public class SimpleHttpClientUtils {
                 callback.processRequest(client, httpPost);
             }
             response = client.execute(httpPost);
-            return calcResponse(response, clazz);
+            if (responseCallback == null) {
+                return calcResponse(response, clazz);
+            }
+            return responseCallback.apply(response, clazz);
         } catch (Exception e) {
             logger.error("执行POST请求错误", e);
         } finally {
