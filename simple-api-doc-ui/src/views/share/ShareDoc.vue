@@ -5,7 +5,7 @@ import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import { $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { useWindowSize } from '@vueuse/core'
+import { useTitle, useWindowSize } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
 import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
@@ -54,6 +54,7 @@ const loadShareData = async (input) => {
     }
     return error.data?.resultData
   }).finally(() => (loading.value = false))
+  useTitle(projectShare.value?.shareName)
   console.log('=====================projectShare', projectShare.value)
   if (projectShare.value?.shareToken) { // 验证成功
     showPassWindow.value = false
