@@ -1,5 +1,7 @@
 package com.fugary.simple.api.service.apidoc.content;
 
+import com.fugary.simple.api.web.vo.SimpleResult;
+
 /**
  * Create date 2024/9/23<br>
  *
@@ -12,5 +14,5 @@ public interface DocContentProvider<T> {
      * @param source
      * @return
      */
-    String getContent(T source);
+    SimpleResult<String> getContent(T source);
 }

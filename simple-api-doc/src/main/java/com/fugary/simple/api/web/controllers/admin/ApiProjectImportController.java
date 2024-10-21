@@ -63,15 +63,17 @@ public class ApiProjectImportController {
             }
             MultipartFile file = files.get(0);
             fileName = file.getOriginalFilename();
-            content = streamDocContentProvider.getContent(file.getInputStream());
-            if (StringUtils.isEmpty(content)) {
-                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2003);
+            SimpleResult<String> contentResult = streamDocContentProvider.getContent(file.getInputStream());
+            if (!contentResult.isSuccess()) {
+                return SimpleResultUtils.createSimpleResult(contentResult.getCode());
             }
+            content = contentResult.getResultData();
         } else if (isUrlMode) {
-            content = urlDocContentProvider.getContent(importVo);
-            if (StringUtils.isEmpty(content)) {
-                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2005);
+            SimpleResult<String> contentResult = urlDocContentProvider.getContent(importVo);
+            if (!contentResult.isSuccess()) {
+                return SimpleResultUtils.createSimpleResult(contentResult.getCode());
             }
+            content = contentResult.getResultData();
         }
         SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
         ExportApiProjectVo exportProjectVo = parseResult.getResultData();

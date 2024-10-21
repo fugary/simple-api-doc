@@ -1,5 +1,8 @@
 package com.fugary.simple.api.service.apidoc.content;
 
+import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -19,14 +22,16 @@ import java.nio.charset.StandardCharsets;
 public class StreamDocContentProviderImpl implements DocContentProvider<InputStream> {
 
     @Override
-    public String getContent(InputStream stream) {
+    public SimpleResult<String> getContent(InputStream stream) {
+        String result = StringUtils.EMPTY;
         if (stream != null) {
             try {
-                return StreamUtils.copyToString(stream, StandardCharsets.UTF_8);
+                result = StreamUtils.copyToString(stream, StandardCharsets.UTF_8);
             } catch (IOException e) {
                 log.error("读取文件失败", e);
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2003);
             }
         }
-        return StringUtils.EMPTY;
+        return SimpleResultUtils.createSimpleResult(result);
     }
 }

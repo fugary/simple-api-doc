@@ -64,8 +64,11 @@ public class ProjectAutoImportInvoker {
                 importVo.setTaskName(projectTask.getTaskName());
                 importVo.setTaskType(projectTask.getTaskType());
                 importVo.setToFolder(projectTask.getToFolder());
-                String content = urlDocContentProvider.getContent(importVo);
-                SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
+                SimpleResult<String> contentResult = urlDocContentProvider.getContent(importVo);
+                if (!contentResult.isSuccess()) {
+                    return SimpleResultUtils.createError(contentResult.getMessage());
+                }
+                SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(contentResult.getResultData(), importVo);
                 if (!parseResult.isSuccess()) {
                     String errorMessage = MessageFormat.format("[{0}]项目任务[{1}]解析文档错误：{2}", apiProject.getProjectName(), projectTask.getTaskName(), parseResult.getMessage());
                     log.error(errorMessage);
