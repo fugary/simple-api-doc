@@ -31,7 +31,7 @@ const currentDoc = defineModel({
 })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-const folderContainerHeight = useFolderLayoutHeight(props.editable, 20)
+const folderContainerHeight = useFolderLayoutHeight(props.editable, props.editable ? 20 : 0)
 
 </script>
 
