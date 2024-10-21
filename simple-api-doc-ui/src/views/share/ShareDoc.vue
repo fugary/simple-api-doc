@@ -90,14 +90,14 @@ const submitForm = form => {
 }
 
 const showDrawerMenu = ref(true)
-const { isMobile, isSmallScreen } = useScreenCheck()
+const { isMobile } = useScreenCheck()
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc?.id !== oldDoc?.id) {
     showDrawerMenu.value = false
     hideDebugSplit()
   }
 })
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isSmallScreen)
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig()
 const folderContainerHeight = useFolderLayoutHeight(false)
 const splitRef = ref()
 </script>

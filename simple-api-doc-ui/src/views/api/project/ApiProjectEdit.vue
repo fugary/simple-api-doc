@@ -11,7 +11,6 @@ import { APP_VERSION } from '@/config'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
-import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -31,8 +30,7 @@ watch(currentDoc, () => {
     hideDebugSplit()
   }
 })
-const { isMediumScreen } = useScreenCheck()
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(isMediumScreen)
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(true)
 const folderContainerHeight = useFolderLayoutHeight(true, 20)
 </script>
 

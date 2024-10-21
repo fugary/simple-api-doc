@@ -84,9 +84,11 @@ export const useScreenCheck = () => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isSmallScreen = useMediaQuery('(max-width: 1200px)')
   const isMediumScreen = useMediaQuery('(max-width: 1400px)')
+  const isLargeScreen = useMediaQuery('(min-width: 1400px)')
   return {
     isMobile,
     isSmallScreen,
-    isMediumScreen
+    isMediumScreen,
+    isLargeScreen
   }
 }

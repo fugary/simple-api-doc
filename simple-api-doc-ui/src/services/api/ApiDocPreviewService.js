@@ -12,7 +12,7 @@ import {
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
 import axios from 'axios'
-import { processEvnParams } from '@/services/api/ApiCommonService'
+import { processEvnParams, useScreenCheck } from '@/services/api/ApiCommonService'
 import { nextTick, ref, watch, computed } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
 
@@ -390,25 +390,27 @@ export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
   calcDefaultAuthModel(authContentModel, foundSchema)
 }
 
-export const useApiDocDebugConfig = (smallScreen) => {
+export const useApiDocDebugConfig = (editable = false) => {
   const apiDocPreviewRef = ref()
   const splitSizes = ref([20, 80])
   const previewLoading = ref(false)
   const defaultMinSizes = ref([0, 500, 600])
   const defaultMaxSizes = ref([500, Infinity, Infinity])
   const isShowDebug = computed(() => splitSizes.value?.length === 3)
+  const { isSmallScreen, isMediumScreen, isLargeScreen } = useScreenCheck()
   const hideDebugSplit = () => {
     if (isShowDebug.value) {
       splitSizes.value = [20, 80]
     }
   }
   const toDebugApi = (...args) => {
-    if (smallScreen.value) {
+    const showDebugWindow = editable ? isMediumScreen.value : isSmallScreen.value
+    if (showDebugWindow) {
       hideDebugSplit()
       previewApiRequest(...args)
     } else {
       if (!isShowDebug.value) {
-        splitSizes.value = [0, 50, 50]
+        splitSizes.value = isLargeScreen.value ? [20, 40, 40] : [0, 50, 50]
         previewLoading.value = true
         nextTick(() => { // 延迟才能获取到Ref实例
           apiDocPreviewRef.value?.toPreviewRequest(...args)
@@ -419,8 +421,8 @@ export const useApiDocDebugConfig = (smallScreen) => {
       }
     }
   }
-  watch(smallScreen, () => {
-    if (smallScreen.value) {
+  watch(isSmallScreen, () => {
+    if (isSmallScreen.value) {
       hideDebugSplit()
     }
   })
