@@ -202,8 +202,18 @@ export const hasXxxOf = schema => {
   }
 }
 
+/**
+ * 判断是否有additionalProperties
+ *
+ * @param schema
+ * @returns {boolean}
+ */
+export const hasAddProperties = schema => {
+  return !!schema?.additionalProperties
+}
+
 export const checkLeaf = schema => {
-  if (schema?.$ref || Object.keys(schema?.properties || {}).length || hasXxxOf(schema)) {
+  if (schema?.$ref || Object.keys(schema?.properties || {}).length || hasXxxOf(schema) || hasAddProperties(schema)) {
     return false
   }
   if (isArraySchema(schema)) {
@@ -223,16 +233,25 @@ export const $ref2Schema = $ref => {
 
 export const processSchemaChildren = schema => {
   const xxxOf = hasXxxOf(schema)
+  const children = []
   if (xxxOf) {
-    return schema[xxxOf].map(value => {
+    children.push(...schema[xxxOf].map(value => {
       return {
         name: value.name,
         schema: value,
         isLeaf: checkLeaf(value)
       }
+    }))
+  }
+  children.push(...processProperties(schema))
+  if (hasAddProperties(schema)) {
+    children.push({
+      schema: schema.additionalProperties,
+      isLeaf: checkLeaf(schema.additionalProperties),
+      isAdditional: true
     })
   }
-  return processProperties(schema)
+  return children
 }
 
 /**
@@ -303,6 +322,9 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
         const property = properties[key]
         processSchema(property, componentsMap, recursive)
       })
+    }
+    if (hasAddProperties(schema)) {
+      processSchema(schema.additionalProperties, componentsMap, recursive)
     }
   }
   return apiSchema

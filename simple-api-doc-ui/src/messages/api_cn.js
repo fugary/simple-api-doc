@@ -102,6 +102,7 @@ api.label.projectCode = '项目编码'
 api.label.projectName = '项目名称'
 api.label.enum = '枚举值'
 api.label.notSupported = '暂不支持'
+api.label.additionalProperties = '额外字段'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出Mock数据？'

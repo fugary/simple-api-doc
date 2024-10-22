@@ -52,12 +52,22 @@ const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
     </el-tag>
     <el-tag
       v-if="schemaXxxOf"
-      type="primary"
+      type="success"
       size="small"
       class="margin-right2"
     >
       <strong>
         {{ schemaXxxOf }}
+      </strong>
+    </el-tag>
+    <el-tag
+      v-if="data.isAdditional"
+      type="success"
+      size="small"
+      class="margin-right2"
+    >
+      <strong>
+        {{ $t('api.label.additionalProperties') }}
       </strong>
     </el-tag>
     <el-text

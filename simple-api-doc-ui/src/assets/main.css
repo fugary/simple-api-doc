@@ -491,6 +491,10 @@ html, body, #app, .index-container {
     height: unset;
 }
 
+.folder-schema-tree .el-tree-node.is-current > .el-tree-node__content {
+    border-left: 4px solid var(--el-color-primary);
+}
+
 .doc-schema-tree .el-tree-node__content{
     min-height: 40px;
     height: unset;
@@ -502,10 +506,6 @@ html, body, #app, .index-container {
 
 .project-selected {
     border-color: var(--el-color-primary);
-}
-
-.el-tree-node.is-current > .el-tree-node__content {
-    border-left: 4px solid var(--el-color-primary);
 }
 
 .el-header.tabs-header {
