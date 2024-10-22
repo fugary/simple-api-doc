@@ -28,7 +28,6 @@ const apiDocDetail = ref()
 const envConfigs = ref([])
 const paramTarget = ref()
 const responseTarget = ref()
-const schemas = ref([])
 
 defineOptions({
   inheritAttrs: false
@@ -144,7 +143,6 @@ defineExpose({
       :env-configs="envConfigs"
       :request-path="requestPath"
       :response-target="responseTarget"
-      :schemas="schemas"
       v-bind="$attrs"
       @send-request="doDataPreview"
     />

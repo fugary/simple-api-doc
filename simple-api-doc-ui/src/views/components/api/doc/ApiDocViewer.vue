@@ -83,7 +83,12 @@ const loadDocDetail = async () => {
 }
 
 const handlerConfig = {
-  preHandler: target => Object.assign(target, lastParamTarget),
+  preHandler: target => {
+    const savedTarget = { ...lastParamTarget }
+    const notSavedKeys = ['requestBodySchema']// 有些数据不能使用保存数据
+    notSavedKeys.forEach(key => delete savedTarget[key])
+    return Object.assign(target, lastParamTarget)
+  },
   changeHandler: target => Object.assign(lastParamTarget, target)
 }
 

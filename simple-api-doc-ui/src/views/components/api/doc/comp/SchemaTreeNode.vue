@@ -45,6 +45,7 @@ const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
     >
       <strong>
         <el-text
+          size="small"
           :type="data.schema?.deprecated?'warning':'primary'"
           :tag="data.schema?.deprecated?'del':'span'"
         >
@@ -96,6 +97,7 @@ const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
         :key="enumVal"
         class="margin-left1"
         type="info"
+        @click="$copyText(enumVal)"
       >
         {{ enumVal }}
       </el-tag>
