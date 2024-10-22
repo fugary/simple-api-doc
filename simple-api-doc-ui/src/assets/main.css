@@ -450,16 +450,6 @@ html, body, #app, .index-container {
     float: right;
 }
 
-.request-table {
-    overflow: auto;
-}
-.request-table .el-table__row {
-    cursor: pointer;
-}
-.request-table .current-row td:first-child{
-    border-left: 4px solid var(--el-color-primary);
-}
-
 .common-split {
     display: flex;
     flex-direction: row;
@@ -512,4 +502,12 @@ html, body, #app, .index-container {
 
 .project-selected {
     border-color: var(--el-color-primary);
+}
+
+.el-tree-node.is-current > .el-tree-node__content {
+    border-left: 4px solid var(--el-color-primary);
+}
+
+.el-header.tabs-header {
+    height: 40px;
 }
