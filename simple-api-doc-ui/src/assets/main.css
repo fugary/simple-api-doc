@@ -495,9 +495,15 @@ html, body, #app, .index-container {
     border-left: 4px solid var(--el-color-primary);
 }
 
-.doc-schema-tree .el-tree-node__content{
+.doc-schema-tree .el-tree-node__content {
     min-height: 40px;
     height: unset;
+}
+
+.doc-schema-tree .el-tree-node__content p {
+    display: inline;
+    line-height: 30px;
+    word-break: break-word;
 }
 
 .doc-schema-required {

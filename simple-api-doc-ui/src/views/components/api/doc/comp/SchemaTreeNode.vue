@@ -18,12 +18,13 @@ const md = markdownit({
 })
 
 const getMarkdownStr = data => {
-  let example = ''
-  if (data.schema?.example) {
-    example = `${$i18nBundle('common.label.example')}: <span class="el-text el-text--small el-text--primary">${data.schema?.example}</span>\n`
+  let str = ''
+  if (data.schema?.description) {
+    str = `${data.schema?.description}<br>`
   }
-  const str = `${example}
-  ${data.schema?.description || ''}`
+  if (data.schema?.example) {
+    str += `${$i18nBundle('common.label.example')}: <span class="el-text el-text--small el-text--primary">${data.schema?.example}</span>`
+  }
   return md.render(str)
 }
 
