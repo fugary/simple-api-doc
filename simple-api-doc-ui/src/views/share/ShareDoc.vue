@@ -103,7 +103,7 @@ const splitRef = ref()
 </script>
 
 <template>
-  <el-container class="flex-column">
+  <el-container class="flex-column height100">
     <el-affix
       v-if="isMobile||splitRef?.elementSizes?.[0]<50"
       :offset="20"
@@ -122,7 +122,7 @@ const splitRef = ref()
     </el-affix>
     <el-container
       v-loading="loading"
-      style="min-height: 50vh"
+      class="height100"
     >
       <div
         v-if="!showPassWindow && errorMessage"
@@ -160,7 +160,7 @@ const splitRef = ref()
       </common-window>
       <el-container
         v-if="projectItem"
-        class="form-edit-width-100 flex-column padding-top3 padding-left3 padding-right3"
+        class="form-edit-width-100 flex-column padding-top3 padding-left3 padding-right3 height100"
       >
         <common-split
           v-if="!isMobile"
@@ -168,6 +168,7 @@ const splitRef = ref()
           :sizes="splitSizes"
           :min-size="defaultMinSizes"
           :max-size="defaultMaxSizes"
+          class="height100"
         >
           <template #split-0>
             <api-folder-tree-viewer
@@ -186,8 +187,7 @@ const splitRef = ref()
           </template>
           <template #split-2>
             <el-container
-              class="flex-column padding-left2"
-              style="height:100%"
+              class="flex-column padding-left2 height100"
             >
               <el-page-header
                 class="padding-bottom2"

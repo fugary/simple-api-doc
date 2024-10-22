@@ -24,7 +24,7 @@ defineEmits(['toDebugApi'])
 </script>
 
 <template>
-  <div>
+  <div class="height100">
     <markdown-doc-viewer
       v-if="currentDoc?.docType==='md'"
       v-model="currentDoc"

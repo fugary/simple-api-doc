@@ -10,7 +10,6 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.vue'
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
-import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
 import { AUTH_TYPE, DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
@@ -99,7 +98,6 @@ watch(() => authContentModel.value?.authType, () => {
   calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
 })
 const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
-const folderContainerHeight = useFolderLayoutHeight(!props.shareDoc, props.shareDoc ? -90 : -70)
 const { isMobile } = useScreenCheck()
 
 defineEmits(['toDebugApi'])
@@ -128,8 +126,8 @@ const saveAuthorization = ({ form }) => {
   <el-container
     :key="apiDoc.id"
     v-loading="loading"
+    style="height: calc(100% - 45px)"
     class="padding-left2 flex-column padding-right2"
-    style="min-height: 50vh"
   >
     <api-doc-view-header v-model="apiDoc" />
     <api-doc-path-header
@@ -142,8 +140,7 @@ const saveAuthorization = ({ form }) => {
       @config-auth="toEditAuthorization"
     />
     <el-container
-      :style="{height:folderContainerHeight}"
-      class="flex-column"
+      class="flex-column scroll-main-container"
     >
       <el-scrollbar class="api-doc-viewer">
         <h3 v-if="apiDocDetail?.description">

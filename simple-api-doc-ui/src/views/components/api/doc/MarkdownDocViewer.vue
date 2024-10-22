@@ -4,13 +4,12 @@ import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
-import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const { isMobile } = useScreenCheck()
 const docMargin = computed(() => isMobile.value ? 0 : '220px')
 
-const props = defineProps({
+defineProps({
   scrollElement: {
     type: [Object, String],
     default: document.documentElement
@@ -31,19 +30,20 @@ const currentDoc = defineModel({
 })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-const folderContainerHeight = useFolderLayoutHeight(props.editable, props.editable ? 20 : 0)
 
 </script>
 
 <template>
-  <el-container class="padding-left2 padding-right2 flex-column">
+  <el-container
+    class="padding-left2 padding-right2 flex-column"
+    style="height: calc(100% - 45px)"
+  >
     <api-doc-view-header
       v-model="currentDoc"
       :editable="editable"
     />
     <el-container
-      class="markdown-doc-viewer"
-      :style="{height: folderContainerHeight}"
+      class="markdown-doc-viewer scroll-main-container"
     >
       <md-preview
         class="md-doc-container"

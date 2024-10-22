@@ -35,7 +35,7 @@ const folderContainerHeight = useFolderLayoutHeight(true, 20)
 </script>
 
 <template>
-  <el-container class="flex-column">
+  <el-container class="flex-column height100">
     <el-page-header
       class="margin-bottom3"
       @back="goBack"
@@ -96,7 +96,7 @@ const folderContainerHeight = useFolderLayoutHeight(true, 20)
     </el-page-header>
     <el-container
       v-loading="loading"
-      style="min-height: 50vh"
+      style="height: calc(100% - 60px);"
     >
       <div class="form-edit-width-100">
         <common-split
@@ -104,6 +104,7 @@ const folderContainerHeight = useFolderLayoutHeight(true, 20)
           :sizes="splitSizes"
           :min-size="defaultMinSizes"
           :max-size="defaultMaxSizes"
+          class="height100"
         >
           <template #split-0>
             <api-folder-tree-viewer
@@ -115,7 +116,10 @@ const folderContainerHeight = useFolderLayoutHeight(true, 20)
             />
           </template>
           <template #split-1>
-            <el-container v-if="currentDoc?.editing">
+            <el-container
+              v-if="currentDoc?.editing"
+              class="height100"
+            >
               <markdown-doc-editor
                 v-if="currentDoc?.docType==='md'"
                 v-model="currentDoc"
@@ -129,7 +133,7 @@ const folderContainerHeight = useFolderLayoutHeight(true, 20)
             </el-container>
             <el-container
               v-else
-              class="flex-column"
+              class="flex-column height100"
             >
               <markdown-doc-viewer
                 v-if="currentDoc?.docType==='md'"

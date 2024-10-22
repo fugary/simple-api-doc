@@ -521,3 +521,13 @@ html, body, #app, .index-container {
 .schema-tree-node{
     margin-top: 5px;
 }
+
+.height100 {
+    height: 100%;
+}
+
+.scroll-main-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-bottom: 10px;
+}

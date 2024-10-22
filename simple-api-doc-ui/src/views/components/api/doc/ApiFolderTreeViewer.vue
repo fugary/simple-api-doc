@@ -13,7 +13,7 @@ import {
   getFolderHandlers,
   getDocHandlers,
   calcNodeLeaf,
-  calcShowDocLabelHandler, useFolderLayoutHeight, getChildrenSortId, getDownloadDocsHandlers
+  calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers
 } from '@/services/api/ApiFolderService'
 import { loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
@@ -160,7 +160,6 @@ const refreshProjectItem = (...args) => {
   })
 }
 
-const folderContainerHeight = useFolderLayoutHeight(props.editable, props.shareDoc ? -20 : 20, true)
 //* *********文件夹编辑****************//
 const currentEditFolder = ref()
 const showEditWindow = ref(false)
@@ -223,7 +222,7 @@ const { width } = useElementSize(currentRef)
     class="padding-right2 flex-column"
     style="height: 100%;"
   >
-    <template v-if="width>80">
+    <div v-if="width>80">
       <el-header
         v-if="shareDoc"
         class="share-name-header margin-bottom3"
@@ -271,8 +270,8 @@ const { width } = useElementSize(currentRef)
         :option="searchFormOption"
         :model="searchParam"
       />
-    </template>
-    <el-container :style="{height:folderContainerHeight}">
+    </div>
+    <el-container class="scroll-main-container">
       <el-scrollbar style="flex-grow: 1;">
         <el-tree
           v-if="showFolderTree"
