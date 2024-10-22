@@ -1,9 +1,8 @@
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
-import { $coreAlert, $coreConfirm, calcAffixOffset, processTreeData } from '@/utils'
+import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import ApiDocApi from '@/api/ApiDocApi'
-import { useWindowSize } from '@vueuse/core'
 import { checkDownloadDocs, downloadShareDocs } from '@/api/SimpleShareApi'
 
 /**
@@ -197,21 +196,6 @@ export const useFolderTreeNodes = (projectId) => {
     loadValidFolders(projectId)
   }
   return { folderTreeNodes, folders, loadValidFolders }
-}
-
-export const useFolderLayoutHeight = (editable, heightFix = 0, force = false) => {
-  const { width } = useWindowSize()
-  if (width.value <= 768 && !force) {
-    return ref('auto')
-  }
-  let offset = -70
-  if (editable) {
-    offset = calcAffixOffset()
-  }
-  offset = offset - heightFix
-  return computed(() => {
-    return `calc(100vh - ${200 + offset}px)`
-  })
 }
 
 export const getChildrenSortId = (folder) => {

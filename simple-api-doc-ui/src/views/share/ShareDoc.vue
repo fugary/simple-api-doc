@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
@@ -10,7 +10,6 @@ import emitter from '@/vendors/emitter'
 import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
-import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const shareConfigStore = useShareConfigStore()
@@ -98,7 +97,6 @@ watch(currentDoc, (newDoc, oldDoc) => {
   }
 })
 const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig()
-const folderContainerHeight = useFolderLayoutHeight(false)
 const splitRef = ref()
 </script>
 
@@ -201,7 +199,7 @@ const splitRef = ref()
                 ref="apiDocPreviewRef"
                 v-loading="previewLoading"
                 style="min-height:200px;"
-                :form-height="folderContainerHeight"
+                form-height="calc(100vh - 120px)"
               />
             </el-container>
           </template>

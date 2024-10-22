@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { $goto, useBackUrl } from '@/utils'
-import { ref, watch } from 'vue'
+import { $goto, calcAffixOffset, useBackUrl } from '@/utils'
+import { ref, watch, computed } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
@@ -10,7 +10,6 @@ import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
 import { APP_VERSION } from '@/config'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
-import { useFolderLayoutHeight } from '@/services/api/ApiFolderService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -25,13 +24,16 @@ const savedApiDoc = () => {
   folderTreeRef.value?.refreshProjectItem()
 }
 
-watch(currentDoc, () => {
-  if (currentDoc.value?.docType === 'md') {
+watch(currentDoc, (newDoc, oldDoc) => {
+  if (newDoc?.id !== oldDoc?.id) {
     hideDebugSplit()
   }
 })
 const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(true)
-const folderContainerHeight = useFolderLayoutHeight(true, 20)
+const folderContainerHeight = computed(() => {
+  const offset = calcAffixOffset()
+  return `calc(100vh - ${170 + offset}px)`
+})
 </script>
 
 <template>
