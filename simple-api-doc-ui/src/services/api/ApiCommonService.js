@@ -2,18 +2,20 @@ import { $coreConfirm, getSingleSelectOptions } from '@/utils'
 import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
-import { isArray, isFunction, isString } from 'lodash-es'
+import { cloneDeep, isArray, isFunction, isString } from 'lodash-es'
 import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 import { useMediaQuery } from '@vueuse/core'
+import { removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
 
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
     .then(() => {
-      const schema = isString(schemaBody) ? JSON.parse(schemaBody) : schemaBody
+      let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
+      schema = removeSchemaDeprecated(schema)
+      console.log('===========================schema', schema)
       const json = sample(schema)
       let resStr
       if (type?.includes('xml')) {
-        console.log('===========================schema', schema)
         const builder = new XMLBuilder({
           ignoreAttributes: false,
           format: true,

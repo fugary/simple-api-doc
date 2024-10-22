@@ -44,7 +44,12 @@ const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
       @click="$copyText(data.name)"
     >
       <strong>
-        {{ data.name }}
+        <el-text
+          :type="data.schema?.deprecated?'warning':'primary'"
+          :tag="data.schema?.deprecated?'del':'span'"
+        >
+          {{ data.name }}
+        </el-text>
         <span
           v-if="data.required || data.schema?.isRequired"
           class="doc-schema-required"

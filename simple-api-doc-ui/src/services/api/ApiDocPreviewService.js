@@ -357,6 +357,26 @@ export const processSchemaXxxOf = (schema, componentsMap, recursive) => {
   })
 }
 
+/**
+ * 删除deprecated数据
+ *
+ * @param schema
+ * @returns {*}
+ */
+export const removeSchemaDeprecated = schema => {
+  const properties = schema?.properties
+  if (properties) {
+    Object.keys(properties).forEach(key => {
+      if (properties[key]?.deprecated) {
+        delete properties[key]
+      } else {
+        properties[key] = removeSchemaDeprecated(properties[key])
+      }
+    })
+  }
+  return schema
+}
+
 export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supportedAuthTypes) => {
   if (projectInfoDetail?.securitySchemas?.length) {
     const secSchemas = JSON.parse(projectInfoDetail.securitySchemas[0].schemaContent)
