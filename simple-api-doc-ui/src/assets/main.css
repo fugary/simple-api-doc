@@ -511,3 +511,7 @@ html, body, #app, .index-container {
 .el-header.tabs-header {
     height: 40px;
 }
+
+.schema-tree-node{
+    margin-top: 5px;
+}

@@ -317,10 +317,14 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
     processSchemaXxxOf(schema, componentsMap, recursive)
     parent.isLeaf = checkLeaf(schema)
     const properties = schema.properties
-    if (recursive && properties) {
+    if (properties) {
       Object.keys(properties).forEach(key => {
         const property = properties[key]
-        processSchema(property, componentsMap, recursive)
+        if (recursive) {
+          processSchema(property, componentsMap, recursive)
+        } else {
+          processSchemaRef(property, componentsMap) // 仅处理下$ref，方便展示
+        }
       })
     }
     if (hasAddProperties(schema)) {

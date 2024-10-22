@@ -20,7 +20,7 @@ const md = markdownit({
 const getMarkdownStr = data => {
   let example = ''
   if (data.schema?.example) {
-    example = `${$i18nBundle('common.label.example')}: <code>${data.schema?.example}</code>\n`
+    example = `${$i18nBundle('common.label.example')}: <span class="el-text el-text--small el-text--primary">${data.schema?.example}</span>\n`
   }
   const str = `${example}
   ${data.schema?.description || ''}`
@@ -34,7 +34,7 @@ const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
 </script>
 
 <template>
-  <div class="custom-tree-node">
+  <div class="schema-tree-node">
     <el-tag
       v-if="data.name"
       type="primary"
