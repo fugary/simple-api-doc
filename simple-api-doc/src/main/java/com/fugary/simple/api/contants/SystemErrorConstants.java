@@ -58,4 +58,8 @@ public class SystemErrorConstants {
      * 文档分享已过期
      */
     public static final int CODE_2008 = 2008;
+    /**
+     * URL数据下载失败
+     */
+    public static final int CODE_2009 = 2009;
 }

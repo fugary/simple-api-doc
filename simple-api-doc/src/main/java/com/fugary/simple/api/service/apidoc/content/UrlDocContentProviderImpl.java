@@ -53,11 +53,14 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
             }
             return Pair.of(resultStr, httpResponse);
         });
-        HttpResponse httpResponse = resultPair.getRight();
-        if (httpResponse != null && HttpStatus.SC_OK == httpResponse.getStatusLine().getStatusCode()) {
-           return SimpleResultUtils.createSimpleResult(resultPair.getLeft());
+        if (resultPair != null) {
+            HttpResponse httpResponse = resultPair.getRight();
+            if (httpResponse != null && HttpStatus.SC_OK == httpResponse.getStatusLine().getStatusCode()) {
+                return SimpleResultUtils.createSimpleResult(resultPair.getLeft());
+            }
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2005);
         }
-        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2005);
+        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
     }
 
     protected String getBasicHeader(UrlWithAuthVo source) {
