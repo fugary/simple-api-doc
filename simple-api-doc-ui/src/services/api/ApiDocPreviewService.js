@@ -380,11 +380,29 @@ export const removeSchemaDeprecated = schema => {
 export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supportedAuthTypes) => {
   if (projectInfoDetail?.securitySchemas?.length) {
     const secSchemas = JSON.parse(projectInfoDetail.securitySchemas[0].schemaContent)
+    let jwtKey = null
     Object.keys(secSchemas).forEach((key) => {
       const secSchema = secSchemas[key]
       secSchema.authType = calcAuthType(secSchema)
       secSchema.isSupported = Object.values(AUTH_TYPE).includes(secSchema.authType)
+      secSchema.authType === AUTH_TYPE.JWT && (jwtKey = key)
     })
+    const authTypes = Object.values(secSchemas).map(secSchema => secSchema.authType)
+    if (authTypes.includes(AUTH_TYPE.JWT) && !authTypes.includes(AUTH_TYPE.TOKEN)) { // jwtToken添加一个直接的token模式，方便使用
+      const jwtSchema = secSchemas[jwtKey]
+      if (jwtSchema) {
+        secSchemas.$JWT_TOKEN = {
+          description: 'JWT authentication with token only.',
+          authType: AUTH_TYPE.TOKEN,
+          name: jwtSchema.name,
+          in: jwtSchema.in,
+          scheme: jwtSchema.scheme,
+          type: jwtSchema.type,
+          isSupported: true
+        }
+      }
+    }
+    console.log('==================================secSchemas', secSchemas)
     securitySchemas.value = secSchemas
     supportedAuthTypes.value = Object.values(secSchemas).filter(s => s.isSupported)
       .map(s => s.authType)
