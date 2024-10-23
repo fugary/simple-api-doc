@@ -348,20 +348,6 @@ const importRef = ref()
     >
       <el-tab-pane>
         <template #label>
-          {{ $t('api.label.manualImportData') }}
-        </template>
-        <el-container class="form-edit-width-70 padding-top2">
-          <api-project-import
-            v-if="projectItem"
-            ref="importRef"
-            show-buttons
-            :project="projectItem"
-            @import-success="goBack"
-          />
-        </el-container>
-      </el-tab-pane>
-      <el-tab-pane>
-        <template #label>
           {{ $t('api.label.autoImportData') }}
         </template>
         <Teleport
@@ -400,6 +386,20 @@ const importRef = ref()
             />
           </el-container>
         </Teleport>
+      </el-tab-pane>
+      <el-tab-pane>
+        <template #label>
+          {{ $t('api.label.manualImportData') }}
+        </template>
+        <el-container class="form-edit-width-70 padding-top2">
+          <api-project-import
+            v-if="projectItem"
+            ref="importRef"
+            show-buttons
+            :project="projectItem"
+            @import-success="goBack"
+          />
+        </el-container>
       </el-tab-pane>
     </el-tabs>
     <simple-edit-window
