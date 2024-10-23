@@ -140,8 +140,7 @@ const formOptions = computed(() => {
       tip: () => <div className="el-upload__tip">{$i18nBundle('api.msg.importFileLimit')}</div>
     }
   }, {
-    // enabled: !!props.project?.id,
-    enabled: false,
+    enabled: !!props.project?.id,
     labelKey: 'api.label.targetFolder',
     type: 'tree-select',
     prop: 'toFolder',

@@ -296,7 +296,6 @@ const editFormOptions = computed(() => {
     type: 'radio-group',
     children: IMPORT_AUTH_TYPES
   }, ...authOptions, {
-    enabled: false,
     labelKey: 'api.label.targetFolder',
     type: 'tree-select',
     prop: 'toFolder',
