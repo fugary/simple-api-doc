@@ -23,6 +23,15 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      * 加载需要的详细信息
      *
      * @param projectId
+     * @param types
+     * @return
+     */
+    List<ApiProjectInfoDetail> loadByProject(Integer projectId, Set<String> types);
+
+    /**
+     * 加载需要的详细信息
+     *
+     * @param projectId
      * @param infoId
      * @param types
      * @return
@@ -65,6 +74,16 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
     ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail);
 
     /**
+     * 解析doc详情
+     *
+     * @param apiInfo
+     * @param apiInfoDetails
+     * @param docDetailList
+     * @return
+     */
+    ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, List<ApiProjectInfoDetail> apiInfoDetails, List<ApiDocDetailVo> docDetailList);
+
+    /**
      * 解析成SchemaMap
      *
      * @param projectInfoDetails
@@ -77,8 +96,8 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      *
      * @param projectInfoDetails
      * @param schemaKeyMap
-     * @param docDetailVo
+     * @param docDetailList
      * @return
      */
-    List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, ApiDocDetailVo docDetailVo);
+    List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, List<ApiDocDetailVo> docDetailList);
 }

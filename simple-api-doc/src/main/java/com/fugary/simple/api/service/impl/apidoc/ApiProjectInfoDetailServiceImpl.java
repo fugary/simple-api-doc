@@ -37,6 +37,11 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     private static final Pattern SCHEMA_COMPONENT_PATTERN = Pattern.compile("\"(" + ApiDocConstants.SCHEMA_COMPONENT_PREFIX + "[^\"]+)\"");
 
     @Override
+    public List<ApiProjectInfoDetail> loadByProject(Integer projectId, Set<String> types) {
+        return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("project_id", projectId).in(!types.isEmpty(), "body_type", types));
+    }
+
+    @Override
     public List<ApiProjectInfoDetail> loadByProjectAndInfo(Integer projectId, Integer infoId, Set<String> types) {
         return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("project_id", projectId)
                 .eq("info_id", infoId).in(!types.isEmpty(), "body_type", types));
@@ -65,11 +70,16 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail) {
-        ApiProjectInfoDetailVo apiInfoVo = SimpleModelUtils.copy(apiInfo, ApiProjectInfoDetailVo.class);
         List<ApiProjectInfoDetail> apiInfoDetails = loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(),
                 Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
+        return parseInfoDetailVo(apiInfo, apiInfoDetails, List.of(apiDocDetail));
+    }
+
+    @Override
+    public ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, List<ApiProjectInfoDetail> apiInfoDetails, List<ApiDocDetailVo> docDetailList) {
+        ApiProjectInfoDetailVo apiInfoVo = SimpleModelUtils.copy(apiInfo, ApiProjectInfoDetailVo.class);
         Map<String, ApiProjectInfoDetail> schemaKeyMap = toSchemaKeyMap(apiInfoDetails);
-        apiInfoDetails = filterByDocDetail(apiInfoDetails, schemaKeyMap, apiDocDetail);
+        apiInfoDetails = filterByDocDetail(apiInfoDetails, schemaKeyMap, docDetailList);
         apiInfoDetails.forEach(detail -> {
             switch (detail.getBodyType()) {
                 case ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT:
@@ -98,13 +108,15 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     }
 
     @Override
-    public List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, ApiDocDetailVo docDetailVo) {
+    public List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, List<ApiDocDetailVo> docDetailList) {
         Set<String> schemaKeys = new HashSet<>();
-        if (docDetailVo.getParametersSchema() != null) {
-            calcRelatedSchemas(schemaKeys, docDetailVo.getParametersSchema().getSchemaContent(), schemaKeyMap);
+        for (ApiDocDetailVo docDetailVo : docDetailList) {
+            if (docDetailVo.getParametersSchema() != null) {
+                calcRelatedSchemas(schemaKeys, docDetailVo.getParametersSchema().getSchemaContent(), schemaKeyMap);
+            }
+            docDetailVo.getRequestsSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
+            docDetailVo.getResponsesSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
         }
-        docDetailVo.getRequestsSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
-        docDetailVo.getResponsesSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
         projectInfoDetails = projectInfoDetails.stream().filter(detail -> {
             if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(detail.getBodyType())) {
                 return StringUtils.isNotBlank(detail.getSchemaKey()) && schemaKeys.contains(detail.getSchemaKey());

@@ -31,6 +31,13 @@ public interface ApiDocSchemaService extends IService<ApiDocSchema> {
     ApiDocDetailVo loadDetailVo(ApiDoc apiDoc);
 
     /**
+     * 加载schema等详情
+     *
+     * @param apiDocs
+     * @return
+     */
+    List<ApiDocDetailVo> loadDetailList(List<ApiDoc> apiDocs);
+    /**
      * 按照doc删除
      *
      * @param docId

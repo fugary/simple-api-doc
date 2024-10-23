@@ -1,7 +1,7 @@
 package com.fugary.simple.api.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.util.Yaml;
+import io.swagger.v3.core.util.Yaml;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class YamlUtils {
+public class SchemaYamlUtils {
 
     /**
      * 默认Mapper
@@ -36,7 +36,7 @@ public class YamlUtils {
         try {
             result = getMapper().writeValueAsString(input);
         } catch (Exception e) {
-            log.error("输出xml错误", e);
+            log.error("输出yaml错误", e);
         }
         return result;
     }
@@ -54,7 +54,7 @@ public class YamlUtils {
         try {
             result = getMapper().readValue(input, clazz);
         } catch (Exception e) {
-            log.error("输出xml错误", e);
+            log.error("输出yaml错误", e);
         }
         return result;
     }

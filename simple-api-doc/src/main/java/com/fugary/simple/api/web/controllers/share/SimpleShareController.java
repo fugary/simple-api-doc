@@ -3,15 +3,17 @@ package com.fugary.simple.api.web.controllers.share;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.push.ApiInvokeProcessor;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
-import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
-import com.fugary.simple.api.utils.YamlUtils;
+import com.fugary.simple.api.utils.SchemaYamlUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.exports.ExportDownloadVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
@@ -21,19 +23,27 @@ import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -42,9 +52,13 @@ import java.util.Set;
  *
  * @author gary.fu
  */
+@Slf4j
 @RestController
 @RequestMapping("/shares")
 public class SimpleShareController {
+
+    @Value("${spring.application.name}")
+    private String applicationName;
 
     @Autowired
     private ApiProjectService apiProjectService;
@@ -69,6 +83,9 @@ public class SimpleShareController {
 
     @Autowired
     private ApiInvokeProcessor apiInvokeProcessor;
+
+    @Autowired
+    private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
     @GetMapping("/loadShare/{shareId}")
     public SimpleResult<ApiProjectShareVo> loadShare(@PathVariable("shareId") String shareId, @RequestParam(name = "pwd") String password) {
@@ -124,7 +141,7 @@ public class SimpleShareController {
                 || (infoList = apiProjectInfoService.loadByProjectId(apiShare.getProjectId())).isEmpty()
                 || (currentInfo = infoList.get(0)) == null
                 || (details = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), currentInfo.getId(),
-                    Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT))).isEmpty()
+                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT))).isEmpty()
                 || (detail = details.get(0)) == null
                 || StringUtils.isBlank(detail.getSchemaContent())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
@@ -133,24 +150,94 @@ public class SimpleShareController {
     }
 
     @GetMapping("/download/{type}/{shareId}")
-    public void downloadDocs(@PathVariable("type") String type,
-                                                         @PathVariable("shareId") String shareId,
-                                                         HttpServletResponse response) throws IOException {
+    public ResponseEntity<byte[]> downloadDocs(@PathVariable("type") String type,
+                                               @PathVariable("shareId") String shareId,
+                                               HttpServletResponse response) throws IOException {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         ApiProjectInfo currentInfo = apiProjectInfoService.loadByProjectId(apiShare.getProjectId()).get(0);
         ApiProjectInfoDetail detail = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), currentInfo.getId(),
                 Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT)).get(0);
         String fileName = apiShare.getShareName() + "." + type;
-        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        response.addHeader("Content-Disposition", "attachment; filename="
-                + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        try (OutputStream out = response.getOutputStream()) {
-            // 获取文件内容（确保 getContent 返回的是字节数据）
-            byte[] contentBytes = getContent(type, detail.getSchemaContent()).getBytes(StandardCharsets.UTF_8);
-            // 将内容写入输出流
-            out.write(contentBytes);
-            out.flush();
+        byte[] contentBytes = getContent(type, detail.getSchemaContent()).getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(contentBytes.length)
+                .body(contentBytes);
+    }
+
+    @PostMapping("/checkExportDownloadDocs")
+    public SimpleResult<String> checkExportDownloadDocs(@RequestBody ExportDownloadVo downloadVo) {
+        String shareId = downloadVo.getShareId();
+        ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
+        if (apiShare == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
+        }
+        String uuid = SimpleModelUtils.uuid();
+        String type = StringUtils.defaultIfBlank(downloadVo.getType(), "json");
+        OpenAPI openAPI = apiApiDocExporter.export(apiShare.getProjectId(), downloadVo.getDocIds());
+        String content;
+        if (StringUtils.equals(type, "json")) {
+            content = SchemaJsonUtils.toJson(openAPI);
+        } else {
+            content = SchemaYamlUtils.toYaml(openAPI);
+        }
+        try {
+            String filePathName = getFileFullPath(uuid, type);
+            Path tempFile = Files.createFile(Path.of(filePathName));
+            Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
+            tempFile.toFile().deleteOnExit();
+        } catch (IOException e) {
+            log.error("创建临时文件失败", e);
+        }
+        return SimpleResultUtils.createSimpleResult(uuid);
+    }
+
+    /**
+     * 获取文件路径
+     *
+     * @param uuid
+     * @param type
+     * @return
+     */
+    private String getFileFullPath(String uuid, String type) {
+        String fileName = uuid + "." + type;
+        String filePath = StringUtils.join(List.of(FileUtils.getTempDirectoryPath(), applicationName), File.separator);
+        File fileDir = new File(filePath);
+        if (!fileDir.exists()) {
+            try {
+                FileUtils.forceMkdir(fileDir);
+            } catch (IOException e) {
+                log.error("创建临时文件夹失败", e);
+            }
+        }
+        return StringUtils.join(List.of(filePath, fileName), File.separator);
+    }
+
+    @GetMapping("/exportDownload/{type}/{shareId}/{uuid}")
+    public ResponseEntity<InputStreamResource> exportDownloadDocs(@PathVariable("type") String type,
+                                                                  @PathVariable("shareId") String shareId,
+                                                                  @PathVariable("uuid") String uuid) throws IOException {
+        ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
+        String fileName = uuid + "." + type;
+        // 构造临时文件的完整路径
+        File tempFile = new File(getFileFullPath(uuid, type));
+        fileName = apiShare.getShareName() + "-" + fileName;
+        // 检查文件是否存在
+        if (!tempFile.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+        // 创建 InputStreamResource 从文件中读取数据
+        InputStreamResource resource = new InputStreamResource(new FileInputStream(tempFile));
+        // 设置响应头，准备文件下载
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(tempFile.length())
+                .body(resource);
     }
 
     protected String getContent(String type, String content) {
@@ -159,9 +246,9 @@ public class SimpleShareController {
         SwaggerParseResult result = new OpenAPIParser().readContents(content, null, parseOptions);
         OpenAPI openAPI = result.getOpenAPI();
         if (StringUtils.equals(type, "json")) {
-            return JsonUtils.toJson(openAPI);
+            return SchemaJsonUtils.toJson(openAPI);
         } else {
-            return YamlUtils.toYaml(openAPI);
+            return SchemaYamlUtils.toYaml(openAPI);
         }
     }
 

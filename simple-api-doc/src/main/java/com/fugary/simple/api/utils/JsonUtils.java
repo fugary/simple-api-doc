@@ -84,8 +84,7 @@ public class JsonUtils {
             if (StringUtils.isNotBlank(json)) {
                 result = MAPPER.readValue(json, typeReference);
             }
-        } catch (IOException var4) {
-            IOException e = var4;
+        } catch (IOException e) {
             log.error("将Json转换成对象出错", e);
         }
 

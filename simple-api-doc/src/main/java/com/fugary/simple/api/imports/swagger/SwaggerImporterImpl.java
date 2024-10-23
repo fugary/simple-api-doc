@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.*;
@@ -91,7 +92,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         if (components != null && components.getSecuritySchemes() != null && !components.getSecuritySchemes().isEmpty()) {
             ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
             detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY);
-            detailVo.setSchemaContent(JsonUtils.toJson(components.getSecuritySchemes()));
+            detailVo.setSchemaContent(SchemaJsonUtils.toJson(components.getSecuritySchemes()));
             detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
             projectVo.getProjectInfoDetails().add(detailVo);
         }
@@ -102,7 +103,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         projectInfo.setStatus(ApiDocConstants.STATUS_ENABLED);
         projectInfo.setOasVersion(openAPI.getOpenapi());
         projectInfo.setSpecVersion(openAPI.getSpecVersion().name());
-        projectInfo.setEnvContent(JsonUtils.toJson(openAPI.getServers().stream().map(server -> {
+        projectInfo.setEnvContent(SchemaJsonUtils.toJson(openAPI.getServers().stream().map(server -> {
             String url = server.getUrl();
             String name = server.getDescription();
             return new ExportEnvConfigVo(name, url);
@@ -132,7 +133,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 ExportApiProjectInfoDetailVo detail = new ExportApiProjectInfoDetailVo();
                 detail.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT);
                 detail.setSchemaName(s);
-                detail.setSchemaContent(JsonUtils.toJson(schema));
+                detail.setSchemaContent(SchemaJsonUtils.toJson(schema));
                 detail.setDescription(schema.getDescription());
                 detail.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getProjectInfoDetails().add(detail);
@@ -143,7 +144,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     protected void processApiMarkdownFiles(OpenAPI openAPI, ExportApiProjectVo projectVo) {
         Object markdownFilesObj;
         if (openAPI.getExtensions() != null && (markdownFilesObj = openAPI.getExtensions().get(ApiDocConstants.X_SIMPLE_MARKDOWN_FILES)) != null) {
-            String markdownFileStr = markdownFilesObj instanceof String ? (String) markdownFilesObj : JsonUtils.toJson(markdownFilesObj);
+            String markdownFileStr = markdownFilesObj instanceof String ? (String) markdownFilesObj : SchemaJsonUtils.toJson(markdownFilesObj);
             List<ExtendMarkdownFile> markdownFiles = JsonUtils.fromJson(markdownFileStr, new TypeReference<>() {
             });
             for (int i = 0; i < markdownFiles.size(); i++) {
@@ -239,7 +240,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         if (operation.getParameters() != null) {
             ExportApiDocSchemaVo parametersSchema = new ExportApiDocSchemaVo();
             parametersSchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_PARAMETERS);
-            parametersSchema.setSchemaContent(JsonUtils.toJson(operation.getParameters()));
+            parametersSchema.setSchemaContent(SchemaJsonUtils.toJson(operation.getParameters()));
             parametersSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
             apiDoc.setParametersSchema(parametersSchema);
         }
@@ -250,7 +251,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     ExportApiDocSchemaVo requestBodySchema = new ExportApiDocSchemaVo();
                     requestBodySchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_REQUEST);
                     requestBodySchema.setContentType(contentType);
-                    requestBodySchema.setSchemaContent(JsonUtils.toJson(mediaType));
+                    requestBodySchema.setSchemaContent(SchemaJsonUtils.toJson(mediaType));
                     requestBodySchema.setStatus(ApiDocConstants.STATUS_ENABLED);
                     Schema schema = mediaType.getSchema();
                     requestBodySchema.setDescription(operation.getRequestBody().getDescription());
@@ -259,7 +260,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     }
                     List<Example> examples = getExamples(mediaType);
                     if (CollectionUtils.isNotEmpty(examples)) {
-                        requestBodySchema.setExamples(JsonUtils.toJson(examples));
+                        requestBodySchema.setExamples(SchemaJsonUtils.toJson(examples));
                     }
                     apiDoc.getRequestsSchemas().add(requestBodySchema);
                 }
@@ -275,11 +276,11 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                         responseSchema.setDescription(response.getDescription());
                         responseSchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_RESPONSE);
                         responseSchema.setContentType(contentType);
-                        responseSchema.setSchemaContent(JsonUtils.toJson(mediaType));
+                        responseSchema.setSchemaContent(SchemaJsonUtils.toJson(mediaType));
                         responseSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
                         List<Example> examples = getExamples(mediaType);
                         if (CollectionUtils.isNotEmpty(examples)) {
-                            responseSchema.setExamples(JsonUtils.toJson(examples));
+                            responseSchema.setExamples(SchemaJsonUtils.toJson(examples));
                         }
                         responseSchema.setStatusCode(calcStatusCode(responseCode).value());
                         apiDoc.getResponsesSchemas().add(responseSchema);
