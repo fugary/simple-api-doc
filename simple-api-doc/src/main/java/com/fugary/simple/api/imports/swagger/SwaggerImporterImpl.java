@@ -9,10 +9,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.*;
 import io.swagger.parser.OpenAPIParser;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.*;
 import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Schema;
@@ -92,7 +89,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         if (components != null && components.getSecuritySchemes() != null && !components.getSecuritySchemes().isEmpty()) {
             ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
             detailVo.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY);
-            detailVo.setSchemaContent(SchemaJsonUtils.toJson(components.getSecuritySchemes()));
+            detailVo.setSchemaContent(SchemaJsonUtils.toJson(components.getSecuritySchemes(), SchemaJsonUtils.isV31(openAPI)));
             detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
             projectVo.getProjectInfoDetails().add(detailVo);
         }
@@ -107,7 +104,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             String url = server.getUrl();
             String name = server.getDescription();
             return new ExportEnvConfigVo(name, url);
-        }).collect(Collectors.toList())));
+        }).collect(Collectors.toList()), SchemaJsonUtils.isV31(openAPI)));
         Info info = openAPI.getInfo();
         if (info != null) {
             projectVo.setProjectName(info.getTitle());
@@ -133,7 +130,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 ExportApiProjectInfoDetailVo detail = new ExportApiProjectInfoDetailVo();
                 detail.setBodyType(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT);
                 detail.setSchemaName(s);
-                detail.setSchemaContent(SchemaJsonUtils.toJson(schema));
+                detail.setSchemaContent(SchemaJsonUtils.toJson(schema, SchemaJsonUtils.isV31(openAPI)));
                 detail.setDescription(schema.getDescription());
                 detail.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getProjectInfoDetails().add(detail);
@@ -144,7 +141,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     protected void processApiMarkdownFiles(OpenAPI openAPI, ExportApiProjectVo projectVo) {
         Object markdownFilesObj;
         if (openAPI.getExtensions() != null && (markdownFilesObj = openAPI.getExtensions().get(ApiDocConstants.X_SIMPLE_MARKDOWN_FILES)) != null) {
-            String markdownFileStr = markdownFilesObj instanceof String ? (String) markdownFilesObj : SchemaJsonUtils.toJson(markdownFilesObj);
+            String markdownFileStr = markdownFilesObj instanceof String ? (String) markdownFilesObj : SchemaJsonUtils.toJson(markdownFilesObj, SchemaJsonUtils.isV31(openAPI));
             List<ExtendMarkdownFile> markdownFiles = JsonUtils.fromJson(markdownFileStr, new TypeReference<>() {
             });
             for (int i = 0; i < markdownFiles.size(); i++) {
@@ -188,7 +185,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     ExportApiFolderVo folder = operationFolderPair.getLeft();
                     if (folder != null) {
                         int docSize = folder.getDocs().size();
-                        ExportApiDocVo apiDocVo = calcApiDoc(folder, url, operationPair);
+                        ExportApiDocVo apiDocVo = calcApiDoc(openAPI, folder, url, operationPair);
                         apiDocVo.setSortId(docSize * 10 + 1);
                         folder.getDocs().add(apiDocVo);
                     }
@@ -202,12 +199,13 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     /**
      * 解析Api文档信息
      *
+     * @param openAPI
      * @param folder
      * @param url
      * @param operationPair
      * @return
      */
-    protected ExportApiDocVo calcApiDoc(ExportApiFolderVo folder, String url, Pair<String, Operation> operationPair) {
+    protected ExportApiDocVo calcApiDoc(OpenAPI openAPI, ExportApiFolderVo folder, String url, Pair<String, Operation> operationPair) {
         String method = operationPair.getLeft();
         Operation operation = operationPair.getRight();
         ExportApiDocVo apiDocVo = new ExportApiDocVo();
@@ -225,7 +223,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         apiDocVo.setDocKey(docKey);
         apiDocVo.setStatus(ApiDocConstants.STATUS_ENABLED);
         apiDocVo.setDescription(operation.getDescription());
-        calcDocSchemas(apiDocVo, operation);
+        calcDocSchemas(openAPI, apiDocVo, operation);
         return apiDocVo;
     }
 
@@ -235,12 +233,12 @@ public class SwaggerImporterImpl implements ApiDocImporter {
      * @param apiDoc
      * @param operation
      */
-    protected void calcDocSchemas(ExportApiDocVo apiDoc, Operation operation) {
+    protected void calcDocSchemas(OpenAPI openAPI, ExportApiDocVo apiDoc, Operation operation) {
         // 处理参数列表
         if (operation.getParameters() != null) {
             ExportApiDocSchemaVo parametersSchema = new ExportApiDocSchemaVo();
             parametersSchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_PARAMETERS);
-            parametersSchema.setSchemaContent(SchemaJsonUtils.toJson(operation.getParameters()));
+            parametersSchema.setSchemaContent(SchemaJsonUtils.toJson(operation.getParameters(), SchemaJsonUtils.isV31(openAPI)));
             parametersSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
             apiDoc.setParametersSchema(parametersSchema);
         }
@@ -251,7 +249,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     ExportApiDocSchemaVo requestBodySchema = new ExportApiDocSchemaVo();
                     requestBodySchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_REQUEST);
                     requestBodySchema.setContentType(contentType);
-                    requestBodySchema.setSchemaContent(SchemaJsonUtils.toJson(mediaType));
+                    requestBodySchema.setSchemaContent(SchemaJsonUtils.toJson(mediaType, SchemaJsonUtils.isV31(openAPI)));
                     requestBodySchema.setStatus(ApiDocConstants.STATUS_ENABLED);
                     Schema schema = mediaType.getSchema();
                     requestBodySchema.setDescription(operation.getRequestBody().getDescription());
@@ -260,7 +258,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     }
                     List<Example> examples = getExamples(mediaType);
                     if (CollectionUtils.isNotEmpty(examples)) {
-                        requestBodySchema.setExamples(SchemaJsonUtils.toJson(examples));
+                        requestBodySchema.setExamples(SchemaJsonUtils.toJson(examples, SchemaJsonUtils.isV31(openAPI)));
                     }
                     apiDoc.getRequestsSchemas().add(requestBodySchema);
                 }
@@ -276,11 +274,11 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                         responseSchema.setDescription(response.getDescription());
                         responseSchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_RESPONSE);
                         responseSchema.setContentType(contentType);
-                        responseSchema.setSchemaContent(SchemaJsonUtils.toJson(mediaType));
+                        responseSchema.setSchemaContent(SchemaJsonUtils.toJson(mediaType, SchemaJsonUtils.isV31(openAPI)));
                         responseSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
                         List<Example> examples = getExamples(mediaType);
                         if (CollectionUtils.isNotEmpty(examples)) {
-                            responseSchema.setExamples(SchemaJsonUtils.toJson(examples));
+                            responseSchema.setExamples(SchemaJsonUtils.toJson(examples, SchemaJsonUtils.isV31(openAPI)));
                         }
                         responseSchema.setStatusCode(calcStatusCode(responseCode).value());
                         apiDoc.getResponsesSchemas().add(responseSchema);

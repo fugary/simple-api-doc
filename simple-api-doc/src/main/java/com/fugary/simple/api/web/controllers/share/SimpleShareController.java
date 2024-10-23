@@ -181,9 +181,9 @@ public class SimpleShareController {
         OpenAPI openAPI = apiApiDocExporter.export(apiShare.getProjectId(), downloadVo.getDocIds());
         String content;
         if (StringUtils.equals(type, "json")) {
-            content = SchemaJsonUtils.toJson(openAPI);
+            content = SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
         } else {
-            content = SchemaYamlUtils.toYaml(openAPI);
+            content = SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
         }
         try {
             String filePathName = getFileFullPath(uuid, type);
@@ -246,9 +246,9 @@ public class SimpleShareController {
         SwaggerParseResult result = new OpenAPIParser().readContents(content, null, parseOptions);
         OpenAPI openAPI = result.getOpenAPI();
         if (StringUtils.equals(type, "json")) {
-            return SchemaJsonUtils.toJson(openAPI);
+            return SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
         } else {
-            return SchemaYamlUtils.toYaml(openAPI);
+            return SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
         }
     }
 

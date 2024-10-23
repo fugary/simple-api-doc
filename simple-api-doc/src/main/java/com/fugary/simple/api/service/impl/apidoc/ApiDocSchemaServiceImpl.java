@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -65,15 +64,16 @@ public class ApiDocSchemaServiceImpl extends ServiceImpl<ApiDocSchemaMapper, Api
         Map<Integer, List<ApiDocSchema>> schemaMap = this.list(Wrappers.<ApiDocSchema>query().in("doc_id", docIds)).stream()
                 .collect(Collectors.groupingBy(ApiDocSchema::getDocId));
         return apiDocs.stream().map(apiDoc -> {
-            List<ApiDocSchema> docSchemas = schemaMap.get(apiDoc.getId());
-            if (docSchemas != null) {
-                ApiDocDetailVo apiDocVo = new ApiDocDetailVo();
-                SimpleModelUtils.copy(apiDoc, apiDocVo);
-                processDocSchemas(docSchemas, apiDocVo);
-                return apiDocVo;
+            ApiDocDetailVo apiDocVo = new ApiDocDetailVo();
+            SimpleModelUtils.copy(apiDoc, apiDocVo);
+            if (ApiDocConstants.DOC_TYPE_API.equals(apiDoc.getDocType())) {
+                List<ApiDocSchema> docSchemas = schemaMap.get(apiDoc.getId());
+                if (docSchemas != null) {
+                    processDocSchemas(docSchemas, apiDocVo);
+                }
             }
-            return null;
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+            return apiDocVo;
+        }).collect(Collectors.toList());
     }
 
     @Override
