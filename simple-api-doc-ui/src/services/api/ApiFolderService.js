@@ -1,9 +1,10 @@
 import { ref } from 'vue'
 import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
-import { $i18nBundle, $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import ApiDocApi from '@/api/ApiDocApi'
 import { checkDownloadDocs, downloadShareDocs } from '@/api/SimpleShareApi'
+import { isFunction } from 'lodash-es'
 
 /**
  * 根目是否显示url或者名称
@@ -22,11 +23,11 @@ export const calcShowDocLabelHandler = (folder, preference) => {
   }
 }
 
-export const getDownloadDocsHandlers = (shareDoc) => {
+export const getDownloadDocsHandlers = (shareDoc, config = {}) => {
   if (shareDoc.shareId && shareDoc.exportEnabled) {
     const supportedTypes = ['json', 'yaml']
     const shareId = shareDoc.shareId
-    return supportedTypes.map(type => {
+    const results = supportedTypes.map(type => {
       return {
         icon: `custom-icon-${type}`,
         label: $i18nKey('common.label.commonDownload', `common.label.${type}`),
@@ -38,6 +39,19 @@ export const getDownloadDocsHandlers = (shareDoc) => {
         }
       }
     })
+    results.push(...supportedTypes.map(type => {
+      return {
+        icon: `custom-icon-${type}`,
+        label: $i18nConcat($i18nBundle('api.label.exportSelectedApi'), $i18nBundle(`common.label.${type}`)),
+        handler: () => {
+          const { toShowTreeConfigWindow } = config
+          if (isFunction(toShowTreeConfigWindow)) {
+            toShowTreeConfigWindow(type, shareId)
+          }
+        }
+      }
+    }))
+    return results
   }
   return []
 }

@@ -96,6 +96,7 @@ common.label.codeEdit = 'Code Edit'
 common.label.newWindowEdit = 'Edit in new window'
 common.label.json = 'JSON'
 common.label.yaml = 'YAML'
+common.label.selectAll = 'Select All'
 
 //= ============通用============
 common.label.commonConfig = 'Config {0}'

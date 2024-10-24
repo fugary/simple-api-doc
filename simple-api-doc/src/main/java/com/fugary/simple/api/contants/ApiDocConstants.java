@@ -95,6 +95,8 @@ public class ApiDocConstants {
 
     public static final String SECURITY_CONFUSION_VALUE = "***";
 
+    public static final String SHARE_FILE_DOWNLOAD_HOOK_KEY = "share-file-download-hook";
+
     /**
      * 中止导入
      */

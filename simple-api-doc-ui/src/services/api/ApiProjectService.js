@@ -53,11 +53,11 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
     if (searchParam?.keyword) {
       docTreeNodes = filterFoldersWithDocs(docTreeNodes)
     }
-    if (docTreeNodes[0]?.id && !preference.lastExpandKeys.includes(docTreeNodes[0]?.treeId)) {
+    if (docTreeNodes[0]?.id && preference?.lastExpandKeys && !preference.lastExpandKeys?.includes(docTreeNodes[0]?.treeId)) {
       preference.lastExpandKeys.push(docTreeNodes[0]?.treeId)
     }
-    currentSelectDoc = docs.find(doc => doc.id === preference.lastDocId) || docs[0]
-    preference.lastDocId = currentSelectDoc?.id
+    currentSelectDoc = docs.find(doc => doc.id === preference?.lastDocId) || docs[0]
+    preference && (preference.lastDocId = currentSelectDoc?.id)
   }
   return {
     docTreeNodes,

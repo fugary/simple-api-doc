@@ -64,12 +64,16 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 .forceEnabled(true)
                 .build();
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(queryVo);
+        // 解析文件夹，方便后续读取
+        Map<Integer, ApiFolder> folderMap = detailVo.getFolders().stream().collect(Collectors.toMap(ApiFolder::getId, Function.identity()));
         ApiProjectInfo projectInfo = detailVo.getInfoList().get(0);
         List<ApiDoc> docList = detailVo.getDocs();
         if (CollectionUtils.isNotEmpty(docIds)) { // 过滤指定文档
             docList = docList.stream().filter(apiDoc -> docIds.contains(apiDoc.getId()))
                     .collect(Collectors.toList());
         }
+        // 过滤被禁用文件夹的数据
+        docList = docList.stream().filter(doc -> folderMap.get(doc.getFolderId()) != null).collect(Collectors.toList());
         // 加载文档详情
         List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
         // 加载项目schema和security数据
@@ -77,8 +81,6 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
         // 提取和文档相关的schema和security数据
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList);
-        // 解析文件夹，方便后续读取
-        Map<Integer, ApiFolder> folderMap = detailVo.getFolders().stream().collect(Collectors.toMap(ApiFolder::getId, Function.identity()));
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = apiFolderService.calcFolderMap(detailVo.getFolders());
         // 新建OpenAPI数据
         OpenAPI openAPI = new OpenAPI(SpecVersion.valueOf(projectInfo.getSpecVersion()))

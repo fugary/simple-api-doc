@@ -8,9 +8,9 @@ import com.fugary.simple.api.push.ApiInvokeProcessor;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
+import com.fugary.simple.api.utils.SchemaYamlUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
-import com.fugary.simple.api.utils.SchemaYamlUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportDownloadVo;
@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Create date 2024/9/29<br>
@@ -220,7 +221,8 @@ public class SimpleShareController {
     @GetMapping("/exportDownload/{type}/{shareId}/{uuid}")
     public ResponseEntity<InputStreamResource> exportDownloadDocs(@PathVariable("type") String type,
                                                                   @PathVariable("shareId") String shareId,
-                                                                  @PathVariable("uuid") String uuid) throws IOException {
+                                                                  @PathVariable("uuid") String uuid,
+                                                                  HttpServletRequest request) throws IOException {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         String fileName = uuid + "." + type;
         // 构造临时文件的完整路径
@@ -232,6 +234,8 @@ public class SimpleShareController {
         }
         // 创建 InputStreamResource 从文件中读取数据
         InputStreamResource resource = new InputStreamResource(new FileInputStream(tempFile));
+        Function<HttpServletRequest, Boolean> deleteFileHook = req -> FileUtils.deleteQuietly(tempFile);
+        request.setAttribute(ApiDocConstants.SHARE_FILE_DOWNLOAD_HOOK_KEY, deleteFileHook);
         // 设置响应头，准备文件下载
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")

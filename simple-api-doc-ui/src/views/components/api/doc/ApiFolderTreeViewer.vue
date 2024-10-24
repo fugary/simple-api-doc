@@ -21,6 +21,7 @@ import ApiFolderApi from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
 import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import { useElementSize } from '@vueuse/core'
+import { toExportApiDocs } from '@/utils/DynamicUtils'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -107,7 +108,9 @@ const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
   if (rootFolder.value && props.shareDoc) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc)]
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc, {
+      toShowTreeConfigWindow
+    })]
   }
   return []
 })
@@ -214,6 +217,9 @@ defineExpose(handlerData)
 const currentRef = ref()
 const { width } = useElementSize(currentRef)
 
+const toShowTreeConfigWindow = (type) => {
+  toExportApiDocs(projectItem.value, props.shareDoc, type)
+}
 </script>
 
 <template>

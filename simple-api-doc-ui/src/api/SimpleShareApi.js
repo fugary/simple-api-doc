@@ -1,4 +1,4 @@
-import { $httpGet } from '@/vendors/axios'
+import { $httpGet, $httpPost } from '@/vendors/axios'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { $downloadWithLinkClick } from '@/utils'
 import { BASE_URL } from '@/config'
@@ -52,5 +52,17 @@ export const checkDownloadDocs = function (shareId, config) {
 export const downloadShareDocs = function ({ type, shareId }) {
   const shareConfigStore = useShareConfigStore()
   const downloadUrl = `${BASE_URL}${SHARE_BASE_URL}/download/${type}/${shareId}?access_token=${shareConfigStore.getShareToken(shareId)}`
+  $downloadWithLinkClick(downloadUrl)
+}
+
+export const checkExportDownloadDocs = function (param, config) {
+  const shareId = param.shareId
+  config = Object.assign(getShareConfig(shareId), config || {})
+  return $httpPost(`${SHARE_BASE_URL}/checkExportDownloadDocs`, param, config)
+}
+
+export const downloadExportShareDocs = function ({ type, shareId, uuid }) {
+  const shareConfigStore = useShareConfigStore()
+  const downloadUrl = `${BASE_URL}${SHARE_BASE_URL}/exportDownload/${type}/${shareId}/${uuid}?access_token=${shareConfigStore.getShareToken(shareId)}`
   $downloadWithLinkClick(downloadUrl)
 }

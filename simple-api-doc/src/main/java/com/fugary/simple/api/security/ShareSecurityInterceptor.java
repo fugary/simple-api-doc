@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
 /**
  * 使用简单拦截器控制链接安全<br>
@@ -67,4 +68,12 @@ public class ShareSecurityInterceptor implements HandlerInterceptor {
         }
     }
 
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        Object downloadHook = request.getAttribute(ApiDocConstants.SHARE_FILE_DOWNLOAD_HOOK_KEY);
+        if (downloadHook instanceof Function) {
+            Function<HttpServletRequest, Boolean> deleteFunc = (Function<HttpServletRequest, Boolean>) downloadHook;
+            deleteFunc.apply(request);
+        }
+    }
 }
