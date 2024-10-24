@@ -73,7 +73,8 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                     .collect(Collectors.toList());
         }
         // 过滤被禁用文件夹的数据
-        docList = docList.stream().filter(doc -> folderMap.get(doc.getFolderId()) != null).collect(Collectors.toList());
+        docList = docList.stream().filter(doc -> folderMap.get(doc.getFolderId()) != null)
+                .collect(Collectors.toList());
         // 加载文档详情
         List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
         // 加载项目schema和security数据
@@ -97,6 +98,8 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             ApiFolder apiFolder = folderMap.get(apiDocDetail.getFolderId());
             if (apiFolder != null) { // 文件夹必须存在
+                String fullFolderPath = folderMapPair.getRight().get(apiFolder.getId());
+                String folderPath = getFolderPath(fullFolderPath);
                 if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) { // 接口处理
                     String urlPath = apiDocDetail.getUrl();
                     openAPI.getPaths().addPathItem(urlPath, calcPathItem(openAPI, folderMapPair, apiFolder, apiDocDetail));
@@ -105,8 +108,9 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 } else if (ApiDocConstants.DOC_TYPE_MD.equals(apiDocDetail.getDocType())) { // markdown处理
                     if (StringUtils.equals(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info", apiDocDetail.getDocKey())) {
                         openAPI.getInfo().description(apiDocDetail.getDocContent());
-                    } else if (apiFolder.getParentId() == null) { // 根目录
+                    } else { // 目录下文件
                         ExtendMarkdownFile markdownFile = new ExtendMarkdownFile();
+                        markdownFile.setFolderName(folderPath);
                         markdownFile.setFileName(apiDocDetail.getDocKey());
                         markdownFile.setTitle(apiDocDetail.getDocName());
                         markdownFile.setSortId(apiDocDetail.getSortId());
@@ -160,15 +164,20 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
             operation.responses(apiResponses);
         }
         String fullFolderPath = folderPathMap.get(apiFolder.getId());
-        if (StringUtils.isNotBlank(fullFolderPath) && fullFolderPath.contains(ApiDocConstants.FOLDER_PATH_SEPARATOR)) {
-            String folderPath = fullFolderPath.substring(fullFolderPath.indexOf(ApiDocConstants.FOLDER_PATH_SEPARATOR) + 1);
-            if (StringUtils.contains(folderPath, ApiDocConstants.FOLDER_PATH_SEPARATOR)) {
-                operation.addExtension(ApiDocConstants.X_SIMPLE_FOLDER, folderPath);
-                operation.addExtension(ApiDocConstants.X_APIFOX_FOLDER, folderPath);
-            }
+        String folderPath = getFolderPath(fullFolderPath);
+        if (StringUtils.contains(folderPath, ApiDocConstants.FOLDER_PATH_SEPARATOR)) {
+            operation.addExtension(ApiDocConstants.X_SIMPLE_FOLDER, folderPath);
+            operation.addExtension(ApiDocConstants.X_APIFOX_FOLDER, folderPath);
         }
         pathFunctions.get(StringUtils.upperCase(apiDocDetail.getMethod())).accept(operation);
         return pathItem;
+    }
+
+    protected String getFolderPath(String fullFolderPath){
+        if (StringUtils.isNotBlank(fullFolderPath) && fullFolderPath.contains(ApiDocConstants.FOLDER_PATH_SEPARATOR)) {
+            return fullFolderPath.substring(fullFolderPath.indexOf(ApiDocConstants.FOLDER_PATH_SEPARATOR) + 1);
+        }
+        return StringUtils.EMPTY;
     }
 
     protected Map<String, Consumer<Operation>> getPathFunctions(PathItem pathItem) {

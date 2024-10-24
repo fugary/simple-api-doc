@@ -78,17 +78,21 @@ public class ApiDocController {
 
     @PostMapping
     public SimpleResult saveDoc(@RequestBody ApiDoc apiDoc) {
-        if (apiDoc.getFolderId() != null) {
-            ApiFolder folder = apiFolderService.getById(apiDoc.getFolderId());
-            if (folder == null || !folder.getProjectId().equals(apiDoc.getProjectId())) {
-                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
-            }
+        ApiFolder folder = apiFolderService.getById(apiDoc.getFolderId());
+        if (folder == null || !folder.getProjectId().equals(apiDoc.getProjectId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         if (!validateUserProject(apiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         if (apiDocService.existsApiDoc(apiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
+        }
+        if (apiDoc.getInfoId() == null) {
+            ApiProjectInfo projectInfo = apiProjectInfoService.loadByProjectId(apiDoc.getProjectId(), apiDoc.getFolderId());
+            if (projectInfo != null) {
+                apiDoc.setInfoId(projectInfo.getId());
+            }
         }
         if (StringUtils.isBlank(apiDoc.getDocKey())) {
             apiDoc.setDocKey(SimpleModelUtils.uuid());

@@ -105,7 +105,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         projectId: folder.projectId,
         docType: 'md',
         status: 1,
-        sortId: getChildrenSortId(folder)
+        sortId: getMdChildrenSortId(folder)
       }, true)
     }
   }, calcShowDocLabelHandler(folder, preference), {
@@ -215,4 +215,8 @@ export const useFolderTreeNodes = (projectId) => {
 export const getChildrenSortId = (folder) => {
   const maxSort = 10
   return (folder?.children?.reduce((sortId, child) => Math.max(sortId, child.sortId || 10), maxSort) || maxSort) + 10
+}
+
+export const getMdChildrenSortId = (folder) => {
+  return (folder?.children?.reduce((sortId, child) => Math.min(sortId, child.sortId), Infinity) || 10000) - 10
 }

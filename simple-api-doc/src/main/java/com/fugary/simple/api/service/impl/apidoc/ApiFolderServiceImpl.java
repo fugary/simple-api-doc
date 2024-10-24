@@ -87,7 +87,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         } else {
             SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
             folder.setStatus(existsFolder.getStatus());
-            folder.setSortId(existsFolder.getSortId());
+//            folder.setSortId(existsFolder.getSortId());
             updateById(SimpleModelUtils.addAuditInfo(folder)); // 更新
         }
         pathFolderMap.put(folderPath, folder);
@@ -131,7 +131,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     ApiDoc existsDoc = existsDocPair.getValue();
                     apiDocVo.setId(existsDoc.getId());
                     apiDocVo.setStatus(existsDoc.getStatus());
-                    apiDocVo.setSortId(existsDoc.getSortId());
+//                    apiDocVo.setSortId(existsDoc.getSortId());
                     apiDocSchemaService.deleteByDoc(apiDocVo.getId());
                 }
                 apiDocVo.setInfoId(projectInfo.getId());

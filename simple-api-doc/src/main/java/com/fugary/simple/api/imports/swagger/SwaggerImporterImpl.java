@@ -9,7 +9,10 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.*;
 import io.swagger.parser.OpenAPIParser;
-import io.swagger.v3.oas.models.*;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Schema;
@@ -27,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -61,8 +65,8 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             projectVo = new ExportApiProjectVo();
             projectVo.setStatus(ApiDocConstants.STATUS_ENABLED);
             projectVo.setProjectCode(SimpleModelUtils.uuid());
-            processProjectInfo(openAPI, projectVo, data);
             processFolders(openAPI, projectVo, pathMap);
+            processProjectInfo(openAPI, projectVo, data);
         }
         return projectVo;
     }
@@ -177,6 +181,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     protected void processFolders(OpenAPI openAPI, ExportApiProjectVo projectVo,
                                   Map<String, List<Triple<String, PathItem, List<Pair<String, Operation>>>>> pathMap) {
         List<ExportApiFolderVo> folders = projectVo.getFolders();
+        AtomicInteger sortId = new AtomicInteger(10000);
         pathMap.forEach((path, tripleList) -> {
             for (Triple<String, PathItem, List<Pair<String, Operation>>> triple : tripleList) {
                 String url = triple.getLeft();
@@ -184,9 +189,8 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                     Pair<ExportApiFolderVo, ExportApiFolderVo> operationFolderPair = getOperationFolder(openAPI, folders, operationPair);
                     ExportApiFolderVo folder = operationFolderPair.getLeft();
                     if (folder != null) {
-                        int docSize = folder.getDocs().size();
                         ExportApiDocVo apiDocVo = calcApiDoc(openAPI, folder, url, operationPair);
-                        apiDocVo.setSortId(docSize * 10 + 1);
+                        apiDocVo.setSortId(sortId.addAndGet(100));
                         folder.getDocs().add(apiDocVo);
                     }
                 }

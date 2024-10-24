@@ -72,7 +72,7 @@ public class ApiDocParseUtils {
         if (folder != null && folders.stream().noneMatch(cFolder -> StringUtils.equals(cFolder.getFolderPath(), folder.getFolderPath()))) {
             if (folder.getSortId() == null) {
                 int size = folders.size();
-                folder.setSortId(size * 10 + 1);
+                folder.setSortId(size * 100 + 10);
             }
             folders.add(folder);
         }
