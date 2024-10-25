@@ -217,14 +217,14 @@ defineExpose(handlerData)
 const currentRef = ref()
 const { width } = useElementSize(currentRef)
 
-const lastSelectedKeys = ref([])
-const selectTreeNodes = ref([])
+const exportSelectedKeys = ref([])
+const exportTreeNodes = ref([])
 const showExportWindow = ref(false)
 const currentExportType = ref('json')
 const toShowTreeConfigWindow = (type) => {
-  if (!selectTreeNodes.value?.length) {
+  if (!exportTreeNodes.value?.length) {
     const { docTreeNodes } = calcProjectItem(projectItem.value)
-    selectTreeNodes.value = docTreeNodes
+    exportTreeNodes.value = docTreeNodes
   }
   currentExportType.value = type
   showExportWindow.value = true
@@ -357,9 +357,9 @@ const toShowTreeConfigWindow = (type) => {
       label-width="130px"
     />
     <api-doc-export-window
-      v-model:tree-select-keys="lastSelectedKeys"
+      v-model:tree-select-keys="exportSelectedKeys"
       v-model="showExportWindow"
-      :tree-nodes="treeNodes"
+      :tree-nodes="exportTreeNodes"
       :share-doc="shareDoc"
       :export-type="currentExportType"
       :project-item="projectItem"
