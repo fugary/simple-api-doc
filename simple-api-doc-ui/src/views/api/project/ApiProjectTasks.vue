@@ -341,51 +341,44 @@ const importRef = ref()
         </el-container>
       </template>
     </el-page-header>
-    <div class="admin-project-tasks" />
     <el-tabs
-      v-show="inProject"
+      v-if="inProject"
       lazy
     >
       <el-tab-pane>
         <template #label>
           {{ $t('api.label.autoImportData') }}
         </template>
-        <Teleport
-          defer
-          to=".admin-project-tasks"
-          :disabled="inProject"
-        >
-          <el-container class="flex-column padding-top2">
-            <common-form
-              inline
-              :model="searchParam"
-              :options="searchFormOptions"
-              :submit-label="$t('common.label.search')"
-              :back-url="inProject?goBack:''"
-              @submit-form="loadProjectTasks(1)"
-            >
-              <template #buttons>
-                <el-button
-                  type="info"
-                  @click="newOrEdit()"
-                >
-                  {{ $t('common.label.new') }}
-                </el-button>
-              </template>
-            </common-form>
-            <common-table
-              v-model:page="searchParam.page"
-              :data="tableData"
-              :columns="columns"
-              :buttons="buttons"
-              :buttons-column-attrs="{minWidth:'250px'}"
-              buttons-slot="buttons"
-              :loading="loading"
-              @page-size-change="loadProjectTasks()"
-              @current-page-change="loadProjectTasks()"
-            />
-          </el-container>
-        </Teleport>
+        <el-container class="flex-column padding-top2">
+          <common-form
+            inline
+            :model="searchParam"
+            :options="searchFormOptions"
+            :submit-label="$t('common.label.search')"
+            :back-url="inProject?goBack:''"
+            @submit-form="loadProjectTasks(1)"
+          >
+            <template #buttons>
+              <el-button
+                type="info"
+                @click="newOrEdit()"
+              >
+                {{ $t('common.label.new') }}
+              </el-button>
+            </template>
+          </common-form>
+          <common-table
+            v-model:page="searchParam.page"
+            :data="tableData"
+            :columns="columns"
+            :buttons="buttons"
+            :buttons-column-attrs="{minWidth:'250px'}"
+            buttons-slot="buttons"
+            :loading="loading"
+            @page-size-change="loadProjectTasks()"
+            @current-page-change="loadProjectTasks()"
+          />
+        </el-container>
       </el-tab-pane>
       <el-tab-pane>
         <template #label>
@@ -402,6 +395,39 @@ const importRef = ref()
         </el-container>
       </el-tab-pane>
     </el-tabs>
+    <el-container
+      v-else
+      class="flex-column padding-top2"
+    >
+      <common-form
+        inline
+        :model="searchParam"
+        :options="searchFormOptions"
+        :submit-label="$t('common.label.search')"
+        :back-url="inProject?goBack:''"
+        @submit-form="loadProjectTasks(1)"
+      >
+        <template #buttons>
+          <el-button
+            type="info"
+            @click="newOrEdit()"
+          >
+            {{ $t('common.label.new') }}
+          </el-button>
+        </template>
+      </common-form>
+      <common-table
+        v-model:page="searchParam.page"
+        :data="tableData"
+        :columns="columns"
+        :buttons="buttons"
+        :buttons-column-attrs="{minWidth:'250px'}"
+        buttons-slot="buttons"
+        :loading="loading"
+        @page-size-change="loadProjectTasks()"
+        @current-page-change="loadProjectTasks()"
+      />
+    </el-container>
     <simple-edit-window
       v-model="currentModel"
       v-model:show-edit-window="showEditWindow"
