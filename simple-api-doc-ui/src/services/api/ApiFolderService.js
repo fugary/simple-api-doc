@@ -230,3 +230,18 @@ export const getChildrenSortId = (folder) => {
 export const getMdChildrenSortId = (folder) => {
   return (folder?.children?.reduce((sortId, child) => Math.min(sortId, child.sortId), Infinity) || 10000) - 10
 }
+
+export const getTreeNodesByKeys = (keys, treeNodes, nodeKey, foundNodes = []) => {
+  if (keys.length) {
+    for (const treeNode of treeNodes) {
+      if (keys.includes(treeNode[nodeKey])) {
+        foundNodes.push(treeNode)
+      }
+      if (treeNode.children?.length) {
+        getTreeNodesByKeys(keys, treeNode.children, nodeKey, foundNodes)
+      }
+    }
+    return foundNodes
+  }
+  return treeNodes
+}

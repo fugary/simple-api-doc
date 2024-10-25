@@ -6,7 +6,6 @@ const ApiRequestPreviewWindow = () => import('@/views/components/api/ApiRequestP
 const ApiEnvParams = () => import('@/views/components/api/ApiEnvParams.vue')
 const ShowUserInfo = () => import('@/views/components/user/ShowUserInfo.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
-const ApiDocExportWindow = () => import('@/views/components/api/doc/comp/ApiDocExportWindow.vue')
 
 export const closeAllOnRouteChange = () => {
   document.querySelectorAll('.el-overlay:not([style*="display: none"]) .common-window .el-dialog__headerbtn:not(.dialog-fullscreen-btn)')
@@ -27,14 +26,6 @@ export const previewApiRequest = async (...args) => {
     onClosed: () => dynamicHelper.destroy()
   })
   vnode.component?.exposed?.toPreviewRequest(...args)
-}
-
-export const toExportApiDocs = async (...args) => {
-  const dynamicHelper = new DynamicHelper()
-  const vnode = await dynamicHelper.createAndRender(ApiDocExportWindow, {
-    onClosed: () => dynamicHelper.destroy()
-  })
-  vnode.component?.exposed?.toExportApiDocs(...args)
 }
 
 export const toEditGroupEnvParams = async (...args) => {

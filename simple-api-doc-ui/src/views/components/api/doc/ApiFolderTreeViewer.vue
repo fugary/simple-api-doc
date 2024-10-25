@@ -21,7 +21,7 @@ import ApiFolderApi from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
 import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import { useElementSize } from '@vueuse/core'
-import { toExportApiDocs } from '@/utils/DynamicUtils'
+import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -217,8 +217,17 @@ defineExpose(handlerData)
 const currentRef = ref()
 const { width } = useElementSize(currentRef)
 
+const lastSelectedKeys = ref([])
+const selectTreeNodes = ref([])
+const showExportWindow = ref(false)
+const currentExportType = ref('json')
 const toShowTreeConfigWindow = (type) => {
-  toExportApiDocs(projectItem.value, props.shareDoc, type)
+  if (!selectTreeNodes.value?.length) {
+    const { docTreeNodes } = calcProjectItem(projectItem.value)
+    selectTreeNodes.value = docTreeNodes
+  }
+  currentExportType.value = type
+  showExportWindow.value = true
 }
 </script>
 
@@ -346,6 +355,14 @@ const toShowTreeConfigWindow = (type) => {
       :name="$t('api.label.folder')"
       :save-current-item="saveFolder"
       label-width="130px"
+    />
+    <api-doc-export-window
+      v-model:tree-select-keys="lastSelectedKeys"
+      v-model="showExportWindow"
+      :tree-nodes="treeNodes"
+      :share-doc="shareDoc"
+      :export-type="currentExportType"
+      :project-item="projectItem"
     />
   </el-container>
 </template>

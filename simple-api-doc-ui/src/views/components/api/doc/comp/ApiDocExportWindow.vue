@@ -1,8 +1,6 @@
 <script setup>
-import { ref } from 'vue'
 import { checkExportDownloadDocs, downloadExportShareDocs } from '@/api/SimpleShareApi'
 import { isNumber } from 'lodash-es'
-import { calcProjectItem, filterProjectItem } from '@/services/api/ApiProjectService'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
@@ -10,31 +8,46 @@ import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { $i18nBundle, $i18nConcat } from '@/messages'
 import { $coreAlert, $coreConfirm } from '@/utils'
 
-const shareDoc = ref()
-const projectItem = ref()
-const showTreeConfigWindow = ref(false)
-const treeConfigNodes = ref([])
-const treeSelectKeys = ref([])
-const currentExportType = ref('json')
-
-const toExportApiDocs = (projItem, shDoc, type) => {
-  projectItem.value = projItem
-  shareDoc.value = shDoc
-  if (!treeConfigNodes.value?.length) {
-    filterTreeNodes()
+const props = defineProps({
+  shareDoc: {
+    type: Object,
+    default: undefined
+  },
+  projectItem: {
+    type: Object,
+    default: undefined
+  },
+  exportType: {
+    type: String,
+    default: 'json'
+  },
+  treeNodes: {
+    type: Array,
+    default: () => []
   }
-  currentExportType.value = type
+})
+
+const showTreeConfigWindow = defineModel({
+  type: Boolean,
+  default: false
+})
+
+const treeSelectKeys = defineModel('treeSelectKeys', {
+  type: Array,
+  default: () => []
+})
+
+const toExportApiDocs = () => {
   showTreeConfigWindow.value = true
 }
 
 const exportSelectedDocs = (data) => {
-  console.log('==========================data', data, currentExportType.value)
   const docIds = data?.filter(id => isNumber(id))
   if (docIds.length) {
     $coreConfirm($i18nBundle('api.msg.exportConfirm')).then(() => {
       const param = {
-        shareId: shareDoc.value?.shareId,
-        type: currentExportType.value
+        shareId: props.shareDoc?.shareId,
+        type: props.exportType
       }
       checkExportDownloadDocs({
         ...param,
@@ -52,11 +65,6 @@ const exportSelectedDocs = (data) => {
     $coreAlert($i18nBundle('api.msg.noApiSelected'))
   }
 }
-const filterTreeNodes = (keyword) => {
-  const { docTreeNodes } = calcProjectItem(filterProjectItem(projectItem.value, keyword),
-    { keyword }, {})
-  treeConfigNodes.value = docTreeNodes
-}
 
 defineExpose({
   toExportApiDocs
@@ -67,13 +75,12 @@ defineExpose({
 <template>
   <tree-config-window
     v-model="showTreeConfigWindow"
-    :selected-keys="treeSelectKeys"
+    v-model:selected-keys="treeSelectKeys"
     node-key="treeId"
-    :tree-nodes="treeConfigNodes"
+    :tree-nodes="treeNodes"
     height="400px"
-    :title="$i18nConcat($t('api.label.exportSelectedApi'), currentExportType?.toUpperCase())"
+    :title="$i18nConcat($t('api.label.exportSelectedApi'), exportType?.toUpperCase())"
     @submit-keys="exportSelectedDocs"
-    @filter-tree-nodes="filterTreeNodes"
   >
     <template #default="{node, data}">
       <tree-icon-label

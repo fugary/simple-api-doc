@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { $i18nBundle } from '@/messages'
 import CommonIcon from '@/components/common-icon/index.vue'
+import { debounce } from 'lodash-es'
 
 const props = defineProps({
   nodeKey: {
@@ -12,22 +13,22 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  selectedKeys: {
-    type: Array,
-    default: () => []
-  },
   treeAttrs: {
     type: Object,
     default: () => {}
   },
   showFilter: {
     type: Boolean,
-    default: false
+    default: true
   }
 })
-const emit = defineEmits(['update:selectedKeys', 'submitKeys', 'filterTreeNodes'])
+const emit = defineEmits(['submitKeys'])
 const showWindow = defineModel({ type: Boolean })
 
+const selectedKeys = defineModel('selectedKeys', {
+  type: Array,
+  default: () => []
+})
 const treeRef = ref(null)
 const selectOrClearAll = (select) => {
   if (treeRef.value) {
@@ -51,9 +52,7 @@ const getTreeKeys = (nodes, keys = []) => {
 
 const submitKeys = () => {
   if (treeRef.value) {
-    const results = [...treeRef.value?.getHalfCheckedKeys() || [], ...treeRef.value?.getCheckedKeys() || []]
-    emit('update:selectedKeys', results)
-    emit('submitKeys', results)
+    emit('submitKeys', selectedKeys.value, checkedKeys.value)
   }
   return false
 }
@@ -64,14 +63,12 @@ const submitKeys = () => {
  */
 const checkedKeys = computed(() => {
   let checkIds = []
-  const selectedKeys = props.selectedKeys
-  if (treeRef.value && selectedKeys) {
-    checkIds = selectedKeys.filter(key => {
-      const node = treeRef.value.getNode(key)
+  if (treeRef.value && selectedKeys.value?.length) {
+    checkIds = selectedKeys.value.filter(key => {
+      const node = treeRef.value?.getNode(key)
       return node && node.isLeaf
     })
     console.log('========================checkIds', checkIds, selectedKeys)
-    checkIds = selectedKeys
   }
   return checkIds
 })
@@ -86,7 +83,7 @@ const filterOption = computed(() => {
       clearable: true,
       prefixIcon: <CommonIcon icon="Search"/>,
       onInput (value) {
-        emit('filterTreeNodes', value, props.treeNodes)
+        treeRef.value?.filter(value)
       }
     },
     style: {
@@ -95,6 +92,15 @@ const filterOption = computed(() => {
     }
   }
 })
+
+const checkChange = debounce(() => {
+  selectedKeys.value = [...treeRef.value?.getHalfCheckedKeys() || [], ...treeRef.value?.getCheckedKeys() || []]
+}, 300)
+
+const filterNode = (keyword, data) => {
+  if (!keyword) return true
+  return data.label?.toLowerCase()?.includes(keyword.toLowerCase())
+}
 
 </script>
 
@@ -134,6 +140,8 @@ const filterOption = computed(() => {
           :default-checked-keys="checkedKeys"
           :data="treeNodes"
           v-bind="treeAttrs"
+          :filter-node-method="filterNode"
+          @check-change="checkChange"
         >
           <template #empty>
             <el-empty :description="$t('common.msg.noData')" />
