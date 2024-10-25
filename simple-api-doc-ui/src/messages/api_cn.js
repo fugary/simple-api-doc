@@ -107,7 +107,6 @@ api.label.additionalProperties = '额外字段'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出API文档数据？'
-api.msg.exportDownloadConfirm = '确认下载API文档数据？'
 api.msg.proxyUrlTooltip = '配置的请求之外的地址将发送到代理地址获取数据，支持http和https'
 api.msg.proxyUrlMsg = '地址必须是正常的http或者https地址'
 api.msg.pathIdMsg = '建议不要填写，自动生成'

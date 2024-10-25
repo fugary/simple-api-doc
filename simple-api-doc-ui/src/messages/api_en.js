@@ -108,7 +108,6 @@ api.label.additionalProperties = 'Additional Properties'
 
 api.msg.noExportData = 'No data to export'
 api.msg.exportConfirm = 'Confirm to export API docs?'
-api.msg.exportDownloadConfirm = 'Confirm to download API docs?'
 api.msg.proxyUrlTooltip = 'Requests outside the configured address will be sent to the proxy address to fetch data. Supports http and https'
 api.msg.proxyUrlMsg = 'Proxy address must be a valid http or https address'
 api.msg.pathIdMsg = 'It is recommended not to fill in, it will be generated automatically'

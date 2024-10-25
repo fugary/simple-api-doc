@@ -3,7 +3,10 @@ import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import ApiDocApi from '@/api/ApiDocApi'
-import { checkDownloadDocs, downloadShareDocs } from '@/api/SimpleShareApi'
+import {
+  checkExportDownloadDocs,
+  downloadExportShareDocs
+} from '@/api/SimpleShareApi'
 import { isFunction } from 'lodash-es'
 
 /**
@@ -30,12 +33,19 @@ export const getDownloadDocsHandlers = (shareDoc, config = {}) => {
     const results = supportedTypes.map(type => {
       return {
         icon: `custom-icon-${type}`,
-        label: $i18nKey('common.label.commonDownload', `common.label.${type}`),
+        label: $i18nKey('common.label.commonExport', `common.label.${type}`),
         handler: () => {
-          $coreConfirm($i18nBundle('api.msg.exportDownloadConfirm'))
-            .then(() => checkDownloadDocs(shareId).then(() => {
-              downloadShareDocs({ type, shareId })
-            }))
+          $coreConfirm($i18nBundle('api.msg.exportConfirm'))
+            .then(() => {
+              const param = { shareId, type }
+              checkExportDownloadDocs(param).then(resData => {
+                if (resData.success && resData.resultData) {
+                  downloadExportShareDocs({
+                    ...param, uuid: resData.resultData
+                  })
+                }
+              })
+            })
         }
       }
     })
