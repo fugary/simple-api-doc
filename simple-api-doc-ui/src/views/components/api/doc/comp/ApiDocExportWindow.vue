@@ -7,6 +7,8 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
+import { $i18nBundle } from '@/messages'
+import { $coreAlert } from '@/utils'
 
 const shareDoc = ref()
 const projectItem = ref()
@@ -27,21 +29,26 @@ const toExportApiDocs = (projItem, shDoc, type) => {
 
 const exportSelectedDocs = (data) => {
   console.log('==========================data', data, currentExportType.value)
-  const param = {
-    shareId: shareDoc.value?.shareId,
-    type: currentExportType.value
-  }
-  checkExportDownloadDocs({
-    ...param,
-    docIds: data?.filter(id => isNumber(id))
-  }).then(resData => {
-    if (resData.success && resData.resultData) {
-      downloadExportShareDocs({
-        ...param, uuid: resData.resultData
-      })
+  const docIds = data?.filter(id => isNumber(id))
+  if (docIds.length) {
+    const param = {
+      shareId: shareDoc.value?.shareId,
+      type: currentExportType.value
     }
-    console.log('=============================data', resData)
-  })
+    checkExportDownloadDocs({
+      ...param,
+      docIds
+    }).then(resData => {
+      if (resData.success && resData.resultData) {
+        downloadExportShareDocs({
+          ...param, uuid: resData.resultData
+        })
+      }
+      console.log('=============================data', resData)
+    })
+  } else {
+    $coreAlert($i18nBundle('api.msg.noApiSelected'))
+  }
 }
 const filterTreeNodes = (keyword) => {
   const { docTreeNodes } = calcProjectItem(filterProjectItem(projectItem.value, keyword),
