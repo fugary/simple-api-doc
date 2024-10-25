@@ -16,6 +16,38 @@ export const filterFoldersWithDocs = (folders) => {
   return folders.filter(folder => containsDocs(folder))
 }
 
+// 已经计算过数量的话，过滤文件夹更加简单
+export const filterFoldersWithDocsNew = (folders) => {
+  return folders.filter(folder => {
+    if (folder.children?.length) {
+      folder.children = filterFoldersWithDocsNew(folder.children)
+    }
+    return folder.childDocCount || folder.isDoc
+  })
+}
+
+export const calcFolderDocCount = (folders) => {
+  let count = 0
+  for (const folder of folders) {
+    // 初始化子文档计数
+    let childCount = 0
+    // 递归计算子文件夹的文档数量
+    if (folder.children?.length) {
+      childCount = calcFolderDocCount(folder.children)
+    }
+    // 如果当前节点是文档，则计数加1
+    if (folder.isDoc) {
+      count++
+    } else {
+      // 当前文件夹的子文档计数应该包括子文件夹的文档数量
+      folder.childDocCount = childCount
+    }
+    // 将子文档数量加到总计数
+    count += childCount
+  }
+  return count
+}
+
 /**
  * 计算ProjectItem
  * @param projectItem
@@ -50,8 +82,9 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
         node.treeId = 'folder_' + node.id
       }
     })
+    calcFolderDocCount(docTreeNodes)
     if (searchParam?.keyword) {
-      docTreeNodes = filterFoldersWithDocs(docTreeNodes)
+      docTreeNodes = filterFoldersWithDocsNew(docTreeNodes)
     }
     if (docTreeNodes[0]?.id && preference?.lastExpandKeys && !preference.lastExpandKeys?.includes(docTreeNodes[0]?.treeId)) {
       preference.lastExpandKeys.push(docTreeNodes[0]?.treeId)

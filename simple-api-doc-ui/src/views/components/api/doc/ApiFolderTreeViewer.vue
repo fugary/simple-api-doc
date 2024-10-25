@@ -324,10 +324,10 @@ const toShowTreeConfigWindow = (type) => {
                 />
                 {{ node.label }}
                 <el-text
-                  v-if="data.children?.length&&shareDoc?.showChildrenLength!==false"
+                  v-if="data.childDocCount&&shareDoc?.showChildrenLength!==false"
                   type="info"
                 >
-                  ({{ data.children?.length }})
+                  ({{ data.childDocCount }})
                 </el-text>
               </tree-icon-label>
               <span
@@ -348,6 +348,7 @@ const toShowTreeConfigWindow = (type) => {
       </el-scrollbar>
     </el-container>
     <simple-edit-window
+      v-if="editable"
       v-model="currentEditFolder"
       v-model:show-edit-window="showEditWindow"
       width="500px"
@@ -357,6 +358,7 @@ const toShowTreeConfigWindow = (type) => {
       label-width="130px"
     />
     <api-doc-export-window
+      v-if="shareDoc?.exportEnabled"
       v-model:tree-select-keys="exportSelectedKeys"
       v-model="showExportWindow"
       :tree-nodes="exportTreeNodes"
