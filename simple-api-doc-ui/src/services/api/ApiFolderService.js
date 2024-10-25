@@ -32,10 +32,10 @@ export const getDownloadDocsHandlers = (shareDoc, config = {}) => {
         icon: `custom-icon-${type}`,
         label: $i18nKey('common.label.commonDownload', `common.label.${type}`),
         handler: () => {
-          checkDownloadDocs(shareId).then(data => {
-            console.log('===========================data', data)
-            downloadShareDocs({ type, shareId })
-          })
+          $coreConfirm($i18nBundle('api.msg.exportDownloadConfirm'))
+            .then(() => checkDownloadDocs(shareId).then(data => {
+              downloadShareDocs({ type, shareId })
+            }))
         }
       }
     })

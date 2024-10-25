@@ -7,8 +7,8 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-import { $i18nBundle } from '@/messages'
-import { $coreAlert } from '@/utils'
+import { $i18nBundle, $i18nConcat } from '@/messages'
+import { $coreAlert, $coreConfirm } from '@/utils'
 
 const shareDoc = ref()
 const projectItem = ref()
@@ -31,20 +31,22 @@ const exportSelectedDocs = (data) => {
   console.log('==========================data', data, currentExportType.value)
   const docIds = data?.filter(id => isNumber(id))
   if (docIds.length) {
-    const param = {
-      shareId: shareDoc.value?.shareId,
-      type: currentExportType.value
-    }
-    checkExportDownloadDocs({
-      ...param,
-      docIds
-    }).then(resData => {
-      if (resData.success && resData.resultData) {
-        downloadExportShareDocs({
-          ...param, uuid: resData.resultData
-        })
+    $coreConfirm($i18nBundle('api.msg.exportConfirm')).then(() => {
+      const param = {
+        shareId: shareDoc.value?.shareId,
+        type: currentExportType.value
       }
-      console.log('=============================data', resData)
+      checkExportDownloadDocs({
+        ...param,
+        docIds
+      }).then(resData => {
+        if (resData.success && resData.resultData) {
+          downloadExportShareDocs({
+            ...param, uuid: resData.resultData
+          })
+        }
+        console.log('=============================data', resData)
+      })
     })
   } else {
     $coreAlert($i18nBundle('api.msg.noApiSelected'))
@@ -69,7 +71,7 @@ defineExpose({
     node-key="treeId"
     :tree-nodes="treeConfigNodes"
     height="400px"
-    :title="$t('api.label.exportSelectedApi')"
+    :title="$i18nConcat($t('api.label.exportSelectedApi'), currentExportType?.toUpperCase())"
     @submit-keys="exportSelectedDocs"
     @filter-tree-nodes="filterTreeNodes"
   >
