@@ -45,7 +45,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -126,45 +125,6 @@ public class SimpleShareController {
                 .projectCode(project.getProjectCode())
                 .forceEnabled(true)
                 .includeDocs(true).build()));
-    }
-
-    @GetMapping("/checkDownloadDocs/{shareId}")
-    public SimpleResult<Boolean> checkDownloadDocs(@PathVariable("shareId") String shareId) {
-        if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
-        }
-        ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
-        List<ApiProjectInfo> infoList;
-        ApiProjectInfo currentInfo;
-        List<ApiProjectInfoDetail> details;
-        ApiProjectInfoDetail detail;
-        if (apiShare == null
-                || (infoList = apiProjectInfoService.loadByProjectId(apiShare.getProjectId())).isEmpty()
-                || (currentInfo = infoList.get(0)) == null
-                || (details = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), currentInfo.getId(),
-                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT))).isEmpty()
-                || (detail = details.get(0)) == null
-                || StringUtils.isBlank(detail.getSchemaContent())) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
-        }
-        return SimpleResultUtils.createSimpleResult(true);
-    }
-
-    @GetMapping("/download/{type}/{shareId}")
-    public ResponseEntity<byte[]> downloadDocs(@PathVariable("type") String type,
-                                               @PathVariable("shareId") String shareId,
-                                               HttpServletResponse response) throws IOException {
-        ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
-        ApiProjectInfo currentInfo = apiProjectInfoService.loadByProjectId(apiShare.getProjectId()).get(0);
-        ApiProjectInfoDetail detail = apiProjectInfoDetailService.loadByProjectAndInfo(apiShare.getProjectId(), currentInfo.getId(),
-                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT)).get(0);
-        String fileName = apiShare.getShareName() + "." + type;
-        byte[] contentBytes = getContent(type, detail.getSchemaContent()).getBytes(StandardCharsets.UTF_8);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(contentBytes.length)
-                .body(contentBytes);
     }
 
     @PostMapping("/checkExportDownloadDocs")

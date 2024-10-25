@@ -44,17 +44,6 @@ export const loadProject = function (shareId, config) {
   return $httpGet(`${SHARE_BASE_URL}/loadProject/${shareId}`, config)
 }
 
-export const checkDownloadDocs = function (shareId, config) {
-  config = Object.assign(getShareConfig(shareId), config || {})
-  return $httpGet(`${SHARE_BASE_URL}/checkDownloadDocs/${shareId}`, config)
-}
-
-export const downloadShareDocs = function ({ type, shareId }) {
-  const shareConfigStore = useShareConfigStore()
-  const downloadUrl = `${BASE_URL}${SHARE_BASE_URL}/download/${type}/${shareId}?access_token=${shareConfigStore.getShareToken(shareId)}`
-  $downloadWithLinkClick(downloadUrl)
-}
-
 export const checkExportDownloadDocs = function (param, config) {
   const shareId = param.shareId
   config = Object.assign(getShareConfig(shareId), config || {})
