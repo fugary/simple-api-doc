@@ -239,7 +239,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
      */
     protected void calcDocSchemas(OpenAPI openAPI, ExportApiDocVo apiDoc, Operation operation) {
         // 处理参数列表
-        if (operation.getParameters() != null) {
+        if (CollectionUtils.isNotEmpty(operation.getParameters())) {
             ExportApiDocSchemaVo parametersSchema = new ExportApiDocSchemaVo();
             parametersSchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_PARAMETERS);
             parametersSchema.setSchemaContent(SchemaJsonUtils.toJson(operation.getParameters(), SchemaJsonUtils.isV31(openAPI)));

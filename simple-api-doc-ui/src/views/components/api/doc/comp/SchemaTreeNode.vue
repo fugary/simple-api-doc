@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import markdownit from 'markdown-it'
 import { hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { $copyText } from '@/utils'
-import { isString } from 'lodash-es'
+import { isString, isNil, isArray } from 'lodash-es'
 
 const props = defineProps({
   data: {
@@ -18,7 +18,7 @@ const md = markdownit({
 })
 
 const getMarkdownStr = data => {
-  let str = ''
+  let str = '<br>'
   if (data.description || data.schema?.description) {
     str = `${data.description || data.schema?.description}<br>`
   }
@@ -36,6 +36,28 @@ const exampleStr = computed(() => {
     exampleStr = isString(example) ? example : JSON.stringify(example)
   }
   return exampleStr
+})
+
+const otherParams = computed(() => {
+  const schema = props.data?.schema
+  if (schema) {
+    return ['minLength', 'maxLength', 'pattern', 'minItems', 'maxItems', 'uniqueItems', 'maxProperties', 'minProperties', 'nullable', 'readOnly', 'writeOnly']
+      .filter(name => !isNil(schema[name])).map(name => {
+        return {
+          name,
+          value: schema[name]
+        }
+      })
+  }
+  return []
+})
+
+const typeStr = computed(() => {
+  const type = props.data?.schema?.type
+  if (isArray(type)) {
+    return `[${type.join(', ')}]`
+  }
+  return type
 })
 
 </script>
@@ -87,7 +109,7 @@ const exampleStr = computed(() => {
       type="info"
       class="margin-right2"
     >
-      <strong>{{ data.schema?.type||data.schema?.types?.[0] }}&nbsp;</strong>
+      <strong>{{ typeStr }}&nbsp;</strong>
       <span v-if="data.schema?.format||data.schema?.name">
         &lt;{{ data.schema?.format || data.schema?.name }}&gt;
       </span>
@@ -126,6 +148,24 @@ const exampleStr = computed(() => {
       <!--eslint-disable-next-line vue/no-v-html-->
       <span v-html="treeNodeDescription" />
     </el-text>
+    <template v-if="otherParams?.length">
+      <el-text
+        v-for="(otherParam, index) in otherParams"
+        :key="index"
+        size="small"
+        type="info"
+        tag="i"
+        class="margin-right2"
+      >
+        {{ otherParam.name }}:
+        <el-text
+          type="primary"
+          size="small"
+        >
+          {{ otherParam.value }}
+        </el-text>
+      </el-text>
+    </template>
     <el-text
       v-if="exampleStr"
       size="small"
