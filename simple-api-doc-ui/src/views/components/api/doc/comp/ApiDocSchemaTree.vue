@@ -12,6 +12,10 @@ const props = defineProps({
   specVersion: {
     type: String,
     default: 'V30'
+  },
+  showMergeAllOf: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -44,7 +48,7 @@ const loadTreeNode = (node, resolve) => {
     }))
   } else {
     // 下级node
-    resolve(processSchemaChildren(processSchema(node.data, componentsMap.value)?.schema))
+    resolve(processSchemaChildren(processSchema(node.data, componentsMap.value)?.schema, props.showMergeAllOf))
   }
 }
 

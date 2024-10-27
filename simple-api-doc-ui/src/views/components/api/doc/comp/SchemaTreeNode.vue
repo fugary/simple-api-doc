@@ -28,6 +28,13 @@ const getMarkdownStr = data => {
 const treeNodeDescription = computed(() => getMarkdownStr(props.data))
 
 const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
+const schemaXxxOfLength = computed(() => {
+  const schema = props.data?.schema
+  if (schemaXxxOf.value && schema) {
+    return schema[schemaXxxOf.value]?.length || schema.items?.[schemaXxxOf.value]?.length
+  }
+  return 0
+})
 
 const exampleStr = computed(() => {
   let exampleStr = ''
@@ -92,7 +99,7 @@ const typeStr = computed(() => {
       class="margin-right2"
     >
       <strong>
-        {{ schemaXxxOf }}
+        {{ schemaXxxOf }} [{{ schemaXxxOfLength }}]
       </strong>
     </el-tag>
     <el-tag

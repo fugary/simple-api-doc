@@ -8,6 +8,8 @@ import {
   downloadExportShareDocs
 } from '@/api/SimpleShareApi'
 import { isFunction } from 'lodash-es'
+import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 
 /**
  * 根目是否显示url或者名称
@@ -22,6 +24,17 @@ export const calcShowDocLabelHandler = (folder, preference) => {
     labelKey: preference.defaultShowLabel === 'docName' ? 'api.label.docLabelShowUrl' : 'api.label.docLabelShowName',
     handler: () => {
       preference.defaultShowLabel = preference.defaultShowLabel === 'url' ? 'docName' : 'url'
+    }
+  }
+}
+
+export const calcShowMergeAllOfHandler = (folder, preference) => {
+  return {
+    enabled: !!folder.rootFlag,
+    icon: preference.showMergeAllOf ? 'CallSplitFilled' : 'MergeFilled',
+    labelKey: preference.showMergeAllOf ? 'api.label.unMergeAllOf' : 'api.label.mergeAllOf',
+    handler: () => {
+      preference.showMergeAllOf = !preference.showMergeAllOf
     }
   }
 }
@@ -118,7 +131,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         sortId: getMdChildrenSortId(folder)
       }, true)
     }
-  }, calcShowDocLabelHandler(folder, preference), {
+  }, calcShowDocLabelHandler(folder, preference), calcShowMergeAllOfHandler(folder, preference), {
     enabled: !folder.rootFlag,
     icon: 'FolderDelete',
     type: 'danger',
@@ -244,4 +257,14 @@ export const getTreeNodesByKeys = (keys, treeNodes, nodeKey, foundNodes = []) =>
     return foundNodes
   }
   return treeNodes
+}
+
+export const calcPreferenceId = (apiDocDetail) => {
+  return apiDocDetail?.apiShare?.shareId || apiDocDetail?.projectInfoDetail?.projectCode || DEFAULT_PREFERENCE_ID_KEY
+}
+
+export const calcShowMergeAllOf = (apiDocDetail) => {
+  const preferenceId = calcPreferenceId(apiDocDetail)
+  const preference = useShareConfigStore().sharePreferenceView?.[preferenceId]
+  return preference?.showMergeAllOf ?? true
 }

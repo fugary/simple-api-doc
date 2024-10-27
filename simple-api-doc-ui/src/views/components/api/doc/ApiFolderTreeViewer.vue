@@ -13,6 +13,7 @@ import {
   getFolderHandlers,
   getDocHandlers,
   calcNodeLeaf,
+  calcShowMergeAllOfHandler,
   calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers
 } from '@/services/api/ApiFolderService'
 import { loadDetail } from '@/api/ApiProjectApi'
@@ -52,7 +53,8 @@ const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = sha
   lastExpandKeys: [],
   lastDocId: undefined,
   defaultTheme: props.shareDoc?.defaultTheme || 'dark',
-  defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName'
+  defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName',
+  showMergeAllOf: true
 })
 
 const treeNodes = ref([])
@@ -81,7 +83,7 @@ const searchFormOption = computed(() => {
     }
   }
 })
-watch([searchParam, () => sharePreference?.defaultShowLabel], () => {
+watch([searchParam, () => sharePreference?.defaultShowLabel, () => sharePreference?.showMergeAllOf], () => {
   if (projectItem.value) {
     refreshFolderTree()
   }
@@ -108,7 +110,7 @@ const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
   if (rootFolder.value && props.shareDoc) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc, {
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), calcShowMergeAllOfHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc, {
       toShowTreeConfigWindow
     })]
   }

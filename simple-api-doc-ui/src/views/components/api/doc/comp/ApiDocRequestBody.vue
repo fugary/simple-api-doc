@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
+import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
 
 const apiDocDetail = defineModel({
   type: Object,
@@ -10,7 +11,7 @@ const apiDocDetail = defineModel({
 const projectInfoDetail = computed(() => {
   return apiDocDetail.value.projectInfoDetail
 })
-
+const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
 </script>
 
 <template>
@@ -41,6 +42,7 @@ const projectInfoDetail = computed(() => {
             :model-value="requestsSchema"
             :spec-version="projectInfoDetail.specVersion"
             :component-schemas="projectInfoDetail.componentSchemas"
+            :show-merge-all-of="showMergeAllOf"
           />
         </el-container>
       </el-tab-pane>

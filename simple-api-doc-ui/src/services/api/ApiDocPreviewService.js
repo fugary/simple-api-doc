@@ -233,18 +233,22 @@ export const $ref2Schema = $ref => {
   return $ref.substring($ref.lastIndexOf('/') + 1)
 }
 
-export const processSchemaChildren = schema => {
+export const processSchemaChildren = (schema, mergeAllOf = false) => {
   const xxxOf = hasXxxOf(schema)
   const children = []
   if (xxxOf) {
     const xxxOfList = schema[xxxOf] || schema.items?.[xxxOf] || []
-    children.push(...xxxOfList.map(value => {
-      return {
-        name: value.name,
-        schema: value,
-        isLeaf: checkLeaf(value)
-      }
-    }))
+    if (!mergeAllOf || xxxOf !== 'allOf') {
+      children.push(...xxxOfList.map(value => {
+        return {
+          name: value.name,
+          schema: value,
+          isLeaf: checkLeaf(value)
+        }
+      }))
+    } else {
+      children.push(...xxxOfList.flatMap(xxxSchema => processSchemaChildren(xxxSchema, mergeAllOf)))
+    }
   }
   children.push(...processProperties(schema))
   if (hasAddProperties(schema)) {

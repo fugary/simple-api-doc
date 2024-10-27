@@ -1,6 +1,7 @@
 <script setup lang="jsx">
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
+import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
 
 const apiDocDetail = defineModel({
   type: Object,
@@ -10,7 +11,7 @@ const apiDocDetail = defineModel({
 const projectInfoDetail = computed(() => {
   return apiDocDetail.value.projectInfoDetail
 })
-
+const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
 </script>
 
 <template>
@@ -23,6 +24,7 @@ const projectInfoDetail = computed(() => {
       v-model="apiDocDetail.parametersSchema"
       :spec-version="projectInfoDetail.specVersion"
       :component-schemas="projectInfoDetail.componentSchemas"
+      :show-merge-all-of="showMergeAllOf"
     />
     <el-container v-else>
       无
