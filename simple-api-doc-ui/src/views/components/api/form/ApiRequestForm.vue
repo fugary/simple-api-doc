@@ -92,10 +92,7 @@ const docFormOption = computed(() => {
             :model="paramTarget"
             class="margin-right2"
           />
-          <div
-            class="api-path-url padding-top1"
-            style="margin-right:auto;"
-          >
+          <div class="api-path-url padding-top1">
             <api-method-tag
               size="large"
               effect="dark"
@@ -103,6 +100,7 @@ const docFormOption = computed(() => {
               class="margin-right2"
             />
             <el-link
+              v-common-tooltip="requestUrl"
               type="primary"
               @click="$copyText(requestUrl)"
             >

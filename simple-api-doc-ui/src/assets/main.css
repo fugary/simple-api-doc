@@ -531,3 +531,9 @@ html, body, #app, .index-container {
     overflow-y: auto;
     padding-bottom: 10px;
 }
+
+.api-path-url {
+    margin-right: auto;
+    white-space: nowrap;
+    overflow: hidden;
+}

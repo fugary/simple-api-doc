@@ -60,10 +60,7 @@ const requestUrl = computed(() => {
       :model="apiDocDetail"
       class="margin-right2"
     />
-    <span
-      class="padding-top1"
-      style="margin-right: auto;"
-    >
+    <span class="padding-top1 api-path-url">
       <api-method-tag
         size="large"
         effect="dark"
@@ -71,6 +68,7 @@ const requestUrl = computed(() => {
         class="margin-right2"
       />
       <el-link
+        v-common-tooltip="requestUrl"
         type="primary"
         @click="$copyText(requestUrl)"
       >
