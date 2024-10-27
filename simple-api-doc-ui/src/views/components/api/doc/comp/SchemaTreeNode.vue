@@ -4,6 +4,7 @@ import { $i18nBundle } from '@/messages'
 import markdownit from 'markdown-it'
 import { hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { $copyText } from '@/utils'
+import { isString } from 'lodash-es'
 
 const props = defineProps({
   data: {
@@ -23,7 +24,8 @@ const getMarkdownStr = data => {
     str = `${data.schema?.description}<br>`
   }
   if (data.schema?.example) {
-    str += `${$i18nBundle('common.label.example')}: <span class="el-text el-text--small el-text--primary">${data.schema?.example}</span>`
+    const exampleStr = isString(data.schema.example) ? data.schema.example : JSON.stringify(data.schema.example)
+    str += `${$i18nBundle('common.label.example')}: <span class="el-text el-text--small el-text--primary">${exampleStr}</span>`
   }
   return md.render(str)
 }
