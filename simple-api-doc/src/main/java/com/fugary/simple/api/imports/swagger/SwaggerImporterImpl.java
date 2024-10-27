@@ -114,7 +114,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             projectVo.setProjectName(info.getTitle());
             projectVo.setDescription(StringUtils.defaultIfBlank(info.getTitle(), info.getDescription()));
             projectInfo.setVersion(info.getVersion());
-            if (StringUtils.containsIgnoreCase(info.getDescription(), "## ")) { // markdown
+            if (StringUtils.isNotBlank(info.getTitle()) && StringUtils.isNotBlank(info.getDescription()) && StringUtils.length(info.getDescription()) > 80) { // markdown
                 ExportApiDocVo doc = new ExportApiDocVo();
                 doc.setDocType(ApiDocConstants.DOC_TYPE_MD);
                 doc.setDocKey(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info");
