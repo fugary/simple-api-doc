@@ -198,7 +198,7 @@ export const calcComponentMap = (componentSchemas) => {
  */
 export const hasXxxOf = schema => {
   for (const xxxOf of ['allOf', 'anyOf', 'oneOf']) {
-    if (schema?.[xxxOf]?.length) {
+    if (schema?.[xxxOf]?.length || schema?.items?.[xxxOf]?.length) {
       return xxxOf
     }
   }
@@ -237,7 +237,8 @@ export const processSchemaChildren = schema => {
   const xxxOf = hasXxxOf(schema)
   const children = []
   if (xxxOf) {
-    children.push(...schema[xxxOf].map(value => {
+    const xxxOfList = schema[xxxOf] || schema.items?.[xxxOf] || []
+    children.push(...xxxOfList.map(value => {
       return {
         name: value.name,
         schema: value,
