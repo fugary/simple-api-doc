@@ -4,7 +4,6 @@ import markdownit from 'markdown-it'
 import { hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { $copyText } from '@/utils'
 import { isString } from 'lodash-es'
-import { ElText } from 'element-plus'
 
 const props = defineProps({
   data: {
@@ -20,8 +19,8 @@ const md = markdownit({
 
 const getMarkdownStr = data => {
   let str = ''
-  if (data.schema?.description) {
-    str = `${data.schema?.description}<br>`
+  if (data.description || data.schema?.description) {
+    str = `${data.description || data.schema?.description}<br>`
   }
   return md.render(str)
 }
@@ -30,15 +29,13 @@ const treeNodeDescription = computed(() => getMarkdownStr(props.data))
 
 const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
 
-const example = computed(() => {
+const exampleStr = computed(() => {
   let exampleStr = ''
-  if (props.data?.schema?.example) {
-    const example = props.data?.schema?.example
+  const example = props.data?.schema?.example ?? props.data?.schema?.default
+  if (example) {
     exampleStr = isString(example) ? example : JSON.stringify(example)
   }
-  return <>
-    {exampleStr ? <ElText type="primary" size="small" onClick={() => $copyText(exampleStr)}>{exampleStr}</ElText> : ''}
-  </>
+  return exampleStr
 })
 
 </script>
@@ -96,6 +93,14 @@ const example = computed(() => {
       </span>
     </el-text>
     <el-text
+      v-if="data.in"
+      type="info"
+      tag="i"
+      class="margin-right2"
+    >
+      ({{ data.in }})
+    </el-text>
+    <el-text
       v-if="data.schema?.enum?.length"
       type="info"
       size="small"
@@ -122,12 +127,18 @@ const example = computed(() => {
       <span v-html="treeNodeDescription" />
     </el-text>
     <el-text
-      v-if="data.schema?.example"
+      v-if="exampleStr"
       size="small"
       type="info"
     >
       {{ $t('common.label.example') }}:
-      <component :is="example" />
+      <el-text
+        type="primary"
+        size="small"
+        @click="$copyText(exampleStr)"
+      >
+        {{ exampleStr }}
+      </el-text>
     </el-text>
   </div>
 </template>

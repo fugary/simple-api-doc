@@ -152,7 +152,7 @@ const saveAuthorization = ({ form }) => {
           :model-value="apiDocDetail?.description"
         />
         <api-doc-parameters
-          v-if="!apiDocDetail?.requestsSchemas?.length"
+          v-if="apiDocDetail?.projectInfoDetail&&apiDocDetail?.parametersSchema||!apiDocDetail?.requestsSchemas?.length"
           v-model="apiDocDetail"
         />
         <api-doc-request-body

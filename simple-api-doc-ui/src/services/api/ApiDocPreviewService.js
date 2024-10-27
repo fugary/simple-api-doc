@@ -72,7 +72,7 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   // const value = previewData?.mockParams || requestItem?.mockParams
   // const requestPath = `/mock/${groupItem.groupPath}${requestItem?.requestPath}`
   const target = {
-    pathParams: calcParamTargetByUrl(apiDocDetail.url),
+    pathParams: calcSchemaParameters(apiDocDetail.parametersSchema, item => item.in === 'path'),
     requestParams: calcSchemaParameters(apiDocDetail.parametersSchema),
     headerParams: calcSchemaParameters(apiDocDetail.parametersSchema, item => item.in === 'header'),
     [FORM_DATA]: [],
@@ -161,8 +161,10 @@ export const calcSchemaParameters = (parametersSchema, filter = item => item.in 
     const paramSchemas = JSON.parse(parametersSchema.schemaContent)
     if (isArray(paramSchemas)) {
       return paramSchemas.filter(filter).map(param => {
+        console.log('=============================param', param)
         return {
           name: param.name,
+          value: param.schema?.default || '',
           enabled: true,
           valueRequired: param.required,
           dynamicOption: () => ({ required: param.required })
