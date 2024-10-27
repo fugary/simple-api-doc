@@ -1,10 +1,10 @@
-<script setup>
+<script setup lang="jsx">
 import { computed } from 'vue'
-import { $i18nBundle } from '@/messages'
 import markdownit from 'markdown-it'
 import { hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { $copyText } from '@/utils'
 import { isString } from 'lodash-es'
+import { ElText } from 'element-plus'
 
 const props = defineProps({
   data: {
@@ -23,16 +23,23 @@ const getMarkdownStr = data => {
   if (data.schema?.description) {
     str = `${data.schema?.description}<br>`
   }
-  if (data.schema?.example) {
-    const exampleStr = isString(data.schema.example) ? data.schema.example : JSON.stringify(data.schema.example)
-    str += `${$i18nBundle('common.label.example')}: <span class="el-text el-text--small el-text--primary">${exampleStr}</span>`
-  }
   return md.render(str)
 }
 
 const treeNodeDescription = computed(() => getMarkdownStr(props.data))
 
 const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
+
+const example = computed(() => {
+  let exampleStr = ''
+  if (props.data?.schema?.example) {
+    const example = props.data?.schema?.example
+    exampleStr = isString(example) ? example : JSON.stringify(example)
+  }
+  return <>
+    {exampleStr ? <ElText type="primary" size="small" onClick={() => $copyText(exampleStr)}>{exampleStr}</ElText> : ''}
+  </>
+})
 
 </script>
 
@@ -113,6 +120,14 @@ const schemaXxxOf = computed(() => hasXxxOf(props.data?.schema))
     >
       <!--eslint-disable-next-line vue/no-v-html-->
       <span v-html="treeNodeDescription" />
+    </el-text>
+    <el-text
+      v-if="data.schema?.example"
+      size="small"
+      type="info"
+    >
+      {{ $t('common.label.example') }}:
+      <component :is="example" />
     </el-text>
   </div>
 </template>
