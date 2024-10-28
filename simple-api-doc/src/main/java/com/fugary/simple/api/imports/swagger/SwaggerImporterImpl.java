@@ -97,6 +97,13 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
             projectVo.getProjectInfoDetails().add(detailVo);
         }
+        if (CollectionUtils.isNotEmpty(openAPI.getSecurity())) {
+            ExportApiProjectInfoDetailVo detailVo = new ExportApiProjectInfoDetailVo();
+            detailVo.setBodyType(ApiDocConstants.SCHEMA_TYPE_SECURITY_REQUIREMENT);
+            detailVo.setSchemaContent(SchemaJsonUtils.toJson(openAPI.getSecurity(), SchemaJsonUtils.isV31(openAPI)));
+            detailVo.setStatus(ApiDocConstants.STATUS_ENABLED);
+            projectVo.getProjectInfoDetails().add(detailVo);
+        }
     }
 
     protected void processApiInfo(OpenAPI openAPI, ExportApiProjectVo projectVo) {
@@ -238,6 +245,14 @@ public class SwaggerImporterImpl implements ApiDocImporter {
      * @param operation
      */
     protected void calcDocSchemas(OpenAPI openAPI, ExportApiDocVo apiDoc, Operation operation) {
+        // 处理Security列表
+        if (CollectionUtils.isNotEmpty(operation.getSecurity())) {
+            ExportApiDocSchemaVo securityRequirements = new ExportApiDocSchemaVo();
+            securityRequirements.setBodyType(ApiDocConstants.SCHEMA_TYPE_SECURITY_REQUIREMENT);
+            securityRequirements.setSchemaContent(SchemaJsonUtils.toJson(operation.getSecurity(), SchemaJsonUtils.isV31(openAPI)));
+            securityRequirements.setStatus(ApiDocConstants.STATUS_ENABLED);
+            apiDoc.setSecurityRequirements(securityRequirements);
+        }
         // 处理参数列表
         if (CollectionUtils.isNotEmpty(operation.getParameters())) {
             ExportApiDocSchemaVo parametersSchema = new ExportApiDocSchemaVo();

@@ -17,6 +17,7 @@ public class ApiDocDetailVo extends ApiDoc {
 
     private static final long serialVersionUID = 7411498052279393090L;
     private ApiDocSchema parametersSchema;
+    private ApiDocSchema securityRequirements;
     private List<ApiDocSchema> requestsSchemas = new ArrayList<>();
     private List<ApiDocSchema> responsesSchemas = new ArrayList<>();
     private ApiProjectInfoDetailVo projectInfoDetail;

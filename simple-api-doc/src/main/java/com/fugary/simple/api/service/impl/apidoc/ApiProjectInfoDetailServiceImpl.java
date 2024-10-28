@@ -70,8 +70,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail) {
-        List<ApiProjectInfoDetail> apiInfoDetails = loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(),
-                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
+        List<ApiProjectInfoDetail> apiInfoDetails = loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(), ApiDocConstants.PROJECT_SCHEMA_TYPES);
         return parseInfoDetailVo(apiInfo, apiInfoDetails, List.of(apiDocDetail));
     }
 
@@ -87,6 +86,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
                     break;
                 case ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY:
                     apiInfoVo.getSecuritySchemas().add(detail);
+                    break;
+                case ApiDocConstants.SCHEMA_TYPE_SECURITY_REQUIREMENT:
+                    apiInfoVo.getSecurityRequirements().add(detail);
                     break;
             }
         });

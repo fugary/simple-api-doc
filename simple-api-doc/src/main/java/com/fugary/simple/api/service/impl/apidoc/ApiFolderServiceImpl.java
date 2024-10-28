@@ -147,6 +147,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     }
 
     protected void saveApiDocSchemas(ExportApiDocVo apiDocVo) {
+        if (apiDocVo.getSecurityRequirements() != null) {
+            apiDocVo.getSecurityRequirements().setDocId(apiDocVo.getId());
+            apiDocSchemaService.save(SimpleModelUtils.addAuditInfo(apiDocVo.getSecurityRequirements()));
+        }
         if (apiDocVo.getParametersSchema() != null) {
             apiDocVo.getParametersSchema().setDocId(apiDocVo.getId());
             apiDocSchemaService.save(SimpleModelUtils.addAuditInfo(apiDocVo.getParametersSchema()));

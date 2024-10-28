@@ -24,6 +24,7 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
@@ -78,8 +79,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         // 加载文档详情
         List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
         // 加载项目schema和security数据
-        List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId,
-                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT, ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
+        List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
         // 提取和文档相关的schema和security数据
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = apiFolderService.calcFolderMap(detailVo.getFolders());
@@ -91,6 +91,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 .servers(new ArrayList<>())
                 .info(new Info().title(detailVo.getProjectName())
                         .summary(detailVo.getProjectName())
+                        .description(detailVo.getDescription())
                         .version(projectInfo.getVersion()));
         processComponentsAndSecuritySchemas(projectInfoDetailVo, openAPI);
         List<ExtendMarkdownFile> markdownFiles = new ArrayList<>();
@@ -170,7 +171,29 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
             operation.addExtension(ApiDocConstants.X_APIFOX_FOLDER, folderPath);
         }
         pathFunctions.get(StringUtils.upperCase(apiDocDetail.getMethod())).accept(operation);
+        calcOperationSecurity(openAPI, apiDocDetail, operation);
         return pathItem;
+    }
+
+    /**
+     * 计算Operation安全属性
+     * @param openAPI
+     * @param apiDocDetail
+     * @param operation
+     */
+    protected void calcOperationSecurity(OpenAPI openAPI, ApiDocDetailVo apiDocDetail, Operation operation) {
+        if (apiDocDetail.getSecurityRequirements() != null && StringUtils.isNotBlank(apiDocDetail.getSecurityRequirements().getSchemaContent())) {
+            List<SecurityRequirement> requirementsSchemas = SchemaJsonUtils.fromJson(apiDocDetail.getSecurityRequirements().getSchemaContent(), new TypeReference<>() {
+            }, SchemaJsonUtils.isV31(openAPI));
+            if (CollectionUtils.isNotEmpty(requirementsSchemas)) {
+                requirementsSchemas.forEach(requirement -> {
+                    List<SecurityRequirement> existsSecurities = Objects.requireNonNullElseGet(operation.getSecurity(), ArrayList::new);
+                    if (!existsSecurities.contains(requirement)) {
+                        operation.addSecurityItem(requirement);
+                    }
+                });
+            }
+        }
     }
 
     protected String getFolderPath(String fullFolderPath){
@@ -221,6 +244,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
     protected void processComponentsAndSecuritySchemas(ApiProjectInfoDetailVo projectInfoDetailVo, OpenAPI openAPI) {
         List<ApiProjectInfoDetail> componentSchemas = projectInfoDetailVo.getComponentSchemas();
         List<ApiProjectInfoDetail> securitySchemas = projectInfoDetailVo.getSecuritySchemas();
+        List<ApiProjectInfoDetail> securityRequirements = projectInfoDetailVo.getSecurityRequirements();
         componentSchemas.forEach(detail -> {
             Schema<?> schema = SchemaJsonUtils.fromJson(detail.getSchemaContent(), Schema.class, SchemaJsonUtils.isV31(openAPI));
             openAPI.getComponents().addSchemas(detail.getSchemaName(), schema);
@@ -229,6 +253,18 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
             Map<String, SecurityScheme> secSchemas = SchemaJsonUtils.fromJson(detail.getSchemaContent(), new TypeReference<>() {
             }, SchemaJsonUtils.isV31(openAPI));
             openAPI.getComponents().setSecuritySchemes(secSchemas);
+        });
+        securityRequirements.forEach(detail -> {
+            List<SecurityRequirement> requirementsSchemas = SchemaJsonUtils.fromJson(detail.getSchemaContent(), new TypeReference<>() {
+            }, SchemaJsonUtils.isV31(openAPI));
+            if (CollectionUtils.isNotEmpty(requirementsSchemas)) {
+                requirementsSchemas.forEach(requirement -> {
+                    List<SecurityRequirement> existsSecurities = Objects.requireNonNullElseGet(openAPI.getSecurity(), ArrayList::new);
+                    if (!existsSecurities.contains(requirement)) {
+                        openAPI.addSecurityItem(requirement);
+                    }
+                });
+            }
         });
     }
 }

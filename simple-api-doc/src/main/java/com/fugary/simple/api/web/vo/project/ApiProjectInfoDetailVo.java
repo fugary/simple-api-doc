@@ -17,6 +17,7 @@ public class ApiProjectInfoDetailVo extends ApiProjectInfo {
 
     private static final long serialVersionUID = 1926102166442953486L;
     private String projectCode;
+    private List<ApiProjectInfoDetail> securityRequirements = new ArrayList<>();
     private List<ApiProjectInfoDetail> securitySchemas = new ArrayList<>();
     private List<ApiProjectInfoDetail> componentSchemas = new ArrayList<>();
 }

@@ -3,6 +3,8 @@ package com.fugary.simple.api.contants;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 /**
  * Created on 2020/5/4 9:19 .<br>
  *
@@ -73,6 +75,8 @@ public class ApiDocConstants {
 
     public static final String PROJECT_SCHEMA_TYPE_SECURITY = "security";
 
+    public static final String SCHEMA_TYPE_SECURITY_REQUIREMENT = "security_requirements";
+
     public static final String PROJECT_TASK_TYPE_MANUAL = "manual";
 
     public static final String PROJECT_TASK_TYPE_AUTO = "auto";
@@ -109,5 +113,8 @@ public class ApiDocConstants {
      * 生成新的
      */
     public static final Integer IMPORT_STRATEGY_NEW = 3;
-
+    /**
+     * 常用schemaTypes
+     */
+    public static final Set<String> PROJECT_SCHEMA_TYPES = Set.of(PROJECT_SCHEMA_TYPE_COMPONENT, PROJECT_SCHEMA_TYPE_SECURITY, SCHEMA_TYPE_SECURITY_REQUIREMENT);
 }

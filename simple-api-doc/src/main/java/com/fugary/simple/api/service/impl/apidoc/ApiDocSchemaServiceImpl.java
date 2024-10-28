@@ -54,6 +54,9 @@ public class ApiDocSchemaServiceImpl extends ServiceImpl<ApiDocSchemaMapper, Api
                 case ApiDocConstants.DOC_SCHEMA_TYPE_PARAMETERS:
                     apiDocVo.setParametersSchema(schema);
                     break;
+                case ApiDocConstants.SCHEMA_TYPE_SECURITY_REQUIREMENT:
+                    apiDocVo.setSecurityRequirements(schema);
+                    break;
             }
         });
     }
