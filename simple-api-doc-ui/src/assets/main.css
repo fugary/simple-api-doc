@@ -498,6 +498,7 @@ html, body, #app, .index-container {
 .doc-schema-tree .el-tree-node__content {
     min-height: 40px;
     height: unset;
+    padding-bottom: 5px;
 }
 
 .doc-schema-tree .el-tree-node__content p {

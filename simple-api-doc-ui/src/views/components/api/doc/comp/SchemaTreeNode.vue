@@ -162,7 +162,7 @@ const typeStr = computed(() => {
         size="small"
         type="info"
         tag="i"
-        class="margin-right2"
+        class="padding-left2"
       >
         {{ otherParam.name }}:
         <el-text
@@ -177,6 +177,7 @@ const typeStr = computed(() => {
       v-if="exampleStr"
       size="small"
       type="info"
+      class="padding-left2"
     >
       {{ $t('common.label.example') }}:
       <el-text

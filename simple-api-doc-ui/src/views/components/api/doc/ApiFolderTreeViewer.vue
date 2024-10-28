@@ -111,12 +111,14 @@ const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
   if (rootFolder.value && props.shareDoc) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), calcShowMergeAllOfHandler(rootFolder.value, sharePreference), ...getDownloadDocsHandlers(props.shareDoc, {
-      toShowTreeConfigWindow
-    })]
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), calcShowMergeAllOfHandler(rootFolder.value, sharePreference)]
   }
   return []
 })
+
+const exportTopHandlers = computed(() => getDownloadDocsHandlers(props.shareDoc, {
+  toShowTreeConfigWindow
+}))
 
 const expandOrCollapse = (nodeData, expand) => {
   if (expand) {
@@ -254,6 +256,7 @@ const toShowTreeConfigWindow = (type) => {
         />
         <span
           v-if="width>=150"
+          class="api-path-url"
           style="margin-right: auto;"
         >{{ shareDoc.shareName }}</span>
         <el-link
@@ -267,6 +270,13 @@ const toShowTreeConfigWindow = (type) => {
           />
         </el-link>
         <more-actions-link
+          v-if="exportTopHandlers?.length"
+          class="margin-right2"
+          :icon-size="20"
+          icon="DownloadFilled"
+          :handlers="exportTopHandlers"
+        />
+        <more-actions-link
           :icon-size="20"
           :handlers="shareTopHandlers"
         />
@@ -276,7 +286,7 @@ const toShowTreeConfigWindow = (type) => {
         class="share-name-header"
       >
         <span
-          class="margin-left1"
+          class="margin-left1 api-path-url"
           style="font-size:18px;margin-right: auto"
         >{{ $t('menu.label.apiManagement') }}</span>
         <span class="margin-right2">

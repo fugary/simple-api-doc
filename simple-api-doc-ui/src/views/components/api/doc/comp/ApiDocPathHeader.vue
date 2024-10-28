@@ -89,14 +89,14 @@ const requestUrl = computed(() => {
       {{ $t('api.label.debugAPI') }}
     </el-button>
     <el-badge
-      v-if="authEnabled"
+      v-if="authEnabled&&debugEnabled"
       type="primary"
       :hidden="!authConfigured"
       is-dot
       class="margin-top1 margin-left2"
     >
       <el-button
-        v-if="authEnabled"
+        v-if="authEnabled&&debugEnabled"
         type="success"
         style="padding-left: 10px;"
         @click="$emit('config-auth', apiDocDetail)"
