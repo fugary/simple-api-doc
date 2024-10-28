@@ -1,5 +1,6 @@
 <script setup>
 import { checkExportDownloadDocs, downloadExportShareDocs } from '@/api/SimpleShareApi'
+import { checkExportProjectDocs, downloadExportProjectDocs } from '@/api/ApiProjectApi'
 import { isNumber } from 'lodash-es'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
@@ -47,18 +48,21 @@ const exportSelectedDocs = (data) => {
     $coreConfirm($i18nBundle('api.msg.exportConfirm')).then(() => {
       const param = {
         shareId: props.shareDoc?.shareId,
+        projectCode: props.projectItem?.projectCode,
         type: props.exportType
       }
-      checkExportDownloadDocs({
+      const isShareDoc = !!props.shareDoc?.shareId
+      const checkDownloadFunc = isShareDoc ? checkExportDownloadDocs : checkExportProjectDocs
+      const downloadExportFunc = isShareDoc ? downloadExportShareDocs : downloadExportProjectDocs
+      checkDownloadFunc({
         ...param,
         docIds
       }).then(resData => {
         if (resData.success && resData.resultData) {
-          downloadExportShareDocs({
+          downloadExportFunc({
             ...param, uuid: resData.resultData
           })
         }
-        console.log('=============================data', resData)
       })
     })
   } else {

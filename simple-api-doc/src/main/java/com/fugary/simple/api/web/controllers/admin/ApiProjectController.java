@@ -10,20 +10,29 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiUser;
+import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.exports.ExportDownloadVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.JwtParamVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
+import io.swagger.v3.oas.models.OpenAPI;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,12 +45,19 @@ import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
  *
  * @author gary.fu
  */
+@Slf4j
 @RestController
 @RequestMapping("/admin/projects")
 public class ApiProjectController {
 
+    @Value("${spring.application.name}")
+    private String applicationName;
+
     @Autowired
     private ApiProjectService apiProjectService;
+
+    @Autowired
+    private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
     @GetMapping
     public SimpleResult<List<ApiProject>> search(@ModelAttribute ProjectQueryVo queryVo) {
@@ -156,6 +172,26 @@ public class ApiProjectController {
         queryWrapper.eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED)
                 .and(wrapper -> wrapper.and(wrapper1 -> wrapper1.eq("user_name", userName)));
         return SimpleResultUtils.createSimpleResult(apiProjectService.list(queryWrapper));
+    }
+
+    @PostMapping("/checkExportDownloadDocs")
+    public SimpleResult<String> checkExportDownloadDocs(@RequestBody ExportDownloadVo downloadVo) {
+        ApiProject apiProject = apiProjectService.getOne(Wrappers.<ApiProject>query().eq("project_code", downloadVo.getProjectCode()));
+        if (apiProject == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, downloadVo, applicationName, apiProject.getId());
+        return SimpleResultUtils.createSimpleResult(uuid);
+    }
+
+    @GetMapping("/exportDownload/{type}/{projectCode}/{uuid}")
+    public ResponseEntity<InputStreamResource> exportDownloadDocs(@PathVariable("type") String type,
+                                                                  @PathVariable("projectCode") String projectCode,
+                                                                  @PathVariable("uuid") String uuid,
+                                                                  HttpServletRequest request) throws IOException {
+        ApiProject apiProject = apiProjectService.getOne(Wrappers.<ApiProject>query().eq("project_code", projectCode));
+        String fileName = uuid + "." + type;
+        return SimpleResultUtils.downloadTempExportFile(request, applicationName, apiProject.getProjectName(), fileName);
     }
 
     /**

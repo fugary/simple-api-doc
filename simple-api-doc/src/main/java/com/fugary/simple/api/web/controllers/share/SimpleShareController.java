@@ -1,14 +1,11 @@
 package com.fugary.simple.api.web.controllers.share;
 
-import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.push.ApiInvokeProcessor;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
-import com.fugary.simple.api.utils.SchemaJsonUtils;
-import com.fugary.simple.api.utils.SchemaYamlUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -19,33 +16,18 @@ import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
-import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.parser.core.models.ParseOptions;
-import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Function;
 
 /**
  * Create date 2024/9/29<br>
@@ -137,45 +119,8 @@ public class SimpleShareController {
         if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
         }
-        String uuid = SimpleModelUtils.uuid();
-        String type = StringUtils.defaultIfBlank(downloadVo.getType(), "json");
-        OpenAPI openAPI = apiApiDocExporter.export(apiShare.getProjectId(), downloadVo.getDocIds());
-        String content;
-        if (StringUtils.equals(type, "json")) {
-            content = SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
-        } else {
-            content = SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
-        }
-        try {
-            String filePathName = getFileFullPath(uuid, type);
-            Path tempFile = Files.createFile(Path.of(filePathName));
-            Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
-            tempFile.toFile().deleteOnExit();
-        } catch (IOException e) {
-            log.error("创建临时文件失败", e);
-        }
+        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, downloadVo, applicationName, apiShare.getProjectId());
         return SimpleResultUtils.createSimpleResult(uuid);
-    }
-
-    /**
-     * 获取文件路径
-     *
-     * @param uuid
-     * @param type
-     * @return
-     */
-    private String getFileFullPath(String uuid, String type) {
-        String fileName = uuid + "." + type;
-        String filePath = StringUtils.join(List.of(FileUtils.getTempDirectoryPath(), applicationName), File.separator);
-        File fileDir = new File(filePath);
-        if (!fileDir.exists()) {
-            try {
-                FileUtils.forceMkdir(fileDir);
-            } catch (IOException e) {
-                log.error("创建临时文件夹失败", e);
-            }
-        }
-        return StringUtils.join(List.of(filePath, fileName), File.separator);
     }
 
     @GetMapping("/exportDownload/{type}/{shareId}/{uuid}")
@@ -185,35 +130,7 @@ public class SimpleShareController {
                                                                   HttpServletRequest request) throws IOException {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         String fileName = uuid + "." + type;
-        // 构造临时文件的完整路径
-        File tempFile = new File(getFileFullPath(uuid, type));
-        fileName = apiShare.getShareName() + "-" + fileName;
-        // 检查文件是否存在
-        if (!tempFile.exists()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-        // 创建 InputStreamResource 从文件中读取数据
-        InputStreamResource resource = new InputStreamResource(new FileInputStream(tempFile));
-        Function<HttpServletRequest, Boolean> deleteFileHook = req -> FileUtils.deleteQuietly(tempFile);
-        request.setAttribute(ApiDocConstants.SHARE_FILE_DOWNLOAD_HOOK_KEY, deleteFileHook);
-        // 设置响应头，准备文件下载
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(tempFile.length())
-                .body(resource);
-    }
-
-    protected String getContent(String type, String content) {
-        ParseOptions parseOptions = new ParseOptions();
-        parseOptions.setResolve(true);
-        SwaggerParseResult result = new OpenAPIParser().readContents(content, null, parseOptions);
-        OpenAPI openAPI = result.getOpenAPI();
-        if (StringUtils.equals(type, "json")) {
-            return SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
-        } else {
-            return SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
-        }
+        return SimpleResultUtils.downloadTempExportFile(request, applicationName, apiShare.getShareName(), fileName);
     }
 
     @GetMapping("/loadShareDoc/{shareId}/{docId}")

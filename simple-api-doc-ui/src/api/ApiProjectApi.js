@@ -1,8 +1,10 @@
 import { useResourceApi } from '@/hooks/ApiHooks'
 import { ref } from 'vue'
 import { $http, $httpPost } from '@/vendors/axios'
-import { isAdminUser, useCurrentUserName } from '@/utils'
+import { $downloadWithLinkClick, isAdminUser, useCurrentUserName } from '@/utils'
 import { isArray } from 'lodash-es'
+import { BASE_URL } from '@/config'
+import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 
 const API_PROJECT_URL = '/admin/projects'
 const ApiProjectApi = useResourceApi(API_PROJECT_URL)
@@ -151,6 +153,16 @@ export const generateJWT = function (data, config) {
     method: 'post',
     data
   }, config)).then(response => response.data)
+}
+
+export const checkExportProjectDocs = function (param, config) {
+  return $httpPost(`${API_PROJECT_URL}/checkExportDownloadDocs`, param, config)
+}
+
+export const downloadExportProjectDocs = function ({ type, projectCode, uuid }) {
+  const accessToken = useLoginConfigStore().accessToken
+  const downloadUrl = `${BASE_URL}${API_PROJECT_URL}/exportDownload/${type}/${projectCode}/${uuid}?access_token=${accessToken}`
+  $downloadWithLinkClick(downloadUrl)
 }
 
 export default ApiProjectApi

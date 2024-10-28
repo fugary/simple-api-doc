@@ -10,6 +10,7 @@ import {
 import { isFunction } from 'lodash-es'
 import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import { checkExportProjectDocs, downloadExportProjectDocs } from '@/api/ApiProjectApi'
 
 /**
  * 根目是否显示url或者名称
@@ -39,10 +40,10 @@ export const calcShowMergeAllOfHandler = (folder, preference) => {
   }
 }
 
-export const getDownloadDocsHandlers = (shareDoc, config = {}) => {
-  if (shareDoc.shareId && shareDoc.exportEnabled) {
+export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
+  const isShareDoc = shareDoc && !!shareDoc.shareId
+  if (!isShareDoc || shareDoc?.debugEnabled) {
     const supportedTypes = ['json', 'yaml']
-    const shareId = shareDoc.shareId
     const results = supportedTypes.map(type => {
       return {
         icon: `custom-icon-${type}`,
@@ -50,10 +51,12 @@ export const getDownloadDocsHandlers = (shareDoc, config = {}) => {
         handler: () => {
           $coreConfirm($i18nBundle('api.msg.exportConfirm'))
             .then(() => {
-              const param = { shareId, type }
-              checkExportDownloadDocs(param).then(resData => {
+              const param = { shareId: shareDoc?.shareId, projectCode: projectItem.projectCode, type }
+              const checkDownloadFunc = isShareDoc ? checkExportDownloadDocs : checkExportProjectDocs
+              const downloadExportFunc = isShareDoc ? downloadExportShareDocs : downloadExportProjectDocs
+              checkDownloadFunc(param).then(resData => {
                 if (resData.success && resData.resultData) {
-                  downloadExportShareDocs({
+                  downloadExportFunc({
                     ...param, uuid: resData.resultData
                   })
                 }
@@ -69,7 +72,7 @@ export const getDownloadDocsHandlers = (shareDoc, config = {}) => {
         handler: () => {
           const { toShowTreeConfigWindow } = config
           if (isFunction(toShowTreeConfigWindow)) {
-            toShowTreeConfigWindow(type, shareId)
+            toShowTreeConfigWindow(type)
           }
         }
       }

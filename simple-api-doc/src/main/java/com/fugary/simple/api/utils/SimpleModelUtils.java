@@ -14,6 +14,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.beans.BeanUtils;
@@ -25,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -311,5 +313,35 @@ public class SimpleModelUtils {
             log.error("copy属性错误", e);
         }
         return target;
+    }
+
+    /**
+     * 获取临时文件路径
+     * @param prefix
+     * @param uuid
+     * @param type
+     * @return
+     */
+    public static String getFileFullPath(String prefix, String uuid, String type) {
+        return getFileFullPath(prefix, uuid + "." + type);
+    }
+
+    /**
+     * 获取临时文件路径
+     * @param prefix
+     * @param fileName
+     * @return
+     */
+    public static String getFileFullPath(String prefix, String fileName) {
+        String filePath = StringUtils.join(List.of(FileUtils.getTempDirectoryPath(), prefix), File.separator);
+        File fileDir = new File(filePath);
+        if (!fileDir.exists()) {
+            try {
+                FileUtils.forceMkdir(fileDir);
+            } catch (IOException e) {
+                log.error("创建临时文件夹失败", e);
+            }
+        }
+        return StringUtils.join(List.of(filePath, fileName), File.separator);
     }
 }

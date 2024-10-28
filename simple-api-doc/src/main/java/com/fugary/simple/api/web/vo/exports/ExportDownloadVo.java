@@ -17,5 +17,6 @@ public class ExportDownloadVo implements Serializable {
     private static final long serialVersionUID = 6212516039447396202L;
     private String type;
     private String shareId;
+    private String projectCode;
     private List<Integer> docIds = new ArrayList<>();
 }

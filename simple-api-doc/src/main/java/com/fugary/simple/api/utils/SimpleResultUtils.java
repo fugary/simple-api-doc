@@ -1,24 +1,45 @@
 package com.fugary.simple.api.utils;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.exports.ExportDownloadVo;
 import com.fugary.simple.api.web.vo.query.SimplePage;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
+import io.swagger.v3.oas.models.OpenAPI;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 /**
  * Created on 2020/5/4 11:05 .<br>
  *
  * @author gary.fu
  */
+@Slf4j
 @Component
 public class SimpleResultUtils {
 
@@ -157,5 +178,71 @@ public class SimpleResultUtils {
 
     public static String getErrorMsg(Integer code) {
         return getErrorMsg(code, LocaleContextHolder.getLocale());
+    }
+
+    /**
+     * 创建临时文件并返回uuid
+     *
+     * @param apiApiDocExporter
+     * @param applicationName
+     * @param downloadVo
+     * @param projectId
+     * @return
+     */
+    public static String createTempExportFile(ApiDocExporter<OpenAPI> apiApiDocExporter,
+                                              ExportDownloadVo downloadVo,
+                                              String applicationName,
+                                              Integer projectId) {
+        String uuid = SimpleModelUtils.uuid();
+        String type = StringUtils.defaultIfBlank(downloadVo.getType(), "json");
+        OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo.getDocIds());
+        String content;
+        if (StringUtils.equals(type, "json")) {
+            content = SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
+        } else {
+            content = SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
+        }
+        try {
+            String filePathName = SimpleModelUtils.getFileFullPath(applicationName, uuid, type);
+            Path tempFile = Files.createFile(Path.of(filePathName));
+            Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
+            tempFile.toFile().deleteOnExit();
+        } catch (IOException e) {
+            log.error("创建临时文件失败", e);
+        }
+        return uuid;
+    }
+
+    /**
+     * 构建临时下载文件
+     *
+     * @param request
+     * @param applicationName
+     * @param prefixName
+     * @param fileName
+     * @return
+     * @throws IOException
+     */
+    public static ResponseEntity<InputStreamResource> downloadTempExportFile(HttpServletRequest request,
+                                                                             String applicationName,
+                                                                             String prefixName,
+                                                                             String fileName) throws IOException {
+        // 构造临时文件的完整路径
+        File tempFile = new File(SimpleModelUtils.getFileFullPath(applicationName, fileName));
+        fileName = prefixName + "-" + fileName;
+        // 检查文件是否存在
+        if (!tempFile.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+        // 创建 InputStreamResource 从文件中读取数据
+        InputStreamResource resource = new InputStreamResource(new FileInputStream(tempFile));
+        Function<HttpServletRequest, Boolean> deleteFileHook = req -> FileUtils.deleteQuietly(tempFile);
+        request.setAttribute(ApiDocConstants.SHARE_FILE_DOWNLOAD_HOOK_KEY, deleteFileHook);
+        // 设置响应头，准备文件下载
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(tempFile.length())
+                .body(resource);
     }
 }

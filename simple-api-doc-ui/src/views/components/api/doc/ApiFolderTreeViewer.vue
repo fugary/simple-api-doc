@@ -116,7 +116,7 @@ const shareTopHandlers = computed(() => {
   return []
 })
 
-const exportTopHandlers = computed(() => getDownloadDocsHandlers(props.shareDoc, {
+const exportTopHandlers = computed(() => getDownloadDocsHandlers(projectItem.value, props.shareDoc, {
   toShowTreeConfigWindow
 }))
 
@@ -289,9 +289,17 @@ const toShowTreeConfigWindow = (type) => {
           class="margin-left1 api-path-url"
           style="font-size:18px;margin-right: auto"
         >{{ $t('menu.label.apiManagement') }}</span>
-        <span class="margin-right2">
-          <more-actions-link :handlers="getFolderHandlers(rootFolder, sharePreference, handlerData)" />
-        </span>
+        <more-actions-link
+          v-if="exportTopHandlers?.length"
+          class="margin-right2"
+          :icon-size="20"
+          icon="DownloadFilled"
+          :handlers="exportTopHandlers"
+        />
+        <more-actions-link
+          class="margin-right2"
+          :handlers="getFolderHandlers(rootFolder, sharePreference, handlerData)"
+        />
       </el-header>
       <common-form-control
         style="margin-left: -10px;"
@@ -371,7 +379,6 @@ const toShowTreeConfigWindow = (type) => {
       label-width="130px"
     />
     <api-doc-export-window
-      v-if="shareDoc?.exportEnabled"
       v-model:tree-select-keys="exportSelectedKeys"
       v-model="showExportWindow"
       :tree-nodes="exportTreeNodes"

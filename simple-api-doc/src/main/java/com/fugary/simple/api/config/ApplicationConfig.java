@@ -1,5 +1,6 @@
 package com.fugary.simple.api.config;
 
+import com.fugary.simple.api.interceptors.TempFileCleanInterceptor;
 import com.fugary.simple.api.security.ShareSecurityInterceptor;
 import com.fugary.simple.api.security.UserSecurityInterceptor;
 import com.fugary.simple.api.utils.http.SimpleHttpClientUtils;
@@ -101,11 +102,17 @@ public class ApplicationConfig implements WebMvcConfigurer {
         return new ShareSecurityInterceptor();
     }
 
+    @Bean
+    public TempFileCleanInterceptor tempFileCleanInterceptor(){
+        return new TempFileCleanInterceptor();
+    }
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userSecurityInterceptor()).addPathPatterns("/admin/**");
         registry.addInterceptor(shareSecurityInterceptor()).addPathPatterns("/shares/**")
                 .excludePathPatterns("/shares/loadShare/**");
+        registry.addInterceptor(tempFileCleanInterceptor()).addPathPatterns("/**");
     }
 
     @Bean
