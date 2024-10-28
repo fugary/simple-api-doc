@@ -117,6 +117,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
     }
   }, {
     icon: 'custom-api',
+    enabled: false,
     label: $i18nKey('common.label.commonAdd', 'api.label.interfaces'),
     handler: () => {
       $coreAlert('暂未实现')
