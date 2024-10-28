@@ -23,6 +23,7 @@ import { ElMessage } from 'element-plus'
 import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
+import { cloneDeep } from 'lodash-es'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -225,7 +226,7 @@ const showExportWindow = ref(false)
 const currentExportType = ref('json')
 const toShowTreeConfigWindow = (type) => {
   if (!exportTreeNodes.value?.length) {
-    const { docTreeNodes } = calcProjectItem(projectItem.value)
+    const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
     exportTreeNodes.value = docTreeNodes
   }
   currentExportType.value = type
