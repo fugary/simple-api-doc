@@ -7,7 +7,6 @@ import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.v
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const { isMobile } = useScreenCheck()
-const docMargin = computed(() => isMobile.value ? 0 : '220px')
 
 defineProps({
   scrollElement: {
@@ -69,12 +68,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
 </template>
 
 <style scoped>
-.md-catalog {
-  position: fixed;
-  right: 40px;
-  width: 200px;
-}
 .md-doc-container {
-  margin-right: v-bind(docMargin);
+  flex-grow: 1;
 }
 </style>
