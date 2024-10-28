@@ -13,7 +13,6 @@ import { processEvnParams } from '@/services/api/ApiCommonService'
 import { joinPath } from '@/utils'
 import {
   AUTH_TYPE,
-  DEFAULT_PREFERENCE_ID_KEY,
   SIMPLE_API_ACCESS_TOKEN_HEADER,
   SIMPLE_API_TARGET_URL_HEADER
 } from '@/consts/ApiConstants'
@@ -22,6 +21,7 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import emitter from '@/vendors/emitter'
 import { getEnvConfigs } from '@/api/SimpleShareApi'
 import { isFunction } from 'lodash-es'
+import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 
 const projectInfoDetail = ref()
 const apiDocDetail = ref()
@@ -99,7 +99,7 @@ const doDataPreview = async () => {
   let authContent = paramTarget.value.authContent
   if (authContent) {
     if (authContent.authType === AUTH_TYPE.INHERIT) {
-      const preferenceId = apiDocDetail.value.apiShare?.shareId || projectInfoDetail.value?.projectCode || DEFAULT_PREFERENCE_ID_KEY
+      const preferenceId = calcDetailPreferenceId(apiDocDetail.value)
       const authModel = useShareConfigStore().sharePreferenceView[preferenceId]?.defaultAuthModel
       if (authModel) {
         authContent = authModel

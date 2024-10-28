@@ -8,6 +8,20 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
   const shareConfig = ref({})
   const sharePreferenceView = ref({})
   const shareParamTargets = ref({})
+
+  const clearShareToken = (shareId) => {
+    delete shareConfig.value[shareId]
+    clearSharePreference(shareId)
+  }
+  const clearSharePreference = (shareId) => {
+    delete sharePreferenceView.value[shareId]
+    Object.keys(shareParamTargets.value).forEach(key => {
+      if (key.startsWith(shareId)) {
+        delete shareParamTargets.value[key]
+      }
+    })
+  }
+
   return {
     shareConfig,
     sharePreferenceView,
@@ -18,15 +32,8 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
     setShareToken (shareId, token) {
       shareConfig.value[shareId] = token
     },
-    clearShareToken (shareId) {
-      delete shareConfig.value[shareId]
-      delete sharePreferenceView.value[shareId]
-      Object.keys(shareParamTargets.value).forEach(key => {
-        if (key.startsWith(shareId)) {
-          delete shareParamTargets.value[key]
-        }
-      })
-    },
+    clearShareToken,
+    clearSharePreference,
     clearAllShareToken: () => {
       shareConfig.value = {}
       sharePreferenceView.value = {}

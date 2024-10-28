@@ -11,10 +11,11 @@ import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.v
 import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody.vue'
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
 import emitter from '@/vendors/emitter'
-import { AUTH_TYPE, DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
+import { AUTH_TYPE } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { calcAuthModelBySchemas, calcSecuritySchemas } from '@/services/api/ApiDocPreviewService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
+import { calcPreferenceId } from '@/services/api/ApiFolderService'
 
 const props = defineProps({
   shareDoc: {
@@ -38,7 +39,7 @@ const apiDocDetail = ref()
 const projectInfoDetail = ref()
 const envConfigs = ref([])
 
-const paramTargetId = props.shareDoc?.shareId || props.projectItem?.projectCode || DEFAULT_PREFERENCE_ID_KEY
+const paramTargetId = calcPreferenceId(props.projectItem, props.shareDoc)
 const getAuthContentModel = () => {
   return {
     ...shareConfigStore.sharePreferenceView[paramTargetId]?.defaultAuthModel || {
@@ -77,7 +78,7 @@ const loadDocDetail = async () => {
   apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
   lastParamTarget = shareConfigStore.shareParamTargets[calcParamTargetId] = shareConfigStore.shareParamTargets[calcParamTargetId] || reactive({})
-  lastParamTarget.hasInheritAuth = !!shareConfigStore.sharePreferenceView[paramTargetId].defaultAuthModel
+  lastParamTarget.hasInheritAuth = !!shareConfigStore.sharePreferenceView[paramTargetId]?.defaultAuthModel
   console.log('======================apiDocDetail', apiDocDetail.value)
 }
 

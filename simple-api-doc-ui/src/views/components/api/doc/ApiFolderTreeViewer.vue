@@ -14,13 +14,13 @@ import {
   getDocHandlers,
   calcNodeLeaf,
   calcShowMergeAllOfHandler,
-  calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers
+  calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers,
+  calcPreferenceId, calcShowCleanHandlers
 } from '@/services/api/ApiFolderService'
 import { loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import ApiFolderApi from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
-import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep } from 'lodash-es'
@@ -48,15 +48,17 @@ const currentDoc = defineModel('currentDoc', {
   default: undefined
 })
 
-const preferenceId = props.shareDoc?.shareId || projectItem.value?.projectCode || DEFAULT_PREFERENCE_ID_KEY
+const preferenceId = calcPreferenceId(projectItem.value, props.shareDoc)
 
 const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = shareConfigStore.sharePreferenceView[preferenceId] || reactive({
   lastExpandKeys: [],
   lastDocId: undefined,
   defaultTheme: props.shareDoc?.defaultTheme || 'dark',
   defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName',
-  showMergeAllOf: true
+  showMergeAllOf: true,
+  preferenceId
 })
+sharePreference.preferenceId = preferenceId
 
 const treeNodes = ref([])
 
@@ -111,14 +113,14 @@ const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
   if (rootFolder.value && props.shareDoc) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference), calcShowMergeAllOfHandler(rootFolder.value, sharePreference)]
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
+      calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
+      ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
   }
   return []
 })
 
-const exportTopHandlers = computed(() => getDownloadDocsHandlers(projectItem.value, props.shareDoc, {
-  toShowTreeConfigWindow
-}))
+const exportTopHandlers = computed(() => getDownloadDocsHandlers(projectItem.value, props.shareDoc, handlerData))
 
 const expandOrCollapse = (nodeData, expand) => {
   if (expand) {
@@ -211,14 +213,6 @@ const toggleTheme = () => {
   sharePreference.defaultTheme = globalConfigStore.isDarkTheme ? 'dark' : 'light'
 }
 
-const handlerData = {
-  refreshProjectItem,
-  showDocDetails,
-  addOrEditFolder
-}
-
-defineExpose(handlerData)
-
 const currentRef = ref()
 const { width } = useElementSize(currentRef)
 
@@ -234,6 +228,16 @@ const toShowTreeConfigWindow = (type) => {
   currentExportType.value = type
   showExportWindow.value = true
 }
+
+const handlerData = {
+  refreshProjectItem,
+  showDocDetails,
+  addOrEditFolder,
+  toShowTreeConfigWindow,
+  refreshFolderTree
+}
+
+defineExpose(handlerData)
 </script>
 
 <template>

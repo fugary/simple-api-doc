@@ -40,6 +40,26 @@ export const calcShowMergeAllOfHandler = (folder, preference) => {
   }
 }
 
+export const calcShowCleanHandlers = (folder, preference, config = {}) => {
+  return preference.preferenceId
+    ? [{
+        enabled: !!folder.rootFlag,
+        icon: 'DeleteFilled',
+        labelKey: 'api.label.clearCachedData',
+        type: 'danger',
+        handler: () => {
+          if (preference?.preferenceId) {
+            useShareConfigStore().clearSharePreference(preference.preferenceId)
+            const { refreshFolderTree } = config
+            if (isFunction(refreshFolderTree)) {
+              refreshFolderTree()
+            }
+          }
+        }
+      }]
+    : []
+}
+
 export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
   const isShareDoc = shareDoc && !!shareDoc.shareId
   if (!isShareDoc || shareDoc?.debugEnabled) {
@@ -135,7 +155,8 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         sortId: getMdChildrenSortId(folder)
       }, true)
     }
-  }, calcShowDocLabelHandler(folder, preference), calcShowMergeAllOfHandler(folder, preference), {
+  }, calcShowDocLabelHandler(folder, preference), calcShowMergeAllOfHandler(folder, preference),
+  ...calcShowCleanHandlers(folder, preference, handlerData), {
     enabled: !folder.rootFlag,
     icon: 'FolderDelete',
     type: 'danger',
@@ -263,12 +284,16 @@ export const getTreeNodesByKeys = (keys, treeNodes, nodeKey, foundNodes = []) =>
   return treeNodes
 }
 
-export const calcPreferenceId = (apiDocDetail) => {
-  return apiDocDetail?.apiShare?.shareId || apiDocDetail?.projectInfoDetail?.projectCode || DEFAULT_PREFERENCE_ID_KEY
+export const calcDetailPreferenceId = (apiDocDetail) => {
+  return calcPreferenceId(apiDocDetail?.projectInfoDetail, apiDocDetail?.apiShare)
+}
+
+export const calcPreferenceId = (projectItem, apiShare) => {
+  return apiShare?.shareId || projectItem?.projectCode || DEFAULT_PREFERENCE_ID_KEY
 }
 
 export const calcShowMergeAllOf = (apiDocDetail) => {
-  const preferenceId = calcPreferenceId(apiDocDetail)
+  const preferenceId = calcDetailPreferenceId(apiDocDetail)
   const preference = useShareConfigStore().sharePreferenceView?.[preferenceId]
   return preference?.showMergeAllOf ?? true
 }
