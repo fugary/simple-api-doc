@@ -100,6 +100,7 @@ const authContentModel = ref({
   authType: AUTH_TYPE.NONE
 })
 const paramList = ['requestBody', 'pathParams', 'requestParams', 'headerParams']
+const hasInheritAuth = ref(false)
 if (paramTarget.value) {
   currentTabName.value = paramTarget.value.method !== 'GET' ? 'requestBodyTab' : 'requestParamsTab'
   for (const key of paramList) {
@@ -108,10 +109,11 @@ if (paramTarget.value) {
       break
     }
   }
+  hasInheritAuth.value = paramTarget.value.hasInheritAuth && paramTarget.value?.securityRequirements?.length
   if (paramTarget.value.authContent) {
     authContentModel.value = paramTarget.value.authContent
   } else {
-    if (paramTarget.value.hasInheritAuth) {
+    if (hasInheritAuth.value) {
       authContentModel.value.authType = AUTH_TYPE.INHERIT
     }
     paramTarget.value.authContent = authContentModel.value
@@ -358,7 +360,7 @@ const supportXml = computed(() => {
       <ApiRequestFormAuthorization
         v-model="authContentModel"
         v-model:auth-valid="authValid"
-        :inherit-enabled="!!paramTarget.hasInheritAuth"
+        :inherit-enabled="hasInheritAuth"
         :group-config="paramTarget.groupConfig"
       />
     </el-tab-pane>

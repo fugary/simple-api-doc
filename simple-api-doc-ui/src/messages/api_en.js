@@ -129,3 +129,4 @@ api.msg.sendTypeTooltip = 'Browser send requires the API support cross-domain re
 api.msg.docNeedPassword = 'Access API Documentation requires password'
 api.msg.gotoProjectDetails = 'Go to project details?'
 api.msg.noApiSelected = 'No API docs selected'
+api.msg.authNotSupported = 'Authentication is not supported'

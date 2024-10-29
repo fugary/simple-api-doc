@@ -128,3 +128,4 @@ api.msg.sendTypeTooltip = '浏览器发送需要接口支持跨域请求，否�
 api.msg.docNeedPassword = '当前文档需要密码才可访问'
 api.msg.gotoProjectDetails = '是否前往项目详情页？'
 api.msg.noApiSelected = '没有选中任何API文档'
+api.msg.authNotSupported = '当前接口不支持此认证方式'

@@ -86,13 +86,27 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     sendType: REQUEST_SEND_MODES[0].value
   }
   const componentMap = calcComponentMap(projectInfoDetail.componentSchemas)
-  console.log('======================target', target, projectInfoDetail, apiDocDetail, componentMap)
   if (apiDocDetail.requestsSchemas?.length) {
     const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true))
-    console.log('======================requestSchemas', requestSchemas)
     target.requestBodySchema = requestSchemas[0]?.schema
   }
+  target.securityRequirements = calcSecurityRequirements(projectInfoDetail, apiDocDetail)
+  console.log('======================target', target, apiDocDetail, componentMap)
   return target
+}
+
+/**
+ * 解析SecurityRequirements，优先Operation级别数据
+ * @param projectInfoDetail
+ * @param apiDocDetail
+ * @returns {*}
+ */
+export const calcSecurityRequirements = (projectInfoDetail, apiDocDetail) => {
+  const securityRequirements = apiDocDetail.securityRequirements || projectInfoDetail?.securityRequirements?.[0]
+  if (securityRequirements?.schemaContent) {
+    const secRequirements = JSON.parse(securityRequirements?.schemaContent)
+    return secRequirements.flatMap(sec => Object.keys(sec))
+  }
 }
 
 export const preProcessParams = (params = []) => {
@@ -393,6 +407,7 @@ export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supporte
       secSchema.authType = calcAuthType(secSchema)
       secSchema.isSupported = Object.values(AUTH_TYPE).includes(secSchema.authType)
       secSchema.authType === AUTH_TYPE.JWT && (jwtKey = key)
+      secSchema.authKey = key
     })
     const authTypes = Object.values(secSchemas).map(secSchema => secSchema.authType)
     if (authTypes.includes(AUTH_TYPE.JWT) && !authTypes.includes(AUTH_TYPE.TOKEN)) { // jwtToken添加一个直接的token模式，方便使用
@@ -405,7 +420,8 @@ export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supporte
           in: jwtSchema.in,
           scheme: jwtSchema.scheme,
           type: jwtSchema.type,
-          isSupported: true
+          isSupported: true,
+          authKey: jwtKey
         }
       }
     }
@@ -449,17 +465,29 @@ export const calcDefaultAuthModel = (authContentModel, authSchema) => {
     if (authContentModel.authType === AUTH_TYPE.TOKEN) {
       authContentModel.tokenPrefix = authSchema.scheme || ''
     }
+    authContentModel.authKey = authSchema.authKey
+    return authContentModel
   }
 }
 
-export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
+export const calcAuthModelBySchemas = (apiDocDetail, authContentModel, securitySchemas) => {
   // 找到匹配的模式，优先考虑 authType 相同的模式
+  const requirements = calcSecurityRequirements(apiDocDetail?.projectInfoDetail, apiDocDetail) || []
   if (securitySchemas) {
-    const foundSchema = Object.values(securitySchemas).find(authSchema =>
-      authContentModel.authType !== AUTH_TYPE.NONE && authContentModel.authType === authSchema.authType
-    ) || Object.values(securitySchemas).find(authSchema => authSchema.isSupported)
-    // 使用找到的模式或处理默认值
-    calcDefaultAuthModel(authContentModel, foundSchema)
+    const authModelsMap = Object.fromEntries((authContentModel.authModels || []).map(authModel => [authModel.authType, authModel]))
+    const secSchemas = Object.values(securitySchemas).filter(authSchema => authSchema.isSupported)
+    authContentModel.authModels = secSchemas.map(secSchema => {
+      const authModel = calcDefaultAuthModel({}, secSchema)
+      // 从已保存数据复制
+      Object.assign(authModel, authModelsMap[authModel.authType] || {})
+      authModel.isSupported = requirements.includes(authModel.authKey)
+      secSchema.authModel = authModel
+      return authModel
+    })
+    if (authContentModel.authType === AUTH_TYPE.NONE) {
+      authContentModel.authType = authContentModel.authModels?.find(authModel => authModel.isSupported)?.authType || AUTH_TYPE.NONE
+    }
+    console.log('================================authModels', authContentModel)
   }
 }
 

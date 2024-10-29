@@ -101,11 +101,13 @@ const doDataPreview = async () => {
     if (authContent.authType === AUTH_TYPE.INHERIT) {
       const preferenceId = calcDetailPreferenceId(apiDocDetail.value)
       const authModel = useShareConfigStore().sharePreferenceView[preferenceId]?.defaultAuthModel
-      if (authModel) {
-        authContent = authModel
+      const securityRequirements = paramTarget.value?.securityRequirements || []
+      if (authModel?.authModels?.length && securityRequirements.length) {
+        const supportedModels = authModel.authModels.filter(model => securityRequirements?.includes(model.authKey))
+        authContent = supportedModels.find(model => model.authType === authModel.authType) || supportedModels[0]
       }
     }
-    await AUTH_OPTION_CONFIG[authContent.authType]?.parseAuthInfo(authContent, headers, params, paramTarget)
+    await AUTH_OPTION_CONFIG[authContent?.authType]?.parseAuthInfo(authContent, headers, params, paramTarget)
   }
   previewRequest({
     url: joinPath(targetUrl, processedPath),

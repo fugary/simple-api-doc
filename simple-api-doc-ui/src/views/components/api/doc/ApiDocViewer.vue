@@ -16,6 +16,7 @@ import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestF
 import { calcAuthModelBySchemas, calcSecuritySchemas } from '@/services/api/ApiDocPreviewService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId } from '@/services/api/ApiFolderService'
+import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
   shareDoc: {
@@ -43,7 +44,8 @@ const paramTargetId = calcPreferenceId(props.projectItem, props.shareDoc)
 const getAuthContentModel = () => {
   return {
     ...shareConfigStore.sharePreferenceView[paramTargetId]?.defaultAuthModel || {
-      authType: AUTH_TYPE.NONE
+      authType: AUTH_TYPE.NONE,
+      authModels: []
     }
   }
 }
@@ -73,7 +75,7 @@ const loadDocDetail = async () => {
   }
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
   calcSecuritySchemas(projectInfoDetail.value, securitySchemas, supportedAuthTypes)
-  calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
+  calcAuthModelBySchemas(apiDocDetail.value, authContentModel.value, securitySchemas.value)
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
   apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
@@ -85,7 +87,7 @@ const loadDocDetail = async () => {
 const handlerConfig = {
   preHandler: target => {
     const savedTarget = { ...lastParamTarget }
-    const notSavedKeys = ['requestBodySchema']// 有些数据不能使用保存数据
+    const notSavedKeys = ['requestBodySchema', 'securityRequirements']// 有些数据不能使用保存数据
     notSavedKeys.forEach(key => delete savedTarget[key])
     return Object.assign(target, lastParamTarget)
   },
@@ -95,9 +97,6 @@ const handlerConfig = {
 watch(apiDoc, loadDocDetail, {
   immediate: true
 })
-watch(() => authContentModel.value?.authType, () => {
-  calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
-})
 const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
 const { isMobile } = useScreenCheck()
 
@@ -105,7 +104,6 @@ defineEmits(['toDebugApi'])
 
 const showAuthorizationWindow = ref(false)
 const toEditAuthorization = () => {
-  authContentModel.value = getAuthContentModel()
   showAuthorizationWindow.value = true
 }
 const saveAuthorization = ({ form }) => {
@@ -121,6 +119,20 @@ const saveAuthorization = ({ form }) => {
   return false
 }
 
+const getNotSupportedMsg = (schema) => {
+  if (!schema.isSupported) {
+    return $i18nBundle('api.label.notSupported')
+  }
+  if (!schema.authModel?.isSupported) {
+    return $i18nBundle('api.msg.authNotSupported')
+  }
+}
+
+const supportedAuthModels = computed(() => {
+  console.log('===================================authContentModel', authContentModel.value)
+  return authContentModel.value?.authModels?.filter(authModel => authModel.isSupported) || []
+})
+
 </script>
 
 <template>
@@ -135,7 +147,7 @@ const saveAuthorization = ({ form }) => {
       v-model="apiDocDetail"
       :env-configs="envConfigs"
       :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareDoc)"
-      :auth-enabled="!isMobile&&!!securitySchemas"
+      :auth-enabled="!isMobile&&!!supportedAuthModels?.length"
       :auth-configured="lastParamTarget.hasInheritAuth"
       @debug-api="$emit('toDebugApi', projectInfoDetail, apiDocDetail, handlerConfig)"
       @config-auth="toEditAuthorization"
@@ -182,12 +194,12 @@ const saveAuthorization = ({ form }) => {
           <el-tab-pane
             v-for="(schema, name) in securitySchemas"
             :key="name"
-            :disabled="!schema.isSupported"
+            :disabled="!schema.isSupported||!schema.authModel?.isSupported"
             :name="schema.authType"
           >
             <template #label>
               <el-text
-                v-common-tooltip="!schema.isSupported?$t('api.label.notSupported'):''"
+                v-common-tooltip="getNotSupportedMsg(schema)"
                 type="info"
               >
                 {{ name }}
@@ -210,12 +222,18 @@ const saveAuthorization = ({ form }) => {
           :model="authContentModel"
           :show-buttons="false"
         >
-          <ApiRequestFormAuthorization
-            v-model="authContentModel"
-            :form-prop="''"
-            :show-auth-types="false"
-            :supported-auth-types="supportedAuthTypes"
-          />
+          <template
+            v-for="(authModel, index) in supportedAuthModels"
+            :key="authModel.authType"
+          >
+            <ApiRequestFormAuthorization
+              v-if="authContentModel.authType===authModel.authType"
+              :model-value="authModel"
+              :form-prop="`authModels[${index}]`"
+              :show-auth-types="false"
+              :supported-auth-types="[authModel.authType]"
+            />
+          </template>
         </common-form>
       </el-container>
     </common-window>
