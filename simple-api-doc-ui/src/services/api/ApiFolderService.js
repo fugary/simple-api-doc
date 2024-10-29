@@ -48,12 +48,12 @@ export const calcShowCleanHandlers = (folder, preference, config = {}) => {
         labelKey: 'api.label.clearCachedData',
         type: 'danger',
         handler: () => {
-          if (preference?.preferenceId) {
-            useShareConfigStore().clearSharePreference(preference.preferenceId)
-            const { refreshFolderTree } = config
-            if (isFunction(refreshFolderTree)) {
-              refreshFolderTree()
-            }
+          const { reload } = config
+          if (preference?.preferenceId && isFunction(reload)) {
+            $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.clearCachedData')).then(() => {
+              useShareConfigStore().clearSharePreference(preference.preferenceId)
+              reload()
+            })
           }
         }
       }]

@@ -101,7 +101,10 @@ const splitRef = ref()
 </script>
 
 <template>
-  <el-container class="flex-column height100">
+  <el-container
+    :key="$route.fullPath"
+    class="flex-column height100"
+  >
     <el-affix
       v-if="isMobile||splitRef?.elementSizes?.[0]<50"
       :offset="20"

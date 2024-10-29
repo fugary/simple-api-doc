@@ -24,6 +24,7 @@ import { ElMessage } from 'element-plus'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep } from 'lodash-es'
+import { useReload } from '@/utils'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -229,12 +230,15 @@ const toShowTreeConfigWindow = (type) => {
   showExportWindow.value = true
 }
 
+const { reload } = useReload()
+
 const handlerData = {
   refreshProjectItem,
   showDocDetails,
   addOrEditFolder,
   toShowTreeConfigWindow,
-  refreshFolderTree
+  refreshFolderTree,
+  reload
 }
 
 defineExpose(handlerData)
