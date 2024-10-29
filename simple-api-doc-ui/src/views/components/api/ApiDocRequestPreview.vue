@@ -20,7 +20,7 @@ import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import emitter from '@/vendors/emitter'
 import { getEnvConfigs } from '@/api/SimpleShareApi'
-import { isFunction } from 'lodash-es'
+import { isFunction, lowerCase } from 'lodash-es'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 
 const projectInfoDetail = ref()
@@ -103,7 +103,7 @@ const doDataPreview = async () => {
       const authModel = useShareConfigStore().sharePreferenceView[preferenceId]?.defaultAuthModel
       const securityRequirements = paramTarget.value?.securityRequirements || []
       if (authModel?.authModels?.length && securityRequirements.length) {
-        const supportedModels = authModel.authModels.filter(model => securityRequirements?.includes(model.authKey))
+        const supportedModels = authModel.authModels.filter(model => securityRequirements?.includes(lowerCase(model.authKey)))
         authContent = supportedModels.find(model => model.authType === authModel.authType) || supportedModels[0]
       }
     }

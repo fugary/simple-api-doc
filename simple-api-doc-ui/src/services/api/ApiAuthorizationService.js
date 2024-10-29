@@ -3,7 +3,7 @@ import { generateJWT } from '@/api/ApiProjectApi'
 import { getSingleSelectOptions } from '@/utils'
 import { ElMessage } from 'element-plus'
 import { AUTH_PARAM_NAMES, AUTH_PREFIX_NAMES, AUTHORIZATION_KEY, BEARER_KEY } from '@/consts/ApiConstants'
-import { $i18nKey } from '@/messages'
+import { $i18nKey, $i18nBundle } from '@/messages'
 import { calcEnvSuggestions, calcSuggestionsFunc, processEvnParams } from '@/services/api/ApiCommonService'
 
 export const SUPPORTED_ALGORITHMS = [
@@ -53,7 +53,7 @@ const baseOptions = defineFormOptions([{
   labelKey: 'api.label.authPrefix',
   prop: 'tokenPrefix',
   value: BEARER_KEY,
-  tooltip: $i18nKey('api.msg.authPrefixTooltip', BEARER_KEY),
+  tooltip: $i18nBundle('api.msg.authPrefixTooltip'),
   type: 'autocomplete',
   attrs: {
     fetchSuggestions: (queryString, cb) => {

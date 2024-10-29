@@ -1,5 +1,5 @@
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
-import { cloneDeep, isArray, isString } from 'lodash-es'
+import { cloneDeep, isArray, isString, lowerCase } from 'lodash-es'
 import { hasLoading } from '@/vendors/axios'
 import {
   FORM_DATA,
@@ -105,7 +105,7 @@ export const calcSecurityRequirements = (projectInfoDetail, apiDocDetail) => {
   const securityRequirements = apiDocDetail.securityRequirements || projectInfoDetail?.securityRequirements?.[0]
   if (securityRequirements?.schemaContent) {
     const secRequirements = JSON.parse(securityRequirements?.schemaContent)
-    return secRequirements.flatMap(sec => Object.keys(sec))
+    return secRequirements.flatMap(sec => Object.keys(sec).map(key => lowerCase(key)))
   }
 }
 
@@ -463,7 +463,7 @@ export const calcDefaultAuthModel = (authContentModel, authSchema) => {
       authContentModel.tokenToType = 'parameter'
     }
     if (authContentModel.authType === AUTH_TYPE.TOKEN) {
-      authContentModel.tokenPrefix = authSchema.scheme || ''
+      authContentModel.tokenPrefix = authSchema.scheme || (BEARER_KEY === authSchema.authKey ? BEARER_KEY : '')
     }
     authContentModel.authKey = authSchema.authKey
     return authContentModel
@@ -480,7 +480,7 @@ export const calcAuthModelBySchemas = (apiDocDetail, authContentModel, securityS
       const authModel = calcDefaultAuthModel({}, secSchema)
       // 从已保存数据复制
       Object.assign(authModel, authModelsMap[authModel.authType] || {})
-      authModel.isSupported = requirements.includes(authModel.authKey)
+      authModel.isSupported = requirements.includes(lowerCase(authModel.authKey))
       secSchema.authModel = authModel
       return authModel
     })
