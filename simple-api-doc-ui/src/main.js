@@ -16,6 +16,7 @@ import router from '@/route/routes'
 import './assets/custom-icons.css'
 import './assets/main.css'
 import MonacoEditor from '@/vendors/monaco-editor'
+import MdEditor from '@/vendors/md-editor'
 
 const app = createApp(App)
 
@@ -29,5 +30,6 @@ app.use(commons)
 app.use(utils)
 app.use(DynamicUtils)
 app.use(MonacoEditor)
+app.use(MdEditor)
 
 app.mount('#app')

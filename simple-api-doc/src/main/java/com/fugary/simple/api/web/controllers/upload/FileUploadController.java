@@ -45,7 +45,7 @@ public class FileUploadController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2002);
         }
         String filePath = String.join(File.separator, baseDataDir, "upload");
-        String baseUrl = request.getRequestURL().toString().replace("uploadFiles", "");
+        String baseUrl = "/upload/";
         List<String> fileList = files.stream().map(file -> {
             String fileName = SimpleModelUtils.uuid() + "." + FilenameUtils.getExtension(file.getOriginalFilename());
             try {
