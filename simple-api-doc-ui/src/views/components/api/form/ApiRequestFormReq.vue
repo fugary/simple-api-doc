@@ -139,7 +139,7 @@ const proxyModeOption = computed(() => {
     prop: 'sendType',
     type: 'select',
     children: REQUEST_SEND_MODES,
-    style: 'margin-top:15px;',
+    style: 'margin-top:7px;',
     attrs: {
       clearable: false,
       style: {

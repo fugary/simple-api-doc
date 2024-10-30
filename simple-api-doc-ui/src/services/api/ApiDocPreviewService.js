@@ -39,8 +39,10 @@ export const processResponse = function (response) {
   if (hasLoading(config)) {
     $coreHideLoading()
   }
-  if (!response.status) {
-    response = response.response || {}
+  let error = null
+  if (response.response) {
+    error = response
+    response = response.response
   }
   const { headers = {}, request = {}, status } = response
   const requestInfo = {
@@ -61,6 +63,7 @@ export const processResponse = function (response) {
   }
   const data = response.data
   return {
+    error,
     data,
     requestInfo,
     requestHeaders,
