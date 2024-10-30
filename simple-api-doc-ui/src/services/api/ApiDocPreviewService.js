@@ -184,6 +184,7 @@ export const calcSchemaParameters = (parametersSchema, filter = item => item.in 
           value: param.schema?.default || '',
           enabled: true,
           valueRequired: param.required,
+          valueSuggestions: param.schema?.enum,
           dynamicOption: () => ({ required: param.required })
         }
       })

@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { getSingleSelectOptions, toFlatKeyValue } from '@/utils'
 import { $i18nBundle } from '@/messages'
 import { ElMessage, ElButton } from 'element-plus'
-import { calcSuggestionsFunc } from '@/services/api/ApiCommonService'
+import { calcSuggestionsFunc, concatValueSuggestions } from '@/services/api/ApiCommonService'
 import { isFunction } from 'lodash-es'
 
 const props = defineProps({
@@ -131,6 +131,7 @@ const paramsOptions = computed(() => {
   const valueSuggestions = calcSuggestions('value')
   return params.value.map((param) => {
     const nvSpan = 8
+    const paramValueSuggestions = concatValueSuggestions(param.valueSuggestions, valueSuggestions)
     return defineFormOptions([{
       labelWidth: '30px',
       prop: 'enabled',
@@ -173,9 +174,9 @@ const paramsOptions = computed(() => {
       required: props.nameReadOnly || props.valueRequired,
       colSpan: nvSpan,
       enabled: param.type !== 'file',
-      type: valueSuggestions ? 'autocomplete' : 'input',
+      type: paramValueSuggestions ? 'autocomplete' : 'input',
       attrs: {
-        fetchSuggestions: valueSuggestions,
+        fetchSuggestions: paramValueSuggestions,
         triggerOnFocus: false
       },
       dynamicOption: (item, ...args) => {
