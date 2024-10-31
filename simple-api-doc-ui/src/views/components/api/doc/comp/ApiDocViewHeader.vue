@@ -30,7 +30,7 @@ const folderPaths = computed(() => {
       </el-breadcrumb-item>
     </el-breadcrumb>
     <h2>
-      {{ currentDoc?.docName }}
+      {{ currentDoc?.docName || currentDoc?.url }}
       <el-button
         v-if="editable"
         class="margin-left2"

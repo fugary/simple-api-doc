@@ -285,6 +285,9 @@ export const processSchemaChildren = (schema, mergeAllOf = false) => {
  * @return {{schema: *, name: *}[]}
  */
 export const processProperties = schema => {
+  if (!schema) {
+    return []
+  }
   const properties = schema.items?.properties || schema.properties || {}
   const schemaParent = schema.items || schema
   return Object.keys(properties).map(key => {

@@ -69,7 +69,7 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
       const parentFolder = folderMap[doc.folderId]
       const children = parentFolder.children = parentFolder.children || []
       children.push(doc)
-      doc.label = doc[preference?.defaultShowLabel] || doc.docName
+      doc.label = doc[preference?.defaultShowLabel] || doc.docName || doc.url
       doc.isDoc = true
       doc.parent = parentFolder
       doc.treeId = doc.id

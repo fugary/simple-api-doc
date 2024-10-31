@@ -195,7 +195,7 @@ const splitRef = ref()
                 @back="hideDebugSplit"
               >
                 <template #content>
-                  <span>{{ currentDoc?.docName }} </span>
+                  <span>{{ currentDoc?.docName || currentDoc?.url }} </span>
                 </template>
               </el-page-header>
               <api-doc-request-preview

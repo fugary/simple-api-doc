@@ -208,7 +208,8 @@ export const getDocHandlers = (doc, handlerData) => {
     type: 'danger',
     label: $i18nBundle('common.label.commonDelete', [label]),
     handler: () => {
-      $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [doc.docName]))
+      const alertMsg = doc.docName ? $i18nBundle('common.msg.commonDeleteConfirm', [doc.docName]) : $i18nBundle('common.msg.deleteConfirm')
+      $coreConfirm(alertMsg)
         .then(() => ApiDocApi.deleteById(doc.id))
         .then(() => handlerData.refreshProjectItem())
     }
