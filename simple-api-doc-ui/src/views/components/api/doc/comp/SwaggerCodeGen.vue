@@ -58,7 +58,8 @@ const options = computed(() => {
       option.children = Object.keys(config.enum)
         .map(key => ({ value: key, label: key + ' - ' + config.enum[key] }))
       option.attrs = {
-        filterable: true
+        filterable: true,
+        fitInputWidth: true
       }
     }
     return option
@@ -80,12 +81,11 @@ const options = computed(() => {
 <template>
   <common-form
     v-loading="loading"
-    class="form-edit-width-90"
     label-width="250px"
     :model="vModel"
     :options="options"
     :show-buttons="false"
-    style="min-height: 200px;"
+    style="min-height: 200px;width: 95%;"
   />
 </template>
 

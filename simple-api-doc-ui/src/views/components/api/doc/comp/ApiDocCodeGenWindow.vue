@@ -164,7 +164,10 @@ const generateSelectedDocs = (data) => {
           {{ $t('api.label.generateCodeConfig') }}
         </template>
         <el-container class="flex-column">
-          <el-scrollbar style="height:400px;">
+          <el-scrollbar
+            class="form-edit-width-100"
+            style="height:400px;"
+          >
             <swagger-code-gen v-model="codeGenParamModel" />
           </el-scrollbar>
         </el-container>
