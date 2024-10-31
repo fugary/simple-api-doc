@@ -62,7 +62,7 @@ export const calcShowCleanHandlers = (folder, preference, config = {}) => {
 
 export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
   const isShareDoc = shareDoc && !!shareDoc.shareId
-  if (!isShareDoc || shareDoc?.debugEnabled) {
+  if (!isShareDoc || shareDoc?.exportEnabled) {
     const supportedTypes = ['json', 'yaml']
     const results = supportedTypes.map(type => {
       return {
