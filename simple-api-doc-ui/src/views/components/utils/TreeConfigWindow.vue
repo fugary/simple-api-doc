@@ -51,7 +51,14 @@ const submitKeys = () => {
       :tree-attrs="treeAttrs"
       :show-filter="showFilter"
       :tree-height="treeHeight"
-    />
+    >
+      <template #default="scope">
+        <slot
+          name="default"
+          v-bind="scope"
+        />
+      </template>
+    </tree-check-config>
   </common-window>
 </template>
 
