@@ -65,6 +65,7 @@ const columns = [{
       <UrlCopyLink urlPath={shareUrl} />&nbsp;
       <UrlCopyLink icon="OpenInNewFilled"
                    tooltip={$i18nBundle('api.label.openLink')}
+                   v-open-new-window={shareUrl}
                    onClick={() => $openNewWin(shareUrl)} />
       </>
   }

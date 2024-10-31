@@ -113,6 +113,21 @@ export const filterProjectItem = (projectItem, keyword) => {
   }
   return projectItem
 }
+
+/**
+ * 仅保留ProjectItem中的api数据
+ * @param projectItem
+ * @param keyword
+ * @return {*}
+ */
+export const filterApiProjectItem = (projectItem) => {
+  projectItem = cloneDeep(projectItem)
+  if (projectItem) {
+    projectItem.docs = projectItem.docs?.filter(doc => doc.docType === 'api')
+  }
+  return projectItem
+}
+
 /**
  * 获取folder路径
  * @param node

@@ -1,6 +1,11 @@
 <script setup lang="jsx">
 import { computed, ref, reactive, watch, nextTick } from 'vue'
-import { calcProjectItem, filterProjectItem, getFolderTreeIds } from '@/services/api/ApiProjectService'
+import {
+  calcProjectItem,
+  filterApiProjectItem,
+  filterProjectItem,
+  getFolderTreeIds
+} from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
@@ -25,6 +30,7 @@ import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep } from 'lodash-es'
 import { useReload } from '@/utils'
+import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -230,6 +236,18 @@ const toShowTreeConfigWindow = (type) => {
   showExportWindow.value = true
 }
 
+const showCodeGenConfigWindow = ref(false)
+const generateTreeNodes = ref([])
+const generateSelectedKeys = ref([])
+const toShowCodeGenConfigWindow = () => {
+  if (!generateTreeNodes.value?.length) {
+    const filteredItem = filterApiProjectItem(projectItem.value)
+    const { docTreeNodes } = calcProjectItem(filteredItem)
+    generateTreeNodes.value = docTreeNodes
+  }
+  showCodeGenConfigWindow.value = true
+}
+
 const { reload } = useReload()
 
 const handlerData = {
@@ -237,6 +255,7 @@ const handlerData = {
   showDocDetails,
   addOrEditFolder,
   toShowTreeConfigWindow,
+  toShowCodeGenConfigWindow,
   refreshFolderTree,
   reload
 }
@@ -392,6 +411,14 @@ defineExpose(handlerData)
       :tree-nodes="exportTreeNodes"
       :share-doc="shareDoc"
       :export-type="currentExportType"
+      :project-item="projectItem"
+    />
+    <api-doc-code-gen-window
+      v-model:tree-select-keys="generateSelectedKeys"
+      v-model="showCodeGenConfigWindow"
+      :tree-nodes="generateTreeNodes"
+      :tree-select-keys="generateSelectedKeys"
+      :share-doc="shareDoc"
       :project-item="projectItem"
     />
   </el-container>

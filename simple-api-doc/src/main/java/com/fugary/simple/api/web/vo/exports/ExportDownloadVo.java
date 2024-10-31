@@ -19,4 +19,5 @@ public class ExportDownloadVo implements Serializable {
     private String shareId;
     private String projectCode;
     private List<Integer> docIds = new ArrayList<>();
+    private boolean returnContent;
 }

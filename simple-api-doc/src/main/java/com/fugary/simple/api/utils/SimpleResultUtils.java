@@ -202,6 +202,9 @@ public class SimpleResultUtils {
         } else {
             content = SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
         }
+        if (downloadVo.isReturnContent()) {
+            return content;
+        }
         try {
             String filePathName = SimpleModelUtils.getFileFullPath(applicationName, uuid, type);
             Path tempFile = Files.createFile(Path.of(filePathName));

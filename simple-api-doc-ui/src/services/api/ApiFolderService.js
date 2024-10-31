@@ -97,6 +97,16 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
         }
       }
     }))
+    results.push({
+      icon: 'custom-icon-zip',
+      label: $i18nBundle('api.label.generateClientCode'),
+      handler: () => {
+        const { toShowCodeGenConfigWindow } = config
+        if (isFunction(toShowCodeGenConfigWindow)) {
+          toShowCodeGenConfigWindow()
+        }
+      }
+    })
     return results
   }
   return []

@@ -38,10 +38,6 @@ const treeSelectKeys = defineModel('treeSelectKeys', {
   default: () => []
 })
 
-const toExportApiDocs = () => {
-  showTreeConfigWindow.value = true
-}
-
 const exportSelectedDocs = (data) => {
   const docIds = data?.filter(id => isNumber(id))
   if (docIds.length) {
@@ -70,10 +66,6 @@ const exportSelectedDocs = (data) => {
   }
 }
 
-defineExpose({
-  toExportApiDocs
-})
-
 </script>
 
 <template>
@@ -82,7 +74,6 @@ defineExpose({
     v-model:selected-keys="treeSelectKeys"
     node-key="treeId"
     :tree-nodes="treeNodes"
-    height="400px"
     :title="$i18nConcat($t('api.label.exportSelectedApi'), exportType?.toUpperCase())"
     @submit-keys="exportSelectedDocs"
   >
