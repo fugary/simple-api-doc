@@ -110,7 +110,8 @@ public class ApplicationConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(userSecurityInterceptor()).addPathPatterns("/admin/**")
-                .addPathPatterns("/upload/uploadFiles");
+                .addPathPatterns("/upload/uploadFiles")
+                .excludePathPatterns("/admin/projects/generateJwt");
         registry.addInterceptor(shareSecurityInterceptor()).addPathPatterns("/shares/**")
                 .excludePathPatterns("/shares/loadShare/**");
         registry.addInterceptor(tempFileCleanInterceptor()).addPathPatterns("/**");

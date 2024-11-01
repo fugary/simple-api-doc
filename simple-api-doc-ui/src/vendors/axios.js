@@ -34,7 +34,9 @@ $http.interceptors.request.use(/** @param config {ServiceRequestConfig} */ confi
     config.headers.Authorization = `Bearer ${loginConfigStore.accessToken}`
   }
   if (config.addToken !== false && !loginConfigStore.accessToken && !config.isLogin) {
-    return false // 处理登出是调用接口出现异常问题
+    const error = new Error('Unauthorized')
+    error.config = config
+    return Promise.reject(error) // 处理登出是调用接口出现异常问题
   }
   if (hasLoading(config)) {
     $coreShowLoading(isString(config.loading) ? config.loading : undefined)

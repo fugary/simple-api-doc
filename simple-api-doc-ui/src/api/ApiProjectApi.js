@@ -152,7 +152,7 @@ export const generateJWT = function (data, config) {
     url: `${API_PROJECT_URL}/generateJwt`,
     method: 'post',
     data
-  }, config)).then(response => response.data)
+  }, Object.assign({ addToken: false }, config))).then(response => response.data)
 }
 
 export const checkExportProjectDocs = function (param, config) {
