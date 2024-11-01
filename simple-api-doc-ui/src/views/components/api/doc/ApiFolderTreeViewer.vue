@@ -20,7 +20,7 @@ import {
   calcNodeLeaf,
   calcShowMergeAllOfHandler,
   calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers,
-  calcPreferenceId, calcShowCleanHandlers
+  calcPreferenceId, calcShowCleanHandlers, checkHasApiDoc
 } from '@/services/api/ApiFolderService'
 import { loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
@@ -120,9 +120,11 @@ const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
   if (rootFolder.value && props.shareDoc) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
-      calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
-      ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
+    if (hasApiDoc.value) {
+      return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
+        calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
+        ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
+    }
   }
   return []
 })
@@ -248,6 +250,8 @@ const toShowCodeGenConfigWindow = () => {
   showCodeGenConfigWindow.value = true
 }
 
+const hasApiDoc = computed(() => checkHasApiDoc(projectItem.value))
+
 const { reload } = useReload()
 
 const handlerData = {
@@ -257,7 +261,8 @@ const handlerData = {
   toShowTreeConfigWindow,
   toShowCodeGenConfigWindow,
   refreshFolderTree,
-  reload
+  reload,
+  hasApiDoc
 }
 
 defineExpose(handlerData)
@@ -304,6 +309,7 @@ defineExpose(handlerData)
           :handlers="exportTopHandlers"
         />
         <more-actions-link
+          v-if="shareTopHandlers?.length"
           :icon-size="20"
           :handlers="shareTopHandlers"
         />

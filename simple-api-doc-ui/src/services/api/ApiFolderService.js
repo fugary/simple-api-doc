@@ -13,6 +13,13 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { checkExportProjectDocs, downloadExportProjectDocs } from '@/api/ApiProjectApi'
 
 /**
+ * 判断是否有API文档
+ * @param projectItem
+ * @returns {*}
+ */
+export const checkHasApiDoc = (projectItem) => projectItem?.docs?.some(doc => doc.docType === 'api')
+
+/**
  * 根目是否显示url或者名称
  * @param folder
  * @param preference
@@ -62,7 +69,7 @@ export const calcShowCleanHandlers = (folder, preference, config = {}) => {
 
 export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
   const isShareDoc = shareDoc && !!shareDoc.shareId
-  if (!isShareDoc || shareDoc?.exportEnabled) {
+  if (config.hasApiDoc?.value && (!isShareDoc || shareDoc?.exportEnabled)) {
     const supportedTypes = ['json', 'yaml']
     const results = supportedTypes.map(type => {
       return {
@@ -121,6 +128,7 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
  */
 export const getFolderHandlers = (folder, preference, handlerData) => {
   const statusLabel = folder.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
+  const apiDocConfig = handlerData.hasApiDoc?.value ? [calcShowDocLabelHandler(folder, preference), calcShowMergeAllOfHandler(folder, preference)] : []
   return [{
     icon: 'FolderAdd',
     label: $i18nKey('common.label.commonAdd', 'api.label.subFolder'),
@@ -166,7 +174,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         sortId: getMdChildrenSortId(folder)
       }, true)
     }
-  }, calcShowDocLabelHandler(folder, preference), calcShowMergeAllOfHandler(folder, preference),
+  }, ...apiDocConfig,
   ...calcShowCleanHandlers(folder, preference, handlerData), {
     enabled: !folder.rootFlag,
     icon: 'FolderDelete',
