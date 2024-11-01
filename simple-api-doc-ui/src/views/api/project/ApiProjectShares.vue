@@ -221,7 +221,10 @@ const envConfigs = computed(() => {
         return envs
       }
       return []
-    })
+    }).reduce((results, env) => {
+      results.find(result => result.url === env.url) || results.push(env)
+      return results
+    }, [])
   }
   return []
 })
