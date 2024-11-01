@@ -66,4 +66,8 @@ public class SystemErrorConstants {
      * 多个导入文档可能存在相同Component，不能一起导出
      */
     public static final int CODE_2010 = 2010;
+    /**
+     * 没有找到需要导出的文档或API
+     */
+    public static final int CODE_2011 = 2011;
 }

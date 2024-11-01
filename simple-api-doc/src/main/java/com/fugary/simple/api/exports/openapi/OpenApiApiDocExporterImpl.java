@@ -78,6 +78,9 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         // 过滤被禁用文件夹的数据
         docList = docList.stream().filter(doc -> folderMap.get(doc.getFolderId()) != null)
                 .collect(Collectors.toList());
+        if (docList.isEmpty()) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2011);
+        }
         Set<Integer> infoIds = docList.stream().map(ApiDoc::getInfoId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (infoIds.size() > 1) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2010);
