@@ -68,6 +68,7 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
       return {
         icon: `custom-icon-${type}`,
         label: $i18nKey('common.label.commonExport', `common.label.${type}`),
+        enabled: !projectItem.infoList?.length || projectItem.infoList?.length === 1,
         handler: () => {
           $coreConfirm($i18nBundle('api.msg.exportConfirm'))
             .then(() => {
