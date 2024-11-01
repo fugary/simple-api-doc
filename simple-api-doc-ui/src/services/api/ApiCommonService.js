@@ -33,6 +33,25 @@ export const generateSchemaSample = (schemaBody, type) => {
     })
 }
 
+export const generateFormSample = (schemaBody) => {
+  const results = []
+  if (schemaBody.schema?.properties) {
+    Object.keys(schemaBody.schema.properties).forEach(name => {
+      const value = schemaBody.schema.properties[name]
+      const valueRequired = schemaBody.schema.required?.includes(name)
+      results.push({
+        name,
+        value: value?.example,
+        enabled: true,
+        tooltip: value?.description,
+        valueSuggestions: schemaBody.schema?.enum,
+        dynamicOption: () => ({ required: valueRequired })
+      })
+    })
+  }
+  return results
+}
+
 export const calcSuggestionsFunc = (keySuggestions) => {
   if (isFunction(keySuggestions)) {
     return keySuggestions

@@ -121,6 +121,7 @@ common.label.commonDisable = '禁用{0}'
 common.label.commonDelay = '延迟{0}毫秒'
 common.label.commonDownload = '下载{0}'
 common.label.commonExport = '导出为{0}'
+common.label.commonGenerate = '生成{0}'
 
 //* =======================msg=====================//
 common.msg.nonNull = '{0}不能为空'

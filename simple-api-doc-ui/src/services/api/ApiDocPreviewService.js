@@ -91,7 +91,8 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   const componentMap = calcComponentMap(projectInfoDetail.componentSchemas)
   if (apiDocDetail.requestsSchemas?.length) {
     const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true))
-    target.requestBodySchema = requestSchemas[0]?.schema
+      .map(reqSchema => reqSchema.schema).filter(schema => !!schema)
+    target.requestBodySchema = requestSchemas
   }
   target.securityRequirements = calcSecurityRequirements(projectInfoDetail, apiDocDetail)
   console.log('======================target', target, apiDocDetail, componentMap)
@@ -322,6 +323,8 @@ export const processSchemas = (docSchema, componentsMap, recursive = false) => {
   } else {
     resultArr = [processSchema(saveSchema, componentsMap, recursive)]
   }
+  resultArr.filter(schema => !!schema?.schema)
+    .forEach(schema => (schema.schema.__contentType = docSchema.contentType))
   return resultArr
 }
 
@@ -496,6 +499,47 @@ export const calcAuthModelBySchemas = (apiDocDetail, authContentModel, securityS
     }
     console.log('================================authModels', authContentModel)
   }
+}
+
+export const generateSampleCheck = (schemaBody, checkFun = schema => schema?.__contentType?.includes('json')) => {
+  let parsedSchemaBody = isString(schemaBody) ? JSON.parse(schemaBody) : schemaBody
+  if (parsedSchemaBody) {
+    if (!isArray(parsedSchemaBody)) {
+      parsedSchemaBody = [parsedSchemaBody]
+    }
+    return parsedSchemaBody.find(schema => checkFun(schema))
+  }
+}
+
+export const generateSampleCheckResults = schemaBody => {
+  const results = []
+  const jsonSchema = generateSampleCheck(schemaBody)
+  jsonSchema && results.push({
+    type: 'json',
+    schema: jsonSchema
+  })
+  const xmlSchema = generateSampleCheck(schemaBody, schema => {
+    return !!schema?.xml || !!schema?.__contentType?.includes('xml')
+  })
+  xmlSchema && results.push({
+    type: 'xml',
+    schema: xmlSchema
+  })
+  const formUrlEncoded = generateSampleCheck(schemaBody, schema => {
+    return !!schema?.__contentType?.includes('x-www-form-urlencoded')
+  })
+  formUrlEncoded && results.push({
+    type: FORM_URL_ENCODED,
+    schema: formUrlEncoded
+  })
+  const formData = generateSampleCheck(schemaBody, schema => {
+    return !!schema?.__contentType?.includes('form-data')
+  })
+  formData && results.push({
+    type: FORM_DATA,
+    schema: formData
+  })
+  return results
 }
 
 export const useApiDocDebugConfig = (editable = false) => {

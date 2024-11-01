@@ -121,6 +121,7 @@ common.label.commonDisable = 'Disable {0}'
 common.label.commonDelay = 'Delay {0}ms'
 common.label.commonDownload = 'Download {0}'
 common.label.commonExport = 'Export as {0}'
+common.label.commonGenerate = 'Generate {0}'
 
 //* =======================msg=====================//
 common.msg.nonNull = '{0} is required.'

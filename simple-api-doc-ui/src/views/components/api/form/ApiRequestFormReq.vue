@@ -2,7 +2,7 @@
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
 import { computed, ref, watch } from 'vue'
-import { checkParamsFilled } from '@/services/api/ApiDocPreviewService'
+import { checkParamsFilled, generateSampleCheckResults } from '@/services/api/ApiDocPreviewService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import {
   AUTH_TYPE,
@@ -18,7 +18,7 @@ import { $i18nBundle, $i18nKey } from '@/messages'
 import { getSingleSelectOptions } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString } from 'lodash-es'
-import { calcEnvSuggestions, generateSchemaSample } from '@/services/api/ApiCommonService'
+import { calcEnvSuggestions, generateFormSample, generateSchemaSample } from '@/services/api/ApiCommonService'
 import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
@@ -41,7 +41,7 @@ const props = defineProps({
     default: 'json'
   },
   schemaBody: {
-    type: [String, Object],
+    type: [String, Object, Array],
     default: undefined
   },
   examples: {
@@ -109,7 +109,7 @@ if (paramTarget.value) {
       break
     }
   }
-  hasInheritAuth.value = paramTarget.value.hasInheritAuth && paramTarget.value?.securityRequirements?.length
+  hasInheritAuth.value = paramTarget.value.hasInheritAuth && !!paramTarget.value?.securityRequirements?.length
   if (paramTarget.value.authContent) {
     authContentModel.value = paramTarget.value.authContent
   } else {
@@ -121,9 +121,16 @@ if (paramTarget.value) {
 }
 const authValid = ref(true)
 
-const generateSample = async (type) => {
-  contentRef.value = await generateSchemaSample(props.schemaBody, type)
-  setTimeout(() => checkEditorLang())
+const generateSample = async (schema) => {
+  if ([FORM_URL_ENCODED, FORM_DATA].includes(schema.type)) {
+    const bodyFormOptions = generateFormSample(schema)
+    languageRef.value = schema.type
+    paramTarget.value[languageRef.value] = bodyFormOptions
+    console.log('================================lang', languageRef.value, bodyFormOptions, paramTarget.value)
+  } else {
+    contentRef.value = await generateSchemaSample(schema.schema, schema.type)
+    setTimeout(() => checkEditorLang())
+  }
 }
 const selectExample = (example) => {
   contentRef.value = isString(example.value) ? example.value : JSON.stringify(example.value)
@@ -154,10 +161,7 @@ const viewSchemaBody = () => {
   showCodeWindow(schemaBody)
 }
 
-const supportXml = computed(() => {
-  const schemaBody = isString(props.schemaBody) ? JSON.parse(props.schemaBody) : props.schemaBody
-  return !!schemaBody?.xml
-})
+const supportedGenerates = computed(() => generateSampleCheckResults(props.schemaBody))
 
 </script>
 
@@ -300,24 +304,27 @@ const supportXml = computed(() => {
                 icon="ContentPasteSearchFilled"
               />
             </el-link>
-            <api-generate-sample
-              v-if="schemaBody&&supportXml"
-              :title="$t('common.label.generateRequestData')"
-              @generate-sample="generateSample"
-            />
-            <el-link
-              v-if="schemaBody&&!supportXml"
-              v-common-tooltip="$t('common.label.generateRequestData')"
-              type="primary"
-              :underline="false"
-              class="margin-left3"
-              @click="generateSample('json')"
-            >
-              <common-icon
-                :size="18"
-                icon="custom-icon-json"
+            <template v-if="supportedGenerates?.length">
+              <api-generate-sample
+                v-if="supportedGenerates.length>1"
+                :schemas="supportedGenerates"
+                :title="$t('common.label.generateRequestData')"
+                @generate-sample="generateSample"
               />
-            </el-link>
+              <el-link
+                v-if="supportedGenerates.length===1"
+                v-common-tooltip="$t('common.label.generateRequestData')"
+                type="primary"
+                :underline="false"
+                class="margin-left3"
+                @click="generateSample(supportedGenerates[0])"
+              >
+                <common-icon
+                  :size="18"
+                  :icon="`custom-icon-${supportedGenerates[0]?.type}`"
+                />
+              </el-link>
+            </template>
             <api-data-example
               v-if="examples.length"
               :examples="examples"
