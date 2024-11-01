@@ -1,5 +1,4 @@
 <script setup>
-import { APP_VERSION } from '@/config'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 
@@ -39,7 +38,7 @@ defineEmits(['toDebugApi'])
     />
     <el-container class="text-center padding-10 flex-center">
       <span>
-        <el-text>Copyright © 2024 {{ projectShare?.copyRight||'' }} Version: {{ APP_VERSION }}</el-text>
+        <el-text>Copyright © {{ $date(new Date(), 'YYYY') }} {{ projectShare?.copyRight||'' }}</el-text>
       </span>
     </el-container>
   </div>
