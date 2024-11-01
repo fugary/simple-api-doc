@@ -501,7 +501,9 @@ export const calcAuthModelBySchemas = (apiDocDetail, authContentModel, securityS
   }
 }
 
-export const generateSampleCheck = (schemaBody, checkFun = schema => schema?.__contentType?.includes('json')) => {
+const defaultCheckFunc = schema => !schema?.__contentType || schema?.__contentType?.includes('json') || schema?.__contentType?.includes('*/*')
+
+export const generateSampleCheck = (schemaBody, checkFun = defaultCheckFunc) => {
   let parsedSchemaBody = isString(schemaBody) ? JSON.parse(schemaBody) : schemaBody
   if (parsedSchemaBody) {
     if (!isArray(parsedSchemaBody)) {
