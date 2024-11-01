@@ -1,15 +1,14 @@
 package com.fugary.simple.api.utils;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
-import com.fugary.simple.api.entity.api.ApiProjectShare;
-import com.fugary.simple.api.entity.api.ApiUser;
-import com.fugary.simple.api.entity.api.ModelBase;
+import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.NameValueObj;
 import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
+import io.swagger.v3.oas.models.SpecVersion;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -343,5 +342,18 @@ public class SimpleModelUtils {
             }
         }
         return StringUtils.join(List.of(filePath, fileName), File.separator);
+    }
+
+    /**
+     * 获取一个新的ProjectInfo
+     * @return
+     */
+    public static ApiProjectInfo getDefaultProjectInfo(ApiProject project){
+        ApiProjectInfo apiProjectInfo = new ApiProjectInfo();
+        apiProjectInfo.setProjectId(project.getId());
+        apiProjectInfo.setOasVersion("3.0.1");
+        apiProjectInfo.setSpecVersion(SpecVersion.V30.name());
+        apiProjectInfo.setVersion("1.0.0");
+        return apiProjectInfo;
     }
 }

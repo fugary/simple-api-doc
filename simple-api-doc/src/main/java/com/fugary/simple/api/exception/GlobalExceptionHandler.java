@@ -23,4 +23,11 @@ public class GlobalExceptionHandler {
 		log.error("全局异常处理", e);
 		return SimpleResultUtils.createError(ExceptionUtils.getMessage(e));
 	}
+
+	@ResponseBody
+	@ExceptionHandler({SimpleRuntimeException.class})
+	public <T> SimpleResult<T> exceptionHandler(SimpleRuntimeException e) {
+		log.error("全局异常处理", e);
+		return SimpleResultUtils.createSimpleResult(e.getCode().intValue());
+	}
 }

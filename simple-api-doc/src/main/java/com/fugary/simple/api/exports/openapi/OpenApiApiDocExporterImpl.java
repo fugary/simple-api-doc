@@ -2,13 +2,16 @@ package com.fugary.simple.api.exports.openapi;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.exports.ExtendMarkdownFile;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
@@ -67,7 +70,6 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(queryVo);
         // 解析文件夹，方便后续读取
         Map<Integer, ApiFolder> folderMap = detailVo.getFolders().stream().collect(Collectors.toMap(ApiFolder::getId, Function.identity()));
-        ApiProjectInfo projectInfo = detailVo.getInfoList().get(0);
         List<ApiDoc> docList = detailVo.getDocs();
         if (CollectionUtils.isNotEmpty(docIds)) { // 过滤指定文档
             docList = docList.stream().filter(apiDoc -> docIds.contains(apiDoc.getId()))
@@ -76,10 +78,15 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         // 过滤被禁用文件夹的数据
         docList = docList.stream().filter(doc -> folderMap.get(doc.getFolderId()) != null)
                 .collect(Collectors.toList());
+        Set<Integer> infoIds = docList.stream().map(ApiDoc::getInfoId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (infoIds.size() > 1) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2010);
+        }
         // 加载文档详情
         List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
         // 加载项目schema和security数据
         List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
+        ApiProjectInfo projectInfo = findApiProjectInfo(detailVo, infoIds);
         // 提取和文档相关的schema和security数据
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = apiFolderService.calcFolderMap(detailVo.getFolders());
@@ -127,6 +134,24 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         processServerItems(detailVo, openAPI);
         openAPI.setTags(List.copyOf(tags));
         return openAPI;
+    }
+
+    /**
+     * 获取一个ProjectInfo信息对象
+     *
+     * @param detailVo
+     * @param infoIds
+     * @return
+     */
+    protected ApiProjectInfo findApiProjectInfo(ApiProjectDetailVo detailVo, Set<Integer> infoIds) {
+        ApiProjectInfo projectInfo;
+        if (detailVo.getInfoList().isEmpty()) {
+            projectInfo = SimpleModelUtils.getDefaultProjectInfo(detailVo);
+        } else {
+            projectInfo = detailVo.getInfoList().stream().filter(info -> infoIds.contains(info.getId())).findFirst()
+                    .orElseGet(() -> detailVo.getInfoList().get(0));
+        }
+        return projectInfo;
     }
 
     private PathItem calcPathItem(OpenAPI openAPI, Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair, ApiFolder apiFolder, ApiDocDetailVo apiDocDetail) {

@@ -62,4 +62,8 @@ public class SystemErrorConstants {
      * URL数据下载失败
      */
     public static final int CODE_2009 = 2009;
+    /**
+     * 多个导入文档可能存在相同Component，不能一起导出
+     */
+    public static final int CODE_2010 = 2010;
 }

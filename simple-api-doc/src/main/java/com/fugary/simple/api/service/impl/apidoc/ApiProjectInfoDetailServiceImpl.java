@@ -77,6 +77,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, List<ApiProjectInfoDetail> apiInfoDetails, List<ApiDocDetailVo> docDetailList) {
         ApiProjectInfoDetailVo apiInfoVo = SimpleModelUtils.copy(apiInfo, ApiProjectInfoDetailVo.class);
+        apiInfoDetails = filterProjectInfoDetails(apiInfo, apiInfoDetails);
         Map<String, ApiProjectInfoDetail> schemaKeyMap = toSchemaKeyMap(apiInfoDetails);
         apiInfoDetails = filterByDocDetail(apiInfoDetails, schemaKeyMap, docDetailList);
         apiInfoDetails.forEach(detail -> {
@@ -148,5 +149,12 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
                 }
             }
         }
+    }
+
+    protected List<ApiProjectInfoDetail> filterProjectInfoDetails(ApiProjectInfo apiInfo, List<ApiProjectInfoDetail> apiInfoDetails) {
+        if (apiInfo.getId() != null) {
+            apiInfoDetails = apiInfoDetails.stream().filter(detail -> apiInfo.getId().equals(detail.getInfoId())).collect(Collectors.toList());
+        }
+        return apiInfoDetails;
     }
 }
