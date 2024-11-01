@@ -180,6 +180,7 @@ public class SimpleModelUtils {
         headers.add(new NameValue(ApiDocConstants.SIMPLE_API_DEBUG_HEADER, "1"));
         Enumeration<String> parameterNames = request.getParameterNames();
         List<NameValue> parameters = apiParams.getRequestParams();
+        List<NameValue> formUrlencoded = apiParams.getFormUrlencoded();
         List<NameValueObj> formData = apiParams.getFormData();
         boolean isUrlencoded = HttpRequestUtils.isCompatibleWith(request, MediaType.APPLICATION_FORM_URLENCODED);
         boolean isFormData = HttpRequestUtils.isCompatibleWith(request, MediaType.MULTIPART_FORM_DATA);
@@ -194,7 +195,15 @@ public class SimpleModelUtils {
                     formData.add(new NameValueObj(paramName, paramValue));
                 }
             });
-        } else if (!isUrlencoded) {
+        } else if (isUrlencoded) {
+            while (parameterNames.hasMoreElements()) {
+                String parameterName = parameterNames.nextElement();
+                String parameterValue = request.getParameter(parameterName);
+                if (StringUtils.isNotBlank(parameterValue)) {
+                    formUrlencoded.add(new NameValue(parameterName, parameterValue));
+                }
+            }
+        } else {
             while (parameterNames.hasMoreElements()) {
                 String parameterName = parameterNames.nextElement();
                 String parameterValue = request.getParameter(parameterName);
