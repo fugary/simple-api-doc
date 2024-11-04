@@ -20,7 +20,7 @@ import {
   calcNodeLeaf,
   calcShowMergeAllOfHandler,
   calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers,
-  calcPreferenceId, calcShowCleanHandlers, checkHasApiDoc
+  calcPreferenceId, calcShowCleanHandlers, checkHasApiDoc, calcDebugInWindowHandler
 } from '@/services/api/ApiFolderService'
 import { loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
@@ -63,6 +63,7 @@ const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = sha
   defaultTheme: props.shareDoc?.defaultTheme || 'dark',
   defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName',
   showMergeAllOf: true,
+  debugInWindow: false,
   preferenceId
 })
 sharePreference.preferenceId = preferenceId
@@ -123,6 +124,7 @@ const shareTopHandlers = computed(() => {
     if (hasApiDoc.value) {
       return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
         calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
+        calcDebugInWindowHandler(rootFolder.value, sharePreference),
         ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
     }
   }

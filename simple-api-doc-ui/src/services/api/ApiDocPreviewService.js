@@ -15,6 +15,8 @@ import axios from 'axios'
 import { processEvnParams, useScreenCheck } from '@/services/api/ApiCommonService'
 import { nextTick, ref, watch, computed } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
+import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 
 export const previewRequest = function (reqData, config) {
   const req = axios.create({
@@ -557,17 +559,22 @@ export const useApiDocDebugConfig = (editable = false) => {
       splitSizes.value = [20, 80]
     }
   }
-  const toDebugApi = (...args) => {
-    const showDebugWindow = editable ? isMediumScreen.value : isSmallScreen.value
+  const toDebugApi = (projectInfo, apiDoc, ...args) => {
+    let showDebugWindow = editable ? isMediumScreen.value : isSmallScreen.value
+    const preferenceId = calcDetailPreferenceId(apiDoc)
+    const shareConfigStore = useShareConfigStore()
+    if (shareConfigStore?.sharePreferenceView?.[preferenceId]?.debugInWindow) {
+      showDebugWindow = true
+    }
     if (showDebugWindow) {
       hideDebugSplit()
-      previewApiRequest(...args)
+      previewApiRequest(projectInfo, apiDoc, ...args)
     } else {
       if (!isShowDebug.value) {
         splitSizes.value = isLargeScreen.value ? [20, 40, 40] : [0, 50, 50]
         previewLoading.value = true
         nextTick(() => { // 延迟才能获取到Ref实例
-          apiDocPreviewRef.value?.toPreviewRequest(...args)
+          apiDocPreviewRef.value?.toPreviewRequest(projectInfo, apiDoc, ...args)
             .finally(() => { previewLoading.value = false })
         })
       } else {

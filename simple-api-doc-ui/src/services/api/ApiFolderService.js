@@ -47,6 +47,17 @@ export const calcShowMergeAllOfHandler = (folder, preference) => {
   }
 }
 
+export const calcDebugInWindowHandler = (folder, preference) => {
+  return {
+    enabled: !!folder.rootFlag,
+    icon: preference.debugInWindow ? 'VerticalSplitFilled' : 'DesktopWindowsFilled',
+    labelKey: preference.debugInWindow ? 'api.label.debugInFitScreen' : 'api.label.debugInModalWindow',
+    handler: () => {
+      preference.debugInWindow = !preference.debugInWindow
+    }
+  }
+}
+
 export const calcShowCleanHandlers = (folder, preference, config = {}) => {
   return preference.preferenceId
     ? [{
@@ -128,7 +139,11 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
  */
 export const getFolderHandlers = (folder, preference, handlerData) => {
   const statusLabel = folder.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
-  const apiDocConfig = handlerData.hasApiDoc?.value ? [calcShowDocLabelHandler(folder, preference), calcShowMergeAllOfHandler(folder, preference)] : []
+  const apiDocConfig = handlerData.hasApiDoc?.value
+    ? [calcShowDocLabelHandler(folder, preference),
+        calcShowMergeAllOfHandler(folder, preference),
+        calcDebugInWindowHandler(folder, preference)]
+    : []
   return [{
     icon: 'FolderAdd',
     label: $i18nKey('common.label.commonAdd', 'api.label.subFolder'),
