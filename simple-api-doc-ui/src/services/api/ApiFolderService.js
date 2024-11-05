@@ -296,12 +296,20 @@ export const useFolderTreeNodes = (projectId) => {
 }
 
 export const getChildrenSortId = (folder) => {
-  const maxSort = 10
-  return (folder?.children?.reduce((sortId, child) => Math.max(sortId, child.sortId || 10), maxSort) || maxSort) + 10
+  return getFolderChildrenSortId(folder, 10000, doc => !!doc.folderName)
 }
 
 export const getMdChildrenSortId = (folder) => {
-  return (folder?.children?.reduce((sortId, child) => Math.min(sortId, child.sortId), Infinity) || 10000) - 10
+  return getFolderChildrenSortId(folder, 100, doc => doc.docType === 'md')
+}
+
+export const getFolderChildrenSortId = (folder, defaultValue, filter = doc => doc?.docType === 'md') => {
+  const mdChildren = folder.children?.filter(filter)
+  const maxSort = defaultValue
+  if (mdChildren?.length) {
+    return mdChildren.reduce((sortId, child) => Math.max(sortId, child.sortId || 10), maxSort) + 10
+  }
+  return maxSort
 }
 
 export const getTreeNodesByKeys = (keys, treeNodes, nodeKey, foundNodes = []) => {

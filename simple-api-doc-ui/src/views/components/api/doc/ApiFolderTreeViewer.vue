@@ -206,7 +206,7 @@ const addOrEditFolder = async (id, parentFolder) => {
   showEditWindow.value = true
 }
 const saveFolder = () => {
-  ApiFolderApi.saveOrUpdate({ ...currentEditFolder.value, children: undefined }, { loading: true }).then(data => {
+  return ApiFolderApi.saveOrUpdate({ ...currentEditFolder.value, children: undefined }, { loading: true }).then(data => {
     if (data.success) {
       ElMessage.success($i18nBundle('common.msg.saveSuccess'))
       refreshProjectItem()
