@@ -4,7 +4,7 @@ import { useDefaultPage } from '@/config'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { defineFormOptions } from '@/components/utils'
 import { useAllUsers } from '@/api/ApiUserApi'
-import ApiProjectApi, { copyProject, uploadFiles } from '@/api/ApiProjectApi'
+import ApiProjectApi, { calcProjectIconUrl, copyProject, uploadFiles } from '@/api/ApiProjectApi'
 import { $coreConfirm, $goto, formatDate, isAdminUser, useCurrentUserName } from '@/utils'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { $i18nBundle } from '@/messages'
@@ -145,6 +145,7 @@ const minWidth = '100px'
 
 const tableProjectItems = computed(() => {
   return tableData.value.map(project => {
+    project.iconUrl = calcProjectIconUrl(project.iconUrl)
     return {
       project,
       projectItems: [{
@@ -267,12 +268,20 @@ const toCopyProject = (project, $event) => {
                 style="margin-right: auto;"
                 @click="$event.stopPropagation()"
               >
-                <el-text
-                  tag="b"
-                  :type="project.status===1?'':'danger'"
-                >
-                  {{ project.projectName }}
-                </el-text>
+                <div class="flex-center-col">
+                  <img
+                    v-if="project.iconUrl"
+                    :src="project.iconUrl"
+                    class="api-project-icon-cls margin-right1"
+                    alt="logo"
+                  >
+                  <el-text
+                    tag="b"
+                    :type="project.status===1?'':'danger'"
+                  >
+                    {{ project.projectName }}
+                  </el-text>
+                </div>
               </el-checkbox>
               <el-button
                 v-if="project.showOperations"
