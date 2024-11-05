@@ -22,7 +22,7 @@ import {
   calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers,
   calcPreferenceId, calcShowCleanHandlers, checkHasApiDoc, calcDebugInWindowHandler
 } from '@/services/api/ApiFolderService'
-import { loadDetail } from '@/api/ApiProjectApi'
+import { calcProjectIconUrl, loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import ApiFolderApi from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
@@ -254,6 +254,8 @@ const toShowCodeGenConfigWindow = () => {
 
 const hasApiDoc = computed(() => checkHasApiDoc(projectItem.value))
 
+const iconUrl = computed(() => calcProjectIconUrl(projectItem.value?.iconUrl))
+
 const { reload } = useReload()
 
 const handlerData = {
@@ -281,7 +283,15 @@ defineExpose(handlerData)
         v-if="shareDoc"
         class="share-name-header margin-bottom3"
       >
+        <img
+          v-if="iconUrl"
+          :src="iconUrl"
+          class="api-project-icon-cls margin-right1"
+          :style="width<150?'margin-right:auto;':''"
+          alt="logo"
+        >
         <common-icon
+          v-else
           :size="30"
           icon="custom-logo"
           class="margin-right1"
@@ -320,6 +330,13 @@ defineExpose(handlerData)
         v-if="editable"
         class="share-name-header"
       >
+        <img
+          v-if="iconUrl"
+          :src="iconUrl"
+          class="api-project-icon-cls margin-right1"
+          :style="width<150?'margin-right:auto;':''"
+          alt="logo"
+        >
         <span
           class="margin-left1 api-path-url"
           style="font-size:18px;margin-right: auto"

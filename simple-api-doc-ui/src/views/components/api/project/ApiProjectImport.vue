@@ -9,15 +9,16 @@ import {
   IMPORT_TYPES
   , AUTH_TYPE
 } from '@/consts/ApiConstants'
-import { ElButton } from 'element-plus'
+import { ElButton, ElUpload } from 'element-plus'
 import {
-  importProject
+  importProject, uploadFiles
 } from '@/api/ApiProjectApi'
 import { $i18nBundle } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
+import CommonIcon from '@/components/common-icon/index.vue'
 
 const props = defineProps({
   project: {
@@ -92,6 +93,23 @@ const formOptions = computed(() => {
     prop: 'projectName',
     required: true,
     enabled: !existsProj
+  }, {
+    labelKey: 'api.label.projectIcon',
+    prop: 'iconUrl',
+    enabled: !existsProj,
+    tooltip: $i18nBundle('api.msg.projectIconTooltip'),
+    slots: {
+      append () {
+        const changeFile = ($event) => {
+          uploadFiles($event.raw, (resultData) => {
+            importModel.value.iconUrl = resultData?.[0]
+          })
+        }
+        return <ElUpload showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
+          <CommonIcon size={18} icon="Upload" className="el-icon append-icon-cls"/>
+        </ElUpload>
+      }
+    }
   }, {
     enabled: urlMode,
     required: true,

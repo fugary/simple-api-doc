@@ -15,5 +15,6 @@ public class ApiProject extends ModelBase {
     private String projectCode;
     private Boolean privateFlag = true;
     private String projectName;
+    private String iconUrl;
     private String description;
 }

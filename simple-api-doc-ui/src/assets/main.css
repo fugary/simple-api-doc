@@ -538,3 +538,13 @@ html, body, #app, .index-container {
     white-space: nowrap;
     overflow: hidden;
 }
+
+.api-project-icon-cls {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+}
+
+.el-input-group__append .append-icon-cls {
+    top: 2px;
+}

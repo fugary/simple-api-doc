@@ -4,7 +4,7 @@ import { useDefaultPage } from '@/config'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { defineFormOptions } from '@/components/utils'
 import { useAllUsers } from '@/api/ApiUserApi'
-import ApiProjectApi, { copyProject } from '@/api/ApiProjectApi'
+import ApiProjectApi, { copyProject, uploadFiles } from '@/api/ApiProjectApi'
 import { $coreConfirm, $goto, formatDate, isAdminUser, useCurrentUserName } from '@/utils'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { $i18nBundle } from '@/messages'
@@ -15,7 +15,7 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElUpload } from 'element-plus'
 
 const { width } = useWindowSize()
 
@@ -110,6 +110,22 @@ const editFormOptions = computed(() => defineFormOptions([{
   labelKey: 'api.label.projectName',
   prop: 'projectName',
   required: true
+}, {
+  labelKey: 'api.label.projectIcon',
+  prop: 'iconUrl',
+  tooltip: $i18nBundle('api.msg.projectIconTooltip'),
+  slots: {
+    append () {
+      const changeFile = ($event) => {
+        uploadFiles($event.raw, (resultData) => {
+          currentProject.value.iconUrl = resultData?.[0]
+        })
+      }
+      return <ElUpload showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
+        <CommonIcon size={18} icon="Upload" className="el-icon append-icon-cls"/>
+      </ElUpload>
+    }
+  }
 }, useFormStatus(), {
   labelKey: 'common.label.description',
   prop: 'description',

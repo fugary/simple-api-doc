@@ -162,6 +162,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2006);
         }
         exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
+        exportVo.setIconUrl(StringUtils.defaultIfBlank(importVo.getIconUrl(), exportVo.getIconUrl()));
         return SimpleResultUtils.createSimpleResult(exportVo);
     }
 

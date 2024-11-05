@@ -2,7 +2,7 @@ import { useResourceApi } from '@/hooks/ApiHooks'
 import { ref } from 'vue'
 import { $http, $httpPost } from '@/vendors/axios'
 import { $downloadWithLinkClick, isAdminUser, useCurrentUserName } from '@/utils'
-import { isArray } from 'lodash-es'
+import { isArray, isFunction } from 'lodash-es'
 import { BASE_URL } from '@/config'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 
@@ -128,6 +128,33 @@ export const useSelectProjects = (searchParam) => {
     loadProjectsAndRefreshOptions
   }
 }
+/**
+ * 文件上传
+ * @param files
+ * @param [callback]
+ */
+export const uploadFiles = (files, callback) => {
+  const formData = new FormData()
+  files = isArray(files) ? files : [files]
+  files.forEach(file => formData.append('files', file))
+  return $httpPost('/upload/uploadFiles', formData,
+    Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 60000 }))
+    .then(data => {
+      data.success && isFunction(callback) && callback(data.resultData)
+    })
+}
+/**
+ * 计算ProjectIconUrl
+ * @param iconUrl
+ * @returns {*}
+ */
+export const calcProjectIconUrl = (iconUrl) => {
+  if (iconUrl && !iconUrl.match(/https?:\/\/.*/)) {
+    iconUrl = BASE_URL + iconUrl
+  }
+  return iconUrl
+}
+
 /**
  * 导入项目
  * @param files 文件列表
