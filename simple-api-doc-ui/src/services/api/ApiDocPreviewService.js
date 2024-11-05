@@ -76,10 +76,11 @@ export const processResponse = function (response) {
 export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   // const value = previewData?.mockParams || requestItem?.mockParams
   // const requestPath = `/mock/${groupItem.groupPath}${requestItem?.requestPath}`
+  const componentMap = calcComponentMap(projectInfoDetail.componentSchemas)
   const target = {
-    pathParams: calcSchemaParameters(apiDocDetail.parametersSchema, item => item.in === 'path'),
-    requestParams: calcSchemaParameters(apiDocDetail.parametersSchema),
-    headerParams: calcSchemaParameters(apiDocDetail.parametersSchema, item => item.in === 'header'),
+    pathParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'path'),
+    requestParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap),
+    headerParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'header'),
     [FORM_DATA]: [],
     [FORM_URL_ENCODED]: [],
     method: apiDocDetail?.method || 'GET',
@@ -90,7 +91,6 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     requestPath: apiDocDetail.url,
     sendType: REQUEST_SEND_MODES[0].value
   }
-  const componentMap = calcComponentMap(projectInfoDetail.componentSchemas)
   if (apiDocDetail.requestsSchemas?.length) {
     const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true))
       .map(reqSchema => reqSchema.schema).filter(schema => !!schema)
@@ -173,15 +173,16 @@ export const calcParamTargetByUrl = (calcRequestUrl) => {
 /**
  * 请求参数Schema计算
  * @param parametersSchema
+ * @param componentMap
  * @param filter
  * @returns {*[]}
  */
-export const calcSchemaParameters = (parametersSchema, filter = item => item.in === 'query') => {
+export const calcSchemaParameters = (parametersSchema, componentMap, filter = item => item.in === 'query') => {
   if (parametersSchema?.schemaContent) {
     const paramSchemas = JSON.parse(parametersSchema.schemaContent)
     if (isArray(paramSchemas)) {
       return paramSchemas.filter(filter).map(param => {
-        console.log('=============================param', param)
+        param.schema && processSchema(param, componentMap, true)
         return {
           name: param.name,
           value: param.schema?.default || '',
