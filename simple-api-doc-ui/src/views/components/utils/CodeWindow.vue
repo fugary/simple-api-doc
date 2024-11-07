@@ -48,7 +48,7 @@ defineExpose({
 
 const fullscreen = ref(false)
 
-const codeHeight = computed(() => fullscreen.value ? 'calc(100dvh - 210px)' : codeConfig.height)
+const codeHeight = computed(() => fullscreen.value ? 'calc(100dvh - 190px)' : codeConfig.height)
 
 const langOption = computed(() => {
   if (codeConfig.language) {
