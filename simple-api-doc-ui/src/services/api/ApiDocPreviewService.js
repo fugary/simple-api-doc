@@ -147,6 +147,7 @@ export const calcRequestBody = (paramTarget) => {
   }
   if (isString(data)) {
     data = processEvnParams(paramTarget.value.groupConfig, data)
+    data = data || undefined
   }
   return {
     hasBody,
