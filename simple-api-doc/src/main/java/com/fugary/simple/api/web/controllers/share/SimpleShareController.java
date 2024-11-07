@@ -70,7 +70,8 @@ public class SimpleShareController {
     private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
     @GetMapping("/loadShare/{shareId}")
-    public SimpleResult<ApiProjectShareVo> loadShare(@PathVariable("shareId") String shareId, @RequestParam(name = "pwd") String password) {
+    public SimpleResult<ApiProjectShareVo> loadShare(@PathVariable("shareId") String shareId,
+                                                     @RequestParam(name = "pwd", required = false) String password) {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         if (apiShare == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);

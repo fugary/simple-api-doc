@@ -54,8 +54,8 @@ $http.interceptors.response.use(response => {
   if (response && response.data && !response.data.success && response.data.message) {
     if (response.config && showErrorMessage(response.config)) {
       ElMessage.error(response.data.message)
-      return Promise.reject(response)
     }
+    return Promise.reject(response)
   }
   return response
 }, error => {

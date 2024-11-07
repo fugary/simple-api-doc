@@ -11,6 +11,7 @@ import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
+import { ElMessage } from 'element-plus'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -46,9 +47,14 @@ const loadShareData = async (input) => {
   loading.value = true
   errorMessage.value = ''
   const param = input ? shareParam.value : { ...shareParam.value, password: shareParam.value.password || shareConfigStore.getShareToken(shareId) }
-  projectShare.value = await loadShare(param).then(data => data.resultData, error => {
+  projectShare.value = await loadShare(param, {
+    showErrorMessage: false
+  }).then(data => data.resultData, error => {
     showPassWindow.value = error.data?.code === 401
     errorMessage.value = error.data?.message
+    if (shareParam.value.password && errorMessage.value) {
+      ElMessage.error(errorMessage.value)
+    }
     if (showPassWindow.value) {
       shareConfigStore.clearShareToken(shareId)
     }
@@ -144,7 +150,6 @@ const splitRef = ref()
         <el-container class="flex-column">
           <el-alert
             show-icon
-            :title="projectShare?.shareName"
             :description="$t('api.msg.docNeedPassword')"
             type="warning"
             :closable="false"

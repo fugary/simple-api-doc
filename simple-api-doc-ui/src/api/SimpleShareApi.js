@@ -32,7 +32,11 @@ export const getEnvConfigs = (apiDocDetail) => {
 
 export const loadShare = function ({ shareId, password }, config) {
   config = Object.assign(getShareConfig(shareId), config || {})
-  return $httpGet(`${SHARE_BASE_URL}/loadShare/${shareId}?pwd=${password}`, config)
+  let loadShareUrl = `${SHARE_BASE_URL}/loadShare/${shareId}`
+  if (password) {
+    loadShareUrl = `${loadShareUrl}?pwd=${password}`
+  }
+  return $httpGet(loadShareUrl, config)
 }
 
 export const loadShareDoc = function ({ shareId, docId }, config) {
