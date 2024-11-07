@@ -179,7 +179,10 @@ html, body, #app, .index-container {
     background: inherit;
 }
 .el-dialog.is-fullscreen .el-dialog__footer{
-    bottom: var(--el-dialog-padding-primary);
+    background: inherit;
+    padding-bottom: var(--el-dialog-padding-primary);
+    padding-top: 0;
+    bottom: 0;
 }
 .el-dialog.is-fullscreen .dialog-footer{
     border-radius: 0;
