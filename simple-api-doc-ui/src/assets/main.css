@@ -188,7 +188,7 @@ html, body, #app, .index-container {
     border-radius: 0;
 }
 .el-dialog.is-fullscreen .el-dialog__body{
-    padding: 48px 12px;
+    padding: 60px 12px;
 }
 
 .icon-list::-webkit-scrollbar {
