@@ -83,7 +83,9 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
       }
     })
     calcFolderDocCount(docTreeNodes)
-    docTreeNodes = filterFoldersWithDocsNew(docTreeNodes)
+    if (searchParam?.keyword || projectItem.projectCode !== preference?.preferenceId) {
+      docTreeNodes = filterFoldersWithDocsNew(docTreeNodes)
+    }
     if (docTreeNodes[0]?.id && preference?.lastExpandKeys && !preference.lastExpandKeys?.includes(docTreeNodes[0]?.treeId)) {
       preference.lastExpandKeys.push(docTreeNodes[0]?.treeId)
     }

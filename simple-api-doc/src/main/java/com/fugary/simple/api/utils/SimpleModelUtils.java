@@ -380,4 +380,24 @@ public class SimpleModelUtils {
         }
         return docIds;
     }
+
+    /**
+     * 计算父级相关folderIds
+     * @param folderId
+     * @param folders
+     * @param folderIds
+     * @return
+     */
+    public static Set<Integer> calcFolderIds(Integer folderId, List<ApiFolder> folders, Set<Integer> folderIds) {
+        folderIds = folderIds == null ? new HashSet<>() : folderIds;
+        if (folderId != null) {
+            folderIds.add(folderId);
+            for (ApiFolder folder : folders) {
+                if (folderId.equals(folder.getId()) && !folderIds.contains(folder.getParentId())) {
+                    calcFolderIds(folder.getParentId(), folders, folderIds);
+                }
+            }
+        }
+        return folderIds;
+    }
 }

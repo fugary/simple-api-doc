@@ -87,6 +87,12 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                     List<ApiDoc> docList = docs.stream().filter(doc -> queryVo.getDocIds().contains(doc.getId()))
                             .collect(Collectors.toList());
                     apiProjectVo.setDocs(docList);
+                    Set<Integer> folderIds = docList.stream().map(ApiDoc::getFolderId).distinct()
+                            .flatMap(folderId -> SimpleModelUtils.calcFolderIds(folderId, folders, new HashSet<>()).stream())
+                            .collect(Collectors.toSet());
+                    List<ApiFolder> folderList = folders.stream().filter(folder -> folderIds.contains(folder.getId()))
+                            .collect(Collectors.toList());
+                    apiProjectVo.setFolders(folderList);
                 }
             }
             if (queryVo.isIncludesShares()) {
