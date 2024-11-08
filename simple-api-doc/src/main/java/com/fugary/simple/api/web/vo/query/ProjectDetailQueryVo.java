@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Set;
 
 /**
  * Create date 2024/10/11<br>
@@ -20,4 +21,5 @@ public class ProjectDetailQueryVo implements Serializable {
     private boolean includeDocs;
     private boolean includeTasks;
     private boolean includesShares;
+    private Set<Integer> docIds;
 }

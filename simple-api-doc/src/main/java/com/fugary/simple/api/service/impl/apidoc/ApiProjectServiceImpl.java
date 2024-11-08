@@ -18,6 +18,7 @@ import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import lombok.SneakyThrows;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,6 +83,11 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId())
                         : apiDocService.loadByProject(apiProject.getId());
                 apiProjectVo.setDocs(docs);
+                if (CollectionUtils.isNotEmpty(queryVo.getDocIds())) {
+                    List<ApiDoc> docList = docs.stream().filter(doc -> queryVo.getDocIds().contains(doc.getId()))
+                            .collect(Collectors.toList());
+                    apiProjectVo.setDocs(docList);
+                }
             }
             if (queryVo.isIncludesShares()) {
                 List<ApiProjectShare> shares = apiProjectShareService.list(Wrappers.<ApiProjectShare>query()

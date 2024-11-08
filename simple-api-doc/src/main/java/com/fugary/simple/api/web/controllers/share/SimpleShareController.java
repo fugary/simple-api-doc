@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * Create date 2024/9/29<br>
@@ -107,6 +108,7 @@ public class SimpleShareController {
         return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
                 .projectCode(project.getProjectCode())
                 .forceEnabled(true)
+                .docIds(SimpleModelUtils.getShareDocIds(apiShare.getShareDocs()))
                 .includeDocs(true).build()));
     }
 
@@ -140,6 +142,10 @@ public class SimpleShareController {
         ApiDoc apiDoc = apiDocService.getById(docId);
         if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        Set<Integer> docIds = SimpleModelUtils.getShareDocIds(apiShare.getShareDocs());
+        if (!docIds.isEmpty() && !docIds.contains(docId)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDoc.getInfoId());
         ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);

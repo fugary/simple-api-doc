@@ -1,5 +1,6 @@
 package com.fugary.simple.api.utils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -364,5 +365,19 @@ public class SimpleModelUtils {
         apiProjectInfo.setSpecVersion(SpecVersion.V30.name());
         apiProjectInfo.setVersion("1.0.0");
         return apiProjectInfo;
+    }
+
+    /**
+     * 计算指定文档的分享ID
+     * @param shareDocs
+     * @return
+     */
+    public static Set<Integer> getShareDocIds(String shareDocs){
+        Set<Integer> docIds = new HashSet<>();
+        if (StringUtils.isNotBlank(shareDocs)) {
+            docIds = JsonUtils.fromJson(shareDocs, new TypeReference<>() {
+            });
+        }
+        return docIds;
     }
 }
