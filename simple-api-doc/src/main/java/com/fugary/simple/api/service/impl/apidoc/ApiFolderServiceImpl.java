@@ -126,11 +126,14 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             // 保存folder docs
             for (ExportApiDocVo apiDocVo : docs) {
                 Pair<String, ApiDoc> existsDocPair = existsDocMap.get(apiDocVo.getDocKey());
+                apiDocVo.setDocVersion(1);
+                ApiDoc existsDoc = null;
                 if (existsDocPair != null && StringUtils.equals(existsDocPair.getKey(), folderPath)
                         && existsDocPair.getValue() != null) { // 目录相同
-                    ApiDoc existsDoc = existsDocPair.getValue();
+                    existsDoc = existsDocPair.getValue();
                     apiDocVo.setId(existsDoc.getId());
                     apiDocVo.setStatus(existsDoc.getStatus());
+                    apiDocVo.setDocVersion(existsDoc.getDocVersion());
 //                    apiDocVo.setSortId(existsDoc.getSortId());
                     apiDocSchemaService.deleteByDoc(apiDocVo.getId());
                 }
@@ -140,7 +143,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                 }
                 apiDocVo.setProjectId(projectId);
                 apiDocVo.setFolderId(folderId);
-                apiDocService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiDocVo));
+                apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc);
                 saveApiDocSchemas(apiDocVo);
             }
         }

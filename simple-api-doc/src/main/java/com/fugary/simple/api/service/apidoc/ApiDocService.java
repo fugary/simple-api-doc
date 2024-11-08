@@ -49,6 +49,13 @@ public interface ApiDocService extends IService<ApiDoc> {
     boolean deleteByFolder(Integer folderId);
 
     /**
+     * 保存ApiDoc
+     * @param apiDoc
+     * @return
+     */
+    boolean saveApiDoc(ApiDoc apiDoc, ApiDoc existsDoc);
+
+    /**
      * 指定id删除doc，级联删除
      *
      * @param docId

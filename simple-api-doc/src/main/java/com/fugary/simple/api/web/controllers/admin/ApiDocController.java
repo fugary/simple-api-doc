@@ -97,7 +97,10 @@ public class ApiDocController {
         if (StringUtils.isBlank(apiDoc.getDocKey())) {
             apiDoc.setDocKey(SimpleModelUtils.uuid());
         }
-        return SimpleResultUtils.createSimpleResult(apiDocService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiDoc)));
+        if (apiDoc.getDocVersion() == null) {
+            apiDoc.setDocVersion(1);
+        }
+        return SimpleResultUtils.createSimpleResult(apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDoc), null));
     }
 
     @GetMapping("/loadDoc/{docId}")

@@ -1,5 +1,6 @@
 package com.fugary.simple.api.entity.api;
 
+import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 
 /**
@@ -25,4 +26,6 @@ public class ApiDoc extends ModelBase {
     private String operationId;
     private String summary;
     private String description;
+    @Version
+    private Integer docVersion;
 }
