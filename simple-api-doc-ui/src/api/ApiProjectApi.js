@@ -18,7 +18,6 @@ export const useApiProjectItem = (projectCode, config = {}) => {
     return (detail ? loadDetail : loadBasic)(code).then(data => {
       projectItem.value = data
       loadSuccess.value = !!data
-      console.log(projectItem.value)
     }).finally(() => (loading.value = false))
   }
   if (autoLoad) {

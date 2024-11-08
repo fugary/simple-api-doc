@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
 import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl, isAdminUser, $goto } from '@/utils'
-import { loadBasicById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
+import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectShareApi, { getShareUrl } from '@/api/ApiProjectShareApi'
@@ -12,15 +12,21 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { ElTag, ElButton } from 'element-plus'
+import { ElTag, ElButton, ElText } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
+import { calcProjectItem } from '@/services/api/ApiProjectService'
+import { cloneDeep, isNumber } from 'lodash-es'
+import { calcNodeLeaf } from '@/services/api/ApiFolderService'
+import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
+import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
+import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
 const inProject = !!projectCode
 
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
-const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
+const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: true })
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -31,12 +37,16 @@ const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
 const infoList = ref([])
+const editTreeNodes = ref([])
+const showTreeConfigWindow = ref(false)
 
 onMounted(async () => {
   if (inProject) {
     await loadProjectItem(projectCode)
     searchParam.value.projectId = projectItem.value?.id
     searchParam.value.userName = projectItem.value?.userName
+    const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
+    editTreeNodes.value = docTreeNodes
     infoList.value = projectItem.value?.infoList
   } else {
     loadUsersAndRefreshOptions()
@@ -60,8 +70,10 @@ const columns = [{
     if (data.sharePassword) {
       shareUrl = `${shareUrl}?pwd=${data.sharePassword}`
     }
+    const docLen = data.shareDocs ? JSON.parse(data.shareDocs)?.length : 0
     return <>
       {data.shareName}&nbsp;
+      {docLen ? <ElText v-common-tooltip={$i18nBundle('api.label.shareSelectedDocs', [docLen])} type="info">({docLen}) </ElText> : ''}
       <UrlCopyLink urlPath={shareUrl} />&nbsp;
       <UrlCopyLink icon="OpenInNewFilled"
                    tooltip={$i18nBundle('api.label.openLink')}
@@ -190,9 +202,12 @@ const newOrEdit = async (id) => {
           .map(env => env.url)
       }
       currentShare.value.showChildrenLength = currentShare.value.showChildrenLength ?? true
+      currentShare.value.shareDocsArr = currentShare.value.shareDocs ? (JSON.parse(currentShare.value.shareDocs) || []) : []
       if (!inProject) {
-        loadBasicById(currentShare.value.projectId).then(data => {
+        loadDetailById(currentShare.value.projectId).then(data => {
           infoList.value = data?.infoList
+          const { docTreeNodes } = calcProjectItem(cloneDeep(data))
+          editTreeNodes.value = docTreeNodes
         })
       }
     })
@@ -204,7 +219,8 @@ const newOrEdit = async (id) => {
       debugEnabled: true,
       defaultTheme: 'dark',
       defaultShowLabel: 'docName',
-      showChildrenLength: true
+      showChildrenLength: true,
+      shareDocsArr: []
     }
     if (!inProject) {
       infoList.value = []
@@ -249,9 +265,12 @@ const editFormOptions = computed(() => {
     disabled: !!currentShare.value?.id,
     children: projectOptions.value,
     change (projectId) {
-      loadBasicById(projectId).then(data => {
+      loadDetailById(projectId).then(data => {
         infoList.value = data?.infoList
+        const { docTreeNodes } = calcProjectItem(cloneDeep(data))
+        editTreeNodes.value = docTreeNodes
       })
+      currentShare.value.shareDocsArr = []
       currentShare.value.shareEnvs = []
     }
   }, useFormStatus(), {
@@ -278,6 +297,22 @@ const editFormOptions = computed(() => {
           {$i18nBundle('common.label.generate')}
         </ElButton>
       }
+    }
+  }, {
+    labelKey: 'api.label.selectShareDocs',
+    type: 'common-form-label',
+    formatter () {
+      let msg = $i18nBundle('api.label.shareAllDocs')
+      const docsLen = currentShare.value?.shareDocsArr?.filter(id => isNumber(id))?.length
+      if (docsLen) {
+        msg = $i18nBundle('api.label.shareSelectedDocs', [docsLen])
+      }
+      return <>
+        <strong className="margin-right1">{msg}</strong>
+        <ElButton type="primary" size="small" onClick={() => (showTreeConfigWindow.value = true)}>
+          {$i18nBundle('common.label.select')}
+        </ElButton>
+      </>
     }
   }, {
     labelKey: 'api.label.expireDate',
@@ -334,6 +369,11 @@ const saveProjectShare = (item) => {
   if (item.shareEnvs?.length) {
     item.envContent = JSON.stringify(envConfigs.value.filter(env => item.shareEnvs.includes(env.url)))
   }
+  const shareDocsArr = currentShare.value?.shareDocsArr?.filter(id => isNumber(id))
+  item.shareDocs = undefined
+  if (shareDocsArr?.length) {
+    item.shareDocs = JSON.stringify(shareDocsArr)
+  }
   return ApiProjectShareApi.saveOrUpdate(item).then(() => loadProjectShares())
 }
 
@@ -389,7 +429,33 @@ const saveProjectShare = (item) => {
       :name="$t('api.label.shareDocs')"
       :save-current-item="saveProjectShare"
       label-width="130px"
+      :close-on-click-modal="false"
     />
+    <tree-config-window
+      v-if="currentShare"
+      v-model="showTreeConfigWindow"
+      v-model:selected-keys="currentShare.shareDocsArr"
+      node-key="treeId"
+      :tree-nodes="editTreeNodes"
+      destroy-on-close
+      :title="$t('api.label.selectShareDocs')"
+      :ok-label="$t('common.label.close')"
+      :show-cancel="false"
+      @submit-keys="showTreeConfigWindow=false"
+    >
+      <template #default="{node, data}">
+        <tree-icon-label
+          :node="node"
+          :icon-leaf="calcNodeLeaf(data)"
+        >
+          <api-method-tag
+            v-if="data.docType==='api'"
+            :method="data.method"
+          />
+          {{ node.label }}
+        </tree-icon-label>
+      </template>
+    </tree-config-window>
   </el-container>
 </template>
 
