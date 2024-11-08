@@ -258,6 +258,27 @@ const iconUrl = computed(() => calcProjectIconUrl(projectItem.value?.iconUrl))
 
 const { reload } = useReload()
 
+const allowDrop = (draggingNode, dropNode, type) => {
+  console.log('===========================allowDrop', draggingNode, dropNode, type)
+  if (dropNode.data?.isDoc) { // 目标为文档，只能文档前后移动
+    return !!draggingNode.data?.isDoc && type !== 'inner'
+  } else { // 目标为文件夹只能移动到里面
+    return !dropNode.data?.rootFlag && (!draggingNode.data?.isDoc || type === 'inner' || type === 'prev')
+  }
+}
+const allowDrag = (draggingNode) => {
+  return props.editable && !draggingNode?.data?.rootFlag
+}
+const handleDragEnd = (draggingNode, dropNode, dropType) => {
+  if (dropNode) {
+    const showData = function (data, type) {
+      const docType = data?.isDoc ? 'doc' : 'folder'
+      return `${type}:${docType}:${data?.id}`
+    }
+    console.log('===========================handleDragEnd:', showData(draggingNode.data, 'drag'), showData(dropNode.data, 'drop'), dropType)
+  }
+}
+
 const handlerData = {
   refreshProjectItem,
   showDocDetails,
@@ -373,6 +394,10 @@ defineExpose(handlerData)
           lazy
           :props="treeProps"
           :load="loadTreeNode"
+          :allow-drag="allowDrag"
+          :allow-drop="allowDrop"
+          :draggable="editable"
+          @node-drag-end="handleDragEnd"
           @node-click="showDocDetails($event, false)"
           @node-expand="expandOrCollapse($event, true)"
           @node-collapse="expandOrCollapse($event, false)"
