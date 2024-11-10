@@ -23,9 +23,8 @@ public class ApiDocHistoryServiceImpl extends ServiceImpl<ApiDocHistoryMapper, A
             ApiDocHistory apiDocHistory = SimpleModelUtils.copy(apiDoc, ApiDocHistory.class);
             apiDocHistory.setId(null);
             apiDocHistory.setDocId(apiDoc.getId());
-            apiDocHistory.setCreator(null);
-            apiDocHistory.setCreateDate(null);
-            SimpleModelUtils.addAuditInfo(apiDocHistory);
+            apiDocHistory.setCreator(apiDoc.getModifier());
+            apiDocHistory.setCreateDate(apiDoc.getModifyDate());
             return this.save(apiDocHistory);
         }
         return true;

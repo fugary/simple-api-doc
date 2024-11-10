@@ -1,4 +1,4 @@
-import VueMonacoEditor, { loader } from '@guolao/vue-monaco-editor'
+import VueMonacoEditor, { loader, VueMonacoDiffEditor } from '@guolao/vue-monaco-editor'
 import { ref, watch, toRaw, h, withDirectives, resolveDirective, computed } from 'vue'
 import * as monaco from 'monaco-editor'
 import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
@@ -186,6 +186,7 @@ export const getLoadingDiv = (attrs = {}) => {
 
 export default {
   install (app) {
+    app.component(VueMonacoDiffEditor.name, VueMonacoDiffEditor)
     app.component(VueMonacoEditor.name, {
       setup (props) {
         loader.config({ monaco })

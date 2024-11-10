@@ -5,6 +5,7 @@ import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import { ElText } from 'element-plus'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
+import ApiDocHistoryDiffViewer from '@/views/components/api/doc/comp/ApiDocHistoryDiffViewer.vue'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -71,10 +72,18 @@ const buttons = computed(() => {
     labelKey: 'common.label.view',
     type: 'success',
     click: item => {
-      console.log('===========================view doc history', item.id)
+      showApiDocDiff(item)
     }
   }]
 })
+
+const showDiffViewer = ref(false)
+const currentHistoryDoc = ref()
+const showApiDocDiff = (item) => {
+  currentHistoryDoc.value = item
+  showDiffViewer.value = true
+}
+
 defineExpose({
   showHistoryList
 })
@@ -88,6 +97,7 @@ defineExpose({
     show-fullscreen
     :show-cancel="false"
     :ok-label="$t('common.label.close')"
+    class="flex-column"
   >
     <common-table
       v-model:page="searchParam.page"
@@ -99,6 +109,11 @@ defineExpose({
       :loading="loading"
       @page-size-change="searchMethod()"
       @current-page-change="searchMethod()"
+    />
+    <api-doc-history-diff-viewer
+      v-model="showDiffViewer"
+      :original-doc="currentHistoryDoc"
+      :modified-doc="currentDoc"
     />
   </common-window>
 </template>

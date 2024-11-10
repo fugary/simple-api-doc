@@ -121,6 +121,7 @@ api.label.shareSelectedDocs = 'Share selected {0} doc(s)'
 api.label.generatorProvider = 'Generator Provider'
 api.label.generatorProviderSwagger = 'Swagger Generator'
 api.label.historyVersions = 'History Versions'
+api.label.versionDiff = 'Version Diff'
 
 api.msg.noExportData = 'No data to export'
 api.msg.exportConfirm = 'Confirm to export API docs?'
