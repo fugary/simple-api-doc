@@ -19,12 +19,19 @@ import {
   getDocHandlers,
   calcNodeLeaf,
   calcShowMergeAllOfHandler,
-  calcShowDocLabelHandler, getChildrenSortId, getDownloadDocsHandlers,
-  calcPreferenceId, calcShowCleanHandlers, checkHasApiDoc, calcDebugInWindowHandler
+  calcShowDocLabelHandler,
+  getChildrenSortId,
+  getDownloadDocsHandlers,
+  calcPreferenceId,
+  calcShowCleanHandlers,
+  checkHasApiDoc,
+  calcDebugInWindowHandler,
+  calcTreeNodeChildNodes,
+  isTreeNodeFirstFolder
 } from '@/services/api/ApiFolderService'
 import { calcProjectIconUrl, loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
-import ApiFolderApi from '@/api/ApiFolderApi'
+import ApiFolderApi, { updateFolderSorts } from '@/api/ApiFolderApi'
 import { ElMessage } from 'element-plus'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
@@ -259,23 +266,21 @@ const iconUrl = computed(() => calcProjectIconUrl(projectItem.value?.iconUrl))
 const { reload } = useReload()
 
 const allowDrop = (draggingNode, dropNode, type) => {
-  console.log('===========================allowDrop', draggingNode, dropNode, type)
+  // console.log('===========================allowDrop', draggingNode, dropNode, type)
   if (dropNode.data?.isDoc) { // 目标为文档，只能文档前后移动
     return !!draggingNode.data?.isDoc && type !== 'inner'
   } else { // 目标为文件夹只能移动到里面
-    return !dropNode.data?.rootFlag && (!draggingNode.data?.isDoc || type === 'inner' || type === 'prev')
+    return !dropNode.data?.rootFlag && (!draggingNode.data?.isDoc || type === 'inner' || (type === 'prev' && isTreeNodeFirstFolder(dropNode) && !dropNode.parent?.data?.rootFlag))
   }
 }
 const allowDrag = (draggingNode) => {
   return props.editable && !draggingNode?.data?.rootFlag
 }
-const handleDragEnd = (draggingNode, dropNode, dropType) => {
+const handleDragEnd = (draggingNode, dropNode, type) => {
   if (dropNode) {
-    const showData = function (data, type) {
-      const docType = data?.isDoc ? 'doc' : 'folder'
-      return `${type}:${docType}:${data?.id}`
-    }
-    console.log('===========================handleDragEnd:', showData(draggingNode.data, 'drag'), showData(dropNode.data, 'drop'), dropType)
+    const sortParam = calcTreeNodeChildNodes(dropNode, draggingNode, type)
+    updateFolderSorts(sortParam)
+      .then(() => refreshProjectItem())
   }
 }
 

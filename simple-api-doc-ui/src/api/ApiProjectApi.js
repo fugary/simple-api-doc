@@ -12,9 +12,10 @@ const ApiProjectApi = useResourceApi(API_PROJECT_URL)
 export const useApiProjectItem = (projectCode, config = {}) => {
   const projectItem = ref()
   const loadSuccess = ref(false)
-  const loading = ref(true)
+  const loading = ref(false)
   const { autoLoad, detail } = Object.assign({ autoLoad: true, detail: true }, config)
   const loadProjectItem = (code) => {
+    loading.value = true
     return (detail ? loadDetail : loadBasic)(code).then(data => {
       projectItem.value = data
       loadSuccess.value = !!data

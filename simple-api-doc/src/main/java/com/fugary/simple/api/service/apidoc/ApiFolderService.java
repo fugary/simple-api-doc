@@ -6,6 +6,7 @@ import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
+import com.fugary.simple.api.web.vo.project.ApiDocConfigSortsVo;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
@@ -119,4 +120,12 @@ public interface ApiFolderService extends IService<ApiFolder> {
      * @return
      */
     Map<Integer, Pair<ApiFolder, ApiFolder>> copyProjectFolders(Integer fromProjectId, Integer toProjectId, Integer id);
+
+    /**
+     * 更新排序
+     * @param sortsVo
+     * @param apiFolder
+     * @return
+     */
+    boolean updateSorts(ApiDocConfigSortsVo sortsVo, ApiFolder apiFolder);
 }

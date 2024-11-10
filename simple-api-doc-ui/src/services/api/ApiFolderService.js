@@ -300,7 +300,7 @@ export const getChildrenSortId = (folder) => {
 }
 
 export const getMdChildrenSortId = (folder) => {
-  return getFolderChildrenSortId(folder, 100, doc => doc.docType === 'md')
+  return getFolderChildrenSortId(folder, 10, doc => doc.docType === 'md')
 }
 
 export const getFolderChildrenSortId = (folder, defaultValue, filter = doc => doc?.docType === 'md') => {
@@ -339,4 +339,26 @@ export const calcShowMergeAllOf = (apiDocDetail) => {
   const preferenceId = calcDetailPreferenceId(apiDocDetail)
   const preference = useShareConfigStore().sharePreferenceView?.[preferenceId]
   return preference?.showMergeAllOf ?? true
+}
+
+export const calcTreeNodeChildNodes = (treeNode, draggingNode, type) => {
+  const parentNode = type === 'inner' ? treeNode : treeNode.parent
+  const childNodes = [...parentNode.childNodes]
+  if (!childNodes.some(node => node.data.treeId === draggingNode.data.treeId)) {
+    childNodes.push(draggingNode)
+  }
+  console.log('========================treeNode', treeNode, childNodes, draggingNode)
+  const parentFolder = parentNode.data
+  const docSorts = childNodes.filter(node => !!node.data.isDoc).map((node, index) => ({ docId: node.data.id, sortId: (index + 1) * 10 }))
+  const folderSortId = Math.max(parentFolder.sortId, 10000)
+  const folderSorts = childNodes.filter(node => !node.data.isDoc).map((node, index) => ({ folderId: node.data.id, sortId: folderSortId + (index + 1) * 10 }))
+  return {
+    folderId: parentFolder.id,
+    projectId: parentFolder.projectId,
+    sorts: [...docSorts, ...folderSorts]
+  }
+}
+
+export const isTreeNodeFirstFolder = (treeNode) => {
+  return treeNode.parent.childNodes.find(node => !node.isDoc) === treeNode
 }

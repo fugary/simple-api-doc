@@ -10,7 +10,9 @@ import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.project.ApiDocConfigSortsVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,6 +84,18 @@ public class ApiFolderController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
         return SimpleResultUtils.createSimpleResult(apiFolderService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiFolder)));
+    }
+
+    @PostMapping("/updateSorts")
+    public SimpleResult<Boolean> updateSorts(@RequestBody ApiDocConfigSortsVo sortsVo) {
+        if (CollectionUtils.isEmpty(sortsVo.getSorts()) || sortsVo.getProjectId() == null || sortsVo.getFolderId() == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_400);
+        }
+        ApiFolder apiFolder = apiFolderService.getById(sortsVo.getFolderId());
+        if (apiFolder == null || !apiFolder.getProjectId().equals(sortsVo.getProjectId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(apiFolderService.updateSorts(sortsVo, apiFolder));
     }
 
     protected boolean validateUserProject(ApiFolder apiFolder) {

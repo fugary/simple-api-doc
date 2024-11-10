@@ -15,6 +15,8 @@ import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
+import com.fugary.simple.api.web.vo.project.ApiDocConfigSortsVo;
+import com.fugary.simple.api.web.vo.project.ApiDocSortVo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,7 +136,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     apiDocVo.setId(existsDoc.getId());
                     apiDocVo.setStatus(existsDoc.getStatus());
                     apiDocVo.setDocVersion(existsDoc.getDocVersion());
-//                    apiDocVo.setSortId(existsDoc.getSortId());
+                    apiDocVo.setSortId(existsDoc.getSortId());
                     apiDocSchemaService.deleteByDoc(apiDocVo.getId());
                 }
                 apiDocVo.setInfoId(projectInfo.getId());
@@ -287,5 +289,40 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     results.put(fromFolder.getId(), Pair.of(fromFolder, toFolder));
                 });
         return results;
+    }
+
+    @Override
+    public boolean updateSorts(ApiDocConfigSortsVo sortsVo, ApiFolder parentFolder) {
+        Map<Integer, ApiDocSortVo> docSortMap = sortsVo.getSorts().stream()
+                .filter(sort -> sort.getDocId() != null).distinct()
+                .collect(Collectors.toMap(ApiDocSortVo::getDocId, Function.identity()));
+        Map<Integer, ApiDocSortVo> folderSortMap = sortsVo.getSorts().stream()
+                .filter(sort -> sort.getFolderId() != null).distinct()
+                .collect(Collectors.toMap(ApiDocSortVo::getFolderId, Function.identity()));
+        List<ApiDoc> apiDocs;
+        List<ApiFolder> apiFolders;
+        if (!CollectionUtils.isEmpty(docSortMap.keySet())) {
+            apiDocs = apiDocService.listByIds(docSortMap.keySet());
+            apiDocs.forEach(apiDoc -> {
+                ApiDocSortVo sortVo = docSortMap.get(apiDoc.getId());
+                if (sortVo != null) {
+                    apiDoc.setFolderId(parentFolder.getId());
+                    apiDoc.setSortId(sortVo.getSortId());
+                    apiDocService.saveOrUpdate(apiDoc);
+                }
+            });
+        }
+        if (!CollectionUtils.isEmpty(folderSortMap.keySet())) {
+            apiFolders = listByIds(folderSortMap.keySet());
+            apiFolders.forEach(apiFolder -> {
+                ApiDocSortVo sortVo = folderSortMap.get(apiFolder.getId());
+                if (sortVo != null) {
+                    apiFolder.setSortId(sortVo.getSortId());
+                    apiFolder.setParentId(parentFolder.getId());
+                    saveOrUpdate(apiFolder);
+                }
+            });
+        }
+        return true;
     }
 }
