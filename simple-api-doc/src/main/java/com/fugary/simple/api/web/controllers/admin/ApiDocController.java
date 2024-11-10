@@ -3,17 +3,16 @@ package com.fugary.simple.api.web.controllers.admin;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
-import com.fugary.simple.api.entity.api.ApiDoc;
-import com.fugary.simple.api.entity.api.ApiFolder;
-import com.fugary.simple.api.entity.api.ApiProject;
-import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
+import com.fugary.simple.api.web.vo.query.ApiDocQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +47,9 @@ public class ApiDocController {
     @Autowired
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
 
+    @Autowired
+    private ApiDocHistoryService apiDocHistoryService;
+
     @GetMapping
     public SimpleResult<List<ApiDoc>> searchDoc(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiDoc> page = SimpleResultUtils.toPage(queryVo);
@@ -64,7 +66,15 @@ public class ApiDocController {
 
     @GetMapping("/{id}")
     public SimpleResult<ApiDoc> getDoc(@PathVariable("id") Integer id) {
-        return SimpleResultUtils.createSimpleResult(apiDocService.getById(id));
+        ApiDoc apiDoc = apiDocService.getById(id);
+        if (apiDoc == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        SimpleResult<ApiDoc> result = SimpleResultUtils.createSimpleResult(apiDoc);
+        if (ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType())) {
+            result.add("historyCount", apiDocHistoryService.count(Wrappers.<ApiDocHistory>query().eq("doc_id", id)));
+        }
+        return result;
     }
 
     @DeleteMapping("/{id}")
@@ -117,6 +127,20 @@ public class ApiDocController {
         apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         return SimpleResultUtils.createSimpleResult(apiDocVo);
+    }
+
+    /**
+     * 获取历史版本
+     *
+     * @param queryVo
+     * @return
+     */
+    @PostMapping("/historyList")
+    public SimpleResult<List<ApiDocHistory>> loadHistoryList(@RequestBody ApiDocQueryVo queryVo) {
+        Integer docId = queryVo.getDocId();
+        Page<ApiDocHistory> page = SimpleResultUtils.toPage(queryVo);
+        return SimpleResultUtils.createSimpleResult(apiDocHistoryService.page(page, Wrappers.<ApiDocHistory>query().eq("doc_id", docId)
+                .orderByDesc("create_date")));
     }
 
     protected boolean validateUserProject(ApiDoc apiDoc) {

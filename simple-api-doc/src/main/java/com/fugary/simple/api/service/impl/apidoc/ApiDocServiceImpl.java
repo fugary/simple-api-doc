@@ -74,7 +74,8 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     }
 
     protected boolean isSameApiDoc(ApiDoc apiDoc, ApiDoc existsDoc) {
-        return EqualsBuilder.reflectionEquals(apiDoc, existsDoc, "docVersion",
+        ApiDoc newDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
+        return EqualsBuilder.reflectionEquals(newDoc, existsDoc, "docVersion", "sortId",
                 ApiDocConstants.MODIFY_DATE_KEY, ApiDocConstants.MODIFY_DATE_KEY);
     }
 

@@ -1,10 +1,15 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
+import ApiDocHistoryViewer from '@/views/components/api/doc/comp/ApiDocHistoryViewer.vue'
 defineProps({
   editable: {
     type: Boolean,
     default: false
+  },
+  historyCount: {
+    type: Number,
+    default: 0
   }
 })
 const currentDoc = defineModel({
@@ -17,6 +22,7 @@ const folderPaths = computed(() => {
   }
   return []
 })
+const apiDocHistoryRef = ref()
 </script>
 
 <template>
@@ -39,6 +45,21 @@ const folderPaths = computed(() => {
       >
         {{ $t('common.label.edit') }}
       </el-button>
+      <el-link
+        v-if="editable&&historyCount"
+        class="margin-left2"
+        type="primary"
+        @click="apiDocHistoryRef?.showHistoryList(currentDoc.id)"
+      >
+        {{ $t('api.label.historyVersions') }}
+        <el-text type="info">
+          ({{ historyCount }})
+        </el-text>
+      </el-link>
+      <api-doc-history-viewer
+        v-if="historyCount"
+        ref="apiDocHistoryRef"
+      />
     </h2>
   </el-header>
 </template>

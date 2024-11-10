@@ -99,6 +99,8 @@ common.label.newWindowEdit = '新窗口编辑'
 common.label.json = 'JSON'
 common.label.yaml = 'YAML'
 common.label.selectAll = '全选'
+common.label.sortId = '排序号'
+common.label.version = '版本号'
 
 //= ============通用============
 common.label.commonCode = '{0}代码'

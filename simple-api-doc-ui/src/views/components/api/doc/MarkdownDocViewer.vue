@@ -1,14 +1,15 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
+import ApiDocApi from '@/api/ApiDocApi'
 
 const { isMobile } = useScreenCheck()
 
-defineProps({
+const props = defineProps({
   scrollElement: {
     type: [Object, String],
     default: document.documentElement
@@ -27,6 +28,22 @@ const currentDoc = defineModel({
   type: Object,
   default: undefined
 })
+const historyCount = ref(0)
+
+const loadCurrentDoc = (id) => {
+  ApiDocApi.getById(id).then(data => {
+    currentDoc.value = data.resultData
+    historyCount.value = data.addons?.historyCount || 0
+  })
+}
+
+if (props.editable) {
+  watch(currentDoc, (newDoc, oldDoc) => {
+    if (newDoc.id && newDoc.id !== oldDoc?.id) {
+      loadCurrentDoc(currentDoc.value.id)
+    }
+  }, { immediate: true })
+}
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 
@@ -40,6 +57,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
     <api-doc-view-header
       v-model="currentDoc"
       :editable="editable"
+      :history-count="historyCount"
     />
     <el-container
       class="markdown-doc-viewer scroll-main-container"

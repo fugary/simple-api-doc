@@ -99,6 +99,8 @@ common.label.newWindowEdit = 'Edit in new window'
 common.label.json = 'JSON'
 common.label.yaml = 'YAML'
 common.label.selectAll = 'Select All'
+common.label.sortId = 'Sort ID'
+common.label.version = 'Version'
 
 //= ============通用============
 common.label.commonConfig = 'Config {0}'
