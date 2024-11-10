@@ -49,8 +49,7 @@ const saveApiDoc = (form) => {
       ApiDocApi.saveOrUpdate({ ...currentDocModel.value, parent: undefined }, { loading: true }).then(data => {
         if (data.success) {
           ElMessage.success($i18nBundle('common.msg.saveSuccess'))
-          Object.assign(currentDoc.value, currentDocModel.value)
-          emit('savedDoc', currentDoc.value)
+          emit('savedDoc', data.resultData)
         }
       })
     }

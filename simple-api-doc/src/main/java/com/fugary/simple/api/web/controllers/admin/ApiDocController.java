@@ -68,7 +68,7 @@ public class ApiDocController {
     }
 
     @DeleteMapping("/{id}")
-    public SimpleResult removeDoc(@PathVariable("id") Integer id) {
+    public SimpleResult<Boolean> removeDoc(@PathVariable("id") Integer id) {
         ApiDoc ApiDoc = apiDocService.getById(id);
         if (!validateUserProject(ApiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
@@ -77,7 +77,7 @@ public class ApiDocController {
     }
 
     @PostMapping
-    public SimpleResult saveDoc(@RequestBody ApiDoc apiDoc) {
+    public SimpleResult<ApiDoc> saveDoc(@RequestBody ApiDoc apiDoc) {
         ApiFolder folder = apiFolderService.getById(apiDoc.getFolderId());
         if (folder == null || !folder.getProjectId().equals(apiDoc.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
@@ -100,7 +100,8 @@ public class ApiDocController {
         if (apiDoc.getDocVersion() == null) {
             apiDoc.setDocVersion(1);
         }
-        return SimpleResultUtils.createSimpleResult(apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDoc), null));
+        apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDoc), null);
+        return SimpleResultUtils.createSimpleResult(apiDoc);
     }
 
     @GetMapping("/loadDoc/{docId}")

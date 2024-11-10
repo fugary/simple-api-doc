@@ -285,6 +285,7 @@ const handleDragEnd = (draggingNode, dropNode, type) => {
 }
 
 const handlerData = {
+  sharePreference,
   refreshProjectItem,
   showDocDetails,
   addOrEditFolder,

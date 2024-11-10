@@ -19,14 +19,23 @@ const { projectItem, loading } = useApiProjectItem(projectCode)
 
 const folderTreeRef = ref()
 const currentDoc = ref(null)
-const savedApiDoc = () => {
-  currentDoc.value.editing = false
+const savedApiDoc = (newDoc) => {
+  currentDoc.value = newDoc
+  if (folderTreeRef.value?.sharePreference) {
+    folderTreeRef.value.sharePreference.lastDocId = currentDoc.value.id
+  }
   folderTreeRef.value?.refreshProjectItem()
 }
-
+const lastDocInfo = ref()
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc?.id !== oldDoc?.id) {
     hideDebugSplit()
+    lastDocInfo.value = oldDoc
+  }
+})
+watch(() => currentDoc.value?.editing, (newEditing, oldEditing) => {
+  if (!currentDoc.value?.id && !newEditing && oldEditing && lastDocInfo.value) {
+    currentDoc.value = lastDocInfo.value
   }
 })
 const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(true)
