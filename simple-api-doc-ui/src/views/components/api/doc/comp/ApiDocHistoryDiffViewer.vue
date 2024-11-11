@@ -1,6 +1,7 @@
 <script setup lang="jsx">
 import { shallowRef, computed } from 'vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
+import CommonIcon from '@/components/common-icon/index.vue'
 import { formatDate } from '@/utils'
 import { ElText } from 'element-plus'
 import { $i18nBundle } from '@/messages'
@@ -96,6 +97,14 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
         key: 'sortId', value: $i18nBundle('common.label.sortId')
       }),
       formatter: calcFormatter({ key: 'sortId', value: modifiedDoc.sortId })
+    }, {
+      labelKey: 'api.label.docContent',
+      formatter: () => <CommonIcon icon="ArrowDownBold"/>
+    }, {
+      labelFormatter: calcFormatter({
+        key: 'docContent', value: $i18nBundle('api.label.docContent')
+      }),
+      formatter: calcFormatter({ key: 'docContent', value: <CommonIcon icon="ArrowDownBold"/> })
     }]
   }
   return []
@@ -121,7 +130,7 @@ const descriptionsItems = computed(() => {
         class="form-edit-width-100 margin-bottom2"
         :column="2"
         border
-        min-width="10%"
+        width="25%"
         :items="descriptionsItems"
       />
       <vue-monaco-diff-editor
