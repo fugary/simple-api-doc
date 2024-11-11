@@ -124,6 +124,7 @@ api.label.historyVersions = 'History Versions'
 api.label.versionDiff = 'Version Diff'
 api.label.compare = 'Compare'
 api.label.viewDiff = 'View Diff'
+api.label.current = 'Current'
 
 api.msg.noExportData = 'No data to export'
 api.msg.exportConfirm = 'Confirm to export API docs?'

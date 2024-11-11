@@ -3,9 +3,10 @@ import { ref, computed } from 'vue'
 import ApiDocApi, { loadHistoryDiff, loadHistoryList } from '@/api/ApiDocApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import { ElText } from 'element-plus'
+import { ElText, ElTag } from 'element-plus'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiDocHistoryDiffViewer from '@/views/components/api/doc/comp/ApiDocHistoryDiffViewer.vue'
+import { $i18nBundle } from '@/messages'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -60,7 +61,13 @@ const columns = [{
   }
 }, {
   labelKey: 'common.label.version',
-  property: 'docVersion'
+  formatter (data) {
+    const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
+    return <>
+      <span className="margin-right2">{data.docVersion}</span>
+      {currentFlag}
+    </>
+  }
 },
 {
   labelKey: 'common.label.modifyDate',
@@ -71,6 +78,7 @@ const buttons = computed(() => {
   return [{
     labelKey: 'api.label.compare',
     type: 'primary',
+    buttonIf: item => !item.isCurrent,
     click: item => showApiDocDiff(item)
   }, {
     labelKey: 'api.label.viewDiff',
@@ -88,21 +96,42 @@ const showApiDocDiff = (item, diff) => {
     modifiedDoc.value = currentDoc.value
     showDiffViewer.value = true
   } else {
+    const docId = item.isCurrent ? item.id : item.docId
     loadHistoryDiff({
-      docId: item.docId,
+      docId,
       docVersion: item.docVersion
     }).then(data => {
-      originalDoc.value = data.resultData?.originalDoc || {}
-      const modDoc = data.resultData?.modifiedDoc
-      modifiedDoc.value = {
-        ...modDoc,
-        modifyDate: modDoc?.createDate,
-        modifier: modDoc?.creator
+      if (data.success) {
+        if (item.isCurrent) {
+          originalDoc.value = data.resultData?.modifiedDoc
+          modifiedDoc.value = currentDoc.value
+        } else {
+          originalDoc.value = data.resultData?.originalDoc || {}
+          const modDoc = data.resultData?.modifiedDoc
+          modifiedDoc.value = {
+            ...modDoc,
+            modifyDate: modDoc?.createDate,
+            modifier: modDoc?.creator
+          }
+        }
       }
       showDiffViewer.value = true
     })
   }
 }
+
+const calcTableData = computed(() => {
+  if (currentDoc.value) {
+    const currentHistory = {
+      ...currentDoc.value,
+      createDate: currentDoc.value.modifyDate || currentDoc.value.createDate,
+      creator: currentDoc.value.modifier || currentDoc.value.creator,
+      isCurrent: true
+    }
+    return [currentHistory, ...tableData.value]
+  }
+  return tableData.value
+})
 
 defineExpose({
   showHistoryList
@@ -121,7 +150,7 @@ defineExpose({
   >
     <common-table
       v-model:page="searchParam.page"
-      :data="tableData"
+      :data="calcTableData"
       :columns="columns"
       :buttons="buttons"
       buttons-slot="buttons"
