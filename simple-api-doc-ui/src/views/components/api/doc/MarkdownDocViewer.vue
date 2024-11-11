@@ -53,7 +53,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
   <el-container
     :key="`markdown-doc-preview-${currentDoc.id}`"
     class="padding-left2 padding-right2 flex-column"
-    style="height: calc(100% - 45px)"
+    :style="!isMobile?'height: calc(100% - 45px)':''"
   >
     <api-doc-view-header
       v-model="currentDoc"
@@ -69,13 +69,17 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
         :theme="theme"
         :model-value="currentDoc.docContent"
       />
-      <md-catalog
+      <el-scrollbar
         v-if="!isMobile"
-        class="md-catalog"
-        :editor-id="id"
-        :scroll-element="scrollElement"
-        :scroll-element-offset-top="scrollElementOffsetTop"
-      />
+        class="md-doc-catalog"
+      >
+        <md-catalog
+          class="md-catalog"
+          :editor-id="id"
+          :scroll-element="scrollElement"
+          :scroll-element-offset-top="scrollElementOffsetTop"
+        />
+      </el-scrollbar>
     </el-container>
     <el-backtop
       v-common-tooltip="$t('common.label.backtop')"
@@ -89,5 +93,9 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
 <style scoped>
 .md-doc-container {
   flex-grow: 1;
+}
+.md-doc-catalog {
+  overflow: unset;
+  overflow-x: visible;
 }
 </style>
