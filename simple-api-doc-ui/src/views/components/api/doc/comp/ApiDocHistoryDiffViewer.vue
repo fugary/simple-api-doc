@@ -3,7 +3,7 @@ import { shallowRef, computed } from 'vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { formatDate } from '@/utils'
-import { ElText } from 'element-plus'
+import { ElText, ElTag } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
@@ -43,6 +43,7 @@ const calcFormatter = ({ originalDoc = props.originalDoc, modifiedDoc = props.mo
 
 const calcApiDocItems = (originalDoc, modifiedDoc) => {
   if (originalDoc && modifiedDoc) {
+    const newTag = !originalDoc.id ? <ElTag type="warning">{ $i18nBundle('common.label.new') }</ElTag> : ''
     return [{
       labelKey: 'common.label.version',
       formatter: () => originalDoc.docVersion
@@ -50,7 +51,13 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
       labelFormatter: calcFormatter({
         key: 'docVersion', value: $i18nBundle('common.label.version')
       }),
-      formatter: calcFormatter({ key: 'docVersion', value: modifiedDoc.docVersion })
+      formatter: calcFormatter({
+        key: 'docVersion',
+        value: <>
+          <span className="margin-right2">{modifiedDoc.docVersion}</span>
+          {newTag}
+        </>
+      })
     }, {
       labelKey: 'common.label.modifyDate',
       formatter: () => {

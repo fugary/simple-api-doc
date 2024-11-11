@@ -12,13 +12,16 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
+import com.fugary.simple.api.web.vo.query.ApiDocHistoryQueryVo;
 import com.fugary.simple.api.web.vo.query.ApiDocQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Create date 2024/9/27<br>
@@ -141,6 +144,33 @@ public class ApiDocController {
         Page<ApiDocHistory> page = SimpleResultUtils.toPage(queryVo);
         return SimpleResultUtils.createSimpleResult(apiDocHistoryService.page(page, Wrappers.<ApiDocHistory>query().eq("doc_id", docId)
                 .orderByDesc("create_date")));
+    }
+
+    /**
+     * 获取历史版本
+     *
+     * @param queryVo
+     * @return
+     */
+    @PostMapping("/loadHistoryDiff")
+    public SimpleResult<Map<String, ApiDocHistory>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
+        Integer docId = queryVo.getDocId();
+        Integer maxVersion = queryVo.getDocVersion();
+        Page<ApiDocHistory> page = new Page<>(1, 2);
+        apiDocHistoryService.page(page, Wrappers.<ApiDocHistory>query().eq("doc_id", docId)
+                .le(maxVersion != null, "doc_version", maxVersion)
+                .orderByDesc("doc_version"));
+        if (page.getRecords().isEmpty()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        } else {
+            Map<String, ApiDocHistory> map = new HashMap<>(2);
+            List<ApiDocHistory> docs = page.getRecords();
+            map.put("modifiedDoc", docs.get(0));
+            if (docs.size() > 1) {
+                map.put("originalDoc", docs.get(1));
+            }
+            return SimpleResultUtils.createSimpleResult(map);
+        }
     }
 
     protected boolean validateUserProject(ApiDoc apiDoc) {

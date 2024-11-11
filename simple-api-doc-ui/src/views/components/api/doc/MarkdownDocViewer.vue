@@ -51,6 +51,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
 
 <template>
   <el-container
+    :key="`markdown-doc-preview-${currentDoc.id}`"
     class="padding-left2 padding-right2 flex-column"
     style="height: calc(100% - 45px)"
   >
@@ -63,7 +64,6 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
       class="markdown-doc-viewer scroll-main-container"
     >
       <md-preview
-        :key="`markdown-doc-preview-${currentDoc.id}`"
         class="md-doc-container"
         :editor-id="id"
         :theme="theme"

@@ -121,6 +121,8 @@ api.label.generatorProvider = '生成器来源'
 api.label.generatorProviderSwagger = 'Swagger Generator'
 api.label.historyVersions = '历史版本'
 api.label.versionDiff = '版本对比'
+api.label.compare = '比较'
+api.label.viewDiff = '查看变更'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出API文档数据？'

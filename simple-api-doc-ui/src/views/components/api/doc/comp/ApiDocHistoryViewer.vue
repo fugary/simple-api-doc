@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { ref, computed } from 'vue'
-import ApiDocApi, { loadHistoryList } from '@/api/ApiDocApi'
+import ApiDocApi, { loadHistoryDiff, loadHistoryList } from '@/api/ApiDocApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import { ElText } from 'element-plus'
@@ -46,7 +46,7 @@ const columns = [{
   labelKey: 'api.label.docContent',
   property: 'docContent',
   formatter (data) {
-    return <ElText v-common-tooltip={data.docContent.substring(0, limit) + '...'} style="white-space: nowrap;">
+    return <ElText v-common-tooltip={data.docContent?.substring(0, limit) + '...'} style="white-space: nowrap;">
       {data.docContent}
     </ElText>
   }
@@ -69,19 +69,39 @@ const columns = [{
 }]
 const buttons = computed(() => {
   return [{
-    labelKey: 'common.label.view',
+    labelKey: 'api.label.compare',
+    type: 'primary',
+    click: item => showApiDocDiff(item)
+  }, {
+    labelKey: 'api.label.viewDiff',
     type: 'success',
-    click: item => {
-      showApiDocDiff(item)
-    }
+    click: item => showApiDocDiff(item, true)
   }]
 })
 
 const showDiffViewer = ref(false)
-const currentHistoryDoc = ref()
-const showApiDocDiff = (item) => {
-  currentHistoryDoc.value = item
-  showDiffViewer.value = true
+const originalDoc = ref()
+const modifiedDoc = ref()
+const showApiDocDiff = (item, diff) => {
+  if (!diff) {
+    originalDoc.value = item
+    modifiedDoc.value = currentDoc.value
+    showDiffViewer.value = true
+  } else {
+    loadHistoryDiff({
+      docId: item.docId,
+      docVersion: item.docVersion
+    }).then(data => {
+      originalDoc.value = data.resultData?.originalDoc || {}
+      const modDoc = data.resultData?.modifiedDoc
+      modifiedDoc.value = {
+        ...modDoc,
+        modifyDate: modDoc?.createDate,
+        modifier: modDoc?.creator
+      }
+      showDiffViewer.value = true
+    })
+  }
 }
 
 defineExpose({
@@ -105,15 +125,15 @@ defineExpose({
       :columns="columns"
       :buttons="buttons"
       buttons-slot="buttons"
-      :buttons-column-attrs="{width:'100px'}"
+      :buttons-column-attrs="{width:'200px'}"
       :loading="loading"
       @page-size-change="searchMethod()"
       @current-page-change="searchMethod()"
     />
     <api-doc-history-diff-viewer
       v-model="showDiffViewer"
-      :original-doc="currentHistoryDoc"
-      :modified-doc="currentDoc"
+      :original-doc="originalDoc"
+      :modified-doc="modifiedDoc"
     />
   </common-window>
 </template>

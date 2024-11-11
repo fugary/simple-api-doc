@@ -72,7 +72,7 @@ public class TokenServiceImpl implements TokenService {
             return SimpleResultUtils.createSimpleResult(user);
         } catch (JWTVerificationException e) {
             // Invalid signature/claims
-            log.error("Token Error", e);
+            log.debug("Token Error", e);
         }
         return SimpleResultUtils.createSimpleResult(errorCode);
     }

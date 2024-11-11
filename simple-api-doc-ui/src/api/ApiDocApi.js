@@ -13,4 +13,8 @@ export const loadHistoryList = function (param, config) {
   return $httpPost(`${BASE_URL}/historyList`, param, config)
 }
 
+export const loadHistoryDiff = function (param, config) {
+  return $httpPost(`${BASE_URL}/loadHistoryDiff`, param, config)
+}
+
 export default ApiDocApi
