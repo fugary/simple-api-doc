@@ -44,6 +44,7 @@ const calcFormatter = ({ originalDoc = props.originalDoc, modifiedDoc = props.mo
 const calcApiDocItems = (originalDoc, modifiedDoc) => {
   if (originalDoc && modifiedDoc) {
     const newTag = !originalDoc.id ? <ElTag type="warning">{ $i18nBundle('common.label.new') }</ElTag> : ''
+    const currentFlag = modifiedDoc.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
     return [{
       labelKey: 'common.label.version',
       formatter: () => originalDoc.docVersion
@@ -56,6 +57,7 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
         value: <>
           <span className="margin-right2">{modifiedDoc.docVersion}</span>
           {newTag}
+          {currentFlag}
         </>
       })
     }, {

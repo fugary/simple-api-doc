@@ -93,7 +93,10 @@ const modifiedDoc = ref()
 const showApiDocDiff = (item, diff) => {
   if (!diff) {
     originalDoc.value = item
-    modifiedDoc.value = currentDoc.value
+    modifiedDoc.value = {
+      ...currentDoc.value,
+      isCurrent: true
+    }
     showDiffViewer.value = true
   } else {
     const docId = item.isCurrent ? item.id : item.docId
@@ -104,7 +107,10 @@ const showApiDocDiff = (item, diff) => {
       if (data.success) {
         if (item.isCurrent) {
           originalDoc.value = data.resultData?.modifiedDoc
-          modifiedDoc.value = currentDoc.value
+          modifiedDoc.value = {
+            ...currentDoc.value,
+            isCurrent: true
+          }
         } else {
           originalDoc.value = data.resultData?.originalDoc || {}
           const modDoc = data.resultData?.modifiedDoc
