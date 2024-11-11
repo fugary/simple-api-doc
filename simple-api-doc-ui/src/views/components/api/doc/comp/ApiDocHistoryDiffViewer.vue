@@ -133,7 +133,9 @@ const descriptionsItems = computed(() => {
         :options="diffOptions"
         style="height:500px;"
         @mount="handleMount"
-      />
+      >
+        <div v-loading="true" />
+      </vue-monaco-diff-editor>
     </el-container>
   </common-window>
 </template>

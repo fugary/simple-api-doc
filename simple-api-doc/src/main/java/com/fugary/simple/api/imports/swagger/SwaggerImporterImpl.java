@@ -126,7 +126,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocType(ApiDocConstants.DOC_TYPE_MD);
                 doc.setDocKey(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info");
                 doc.setDocName("接口说明");
-                doc.setSortId(0);
+                doc.setSortId(10);
                 doc.setDocContent(info.getDescription());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
                 projectVo.getDocs().add(doc);
@@ -168,7 +168,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocName(markdownFile.getTitle());
                 doc.setDocContent(markdownFile.getContent());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
-                doc.setSortId(Objects.requireNonNullElse(markdownFile.getSortId(), i * 10 + 1));
+                doc.setSortId(Objects.requireNonNullElse(markdownFile.getSortId(), (i + 1) * 10));
                 if (folder == null) {
                     projectVo.getDocs().add(doc); // 根目录
                 } else {
