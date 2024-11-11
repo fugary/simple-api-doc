@@ -32,7 +32,7 @@ const historyCount = ref(0)
 
 const loadCurrentDoc = (id) => {
   ApiDocApi.getById(id).then(data => {
-    currentDoc.value = data.resultData
+    Object.assign(currentDoc.value, data.resultData)
     historyCount.value = data.addons?.historyCount || 0
   })
 }
@@ -63,6 +63,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
       class="markdown-doc-viewer scroll-main-container"
     >
       <md-preview
+        :key="`markdown-doc-preview-${currentDoc.id}`"
         class="md-doc-container"
         :editor-id="id"
         :theme="theme"

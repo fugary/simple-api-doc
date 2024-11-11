@@ -31,7 +31,7 @@ const docFormOption = computed(() => {
     required: true,
     attrs: {
       style: {
-        minWidth: '500px'
+        minWidth: '50vw'
       },
       size: 'large'
     },
@@ -58,8 +58,11 @@ const saveApiDoc = (form) => {
 </script>
 
 <template>
-  <el-header>
-    <el-breadcrumb v-if="folderPaths.length>1">
+  <el-header style="min-height: var(--el-header-height);height:auto;">
+    <el-breadcrumb
+      v-if="folderPaths.length>1"
+      class="margin-bottom3"
+    >
       <el-breadcrumb-item
         v-for="(folderPath, index) in folderPaths"
         :key="index"
