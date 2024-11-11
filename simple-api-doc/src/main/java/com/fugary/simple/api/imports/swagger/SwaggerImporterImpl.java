@@ -168,7 +168,11 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocName(markdownFile.getTitle());
                 doc.setDocContent(markdownFile.getContent());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
-                doc.setSortId(Objects.requireNonNullElse(markdownFile.getSortId(), (i + 1) * 10));
+                if (markdownFile.getSortId() != null) {
+                    markdownFile.setSortId(markdownFile.getSortId() + 10);
+                } else {
+                    doc.setSortId((i + 1) * 10);
+                }
                 if (folder == null) {
                     projectVo.getDocs().add(doc); // 根目录
                 } else {
