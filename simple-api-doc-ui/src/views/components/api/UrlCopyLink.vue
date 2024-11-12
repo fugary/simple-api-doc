@@ -2,6 +2,10 @@
 import { $copyText, getPathUrl } from '@/utils'
 
 const props = defineProps({
+  showLink: {
+    type: Boolean,
+    default: true
+  },
   urlPath: {
     type: String,
     default: ''
@@ -12,7 +16,7 @@ const props = defineProps({
   },
   tooltip: {
     type: String,
-    default: '复制链接地址'
+    default: 'Click to copy'
   },
   icon: {
     type: String,
@@ -34,6 +38,7 @@ const copyInfo = () => {
 
 <template>
   <el-link
+    v-if="showLink"
     v-common-tooltip="tooltip"
     type="primary"
     :underline="false"

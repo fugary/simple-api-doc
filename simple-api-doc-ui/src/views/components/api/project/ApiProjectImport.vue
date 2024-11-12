@@ -106,7 +106,7 @@ const formOptions = computed(() => {
           })
         }
         return <ElUpload showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
-          <CommonIcon size={18} icon="Upload" className="el-icon append-icon-cls"/>
+          <CommonIcon size={18} icon="Upload" class="append-icon-cls"/>
         </ElUpload>
       }
     }
@@ -155,7 +155,7 @@ const formOptions = computed(() => {
           <span style="display: inline-block; margin-left: 10px;">{importFiles.value?.[0]?.name}</span>
         </>
       },
-      tip: () => <div className="el-upload__tip">{$i18nBundle('api.msg.importFileLimit')}</div>
+      tip: () => <div class="el-upload__tip">{$i18nBundle('api.msg.importFileLimit')}</div>
     }
   }, {
     enabled: !!props.project?.id,

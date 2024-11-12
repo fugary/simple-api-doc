@@ -1,6 +1,7 @@
 <script setup lang="jsx">
 import { shallowRef, computed } from 'vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { formatDate } from '@/utils'
 import { ElText, ElTag } from 'element-plus'
@@ -55,7 +56,7 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
       formatter: calcFormatter({
         key: 'docVersion',
         value: <>
-          <span className="margin-right2">{modifiedDoc.docVersion}</span>
+          <span class="margin-right2">{modifiedDoc.docVersion}</span>
           {newTag}
           {currentFlag}
         </>
@@ -80,12 +81,23 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
       formatter: calcFormatter({ key: 'creator', modifiedKey: 'modifier', value: modifiedDoc.modifier })
     }, {
       labelKey: 'api.label.docName',
-      formatter: () => originalDoc.docName
+      formatter: () => {
+        return <>
+          {originalDoc.docName}
+          <UrlCopyLink class="margin-left1" showLink={!!originalDoc.docName} content={originalDoc.docName} />
+        </>
+      }
     }, {
       labelFormatter: calcFormatter({
         key: 'docName', value: $i18nBundle('api.label.docName')
       }),
-      formatter: calcFormatter({ key: 'docName', value: modifiedDoc.docName })
+      formatter: calcFormatter({
+        key: 'docName',
+        value: <>
+          {modifiedDoc.docName}
+          <UrlCopyLink class="margin-left1" showLink={!!modifiedDoc.docName} content={modifiedDoc.docName} />
+        </>
+      })
     }, {
       labelKey: 'common.label.status',
       formatter () {
@@ -108,12 +120,23 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
       formatter: calcFormatter({ key: 'sortId', value: modifiedDoc.sortId })
     }, {
       labelKey: 'api.label.docContent',
-      formatter: () => <CommonIcon icon="ArrowDownBold"/>
+      formatter: () => {
+        return <>
+          <CommonIcon icon="ArrowDownBold"/>
+          <UrlCopyLink showLink={!!originalDoc.docContent} class="margin-left1" content={originalDoc.docContent} />
+        </>
+      }
     }, {
       labelFormatter: calcFormatter({
         key: 'docContent', value: $i18nBundle('api.label.docContent')
       }),
-      formatter: calcFormatter({ key: 'docContent', value: <CommonIcon icon="ArrowDownBold"/> })
+      formatter: calcFormatter({
+        key: 'docContent',
+        value: <>
+          <CommonIcon icon="ArrowDownBold"/>
+          <UrlCopyLink showLink={!!modifiedDoc.docContent} class="margin-left1" content={modifiedDoc.docContent} />
+        </>
+      })
     }]
   }
   return []

@@ -7,6 +7,7 @@ import { ElText, ElTag } from 'element-plus'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiDocHistoryDiffViewer from '@/views/components/api/doc/comp/ApiDocHistoryDiffViewer.vue'
 import { $i18nBundle } from '@/messages'
+import { $copyText } from '@/utils'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -36,7 +37,9 @@ const limit = 300
 const columns = [{
   labelKey: 'api.label.docName',
   formatter (data) {
-    return <ElText v-common-tooltip={data.docName} style="white-space: nowrap;">
+    return <ElText v-common-tooltip={data.docName}
+                   onClick={() => $copyText(data.docName)}
+                   style="white-space: nowrap;cursor: pointer;">
       {data.docName}
     </ElText>
   },
@@ -47,7 +50,13 @@ const columns = [{
   labelKey: 'api.label.docContent',
   property: 'docContent',
   formatter (data) {
-    return <ElText v-common-tooltip={data.docContent?.substring(0, limit) + '...'} style="white-space: nowrap;">
+    let tooltip = data.docContent
+    if (data.docContent?.length && data.docContent.length > limit) {
+      tooltip = data.docContent?.substring(0, limit) + '...'
+    }
+    return <ElText v-common-tooltip={tooltip}
+                   onClick={() => $copyText(data.docContent)}
+                   style="white-space: nowrap;cursor: pointer;">
       {data.docContent}
     </ElText>
   }
@@ -64,7 +73,7 @@ const columns = [{
   formatter (data) {
     const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
     return <>
-      <span className="margin-right2">{data.docVersion}</span>
+      <span class="margin-right2">{data.docVersion}</span>
       {currentFlag}
     </>
   }

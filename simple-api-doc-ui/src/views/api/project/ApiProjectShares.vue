@@ -308,7 +308,7 @@ const editFormOptions = computed(() => {
         msg = $i18nBundle('api.label.shareSelectedDocs', [docsLen])
       }
       return <>
-        <strong className="margin-right1">{msg}</strong>
+        <strong class="margin-right1">{msg}</strong>
         <ElButton type="primary" size="small" onClick={() => (showTreeConfigWindow.value = true)}>
           {$i18nBundle('common.label.select')}
         </ElButton>
