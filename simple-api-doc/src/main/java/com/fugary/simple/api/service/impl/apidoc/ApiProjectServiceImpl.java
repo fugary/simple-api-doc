@@ -68,11 +68,17 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 .eq(queryVo.getProjectId() != null, "id", queryVo.getProjectId())
                 .eq(forceEnabled, ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED));
         if (apiProject != null) {
+            if (queryVo.isRemoveAuditFields()) {
+                SimpleModelUtils.removeAuditInfo(apiProject);
+            }
             ApiProjectDetailVo apiProjectVo = SimpleModelUtils.copy(apiProject, ApiProjectDetailVo.class);
             List<ApiProjectInfo> infoList = apiProjectInfoService.loadByProjectId(apiProject.getId());
             infoList.forEach(info -> {
                 if (StringUtils.isNotBlank(info.getAuthContent())) {
                     info.setAuthContent(ApiDocConstants.SECURITY_CONFUSION_VALUE);
+                }
+                if (queryVo.isRemoveAuditFields()) {
+                    SimpleModelUtils.removeAuditInfo(info);
                 }
             });
             apiProjectVo.setInfoList(infoList);
@@ -80,8 +86,8 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())
                         : apiFolderService.loadApiFolders(apiProject.getId());
                 apiProjectVo.setFolders(folders);
-                List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId())
-                        : apiDocService.loadByProject(apiProject.getId());
+                List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId(), queryVo.isIncludeDocContent())
+                        : apiDocService.loadByProject(apiProject.getId(), queryVo.isIncludeDocContent());
                 apiProjectVo.setDocs(docs);
                 if (CollectionUtils.isNotEmpty(queryVo.getDocIds())) {
                     List<ApiDoc> docList = docs.stream().filter(doc -> queryVo.getDocIds().contains(doc.getId()))
@@ -94,15 +100,27 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                             .collect(Collectors.toList());
                     apiProjectVo.setFolders(folderList);
                 }
+                if (queryVo.isRemoveAuditFields()) {
+                    apiProjectVo.getFolders().forEach(SimpleModelUtils::removeAuditInfo);
+                    apiProjectVo.getDocs().forEach(SimpleModelUtils::removeAuditInfo);
+                }
             }
             if (queryVo.isIncludesShares()) {
                 List<ApiProjectShare> shares = apiProjectShareService.list(Wrappers.<ApiProjectShare>query()
                         .eq("project_id", apiProject.getId()));
-                apiProjectVo.setShares(shares.stream().map(SimpleModelUtils::toShareVo).collect(Collectors.toList()));
+                apiProjectVo.setShares(shares.stream().map(share -> {
+                    if (queryVo.isRemoveAuditFields()) {
+                        SimpleModelUtils.removeAuditInfo(share);
+                    }
+                    return SimpleModelUtils.toShareVo(share);
+                }).collect(Collectors.toList()));
             }
             if (queryVo.isIncludeTasks()) {
                 List<ApiProjectTask> tasks = apiProjectTaskService.list(Wrappers.<ApiProjectTask>query()
                         .eq("project_id", apiProject.getId()));
+                if (queryVo.isRemoveAuditFields()) {
+                    tasks.forEach(SimpleModelUtils::removeAuditInfo);
+                }
                 apiProjectVo.setTasks(tasks);
             }
             return apiProjectVo;

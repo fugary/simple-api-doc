@@ -19,7 +19,10 @@ public class ProjectDetailQueryVo implements Serializable {
     private String projectCode;
     private boolean forceEnabled;
     private boolean includeDocs;
+    @Builder.Default
+    private boolean includeDocContent = true;
     private boolean includeTasks;
     private boolean includesShares;
+    private boolean removeAuditFields;
     private Set<Integer> docIds;
 }

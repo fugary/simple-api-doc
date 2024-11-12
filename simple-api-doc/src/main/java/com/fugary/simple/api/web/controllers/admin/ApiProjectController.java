@@ -90,6 +90,8 @@ public class ApiProjectController {
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
                 .projectCode(projectCode)
                 .includeDocs(true)
+                .includeDocContent(false)
+                .removeAuditFields(true)
                 .includeTasks(true)
                 .includesShares(true).build());
         if (detailVo == null) {
@@ -103,6 +105,8 @@ public class ApiProjectController {
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
                 .projectId(projectId)
                 .includeDocs(true)
+                .includeDocContent(false)
+                .removeAuditFields(true)
                 .includeTasks(true)
                 .includesShares(true).build());
         if (detailVo == null) {

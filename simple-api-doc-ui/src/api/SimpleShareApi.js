@@ -44,6 +44,11 @@ export const loadShareDoc = function ({ shareId, docId }, config) {
   return $httpGet(`${SHARE_BASE_URL}/loadShareDoc/${shareId}/${docId}`, config)
 }
 
+export const loadMdDoc = function ({ shareId, docId }, config) {
+  config = Object.assign(getShareConfig(shareId), config || {})
+  return $httpGet(`${SHARE_BASE_URL}/loadMdDoc/${docId}`, config)
+}
+
 export const loadProject = function (shareId, config) {
   config = Object.assign(getShareConfig(shareId), config || {})
   return $httpGet(`${SHARE_BASE_URL}/loadProject/${shareId}`, config)

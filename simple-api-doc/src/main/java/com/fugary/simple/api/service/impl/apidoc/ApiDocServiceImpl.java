@@ -1,5 +1,6 @@
 package com.fugary.simple.api.service.impl.apidoc;
 
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.ApiDocConstants;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Create date 2024/9/23<br>
@@ -33,12 +35,26 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
 
     @Override
     public List<ApiDoc> loadByProject(Integer projectId) {
-        return this.list(Wrappers.<ApiDoc>query().eq("project_id", projectId).orderByAsc("sort_id"));
+        return this.loadByProject(projectId, true);
     }
 
     @Override
     public List<ApiDoc> loadEnabledByProject(Integer projectId) {
-        return this.list(Wrappers.<ApiDoc>query().eq("project_id", projectId)
+        return this.loadEnabledByProject(projectId, true);
+    }
+
+    @Override
+    public List<ApiDoc> loadByProject(Integer projectId, boolean content) {
+        Predicate<TableFieldInfo> contentFilter = info -> content || !"docContent".equals(info.getProperty());
+        return this.list(Wrappers.<ApiDoc>query().select(ApiDoc.class, contentFilter)
+                .eq("project_id", projectId)
+                .orderByAsc("sort_id"));
+    }
+
+    @Override
+    public List<ApiDoc> loadEnabledByProject(Integer projectId, boolean content) {
+        Predicate<TableFieldInfo> contentFilter = info -> content || !"docContent".equals(info.getProperty());
+        return this.list(Wrappers.<ApiDoc>query().eq("project_id", projectId).select(ApiDoc.class, contentFilter)
                 .eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED)
                 .orderByAsc("sort_id"));
     }

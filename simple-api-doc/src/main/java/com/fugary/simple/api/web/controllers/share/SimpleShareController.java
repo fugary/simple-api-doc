@@ -108,6 +108,8 @@ public class SimpleShareController {
         return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
                 .projectCode(project.getProjectCode())
                 .forceEnabled(true)
+                .includeDocContent(false)
+                .removeAuditFields(true)
                 .docIds(SimpleModelUtils.getShareDocIds(apiShare.getShareDocs()))
                 .includeDocs(true).build()));
     }
@@ -158,6 +160,15 @@ public class SimpleShareController {
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         apiDocVo.setApiShare(SimpleModelUtils.toShareVo(apiShare));
         return SimpleResultUtils.createSimpleResult(apiDocVo);
+    }
+
+    @GetMapping("/loadMdDoc/{docId}")
+    public SimpleResult<ApiDoc> loadMdDoc(@PathVariable("docId") Integer docId) {
+        ApiDoc apiDoc = apiDocService.getById(docId);
+        if (apiDoc == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(apiDoc);
     }
 
     /**

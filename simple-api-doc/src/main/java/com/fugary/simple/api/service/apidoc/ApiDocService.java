@@ -33,6 +33,22 @@ public interface ApiDocService extends IService<ApiDoc> {
     List<ApiDoc> loadEnabledByProject(Integer projectId);
 
     /**
+     * 查询文档列表
+     *
+     * @param projectId
+     * @return
+     */
+    List<ApiDoc> loadByProject(Integer projectId, boolean content);
+
+    /**
+     * 查询可用文档列表
+     *
+     * @param projectId
+     * @return
+     */
+    List<ApiDoc> loadEnabledByProject(Integer projectId, boolean content);
+
+    /**
      * 按照projectId删除，级联删除
      *
      * @param projectId

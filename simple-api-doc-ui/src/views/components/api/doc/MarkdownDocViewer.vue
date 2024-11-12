@@ -6,6 +6,7 @@ import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
+import { loadMdDoc } from '@/api/SimpleShareApi'
 
 const { isMobile } = useScreenCheck()
 
@@ -21,6 +22,10 @@ const props = defineProps({
   editable: {
     type: Boolean,
     default: false
+  },
+  shareDoc: {
+    type: Object,
+    default: undefined
   }
 })
 const id = 'markdown-doc-preview-only'
@@ -31,19 +36,26 @@ const currentDoc = defineModel({
 const historyCount = ref(0)
 
 const loadCurrentDoc = (id) => {
-  ApiDocApi.getById(id).then(data => {
-    Object.assign(currentDoc.value, data.resultData)
-    historyCount.value = data.addons?.historyCount || 0
-  })
+  if (props.editable) {
+    ApiDocApi.getById(id).then(data => {
+      Object.assign(currentDoc.value, data.resultData)
+      historyCount.value = data.addons?.historyCount || 0
+    })
+  } else if (props.shareDoc) {
+    loadMdDoc({
+      shareId: props.shareDoc.shareId,
+      docId: id
+    }).then(data => {
+      Object.assign(currentDoc.value, data.resultData)
+    })
+  }
 }
 
-if (props.editable) {
-  watch(currentDoc, (newDoc, oldDoc) => {
-    if (newDoc.id && newDoc.id !== oldDoc?.id) {
-      loadCurrentDoc(currentDoc.value.id)
-    }
-  }, { immediate: true })
-}
+watch(currentDoc, (newDoc, oldDoc) => {
+  if (newDoc.id && newDoc.id !== oldDoc?.id) {
+    loadCurrentDoc(currentDoc.value.id)
+  }
+}, { immediate: true })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 

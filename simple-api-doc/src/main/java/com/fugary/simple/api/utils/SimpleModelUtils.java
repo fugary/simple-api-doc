@@ -79,6 +79,19 @@ public class SimpleModelUtils {
     }
 
     /**
+     * 清理审计信息，数据比较多时可以减少返回数据
+     * @param target
+     */
+    public static void removeAuditInfo(ModelBase target) {
+        if (target != null) {
+            target.setCreator(null);
+            target.setCreateDate(null);
+            target.setModifier(null);
+            target.setModifyDate(null);
+        }
+    }
+
+    /**
      * 计算保存为json的头信息
      *
      * @param headers
