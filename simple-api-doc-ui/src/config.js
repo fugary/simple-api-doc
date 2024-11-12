@@ -39,6 +39,13 @@ export const GLOBAL_ERROR_MESSAGE = true
 export const GLOBAL_ROUTE_LOADING = true
 
 /**
+ * 新自定义loading
+ *
+ * @type {boolean}
+ */
+export const GLOBAL_NEW_LOADING = true
+
+/**
  * loading延迟，单位毫秒
  * @type {number}
  */

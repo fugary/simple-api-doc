@@ -222,7 +222,7 @@ const saveFolder = () => {
   })
 }
 
-if (sharePreference.defaultTheme) {
+if (sharePreference.defaultTheme && props.shareDoc) {
   globalConfigStore.changeTheme(sharePreference.defaultTheme === 'dark')
 }
 

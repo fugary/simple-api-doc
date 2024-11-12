@@ -1,11 +1,11 @@
 import dayjs from 'dayjs'
-import { markRaw, ref } from 'vue'
+import { markRaw, ref, h } from 'vue'
 import { isObject, isArray, set, isNumber, isFunction, cloneDeep } from 'lodash-es'
 import { ElLoading, ElMessageBox, ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import numeral from 'numeral'
 import { useClipboard } from '@vueuse/core'
-import { LOADING_DELAY, SYSTEM_KEY, REMEMBER_SEARCH_PARAM_ENABLED } from '@/config'
+import { LOADING_DELAY, SYSTEM_KEY, REMEMBER_SEARCH_PARAM_ENABLED, GLOBAL_NEW_LOADING } from '@/config'
 import { $i18nBundle } from '@/messages'
 import { useRoute } from 'vue-router'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
@@ -264,8 +264,9 @@ const globalLoadingConfig = {
 
 export const $coreShowLoading = (message, config = {}) => {
   if (isObject(message)) { // 第一个参数就是对象，表示是配置对象
-    config = message
+    config = cloneDeep(message)
   } else {
+    config = cloneDeep(config)
     config.text = message
   }
   const globalLoading = globalLoadingConfig.globalLoading
@@ -275,7 +276,7 @@ export const $coreShowLoading = (message, config = {}) => {
   const openLoading = () => ElLoading.service(Object.assign({
     lock: true,
     background: 'rgba(0, 0, 0, 0.7)'
-  }, config))
+  }, getCustomLoadingConfig(config)))
   const delay = config.delay ?? globalLoadingConfig.delay
   if (delay > 0) {
     globalLoadingConfig.delayLoadingId = setTimeout(() => {
@@ -290,6 +291,22 @@ export const $coreHideLoading = () => {
   globalLoadingConfig.delayLoadingId && clearTimeout(globalLoadingConfig.delayLoadingId)
   globalLoadingConfig.delayLoadingId = null
   globalLoadingConfig.globalLoading?.close()
+}
+
+export const getCustomLoadingConfig = (config) => {
+  config.text = config.text || $i18nBundle('common.msg.loading')
+  if (GLOBAL_NEW_LOADING) {
+    const message = config.text
+    return Object.assign({}, config, {
+      customClass: 'custom-loading',
+      text: h('div', {
+        class: 'loading-content'
+      }, [h('div', {
+        class: 'new-loading'
+      }), h('span', { class: 'loading-txt' }, [message])])
+    })
+  }
+  return config
 }
 
 export const $coreAlert = (message, title = $i18nBundle('common.label.reminder'), options = undefined) => {

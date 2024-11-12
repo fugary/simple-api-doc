@@ -535,3 +535,39 @@ html, body, #app, .index-container {
 .el-input-group__append .append-icon-cls {
     top: 2px;
 }
+
+.custom-loading .circular {
+    display: none;
+}
+
+.custom-loading .loading-content {
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    top: 50%;
+    left: calc(50% - 100px);
+    margin-top: calc((0px - 42px) / 2);
+    text-align: center;
+    position: absolute;
+    align-items: center;
+}
+
+.custom-loading .loading-txt {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.new-loading {
+    height: 35px;
+    width: 35px;
+    border: 2px solid var(--el-color-primary);
+    border-top-color: rgba(0, 0, 0, 0.05);
+    display: inline-block;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
