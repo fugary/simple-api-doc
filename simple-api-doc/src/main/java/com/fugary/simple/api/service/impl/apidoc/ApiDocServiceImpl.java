@@ -126,4 +126,21 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         });
         return apiDocs.size();
     }
+
+    @Override
+    public boolean copyApiDoc(ApiDoc apiDoc) {
+        ApiDoc newDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
+        newDoc.setId(null);
+        newDoc.setModifier(null);
+        newDoc.setModifyDate(null);
+        if (newDoc.getSortId() == null) {
+            newDoc.setSortId(5);
+        }
+        newDoc.setSortId(newDoc.getSortId() + 5);
+        newDoc.setDocVersion(1);
+        newDoc.setDocKey(SimpleModelUtils.uuid());
+        newDoc.setDocName(newDoc.getDocName() + ApiDocConstants.COPY_SUFFIX);
+        SimpleModelUtils.addAuditInfo(newDoc);
+        return save(newDoc);
+    }
 }

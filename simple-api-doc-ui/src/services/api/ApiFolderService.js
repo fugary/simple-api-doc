@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import ApiDocApi from '@/api/ApiDocApi'
+import ApiDocApi, { copyApiDoc } from '@/api/ApiDocApi'
 import {
   checkExportDownloadDocs,
   downloadExportShareDocs
@@ -217,6 +217,15 @@ export const getDocHandlers = (doc, handlerData) => {
     label: $i18nBundle('common.label.commonEdit', [label]),
     handler: () => {
       handlerData.showDocDetails(doc, true)
+    }
+  }, {
+    enabled: !isApi,
+    icon: 'DocumentCopy',
+    label: $i18nBundle('common.label.commonCopy', [label]),
+    handler: () => {
+      $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle('common.label.commonCopy', [label])]))
+        .then(() => copyApiDoc(doc.id))
+        .then(() => handlerData.refreshProjectItem())
     }
   }, {
     icon: doc.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',

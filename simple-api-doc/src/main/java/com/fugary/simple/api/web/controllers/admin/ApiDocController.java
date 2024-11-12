@@ -173,6 +173,18 @@ public class ApiDocController {
         }
     }
 
+    @PostMapping("/copyApiDoc/{docId}")
+    public SimpleResult<ApiDoc> copyApiDoc(@PathVariable("docId") Integer docId) {
+        ApiDoc apiDoc = apiDocService.getById(docId);
+        if (apiDoc == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!validateUserProject(apiDoc)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        return SimpleResultUtils.createSimpleResult(apiDocService.copyApiDoc(apiDoc));
+    }
+
     protected boolean validateUserProject(ApiDoc apiDoc) {
         if (apiDoc != null) {
             return apiProjectService.validateUserProject(apiDoc.getProjectId());

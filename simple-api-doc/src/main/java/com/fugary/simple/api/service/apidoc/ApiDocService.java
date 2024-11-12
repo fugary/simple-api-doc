@@ -82,4 +82,11 @@ public interface ApiDocService extends IService<ApiDoc> {
     int copyProjectDocs(Integer fromProjectId, Integer toProjectId,
                         Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap,
                         Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap);
+
+    /**
+     * 复制一份ApiDoc，仅Markdown文档
+     * @param apiDoc
+     * @return
+     */
+    boolean copyApiDoc(ApiDoc apiDoc);
 }

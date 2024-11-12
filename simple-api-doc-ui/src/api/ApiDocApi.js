@@ -17,4 +17,8 @@ export const loadHistoryDiff = function (param, config) {
   return $httpPost(`${BASE_URL}/loadHistoryDiff`, param, config)
 }
 
+export const copyApiDoc = function (docId, config) {
+  return $httpPost(`${BASE_URL}/copyApiDoc/${docId}`, null, config)
+}
+
 export default ApiDocApi

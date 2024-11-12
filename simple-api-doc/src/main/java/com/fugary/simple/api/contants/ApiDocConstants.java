@@ -117,4 +117,9 @@ public class ApiDocConstants {
      * 常用schemaTypes
      */
     public static final Set<String> PROJECT_SCHEMA_TYPES = Set.of(PROJECT_SCHEMA_TYPE_COMPONENT, PROJECT_SCHEMA_TYPE_SECURITY, SCHEMA_TYPE_SECURITY_REQUIREMENT);
+
+    /**
+     * copy的后缀
+     */
+    public static final String COPY_SUFFIX = "-copy";
 }

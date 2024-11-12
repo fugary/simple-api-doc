@@ -53,7 +53,7 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
             share.setShareId(SimpleModelUtils.uuid());
             share.setProjectId(toProjectId);
             if (fromProjectId.equals(toProjectId)) {
-                share.setShareName(share.getShareName() + "-copy");
+                share.setShareName(share.getShareName() + ApiDocConstants.COPY_SUFFIX);
             }
             save(share);
         });

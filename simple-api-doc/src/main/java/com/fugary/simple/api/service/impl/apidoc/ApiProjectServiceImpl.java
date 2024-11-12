@@ -214,7 +214,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         Integer lastProjectId = project.getId();
         project.setId(null);
         project.setProjectCode(SimpleModelUtils.uuid());
-        project.setProjectName(project.getProjectName() + "-copy");
+        project.setProjectName(project.getProjectName() + ApiDocConstants.COPY_SUFFIX);
         save(project); // 复制新的project
         // share和task比较好处理
         apiProjectShareService.copyProjectShares(lastProjectId, project.getId(), null);

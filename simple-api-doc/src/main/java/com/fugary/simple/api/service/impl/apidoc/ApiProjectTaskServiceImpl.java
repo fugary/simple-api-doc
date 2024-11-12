@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.mapper.api.ApiProjectTaskMapper;
@@ -34,7 +35,7 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
             task.setId(null);
             task.setProjectId(toProjectId);
             if (fromProjectId.equals(toProjectId)) {
-                task.setTaskName(task.getTaskName() + "-copy");
+                task.setTaskName(task.getTaskName() + ApiDocConstants.COPY_SUFFIX);
             }
             Pair<ApiFolder, ApiFolder> folderPair = foldersMap.get(task.getToFolder());
             ApiFolder newFolder = folderPair.getRight();

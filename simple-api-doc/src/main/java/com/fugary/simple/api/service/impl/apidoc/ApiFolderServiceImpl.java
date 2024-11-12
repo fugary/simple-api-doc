@@ -276,7 +276,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     toFolder.setId(null);
                     toFolder.setProjectId(toProjectId);
                     if (fromProjectId.equals(toProjectId)) {
-                        toFolder.setFolderName(fromFolder.getFolderName() + "-copy");
+                        toFolder.setFolderName(fromFolder.getFolderName() + ApiDocConstants.COPY_SUFFIX);
                     }
                     if (toFolder.getParentId() != null) {
                         ApiFolder apiFolder = oldToNewFolderMap.get(toFolder.getParentId());
