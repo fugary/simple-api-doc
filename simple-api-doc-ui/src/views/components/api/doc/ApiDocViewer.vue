@@ -161,6 +161,8 @@ const supportedAuthModels = computed(() => {
         </h3>
         <md-preview
           v-if="apiDocDetail?.description"
+          no-mermaid
+          no-katex
           :theme="theme"
           :model-value="apiDocDetail?.description"
         />

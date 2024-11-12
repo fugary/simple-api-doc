@@ -262,17 +262,22 @@ const globalLoadingConfig = {
   delayLoadingId: null
 }
 
-export const $coreShowLoading = (message) => {
+export const $coreShowLoading = (message, config = {}) => {
+  if (isObject(message)) { // 第一个参数就是对象，表示是配置对象
+    config = message
+  } else {
+    config.text = message
+  }
   const globalLoading = globalLoadingConfig.globalLoading
   if (globalLoading) {
     globalLoading.close()
   }
   const openLoading = () => ElLoading.service(Object.assign({
     lock: true,
-    background: 'rgba(0, 0, 0, 0.7)',
-    text: message
-  }))
-  if (globalLoadingConfig.delay > 0) {
+    background: 'rgba(0, 0, 0, 0.7)'
+  }, config))
+  const delay = config.delay ?? globalLoadingConfig.delay
+  if (delay > 0) {
     globalLoadingConfig.delayLoadingId = setTimeout(() => {
       globalLoadingConfig.globalLoading = openLoading()
     }, globalLoadingConfig.delay)

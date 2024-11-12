@@ -7,6 +7,7 @@ import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.v
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
+import { $coreHideLoading, $coreShowLoading } from '@/utils'
 
 const { isMobile } = useScreenCheck()
 
@@ -36,18 +37,22 @@ const currentDoc = defineModel({
 const historyCount = ref(0)
 
 const loadCurrentDoc = (id) => {
+  currentDoc.value && (currentDoc.value.docContent = '')
+  $coreShowLoading({ delay: 0 })
   if (props.editable) {
     ApiDocApi.getById(id).then(data => {
       Object.assign(currentDoc.value, data.resultData)
       historyCount.value = data.addons?.historyCount || 0
-    })
+      $coreHideLoading()
+    }).catch(() => $coreHideLoading())
   } else if (props.shareDoc) {
     loadMdDoc({
       shareId: props.shareDoc.shareId,
       docId: id
     }).then(data => {
       Object.assign(currentDoc.value, data.resultData)
-    })
+      $coreHideLoading()
+    }).catch(() => $coreHideLoading())
   }
 }
 
@@ -79,6 +84,8 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
         class="md-doc-container"
         :editor-id="id"
         :theme="theme"
+        no-mermaid
+        no-katex
         :model-value="currentDoc.docContent"
       />
       <el-scrollbar
