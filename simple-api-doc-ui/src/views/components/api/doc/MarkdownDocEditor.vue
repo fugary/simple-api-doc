@@ -1,10 +1,12 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import MarkdownDocEditHeader from '@/views/components/api/doc/comp/MarkdownDocEditHeader.vue'
 import { uploadFiles } from '@/api/ApiProjectApi'
+import { $coreHideLoading, $coreShowLoading } from '@/utils'
+import ApiDocApi from '@/api/ApiDocApi'
 
 const currentDoc = defineModel({
   type: Object,
@@ -13,6 +15,18 @@ const currentDoc = defineModel({
 const currentDocModel = ref({
   ...currentDoc.value
 })
+const loadCurrentDoc = (id) => {
+  $coreShowLoading({ delay: 0 })
+  ApiDocApi.getById(id).then(data => {
+    Object.assign(currentDocModel.value, data.resultData)
+    $coreHideLoading()
+  }).catch(() => $coreHideLoading())
+}
+watch(currentDoc, (newDoc) => {
+  if (newDoc.id && !newDoc.docContent) {
+    loadCurrentDoc(currentDoc.value.id)
+  }
+}, { immediate: true })
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 defineEmits(['savedDoc'])
 </script>
