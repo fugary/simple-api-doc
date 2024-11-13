@@ -57,7 +57,7 @@ const loadCurrentDoc = (id) => {
 }
 
 watch(currentDoc, (newDoc, oldDoc) => {
-  if (newDoc.id && newDoc.id !== oldDoc?.id) {
+  if (newDoc.id && (newDoc.id !== oldDoc?.id || newDoc.docContent !== oldDoc?.docContent || newDoc.docName !== oldDoc?.docName)) {
     loadCurrentDoc(currentDoc.value.id)
   }
 }, { immediate: true })
