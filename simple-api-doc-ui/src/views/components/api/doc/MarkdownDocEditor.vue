@@ -16,6 +16,7 @@ const currentDocModel = ref({
   ...currentDoc.value
 })
 const loadCurrentDoc = (id) => {
+  currentDocModel.value && (currentDocModel.value.docContent = '')
   $coreShowLoading({ delay: 0 })
   ApiDocApi.getById(id).then(data => {
     Object.assign(currentDocModel.value, data.resultData)
@@ -23,8 +24,12 @@ const loadCurrentDoc = (id) => {
   }).catch(() => $coreHideLoading())
 }
 watch(currentDoc, (newDoc) => {
-  if (newDoc.id && !newDoc.docContent) {
+  if (newDoc.id) {
     loadCurrentDoc(currentDoc.value.id)
+  } else {
+    currentDocModel.value = {
+      ...newDoc
+    }
   }
 }, { immediate: true })
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
