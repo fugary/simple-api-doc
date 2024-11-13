@@ -84,10 +84,10 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         }
         if (!isSameApiDoc(apiDoc, existsDoc)) {
             if (existsDoc != null) {
+                apiDocHistoryService.saveByApiDoc(existsDoc);
                 existsDoc.setModifier(apiDoc.getModifier());
                 existsDoc.setModifyDate(apiDoc.getModifyDate());
             }
-            apiDocHistoryService.saveByApiDoc(existsDoc);
             return this.saveOrUpdate(apiDoc);
         }
         return true;
