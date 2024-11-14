@@ -64,7 +64,6 @@ const tabItems = ref()
 const onDropdownVisibleChange = (visible, tab) => {
   if (visible) {
     tabItems.value.forEach(({ dropdownRef }) => {
-      console.info(Object.assign({}, dropdownRef))
       if (dropdownRef.id !== tab.path) {
         dropdownRef.handleClose()
       }

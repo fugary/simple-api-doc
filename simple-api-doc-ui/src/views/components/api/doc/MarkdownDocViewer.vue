@@ -8,6 +8,7 @@ import { useScreenCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
+import { useInitLoadOnce } from '@/hooks/CommonHooks'
 
 const { isMobile } = useScreenCheck()
 
@@ -40,13 +41,13 @@ const loadCurrentDoc = (id) => {
   currentDoc.value && (currentDoc.value.docContent = '')
   $coreShowLoading({ delay: 0 })
   if (props.editable) {
-    ApiDocApi.getById(id).then(data => {
+    return ApiDocApi.getById(id).then(data => {
       Object.assign(currentDoc.value, data.resultData)
       historyCount.value = data.addons?.historyCount || 0
       $coreHideLoading()
     }).catch(() => $coreHideLoading())
   } else if (props.shareDoc) {
-    loadMdDoc({
+    return loadMdDoc({
       shareId: props.shareDoc.shareId,
       docId: id
     }).then(data => {
@@ -56,9 +57,11 @@ const loadCurrentDoc = (id) => {
   }
 }
 
+const { initLoadOnce } = useInitLoadOnce(() => loadCurrentDoc(currentDoc.value.id))
+
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc.id && (newDoc.id !== oldDoc?.id || newDoc.docContent !== oldDoc?.docContent || newDoc.docName !== oldDoc?.docName)) {
-    loadCurrentDoc(currentDoc.value.id)
+    initLoadOnce()
   }
 }, { immediate: true })
 

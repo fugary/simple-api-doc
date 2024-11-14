@@ -65,8 +65,7 @@ const searchFormOptions = computed(() => {
     }
   ]
 })
-const doSearch = form => {
-  console.info('=================searchParam', form, searchParam.value)
+const doSearch = () => {
   loadUsers()
 }
 

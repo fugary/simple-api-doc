@@ -206,7 +206,6 @@ export const useBackUrl = (defaultUrl) => {
     backUrl.value = url
   }
   const goBack = () => {
-    console.info('===================================goback', backUrl.value, window.history)
     if (backUrl.value) {
       if (REMEMBER_SEARCH_PARAM_ENABLED && useGlobalConfigStore().loadSaveParamMode === LoadSaveParamMode.BACK) {
         useGlobalSearchParamStore().setSaveParamBack(true)
