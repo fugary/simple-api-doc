@@ -68,7 +68,10 @@ const loadShareData = async (input) => {
     loadProject(shareId, { loading: true }).then(data => {
       projectItem.value = data.resultData
       console.log('=========================projectItem.value', projectItem.value)
-    }).catch(err => emitter.emit('share-doc-error', err))
+    }).catch(err => {
+      errorMessage.value = err.data?.message
+      emitter.emit('share-doc-error', err)
+    })
   }
 }
 onMounted(() => loadShareData())
