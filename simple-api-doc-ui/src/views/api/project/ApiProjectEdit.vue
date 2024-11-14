@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { $goto, calcAffixOffset, useBackUrl } from '@/utils'
+import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl } from '@/utils'
 import { ref, watch, computed } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
@@ -43,6 +43,9 @@ const folderContainerHeight = computed(() => {
   const offset = calcAffixOffset()
   return `calc(100vh - ${170 + offset}px)`
 })
+watch(loading, (newLoading) => {
+  newLoading ? $coreShowLoading({ delay: 0, target: '.home-main' }) : $coreHideLoading()
+}, { immediate: true })
 </script>
 
 <template>

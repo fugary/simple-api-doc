@@ -17,7 +17,7 @@ const currentDocModel = ref({
 })
 const loadCurrentDoc = (id) => {
   currentDocModel.value && (currentDocModel.value.docContent = '')
-  $coreShowLoading({ delay: 0 })
+  $coreShowLoading({ delay: 0, target: '.home-main' })
   ApiDocApi.getById(id).then(data => {
     Object.assign(currentDocModel.value, data.resultData)
     $coreHideLoading()

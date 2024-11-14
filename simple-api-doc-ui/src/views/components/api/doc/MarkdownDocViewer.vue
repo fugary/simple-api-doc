@@ -39,7 +39,7 @@ const historyCount = ref(0)
 
 const loadCurrentDoc = (id) => {
   currentDoc.value && (currentDoc.value.docContent = '')
-  $coreShowLoading({ delay: 0 })
+  $coreShowLoading({ delay: 0, target: '.home-main' })
   if (props.editable) {
     return ApiDocApi.getById(id).then(data => {
       Object.assign(currentDoc.value, data.resultData)
