@@ -59,7 +59,7 @@ export const calcDebugInWindowHandler = (folder, preference) => {
 }
 
 export const calcShowCleanHandlers = (folder, preference, config = {}) => {
-  return preference.preferenceId
+  return preference.preferenceId && config.hasApiDoc?.value
     ? [{
         enabled: !!folder.rootFlag,
         icon: 'DeleteFilled',
