@@ -3,7 +3,7 @@ import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { $coreAlert, $coreConfirm, $goto, isAdminUser, useBackUrl } from '@/utils'
 import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
-import { useTableAndSearchForm } from '@/hooks/CommonHooks'
+import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectTaskApi, { triggerTask } from '@/api/ApiProjectTaskApi'
 import { $i18nBundle } from '@/messages'
@@ -41,6 +41,12 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
 const loadProjectTasks = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
+const { initLoadOnce } = useInitLoadOnce(async () => {
+  if (!inProject) {
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  }
+  await loadProjectTasks()
+})
 
 onMounted(async () => {
   if (inProject) {
@@ -49,19 +55,11 @@ onMounted(async () => {
     searchParam.value.projectId = projectId
     searchParam.value.userName = projectItem.value?.userName
     loadValidFolders(searchParam.value.projectId)
-  } else {
-    loadUsersAndRefreshOptions()
-    loadProjectsAndRefreshOptions()
   }
-  loadProjectTasks(1)
+  return initLoadOnce()
 })
 
-onActivated(async () => {
-  if (!inProject) {
-    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
-  }
-  loadProjectTasks()
-})
+onActivated(initLoadOnce)
 
 const columns = [{
   labelKey: 'api.label.taskName',

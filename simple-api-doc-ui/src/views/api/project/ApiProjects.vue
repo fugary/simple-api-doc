@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onMounted, onActivated, ref } from 'vue'
 import { useDefaultPage } from '@/config'
-import { useTableAndSearchForm } from '@/hooks/CommonHooks'
+import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { defineFormOptions } from '@/components/utils'
 import { useAllUsers } from '@/api/ApiUserApi'
 import ApiProjectApi, { calcProjectIconUrl, copyProject, uploadFiles } from '@/api/ApiProjectApi'
@@ -28,19 +28,18 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   searchMethod: search
 })
 const loadApiProjects = (pageNumber) => {
-  searchMethod(pageNumber)
+  return searchMethod(pageNumber)
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 
-onMounted(async () => {
+const { initLoadOnce } = useInitLoadOnce(async () => {
   await loadUsersAndRefreshOptions()
-  loadApiProjects()
+  await loadApiProjects()
 })
 
-onActivated(async () => {
-  await loadUsersAndRefreshOptions()
-  loadApiProjects()
-})
+onMounted(initLoadOnce)
+
+onActivated(initLoadOnce)
 const toEditProject = (project) => {
   $goto(`/api/projects/${project.projectCode}?backUrl=${route.fullPath}`)
 }

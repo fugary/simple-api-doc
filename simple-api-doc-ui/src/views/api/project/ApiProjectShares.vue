@@ -3,7 +3,7 @@ import { computed, onMounted, ref, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
 import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl, isAdminUser, $goto } from '@/utils'
 import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
-import { useTableAndSearchForm } from '@/hooks/CommonHooks'
+import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectShareApi, { getShareUrl } from '@/api/ApiProjectShareApi'
 import { $i18nBundle } from '@/messages'
@@ -40,6 +40,13 @@ const infoList = ref([])
 const editTreeNodes = ref([])
 const showTreeConfigWindow = ref(false)
 
+const { initLoadOnce } = useInitLoadOnce(async () => {
+  if (!inProject) {
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+  }
+  await loadProjectShares()
+})
+
 onMounted(async () => {
   if (inProject) {
     await loadProjectItem(projectCode)
@@ -48,19 +55,11 @@ onMounted(async () => {
     const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
     editTreeNodes.value = docTreeNodes
     infoList.value = projectItem.value?.infoList
-  } else {
-    loadUsersAndRefreshOptions()
-    loadProjectsAndRefreshOptions()
   }
-  loadProjectShares(1)
+  return initLoadOnce()
 })
 
-onActivated(async () => {
-  if (!inProject) {
-    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
-  }
-  loadProjectShares()
-})
+onActivated(initLoadOnce)
 
 const columns = [{
   labelKey: 'api.label.shareName',

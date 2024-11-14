@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted } from 'vue'
 import { $coreConfirm, $goto, isAdminUser } from '@/utils'
-import { useTableAndSearchForm } from '@/hooks/CommonHooks'
+import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import SimpleTaskApi, { removeAndDisable } from '@/api/SimpleTaskApi'
 import { $i18nKey } from '@/messages'
 import { TASK_STATUS_MAPPING } from '@/consts/ApiConstants'
@@ -17,16 +17,16 @@ const { tableData, loading, searchParam, searchMethod: loadSimpleTasks } = useTa
   searchMethod: SimpleTaskApi.search
 })
 
-onMounted(() => {
-  loadSimpleTasks()
-})
-
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 
-onActivated(async () => {
+const { initLoadOnce } = useInitLoadOnce(async () => {
   await loadUsersAndRefreshOptions()
-  loadSimpleTasks()
+  await loadSimpleTasks()
 })
+
+onMounted(initLoadOnce)
+
+onActivated(initLoadOnce)
 
 const columns = [{
   labelKey: 'api.label.taskName',
