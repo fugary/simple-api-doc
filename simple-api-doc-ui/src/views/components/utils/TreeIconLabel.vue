@@ -19,6 +19,10 @@ defineProps({
   iconLeaf: {
     type: String,
     default: 'InsertDriveFileOutlined'
+  },
+  showIcon: {
+    type: Boolean,
+    default: false
   }
 })
 </script>
@@ -28,24 +32,26 @@ defineProps({
     class="el-tree-node__label"
     :title="node.label"
   >
-    <common-icon
-      v-if="!node.isLeaf&&node.expanded"
-      class="tree-label-icon"
-      :size="iconSize"
-      :icon="iconExpand"
-    />
-    <common-icon
-      v-if="!node.isLeaf&&!node.expanded"
-      class="tree-label-icon"
-      :size="iconSize"
-      :icon="iconClosed"
-    />
-    <common-icon
-      v-if="node.isLeaf"
-      class="tree-label-icon"
-      :size="iconSize"
-      :icon="iconLeaf"
-    />
+    <template v-if="showIcon">
+      <common-icon
+        v-if="!node.isLeaf&&node.expanded"
+        class="tree-label-icon"
+        :size="iconSize"
+        :icon="iconExpand"
+      />
+      <common-icon
+        v-if="!node.isLeaf&&!node.expanded"
+        class="tree-label-icon"
+        :size="iconSize"
+        :icon="iconClosed"
+      />
+      <common-icon
+        v-if="node.isLeaf"
+        class="tree-label-icon"
+        :size="iconSize"
+        :icon="iconLeaf"
+      />
+    </template>
     <slot>
       {{ node.label }}
     </slot>

@@ -16,6 +16,7 @@ public class ApiLog extends ModelBase {
     private String taskType;
     private String logResult;
     private String logData;
+    private String ipAddress;
     private String exceptions;
     private String extend1;
     private String extend2;

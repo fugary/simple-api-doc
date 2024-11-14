@@ -144,6 +144,7 @@ const generateSelectedDocs = (data) => {
         >
           <template #default="{node, data}">
             <tree-icon-label
+              :show-icon="shareDoc?.showTreeIcon!==false"
               :node="node"
               :icon-leaf="calcNodeLeaf(data)"
             >

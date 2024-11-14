@@ -266,7 +266,10 @@ public class SimpleModelUtils {
             shareVo.setExpired(new Date().after(apiShare.getExpireDate()));
         }
         if (apiShare.getShowChildrenLength() == null) {
-            apiShare.setShowChildrenLength(true);
+            shareVo.setShowChildrenLength(true);
+        }
+        if (apiShare.getShowTreeIcon() == null) {
+            shareVo.setShowTreeIcon(true);
         }
         return shareVo;
     }

@@ -201,6 +201,7 @@ const newOrEdit = async (id) => {
           .map(env => env.url)
       }
       currentShare.value.showChildrenLength = currentShare.value.showChildrenLength ?? true
+      currentShare.value.showTreeIcon = currentShare.value.showTreeIcon ?? true
       currentShare.value.shareDocsArr = currentShare.value.shareDocs ? (JSON.parse(currentShare.value.shareDocs) || []) : []
       if (!inProject) {
         loadDetailById(currentShare.value.projectId).then(data => {
@@ -219,6 +220,7 @@ const newOrEdit = async (id) => {
       defaultTheme: 'dark',
       defaultShowLabel: 'docName',
       showChildrenLength: true,
+      showTreeIcon: true,
       shareDocsArr: []
     }
     if (!inProject) {
@@ -283,6 +285,10 @@ const editFormOptions = computed(() => {
   }, {
     labelKey: 'api.label.showChildrenLength',
     prop: 'showChildrenLength',
+    type: 'switch'
+  }, {
+    labelKey: 'api.label.showTreeIcon',
+    prop: 'showTreeIcon',
     type: 'switch'
   }, {
     labelKey: 'api.label.accessPassword',

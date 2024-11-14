@@ -24,6 +24,7 @@ public class ApiProjectShare extends ModelBase {
     private String sharePassword;
     private String shareDocs;
     private Boolean showChildrenLength;
+    private Boolean showTreeIcon;
     private String copyRight;
     private Date expireDate;
 }

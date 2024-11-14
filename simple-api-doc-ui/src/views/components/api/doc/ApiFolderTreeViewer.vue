@@ -420,6 +420,7 @@ defineExpose(handlerData)
             >
               <tree-icon-label
                 :node="node"
+                :show-icon="shareDoc?.showTreeIcon!==false"
                 :icon-leaf="calcNodeLeaf(data)"
               >
                 <api-method-tag
