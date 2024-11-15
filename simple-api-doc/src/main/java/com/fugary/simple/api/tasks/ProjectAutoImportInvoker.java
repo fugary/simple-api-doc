@@ -74,7 +74,7 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                 .taskType(projectTask.getTaskType())
                 .projectId(String.valueOf(projectTask.getProjectId()))
                 .dataId(String.valueOf(projectTask.getId()))
-                .extend1(manual ? JsonUtils.toJson(HttpRequestUtils.getRequestHeaders(request)) : null)
+                .extend1(manual ? JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)) : null)
                 .createDate(createDate);
         if (StringUtils.isNotBlank(projectTask.getSourceUrl())) {
             ApiProject apiProject = apiProjectService.getById(projectTask.getProjectId());

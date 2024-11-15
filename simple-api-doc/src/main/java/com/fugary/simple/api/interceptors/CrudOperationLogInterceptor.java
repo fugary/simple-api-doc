@@ -86,7 +86,7 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                     .logType(request.getMethod())
                     .createDate(createDate)
                     .logTime(createDate.getTime() - startTime)
-                    .extend1(JsonUtils.toJson(HttpRequestUtils.getRequestHeaders(request)))
+                    .extend1(JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)))
                     .exceptions(exception == null ? null : ExceptionUtils.getStackTrace(exception));
             if (loginUser != null) {
                 logBuilder.userName(loginUser.getUserName())

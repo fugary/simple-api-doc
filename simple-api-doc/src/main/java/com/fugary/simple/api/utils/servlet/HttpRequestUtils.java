@@ -230,4 +230,18 @@ public class HttpRequestUtils {
 		}
 		return requestHeaders;
 	}
+
+	/**
+	 * 请求头获取
+	 * @param request
+	 */
+	public static Map<String, String> getRequestHeadersMap(HttpServletRequest request){
+		Enumeration<String> reqHeaders = request.getHeaderNames();
+		Map<String, String> requestHeaders = new HashMap<>();
+		while (reqHeaders.hasMoreElements()) {
+			String key = reqHeaders.nextElement();
+			requestHeaders.put(key, request.getHeader(key));
+		}
+		return requestHeaders;
+	}
 }
