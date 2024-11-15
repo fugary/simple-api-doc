@@ -33,58 +33,63 @@ onMounted(initLoadOnce)
 
 onActivated(initLoadOnce)
 
-const columns = [{
-  labelKey: 'common.label.user',
-  prop: 'creator'
-}, {
-  labelKey: 'api.label.logName',
-  prop: 'logName'
-}, {
-  labelKey: 'api.label.logResult',
-  formatter (data) {
-    if (data.logResult) {
-      const type = data.logResult === 'SUCCESS' ? 'success' : 'danger'
-      return <ElTag type={type}>{data.logResult}</ElTag>
+const columns = computed(() => {
+  return [{
+    labelKey: 'common.label.user',
+    prop: 'creator',
+    enabled: checkShowColumn(tableData.value, 'creator')
+  }, {
+    labelKey: 'api.label.logName',
+    prop: 'logName',
+    minWidth: '150px'
+  }, {
+    labelKey: 'api.label.logResult',
+    formatter (data) {
+      if (data.logResult) {
+        const type = data.logResult === 'SUCCESS' ? 'success' : 'danger'
+        return <ElTag type={type}>{data.logResult}</ElTag>
+      }
     }
-  }
-}, {
-  labelKey: 'api.label.logTime',
-  prop: 'logTime'
-}, {
-  labelKey: 'api.label.logType',
-  formatter (data) {
-    if (data.logType) {
-      return <ApiMethodTag size="default" method={data.logType}/>
+  }, {
+    labelKey: 'api.label.logTime',
+    prop: 'logTime'
+  }, {
+    labelKey: 'api.label.logType',
+    formatter (data) {
+      if (data.logType) {
+        return <ApiMethodTag size="default" method={data.logType}/>
+      }
     }
-  }
-}, {
-  labelKey: 'api.label.ipAddress',
-  prop: 'ipAddress'
-}, {
-  labelKey: 'api.label.logMessage',
-  prop: 'logMessage'
-}, {
-  labelKey: 'api.label.logData',
-  formatter (data) {
-    return <ElText onClick={() => showCodeWindow(data.logData)}
-                   style="white-space: nowrap;cursor: pointer;">
-      {data.logData}
-    </ElText>
-  }
-}, {
-  labelKey: 'api.label.exceptions',
-  enabled: checkShowColumn(tableData.value, 'exceptions'),
-  formatter (data) {
-    return <ElText onClick={() => showCodeWindow(data.exceptions)}
-                   style="white-space: nowrap;cursor: pointer;">
-      {data.exceptions}
-    </ElText>
-  }
-}, {
-  labelKey: 'common.label.createDate',
-  property: 'createDate',
-  dateFormat: 'YYYY-MM-DD HH:mm:ss'
-}]
+  }, {
+    labelKey: 'api.label.ipAddress',
+    prop: 'ipAddress'
+  }, {
+    labelKey: 'api.label.logMessage',
+    prop: 'logMessage'
+  }, {
+    labelKey: 'api.label.logData',
+    minWidth: '150px',
+    formatter (data) {
+      return <ElText onClick={() => showCodeWindow(data.logData)}
+                     style="white-space: nowrap;cursor: pointer;">
+        {data.logData}
+      </ElText>
+    }
+  }, {
+    labelKey: 'api.label.exceptions',
+    enabled: checkShowColumn(tableData.value, 'exceptions'),
+    formatter (data) {
+      return <ElText onClick={() => showCodeWindow(data.exceptions)}
+                     style="white-space: nowrap;cursor: pointer;">
+        {data.exceptions}
+      </ElText>
+    }
+  }, {
+    labelKey: 'common.label.createDate',
+    property: 'createDate',
+    dateFormat: 'YYYY-MM-DD HH:mm:ss'
+  }]
+})
 
 const buttons = computed(() => {
   return [{
