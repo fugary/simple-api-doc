@@ -30,6 +30,6 @@ public interface ApiProjectTaskService extends IService<ApiProjectTask> {
      * @param foldersMap
      * @return
      */
-    int copyProjectTasks(Integer fromProjectId, Integer toProjectId, Integer id,
-                         Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap);
+    Map<Integer, ApiProjectTask> copyProjectTasks(Integer fromProjectId, Integer toProjectId, Integer id,
+                                          Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap);
 }

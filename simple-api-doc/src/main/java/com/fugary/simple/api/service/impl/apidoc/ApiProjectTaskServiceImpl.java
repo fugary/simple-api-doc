@@ -7,11 +7,17 @@ import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.mapper.api.ApiProjectTaskMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
+import com.fugary.simple.api.tasks.SimpleTaskManager;
+import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Create date 2024/9/23<br>
@@ -20,18 +26,28 @@ import java.util.Map;
  */
 @Service
 public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper, ApiProjectTask> implements ApiProjectTaskService {
+
+    @Lazy
+    @Autowired
+    private SimpleTaskManager simpleTaskManager;
+
     @Override
     public boolean deleteByProject(Integer projectId) {
-        return this.remove(Wrappers.<ApiProjectTask>query().eq("project_id", projectId));
+        List<ApiProjectTask> tasks = list(Wrappers.<ApiProjectTask>query()
+                .eq("project_id", projectId));
+        tasks.forEach(apiTask -> simpleTaskManager.removeAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId())));
+        return this.removeByIds(tasks.stream().map(ApiProjectTask::getId).collect(Collectors.toList()));
     }
 
     @Override
-    public int copyProjectTasks(Integer fromProjectId, Integer toProjectId, Integer id,
+    public Map<Integer, ApiProjectTask> copyProjectTasks(Integer fromProjectId, Integer toProjectId, Integer id,
                                 Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap) {
         List<ApiProjectTask> tasks = list(Wrappers.<ApiProjectTask>query()
                 .eq("project_id", fromProjectId)
                 .eq(id != null, "id", id));
+        Map<Integer, ApiProjectTask> taskMap = new HashMap<>();
         tasks.forEach(task -> {
+            Integer oldId = task.getId();
             task.setId(null);
             task.setProjectId(toProjectId);
             if (fromProjectId.equals(toProjectId)) {
@@ -43,7 +59,8 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
                 task.setToFolder(newFolder.getId());
             }
             save(task);
+            taskMap.put(oldId, task);
         });
-        return tasks.size();
+        return taskMap;
     }
 }

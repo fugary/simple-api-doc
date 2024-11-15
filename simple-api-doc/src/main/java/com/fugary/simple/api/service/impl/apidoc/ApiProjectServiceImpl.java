@@ -2,15 +2,19 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
 import com.fugary.simple.api.service.apidoc.*;
+import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
+import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
+import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
@@ -22,6 +26,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -57,6 +62,17 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Autowired
     private ApiProjectTaskService apiProjectTaskService;
+
+    @Lazy
+    @Autowired
+    private SimpleTaskManager simpleTaskManager;
+
+    @Lazy
+    @Autowired
+    private ProjectAutoImportInvoker projectAutoImportInvoker;
+
+    @Autowired
+    private SimpleApiConfigProperties simpleApiConfigProperties;
 
     @SneakyThrows
     @Override
@@ -240,7 +256,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         Map<Integer, Integer> docMappings = apiDocService.copyProjectDocs(lastProjectId, project.getId(), foldersMap, infosMap);
         // share和task比较好处理
         apiProjectShareService.copyProjectShares(lastProjectId, project.getId(), null, docMappings);
-        apiProjectTaskService.copyProjectTasks(lastProjectId, project.getId(), null, foldersMap);
+        Map<Integer, ApiProjectTask> copyTasks = apiProjectTaskService.copyProjectTasks(lastProjectId, project.getId(), null, foldersMap);
+        copyTasks.forEach((key, apiTask) -> {
+            if (apiTask.isEnabled() && ApiDocConstants.PROJECT_TASK_TYPE_AUTO.equals(apiTask.getTaskType())) {
+                simpleTaskManager.addOrUpdateAutoTask(SimpleTaskUtils.projectTask2SimpleTask(apiTask,
+                        projectAutoImportInvoker, simpleApiConfigProperties));
+            }
+        });
         return SimpleResultUtils.createSimpleResult(project);
     }
 }
