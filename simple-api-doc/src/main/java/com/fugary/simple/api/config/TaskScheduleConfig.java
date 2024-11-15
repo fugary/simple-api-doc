@@ -5,8 +5,6 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
-import com.fugary.simple.api.tasks.SimpleTaskWrapper;
-import com.fugary.simple.api.tasks.SimpleTestTask;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -69,9 +67,9 @@ public class TaskScheduleConfig {
                             projectAutoImportInvoker, simpleApiConfigProperties));
                 }
             }
-            scheduledTaskRegistrar.addFixedRateTask(new SimpleTestTask(
-                    new SimpleTaskWrapper<>("simple-test", "简单测试任务", null),
-                    () -> log.info("简单测试....")));
+//            scheduledTaskRegistrar.addFixedRateTask(new SimpleTestTask(
+//                    new SimpleTaskWrapper<>("simple-test", "简单测试任务", null),
+//                    () -> log.info("简单测试....")));
         }
         return scheduledTaskRegistrar;
     }

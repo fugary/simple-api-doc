@@ -75,10 +75,8 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
         MethodSignature signature = (MethodSignature) joinpoint.getSignature();
         Object[] args = joinpoint.getArgs();
         HttpServletRequest request = HttpRequestUtils.getCurrentRequest();
-        log.info("{}/{}", args, result);
         if (request != null && !HttpMethod.GET.matches(request.getMethod())) {
             String logName = getLogName(signature);
-            log.info("{}", request.getMethod());
             ApiUser loginUser = SecurityUtils.getLoginUser();
             Date createDate = new Date();
             ApiLog.ApiLogBuilder logBuilder = ApiLog.builder()
@@ -112,7 +110,6 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                 logBuilder.logData(SimpleModelUtils.logDataString(argsList));
             }
             ApiLog apiLog = logBuilder.build();
-            log.info("{}", apiLog);
             publishEvent(apiLog);
         }
     }
