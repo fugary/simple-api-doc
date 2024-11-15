@@ -122,4 +122,14 @@ public class ApiDocConstants {
      * copy的后缀
      */
     public static final String COPY_SUFFIX = "-copy";
+
+    /**
+     * 成功
+     */
+    public static final String SUCCESS = "SUCCESS";
+
+    /**
+     * 失败
+     */
+    public static final String FAIL = "FAIL";
 }

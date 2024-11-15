@@ -1,12 +1,20 @@
 package com.fugary.simple.api.entity.api;
 
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.fugary.simple.api.contants.ApiDocConstants;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import lombok.Builder;
 import lombok.Data;
 
+import java.io.Serializable;
+import java.util.Date;
+
+@Builder
 @Data
-@TableName(excludeProperty = {ApiDocConstants.STATUS_KEY, ApiDocConstants.MODIFIER_KEY, ApiDocConstants.MODIFY_DATE_KEY})
-public class ApiLog extends ModelBase {
+public class ApiLog implements Serializable {
+    @TableId(type = IdType.AUTO)
+    private Integer id;
+    private String creator;
+    private Date createDate;
     private String userName;
     private String projectId;
     private String logName;
@@ -17,8 +25,8 @@ public class ApiLog extends ModelBase {
     private String logResult;
     private String logData;
     private String ipAddress;
+    private Long logTime;
     private String exceptions;
     private String extend1;
     private String extend2;
-    private String creator;
 }
