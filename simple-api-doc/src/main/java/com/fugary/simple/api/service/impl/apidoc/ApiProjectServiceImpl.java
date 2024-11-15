@@ -234,12 +234,12 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         project.setProjectCode(SimpleModelUtils.uuid());
         project.setProjectName(project.getProjectName() + ApiDocConstants.COPY_SUFFIX);
         save(project); // 复制新的project
-        // share和task比较好处理
-        apiProjectShareService.copyProjectShares(lastProjectId, project.getId(), null);
         // folder和doc
         Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap = apiFolderService.copyProjectFolders(lastProjectId, project.getId(), null);
         Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap = apiProjectInfoService.copyProjectInfos(lastProjectId, project.getId(), foldersMap);
-        apiDocService.copyProjectDocs(lastProjectId, project.getId(), foldersMap, infosMap);
+        Map<Integer, Integer> docMappings = apiDocService.copyProjectDocs(lastProjectId, project.getId(), foldersMap, infosMap);
+        // share和task比较好处理
+        apiProjectShareService.copyProjectShares(lastProjectId, project.getId(), null, docMappings);
         apiProjectTaskService.copyProjectTasks(lastProjectId, project.getId(), null, foldersMap);
         return SimpleResultUtils.createSimpleResult(project);
     }

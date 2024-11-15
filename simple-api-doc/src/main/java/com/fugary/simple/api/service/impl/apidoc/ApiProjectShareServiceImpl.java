@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
@@ -9,16 +10,22 @@ import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.mapper.api.ApiProjectShareMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
 import com.fugary.simple.api.service.token.TokenService;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Create date 2024/9/23<br>
@@ -44,7 +51,7 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
     }
 
     @Override
-    public int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id) {
+    public int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id, Map<Integer, Integer> docMappings) {
         List<ApiProjectShare> shares = list(Wrappers.<ApiProjectShare>query()
                 .eq("project_id", fromProjectId)
                 .eq(id != null, "id", id));
@@ -54,6 +61,20 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
             share.setProjectId(toProjectId);
             if (fromProjectId.equals(toProjectId)) {
                 share.setShareName(share.getShareName() + ApiDocConstants.COPY_SUFFIX);
+            }
+            if (StringUtils.isNotBlank(share.getShareDocs())) {
+                // 复制文档ID
+                String shareDocs = share.getShareDocs();
+                share.setShareDocs(null);
+                Set<Integer> docIds = JsonUtils.fromJson(shareDocs, new TypeReference<>() {
+                });
+                if (CollectionUtils.isNotEmpty(docIds)) {
+                    List<Integer> newDocIds = docIds.stream().map(docId -> docMappings.getOrDefault(docId, null))
+                            .filter(Objects::nonNull).collect(Collectors.toList());
+                    if (CollectionUtils.isNotEmpty(newDocIds)) {
+                        share.setShareDocs(JsonUtils.toJson(newDocIds));
+                    }
+                }
             }
             save(share);
         });

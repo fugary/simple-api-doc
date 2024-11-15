@@ -5,6 +5,8 @@ import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.web.vo.SimpleResult;
 
+import java.util.Map;
+
 /**
  * Create date 2024/9/23<br>
  *
@@ -33,9 +35,10 @@ public interface ApiProjectShareService extends IService<ApiProjectShare> {
      * @param fromProjectId
      * @param toProjectId
      * @param id
+     * @param docMappings
      * @return
      */
-    int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id);
+    int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id, Map<Integer, Integer> docMappings);
 
     /**
      * 密码验证

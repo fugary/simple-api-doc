@@ -95,7 +95,7 @@ public interface ApiDocService extends IService<ApiDoc> {
      * @param infosMap
      * @return
      */
-    int copyProjectDocs(Integer fromProjectId, Integer toProjectId,
+    Map<Integer, Integer> copyProjectDocs(Integer fromProjectId, Integer toProjectId,
                         Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap,
                         Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap);
 

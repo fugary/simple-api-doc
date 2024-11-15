@@ -15,6 +15,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -114,10 +115,11 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     }
 
     @Override
-    public int copyProjectDocs(Integer fromProjectId, Integer toProjectId,
+    public Map<Integer, Integer> copyProjectDocs(Integer fromProjectId, Integer toProjectId,
                                Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap,
                                Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap) {
         List<ApiDoc> apiDocs = loadByProject(fromProjectId);
+        Map<Integer, Integer> docMappings = new HashMap<>();
         apiDocs.forEach(apiDoc -> {
             ApiDoc newDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
             newDoc.setProjectId(toProjectId);
@@ -139,8 +141,9 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
                 newSchema.setDocId(newDoc.getId());
                 apiDocSchemaService.save(newSchema);
             });
+            docMappings.put(apiDoc.getId(), newDoc.getId());
         });
-        return apiDocs.size();
+        return docMappings;
     }
 
     @Override
