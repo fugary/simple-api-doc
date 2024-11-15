@@ -52,10 +52,10 @@ export const useAllUsers = (searchParam) => {
       userOptions.value = users.value.map(user => ({ label: user.userName, value: user.userName }))
     })
   }
-  const loadUsersAndRefreshOptions = async () => {
+  const loadUsersAndRefreshOptions = async (useCurrent = true) => {
     await loadSelectUsers()
     const userOpt = userOptions.value.find(option => option.value === searchParam.value.userName)
-    searchParam.value.userName = userOpt?.value || useCurrentUserName()
+    searchParam.value.userName = userOpt?.value || (useCurrent ? useCurrentUserName() : undefined)
   }
   return {
     users,

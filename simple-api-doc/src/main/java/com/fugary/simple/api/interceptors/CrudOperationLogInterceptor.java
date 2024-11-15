@@ -5,6 +5,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.event.log.OperationLogEvent;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
@@ -85,6 +86,7 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                     .logType(request.getMethod())
                     .createDate(createDate)
                     .logTime(createDate.getTime() - startTime)
+                    .extend1(JsonUtils.toJson(HttpRequestUtils.getRequestHeaders(request)))
                     .exceptions(exception == null ? null : ExceptionUtils.getStackTrace(exception));
             if (loginUser != null) {
                 logBuilder.userName(loginUser.getUserName())

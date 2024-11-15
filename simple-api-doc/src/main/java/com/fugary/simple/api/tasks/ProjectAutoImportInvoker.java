@@ -10,6 +10,7 @@ import com.fugary.simple.api.event.log.OperationLogEvent;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -73,6 +74,7 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                 .taskType(projectTask.getTaskType())
                 .projectId(String.valueOf(projectTask.getProjectId()))
                 .dataId(String.valueOf(projectTask.getId()))
+                .extend1(manual ? JsonUtils.toJson(HttpRequestUtils.getRequestHeaders(request)) : null)
                 .createDate(createDate);
         if (StringUtils.isNotBlank(projectTask.getSourceUrl())) {
             ApiProject apiProject = apiProjectService.getById(projectTask.getProjectId());

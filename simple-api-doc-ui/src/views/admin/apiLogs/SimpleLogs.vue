@@ -25,7 +25,7 @@ const dateParam = ref({
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
-  await loadUsersAndRefreshOptions()
+  await loadUsersAndRefreshOptions(false)
   await loadApiLogs()
 })
 
