@@ -50,7 +50,7 @@ public class SimpleModelUtils {
     /**
      * 混淆密码使用的pattern
      */
-    public static final Pattern PASSWORD_PATTERN = Pattern.compile("(?i)(password\\\\?\"):\\s*(\\\\?\")[^\"\\\\]+(\\\\?\")");
+    public static final Pattern PASSWORD_PATTERN = Pattern.compile("(?i)((password|secret)\\\\?\"):\\s*(\\\\?\")[^\"\\\\]+(\\\\?\")");
 
     /**
      * 生成uuid
@@ -416,7 +416,7 @@ public class SimpleModelUtils {
         } else if (argsList.size() > 1) {
             resultStr = JsonUtils.toJson(argsList);
         }
-        resultStr = PASSWORD_PATTERN.matcher(resultStr).replaceAll("$1:$2***$3");
+        resultStr = PASSWORD_PATTERN.matcher(resultStr).replaceAll("$1:$3***$4");
         return resultStr;
     }
 
