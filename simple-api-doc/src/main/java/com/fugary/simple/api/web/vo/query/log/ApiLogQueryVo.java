@@ -2,6 +2,7 @@ package com.fugary.simple.api.web.vo.query.log;
 
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
@@ -19,6 +20,8 @@ public class ApiLogQueryVo extends SimpleQueryVo {
     private String logType;
     private String logResult;
     private String ipAddress;
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date startDate;
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date endDate;
 }

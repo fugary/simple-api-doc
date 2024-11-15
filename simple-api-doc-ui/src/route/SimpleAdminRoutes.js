@@ -11,6 +11,14 @@ export default [{
     labelKey: 'api.label.taskManagement'
   }
 }, {
+  path: `${BASE_PATH}/logs`,
+  name: 'SimpleLogs',
+  component: () => import('@/views/admin/apiLogs/SimpleLogs.vue'),
+  meta: {
+    icon: 'Document',
+    labelKey: 'api.label.logManagement'
+  }
+}, {
   path: `${BASE_PATH}/shares`,
   name: 'AdminProjectShares',
   component: createNewComponent('AdminProjectShares', () => import('@/views/api/project/ApiProjectShares.vue')),

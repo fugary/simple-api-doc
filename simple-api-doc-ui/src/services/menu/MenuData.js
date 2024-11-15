@@ -61,6 +61,15 @@ export const ALL_MENUS = [
     checkEnabled: isAdminUser
   },
   {
+    id: 53,
+    parentId: 5,
+    iconCls: 'Document',
+    nameCn: '日志管理',
+    nameEn: 'Log Management',
+    menuUrl: '/admin/logs',
+    checkEnabled: isAdminUser
+  },
+  {
     id: 9,
     iconCls: 'BuildFilled',
     nameCn: '常用工具',

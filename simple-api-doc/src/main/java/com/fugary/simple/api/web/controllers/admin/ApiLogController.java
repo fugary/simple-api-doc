@@ -37,12 +37,16 @@ public class ApiLogController {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         QueryWrapper<ApiLog> queryWrapper = Wrappers.<ApiLog>query()
                 .eq(StringUtils.isNotBlank(queryVo.getUserName()), "user_name", queryVo.getUserName())
-                .eq(StringUtils.isNotBlank(queryVo.getLogName()), "log_name", queryVo.getLogName())
-                .eq(StringUtils.isNotBlank(queryVo.getLogType()), "log_type", queryVo.getLogType())
-                .eq(StringUtils.isNotBlank(queryVo.getLogResult()), "log_result", queryVo.getLogResult())
-                .eq(StringUtils.isNotBlank(queryVo.getIpAddress()), "ip_address", queryVo.getIpAddress())
+                .eq(StringUtils.isNotBlank(queryVo.getLogType()), "log_type", StringUtils.trimToEmpty(queryVo.getLogType()))
+                .eq(StringUtils.isNotBlank(queryVo.getLogResult()), "log_result", StringUtils.trimToEmpty(queryVo.getLogResult()))
+                .eq(StringUtils.isNotBlank(queryVo.getIpAddress()), "ip_address", StringUtils.trimToEmpty(queryVo.getIpAddress()))
+                .ge(queryVo.getStartDate() != null, "create_date", queryVo.getStartDate())
+                .le(queryVo.getEndDate() != null, "create_date", queryVo.getEndDate())
+                .like(StringUtils.isNotBlank(queryVo.getLogName()), "log_name", StringUtils.trimToEmpty(queryVo.getLogName()))
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("log_message", keyword)
-                        .or().like("exceptions", keyword));
+                        .or().like("log_data", keyword)
+                        .or().like("exceptions", keyword))
+                .orderByDesc("id");
         return SimpleResultUtils.createSimpleResult(apiLogService.page(page, queryWrapper));
     }
 }
