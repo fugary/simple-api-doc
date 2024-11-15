@@ -6,7 +6,6 @@ package com.fugary.simple.api.utils.servlet;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.XmlUtils;
 import com.fugary.simple.api.web.vo.NameValue;
-import com.fugary.simple.api.web.vo.http.HttpRequestVo;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -18,7 +17,6 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.ContentCachingRequestWrapper;
@@ -28,7 +26,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.*;
 
 /**
@@ -117,53 +117,46 @@ public class HttpRequestUtils {
 	}
 
 	/**
-	 * 处理请求参数
+	 * 获取本机IP地址
+	 *
+	 * @return
 	 */
-	public static HttpRequestVo parseRequestVo(HttpServletRequest request) {
-		Map<String, String> parameters = new HashMap<>();
-		Map<String, String> headers = new HashMap<>();
-		Enumeration<String> headerNames = request.getHeaderNames();
-		while (headerNames.hasMoreElements()) {
-			String name = headerNames.nextElement();
-			headers.put(name, request.getHeader(name));
+	public static String calcFirstLocalIp() {
+		String localIp = StringUtils.EMPTY;
+		try {
+			InetAddress localhost = InetAddress.getLocalHost();
+			localIp = localhost.getHostAddress();
+		} catch (UnknownHostException e) {
+			logger.error("获取本地IP地址错误", e);
 		}
-		Enumeration<String> parameterNames = request.getParameterNames();
-		while (parameterNames.hasMoreElements()) {
-			String name = parameterNames.nextElement();
-			parameters.put(name, request.getParameter(name));
-		}
-		HttpRequestVo requestVo = new HttpRequestVo();
-		requestVo.setHeaders(headers);
-		requestVo.setHeadersStr(JsonUtils.toJson(headers));
-		requestVo.setParameters(parameters);
-		requestVo.setParametersStr(request.getQueryString());
-		requestVo.setUrl(HttpRequestUtils.getRequestUrl(request));
-		requestVo.setMethod(request.getMethod());
-		requestVo.setContentType(request.getContentType());
-		List<MediaType> mediaTypes = MediaType.parseMediaTypes(request.getContentType());
-		if(mediaTypes.isEmpty() || isCompatibleWith(mediaTypes, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML,
-				MediaType.TEXT_HTML, MediaType.TEXT_PLAIN, MediaType.TEXT_HTML, MediaType.TEXT_XML)){
-            try {
-                requestVo.setBodyStr(StreamUtils.copyToString(getBodyResource(request).getInputStream(), StandardCharsets.UTF_8));
-            } catch (IOException e) {
-                log.error("parse RequestVo body error", e);
-            }
-        }
-		if(isCompatibleWith(mediaTypes, MediaType.APPLICATION_JSON)
-				|| JsonUtils.isJson(requestVo.getBodyStr())){
-			Object body = HttpRequestUtils.getJsonBody(requestVo.getBodyStr());
-			if (body != null) {
-				requestVo.setBody(body);
+		if (StringUtils.isBlank(localIp)) {
+			try {
+				Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+				while (interfaces != null && interfaces.hasMoreElements()) {
+					Enumeration<InetAddress> addresses = interfaces.nextElement().getInetAddresses();
+					while (addresses != null && addresses.hasMoreElements()) {
+						InetAddress address = addresses.nextElement();
+						if (acceptableAddress(address)) {
+							localIp = address.getHostAddress();
+							break;
+						}
+					}
+				}
+			} catch (SocketException e) {
+				logger.error("获取本地IP地址错误", e);
 			}
 		}
-		if(isCompatibleWith(mediaTypes, MediaType.APPLICATION_XML)
-				|| XmlUtils.isXml(requestVo.getBodyStr())){
-			Object body = HttpRequestUtils.getXmlBody(requestVo.getBodyStr());
-			if (body != null) {
-				requestVo.setBody(body);
-			}
-		}
-		return requestVo;
+		return localIp;
+	}
+
+	/**
+	 * 支持的地址信息
+	 *
+	 * @param address
+	 * @return
+	 */
+	public static boolean acceptableAddress(InetAddress address) {
+		return address != null && !address.isLoopbackAddress() && !address.isAnyLocalAddress() && !address.isLinkLocalAddress();
 	}
 
 	public static Object getJsonBody(String bodyStr) {

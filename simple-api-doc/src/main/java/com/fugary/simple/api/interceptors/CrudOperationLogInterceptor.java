@@ -5,13 +5,12 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.event.log.OperationLogEvent;
-import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.LoginVo;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -32,7 +31,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -44,10 +42,6 @@ import java.util.stream.Collectors;
 @Aspect
 @Slf4j
 public class CrudOperationLogInterceptor implements ApplicationContextAware {
-    /**
-     * 混淆密码使用的pattern
-     */
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("(?i)(password\\\\?\"):\\s*(\\\\?\")[^\"\\\\]+(\\\\?\")");
 
     @Autowired
     private SimpleApiConfigProperties simpleApiConfigProperties;
@@ -112,10 +106,10 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                 if (success) {
                     logBuilder.creator(loginVo.getUserName());
                 }
-                logBuilder.logData(argsToString(List.of(loginVo)));
+                logBuilder.logData(SimpleModelUtils.logDataString(List.of(loginVo)));
             } else {
                 List<Object> argsList = Arrays.stream(args).filter(this::isValidParam).collect(Collectors.toList());
-                logBuilder.logData(argsToString(argsList));
+                logBuilder.logData(SimpleModelUtils.logDataString(argsList));
             }
             ApiLog apiLog = logBuilder.build();
             log.info("{}", apiLog);
@@ -125,18 +119,6 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
 
     private boolean isValidParam(Object target) {
         return target != null && (target.getClass().isPrimitive() || target instanceof Serializable);
-    }
-
-    public String argsToString(List<Object> argsList) {
-        String resultStr = StringUtils.EMPTY;
-        if (argsList.size() == 1) {
-            Object arg = argsList.get(0);
-            resultStr = (arg.getClass().isPrimitive() || arg instanceof String) ? arg.toString() : JsonUtils.toJson(arg);
-        } else if (argsList.size() > 1) {
-            resultStr = JsonUtils.toJson(argsList);
-        }
-        resultStr = PASSWORD_PATTERN.matcher(resultStr).replaceAll("$1:$2***$3");
-        return resultStr;
     }
 
     private Pair<Boolean, LoginVo> checkLogin(String logName, Object[] args) {

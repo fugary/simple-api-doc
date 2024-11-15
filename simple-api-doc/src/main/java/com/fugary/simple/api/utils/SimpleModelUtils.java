@@ -46,6 +46,12 @@ import static com.fugary.simple.api.utils.servlet.HttpRequestUtils.getBodyResour
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class SimpleModelUtils {
+
+    /**
+     * 混淆密码使用的pattern
+     */
+    public static final Pattern PASSWORD_PATTERN = Pattern.compile("(?i)(password\\\\?\"):\\s*(\\\\?\")[^\"\\\\]+(\\\\?\")");
+
     /**
      * 生成uuid
      *
@@ -395,6 +401,23 @@ public class SimpleModelUtils {
             });
         }
         return docIds;
+    }
+
+    /**
+     * 处理参数解析为String，并且特殊处理密码混淆
+     * @param argsList
+     * @return
+     */
+    public static String logDataString(List<Object> argsList) {
+        String resultStr = StringUtils.EMPTY;
+        if (argsList.size() == 1) {
+            Object arg = argsList.get(0);
+            resultStr = (arg.getClass().isPrimitive() || arg instanceof String) ? arg.toString() : JsonUtils.toJson(arg);
+        } else if (argsList.size() > 1) {
+            resultStr = JsonUtils.toJson(argsList);
+        }
+        resultStr = PASSWORD_PATTERN.matcher(resultStr).replaceAll("$1:$2***$3");
+        return resultStr;
     }
 
     /**

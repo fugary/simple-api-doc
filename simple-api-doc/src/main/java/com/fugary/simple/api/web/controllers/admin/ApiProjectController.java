@@ -169,8 +169,8 @@ public class ApiProjectController {
         return SimpleResultUtils.createSimpleResult(apiProjectService.saveProject(SimpleModelUtils.addAuditInfo(project)));
     }
 
-    @PostMapping("/selectProjects")
-    public SimpleResult<List<ApiProject>> selectProjects(@RequestBody ProjectQueryVo queryVo) {
+    @GetMapping("/selectProjects")
+    public SimpleResult<List<ApiProject>> selectProjects(@ModelAttribute ProjectQueryVo queryVo) {
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query();
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         queryWrapper.eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED)

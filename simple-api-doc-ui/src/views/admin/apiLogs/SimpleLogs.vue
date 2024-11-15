@@ -53,7 +53,9 @@ const columns = [{
 }, {
   labelKey: 'api.label.logType',
   formatter (data) {
-    return <ApiMethodTag size="default" method={data.logType}/>
+    if (data.logType) {
+      return <ApiMethodTag size="default" method={data.logType}/>
+    }
   }
 }, {
   labelKey: 'api.label.ipAddress',
