@@ -36,7 +36,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
 defineEmits(['savedDoc'])
 </script>
 <template>
-  <el-container class="flex-column padding-left2 height100">
+  <el-container class="flex-column padding-left2 height100 padding-bottom2">
     <markdown-doc-edit-header
       v-model="currentDoc"
       v-model:doc-model="currentDocModel"

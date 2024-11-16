@@ -4,7 +4,7 @@ import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
-import { useScreenCheck } from '@/services/api/ApiCommonService'
+import { useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
@@ -66,7 +66,7 @@ watch(currentDoc, (newDoc, oldDoc) => {
 }, { immediate: true })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-
+const copyRight = useCopyRight()
 </script>
 
 <template>
@@ -103,9 +103,12 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
         />
       </el-scrollbar>
     </el-container>
-    <el-container class="text-center padding-10 padding-bottom3 flex-center">
+    <el-container
+      class="text-center padding-10 padding-bottom3 flex-center"
+      style="flex-grow: 0"
+    >
       <span>
-        <el-text>Copyright © {{ $date(new Date(), 'YYYY') }} {{ shareDoc?.copyRight||'' }}</el-text>
+        <el-text>{{ copyRight }}</el-text>
       </span>
     </el-container>
     <el-backtop

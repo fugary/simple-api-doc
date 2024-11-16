@@ -7,7 +7,6 @@ import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
-import { APP_VERSION } from '@/config'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 
@@ -161,11 +160,6 @@ watch(loading, (newLoading) => {
                 :project-item="projectItem"
                 @to-debug-api="toDebugApi"
               />
-              <el-container class="text-center padding-10 flex-center">
-                <span>
-                  <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
-                </span>
-              </el-container>
             </el-container>
           </template>
           <template #split-2>

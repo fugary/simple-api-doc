@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useThemeAndLocaleMenus } from '@/services/menu/MenuService'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { ElMessage } from 'element-plus'
-import { APP_VERSION } from '@/config'
+import { useCopyRight } from '@/services/api/ApiCommonService'
 
 const router = useRouter()
 const loginConfigStore = useLoginConfigStore()
@@ -54,6 +54,7 @@ const submitForm = form => {
   })
 }
 const formRef = ref()
+const copyRight = useCopyRight()
 </script>
 
 <template>
@@ -95,7 +96,7 @@ const formRef = ref()
     </el-card>
     <el-container class="text-center padding-10 flex-center">
       <span>
-        <el-text>Copyright © 2024 Version: {{ APP_VERSION }}</el-text>
+        <el-text>{{ copyRight }}</el-text>
       </span>
     </el-container>
   </el-container>

@@ -1,4 +1,4 @@
-import { $coreConfirm, getSingleSelectOptions } from '@/utils'
+import { $coreConfirm, formatDate, getSingleSelectOptions } from '@/utils'
 import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
@@ -6,6 +6,8 @@ import { cloneDeep, isArray, isFunction, isString } from 'lodash-es'
 import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 import { useMediaQuery } from '@vueuse/core'
 import { removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
+import { APP_VERSION } from '@/config'
+import { ref } from 'vue'
 
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
@@ -133,4 +135,16 @@ export const useScreenCheck = () => {
     isMediumScreen,
     isLargeScreen
   }
+}
+/**
+ * copyRight计算
+ * @param [shareDoc]
+ * @return {Ref<UnwrapRef<string>, UnwrapRef<string> | string>}
+ */
+export const useCopyRight = (shareDoc) => {
+  const copyRight = ref(`Copyright © ${formatDate(new Date(), 'YYYY')} Version: ${APP_VERSION}`)
+  if (shareDoc?.copyRight) {
+    copyRight.value = `Copyright © ${formatDate(new Date(), 'YYYY')} ${shareDoc.copyRight}`
+  }
+  return copyRight
 }

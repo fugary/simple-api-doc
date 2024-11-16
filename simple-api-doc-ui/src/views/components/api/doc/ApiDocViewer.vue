@@ -14,7 +14,7 @@ import emitter from '@/vendors/emitter'
 import { AUTH_TYPE } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { calcAuthModelBySchemas, calcSecuritySchemas } from '@/services/api/ApiDocPreviewService'
-import { useScreenCheck } from '@/services/api/ApiCommonService'
+import { useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
 
@@ -132,7 +132,7 @@ const supportedAuthModels = computed(() => {
   console.log('===================================authContentModel', authContentModel.value)
   return authContentModel.value?.authModels?.filter(authModel => authModel.isSupported) || []
 })
-
+const copyRight = useCopyRight()
 </script>
 
 <template>
@@ -180,9 +180,12 @@ const supportedAuthModels = computed(() => {
         />
       </el-scrollbar>
     </el-container>
-    <el-container class="text-center padding-10 padding-bottom3 flex-center">
+    <el-container
+      class="text-center padding-10 padding-bottom3 flex-center"
+      style="flex-grow: 0"
+    >
       <span>
-        <el-text>Copyright © {{ $date(new Date(), 'YYYY') }} {{ shareDoc?.copyRight||'' }}</el-text>
+        <el-text>{{ copyRight }}</el-text>
       </span>
     </el-container>
     <el-backtop
