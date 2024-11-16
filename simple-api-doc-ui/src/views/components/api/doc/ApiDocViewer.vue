@@ -139,7 +139,7 @@ const supportedAuthModels = computed(() => {
   <el-container
     :key="apiDoc.id"
     v-loading="loading"
-    style="height: calc(100% - 45px)"
+    style="height: 100%"
     class="padding-left2 flex-column padding-right2"
   >
     <api-doc-view-header v-model="apiDoc" />
@@ -179,6 +179,11 @@ const supportedAuthModels = computed(() => {
           v-model="apiDocDetail"
         />
       </el-scrollbar>
+    </el-container>
+    <el-container class="text-center padding-10 padding-bottom3 flex-center">
+      <span>
+        <el-text>Copyright © {{ $date(new Date(), 'YYYY') }} {{ shareDoc?.copyRight||'' }}</el-text>
+      </span>
     </el-container>
     <el-backtop
       v-common-tooltip="$t('common.label.backtop')"

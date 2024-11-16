@@ -37,11 +37,6 @@ defineEmits(['toDebugApi'])
       :project-item="projectItem"
       @to-debug-api="(...args)=>$emit('toDebugApi', ...args)"
     />
-    <el-container class="text-center padding-10 flex-center">
-      <span>
-        <el-text>Copyright © {{ $date(new Date(), 'YYYY') }} {{ projectShare?.copyRight||'' }}</el-text>
-      </span>
-    </el-container>
   </div>
 </template>
 

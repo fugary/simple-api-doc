@@ -169,7 +169,7 @@ const splitRef = ref()
       </common-window>
       <el-container
         v-if="projectItem"
-        class="form-edit-width-100 flex-column padding-top3 padding-left3 padding-right3 height100"
+        class="form-edit-width-100 flex-column padding-left3 padding-right3 height100"
       >
         <common-split
           v-if="!isMobile"
@@ -184,6 +184,7 @@ const splitRef = ref()
               v-model="projectItem"
               v-model:current-doc="currentDoc"
               :share-doc="projectShare"
+              class="padding-top3"
             />
           </template>
           <template #split-1>

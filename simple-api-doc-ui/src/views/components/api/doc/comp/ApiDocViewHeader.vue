@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
 import ApiDocHistoryViewer from '@/views/components/api/doc/comp/ApiDocHistoryViewer.vue'
+import { useScreenCheck } from '@/services/api/ApiCommonService'
 defineProps({
   editable: {
     type: Boolean,
@@ -23,11 +24,18 @@ const folderPaths = computed(() => {
   return []
 })
 const apiDocHistoryRef = ref()
+const { isMobile } = useScreenCheck()
 </script>
 
 <template>
-  <el-header style="min-height: var(--el-header-height);height:auto;">
-    <el-breadcrumb v-if="folderPaths.length>1">
+  <el-header
+    style="min-height: var(--el-header-height);height:auto;"
+    :style="isMobile?'padding-left: 50px;':''"
+  >
+    <el-breadcrumb
+      v-if="folderPaths.length>1"
+      class="margin-top3"
+    >
       <el-breadcrumb-item
         v-for="(folderPath, index) in folderPaths"
         :key="index"
