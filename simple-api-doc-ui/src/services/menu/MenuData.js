@@ -105,6 +105,7 @@ export const ALL_MENUS = [
     nameEn: 'Database',
     dbConsole: true,
     external: true,
-    menuUrl: dbUrl
+    menuUrl: dbUrl,
+    checkEnabled: isAdminUser
   }
 ]
