@@ -11,6 +11,7 @@ import {
 } from '@/consts/ApiConstants'
 import { ElButton, ElUpload } from 'element-plus'
 import {
+  calcProjectIconUrl,
   importProject, uploadFiles
 } from '@/api/ApiProjectApi'
 import { $i18nBundle } from '@/messages'
@@ -99,13 +100,19 @@ const formOptions = computed(() => {
     enabled: !existsProj,
     tooltip: $i18nBundle('api.msg.projectIconTooltip'),
     slots: {
+      prefix () {
+        if (importModel.value.iconUrl) {
+          const iconUrl = calcProjectIconUrl(importModel.value?.iconUrl)
+          return <img src={iconUrl} class="api-project-icon-cls margin-right1" alt="logo"/>
+        }
+      },
       append () {
         const changeFile = ($event) => {
           uploadFiles($event.raw, (resultData) => {
             importModel.value.iconUrl = resultData?.[0]
           })
         }
-        return <ElUpload showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
+        return <ElUpload class="custom-img-upload" showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
           <CommonIcon size={18} icon="Upload" class="append-icon-cls"/>
         </ElUpload>
       }

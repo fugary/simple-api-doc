@@ -114,13 +114,19 @@ const editFormOptions = computed(() => defineFormOptions([{
   prop: 'iconUrl',
   tooltip: $i18nBundle('api.msg.projectIconTooltip'),
   slots: {
+    prefix () {
+      if (currentProject.value.iconUrl) {
+        const iconUrl = calcProjectIconUrl(currentProject.value?.iconUrl)
+        return <img src={iconUrl} class="api-project-icon-cls margin-right1" alt="logo"/>
+      }
+    },
     append () {
       const changeFile = ($event) => {
         uploadFiles($event.raw, (resultData) => {
           currentProject.value.iconUrl = resultData?.[0]
         })
       }
-      return <ElUpload showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
+      return <ElUpload class="custom-img-upload" showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
         <CommonIcon size={18} icon="Upload" class="append-icon-cls"/>
       </ElUpload>
     }

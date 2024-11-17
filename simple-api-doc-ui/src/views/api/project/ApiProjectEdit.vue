@@ -165,7 +165,7 @@ watch(loading, (newLoading) => {
           <template #split-2>
             <el-container class="flex-column padding-left2">
               <el-page-header
-                class="padding-bottom2"
+                class="padding-bottom2 padding-top2"
                 @back="hideDebugSplit"
               >
                 <template #content>

@@ -200,7 +200,7 @@ const splitRef = ref()
               class="flex-column padding-left2 height100"
             >
               <el-page-header
-                class="padding-bottom2"
+                class="padding-bottom2 padding-top2"
                 @back="hideDebugSplit"
               >
                 <template #content>

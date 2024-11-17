@@ -424,6 +424,10 @@ html, body, #app, .index-container {
     flex-grow: 1;
 }
 
+.custom-img-upload .el-upload {
+    display: flex;
+}
+
 .common-params-edit .text-model-cls {
     float: right;
     width: calc(100% - 140px) !important;
@@ -530,10 +534,6 @@ html, body, #app, .index-container {
     width: 30px;
     height: 30px;
     border-radius: 4px;
-}
-
-.el-input-group__append .append-icon-cls {
-    top: 2px;
 }
 
 .custom-loading .circular {
