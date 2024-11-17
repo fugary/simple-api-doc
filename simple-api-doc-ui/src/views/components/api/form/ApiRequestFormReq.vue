@@ -17,7 +17,7 @@ import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestF
 import { $i18nBundle, $i18nKey } from '@/messages'
 import { getSingleSelectOptions } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
-import { isString } from 'lodash-es'
+import { isString, isArray } from 'lodash-es'
 import { calcEnvSuggestions, generateFormSample, generateSchemaSample } from '@/services/api/ApiCommonService'
 import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
@@ -157,8 +157,15 @@ const proxyModeOption = computed(() => {
 })
 
 const viewSchemaBody = () => {
-  const schemaBody = isString(props.schemaBody) ? props.schemaBody : JSON.stringify(props.schemaBody)
-  showCodeWindow(schemaBody)
+  if (isString(props.schemaBody)) {
+    showCodeWindow(props.schemaBody)
+  } else {
+    let calcSchemaBody = props.schemaBody
+    if (isArray(props.schemaBody) && props.schemaBody.length === 1) {
+      calcSchemaBody = props.schemaBody[0]
+    }
+    showCodeWindow(JSON.stringify(calcSchemaBody))
+  }
 }
 
 const supportedGenerates = computed(() => generateSampleCheckResults(props.schemaBody))
