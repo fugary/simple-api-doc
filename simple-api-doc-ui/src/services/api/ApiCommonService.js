@@ -148,3 +148,12 @@ export const useCopyRight = (shareDoc) => {
   }
   return copyRight
 }
+
+export const checkImageAccept = headers => Object.keys(headers || {}).find(key => key.toLowerCase() === 'accept')
+
+export const calcPreviewHeaders = config => {
+  const accept = checkImageAccept(config?.headers)
+  if (accept && config.headers[accept]?.includes('image')) {
+    config.responseType = 'arraybuffer'
+  }
+}

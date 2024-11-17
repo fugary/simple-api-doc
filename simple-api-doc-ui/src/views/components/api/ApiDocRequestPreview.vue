@@ -9,7 +9,7 @@ import {
 } from '@/services/api/ApiDocPreviewService'
 import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
-import { processEvnParams } from '@/services/api/ApiCommonService'
+import { calcPreviewHeaders, processEvnParams } from '@/services/api/ApiCommonService'
 import { joinPath } from '@/utils'
 import {
   AUTH_TYPE,
@@ -96,6 +96,7 @@ const doDataPreview = async () => {
     data,
     headers
   }
+  calcPreviewHeaders(config)
   let authContent = paramTarget.value.authContent
   if (authContent) {
     if (authContent.authType === AUTH_TYPE.INHERIT) {
@@ -117,7 +118,7 @@ const doDataPreview = async () => {
 
 const calcResponse = (response) => {
   responseTarget.value = processResponse(response)
-  if (response.status === 200 && response.data?.includes('{"code":401')) {
+  if (response.status === 200 && response.data?.includes?.('{"code":401')) {
     console.log('===============================responseTarget', responseTarget.value)
     emitter.emit('preview-401-error', {
       data: JSON.parse(responseTarget.value?.data)

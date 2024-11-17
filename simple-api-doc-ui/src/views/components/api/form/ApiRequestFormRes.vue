@@ -1,8 +1,10 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
-import { $i18nKey } from '@/messages'
+import { $i18nKey, $i18nBundle } from '@/messages'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import { isString } from 'lodash-es'
+import { $coreError } from '@/utils'
 
 const props = defineProps({
   responseTarget: {
@@ -18,10 +20,23 @@ const {
   languageModel, normalLanguageSelectOption, formatDocument
 } = useMonacoEditorOptions()
 
+const responseImg = ref()
+
 watch(() => props.responseTarget, (responseTarget) => {
   currentTabName.value = 'responseData'
-  contentRef.value = responseTarget?.data
-  setTimeout(() => formatDocument())
+  responseImg.value = null
+  const contentType = responseTarget?.responseHeaders?.find(header => header.name?.toLowerCase() === 'content-type' && header.value?.includes('image'))
+  if (responseTarget?.data && contentType) {
+    if (isString(responseTarget.data)) {
+      $coreError($i18nBundle('api.msg.checkImageAccept'))
+    } else {
+      const base64Data = btoa(new Uint8Array(responseTarget.data).reduce((data, byte) => data + String.fromCharCode(byte), '')) // 将 ArrayBuffer 转换为 Base64
+      responseImg.value = `data:${contentType};base64,${base64Data}`
+    }
+  } else {
+    contentRef.value = responseTarget?.data
+    setTimeout(() => formatDocument())
+  }
 }, { immediate: true })
 
 const requestInfo = computed(() => {
@@ -83,50 +98,58 @@ const codeHeight = '300px'
           </el-badge>
         </template>
         <el-container class="flex-column">
-          <common-form-control
-            :model="languageModel"
-            :option="normalLanguageSelectOption"
-            @change="languageRef=$event"
-          >
-            <template #childAfter>
-              <url-copy-link
-                :content="contentRef"
-                :tooltip="$i18nKey('common.label.commonCopy', 'api.label.responseBody')"
-              />
-              <el-link
-                v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.responseBody')"
-                type="primary"
-                :underline="false"
-                class="margin-left3"
-                @click="formatDocument"
-              >
-                <common-icon
-                  :size="18"
-                  icon="FormatIndentIncreaseFilled"
+          <template v-if="responseImg">
+            <img
+              :src="responseImg"
+              alt="response image"
+            >
+          </template>
+          <template v-else>
+            <common-form-control
+              :model="languageModel"
+              :option="normalLanguageSelectOption"
+              @change="languageRef=$event"
+            >
+              <template #childAfter>
+                <url-copy-link
+                  :content="contentRef"
+                  :tooltip="$i18nKey('common.label.commonCopy', 'api.label.responseBody')"
                 />
-              </el-link>
-              <el-link
-                v-common-tooltip="$t('api.msg.showRawData')"
-                type="primary"
-                :underline="false"
-                class="margin-left3"
-                @click="contentRef=responseTarget?.data"
-              >
-                <common-icon
-                  :size="40"
-                  icon="RawOnFilled"
-                />
-              </el-link>
-            </template>
-          </common-form-control>
-          <vue-monaco-editor
-            v-model:value="contentRef"
-            :language="languageRef"
-            :height="codeHeight"
-            :options="monacoEditorOptions"
-            class="common-resize-vertical"
-            @mount="editorRef=$event"
-          />
+                <el-link
+                  v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.responseBody')"
+                  type="primary"
+                  :underline="false"
+                  class="margin-left3"
+                  @click="formatDocument"
+                >
+                  <common-icon
+                    :size="18"
+                    icon="FormatIndentIncreaseFilled"
+                  />
+                </el-link>
+                <el-link
+                  v-common-tooltip="$t('api.msg.showRawData')"
+                  type="primary"
+                  :underline="false"
+                  class="margin-left3"
+                  @click="contentRef=responseTarget?.data"
+                >
+                  <common-icon
+                    :size="40"
+                    icon="RawOnFilled"
+                  />
+                </el-link>
+              </template>
+            </common-form-control>
+            <vue-monaco-editor
+              v-model:value="contentRef"
+              :language="languageRef"
+              :height="codeHeight"
+              :options="monacoEditorOptions"
+              class="common-resize-vertical"
+              @mount="editorRef=$event"
+            />
+          </template>
         </el-container>
       </el-tab-pane>
       <el-tab-pane
