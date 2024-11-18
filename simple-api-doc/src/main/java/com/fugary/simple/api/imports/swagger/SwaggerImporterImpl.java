@@ -169,7 +169,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 doc.setDocContent(markdownFile.getContent());
                 doc.setStatus(ApiDocConstants.STATUS_ENABLED);
                 if (markdownFile.getSortId() != null) {
-                    markdownFile.setSortId(markdownFile.getSortId() + 10);
+                    doc.setSortId(markdownFile.getSortId() + 10);
                 } else {
                     doc.setSortId((i + 1) * 10);
                 }
