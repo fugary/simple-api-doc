@@ -66,7 +66,7 @@ public class ApiFolderController {
         if (!folders.isEmpty()) {
             folders.forEach(folder -> apiFolderService.deleteFolder(folder.getId()));
         }
-        return SimpleResultUtils.createSimpleResult(apiFolderService.deleteFolder(id));
+        return SimpleResultUtils.createSimpleResult(!folders.isEmpty());
     }
 
     @PostMapping

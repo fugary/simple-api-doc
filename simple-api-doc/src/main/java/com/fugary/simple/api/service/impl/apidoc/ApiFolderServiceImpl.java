@@ -209,7 +209,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             Map<String, ApiFolder> pathFolderMap = folderMapPair.getLeft();
             String path = folderPathMap.get(apiFolder.getId());
             return pathFolderMap.entrySet().stream()
-                    .filter(entry-> pathMatcher.match(path + "/*", entry.getKey())).map(Map.Entry::getValue)
+                    .filter(entry-> pathMatcher.match(path + "/**", entry.getKey())).map(Map.Entry::getValue)
                     .collect(Collectors.toList());
         }
         return new ArrayList<>();
@@ -231,9 +231,11 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             List<String> paths = new ArrayList<>();
             paths.add(apiFolder.getFolderName());
             ApiFolder currentFolder = apiFolder;
-            while (currentFolder.getParentId() != null) {
+            while (currentFolder != null && currentFolder.getParentId() != null) {
                 currentFolder = folderMap.get(currentFolder.getParentId());
-                paths.add(0, currentFolder.getFolderName());
+                if (currentFolder != null) {
+                    paths.add(0, currentFolder.getFolderName());
+                }
             }
             String folderPath = String.join("/", paths);
             pathFolderMap.put(folderPath, apiFolder);
