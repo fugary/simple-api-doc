@@ -61,7 +61,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         Map<String, Pair<String, ApiDoc>> existsDocMap = calcDocMap(apiDocService.loadByProject(project.getId()), folderPathMap);
         ApiFolder finalMountFolder = mountFolder; // 挂载目录
         apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, finalMountFolder, folder, folderMapPair, existsDocMap));
-        this.saveApiDocs(projectInfo, mountFolder, mountFolder, null, extraDocs, folderMapPair, existsDocMap);
+        this.saveApiDocs(projectInfo, mountFolder, null, extraDocs, existsDocMap);
         return apiFolders.size();
     }
 
@@ -69,9 +69,13 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         Map<String, Pair<String, ApiDoc>> docMap = new HashMap<>();
         docs.forEach(doc -> {
             String folderPath = folderPathMap.get(doc.getFolderId());
-            docMap.put(doc.getDocKey(), Pair.of(folderPath, doc));
+            docMap.put(calcDocKey(doc.getInfoId(), doc), Pair.of(folderPath, doc));
         });
         return docMap;
+    }
+
+    protected String calcDocKey(Integer infoId, ApiDoc apiDoc) {
+        return StringUtils.join(List.of(infoId, apiDoc.getDocKey()), "__");
     }
 
     protected void saveApiFolderVo(ApiProjectInfo projectInfo, ApiFolder rootFolder, ApiFolder parentFolder, ExportApiFolderVo folder,
@@ -94,7 +98,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         }
         pathFolderMap.put(folderPath, folder);
         folderPathMap.put(folder.getId(), folderPath);
-        saveApiDocs(projectInfo, rootFolder, parentFolder, folder, folder.getDocs(), folderMapPair, existsDocMap);
+        saveApiDocs(projectInfo, parentFolder, folder, folder.getDocs(), existsDocMap);
         if (!CollectionUtils.isEmpty(folder.getFolders())) { // 子目录
             for (ExportApiFolderVo subFolder : folder.getFolders()) {
                 saveApiFolderVo(projectInfo, rootFolder, existsFolder, subFolder, folderMapPair, existsDocMap);
@@ -106,45 +110,40 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
      * 保存doc信息
      *
      * @param projectInfo 项目基本信息
-     * @param rootFolder    根目录
      * @param parentFolder   挂载目录
      * @param folder        父级目录
      * @param docs          文档列表
-     * @param folderMapPair 文档解析map
      * @param existsDocMap  已保存文档map
      */
-    protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder rootFolder, ApiFolder parentFolder, ExportApiFolderVo folder, List<ExportApiDocVo> docs,
-                               Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
+    protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder parentFolder,
+                               ExportApiFolderVo folder, List<ExportApiDocVo> docs,
                                Map<String, Pair<String, ApiDoc>> existsDocMap) {
-        Map<Integer, String> folderPathMap = folderMapPair.getRight();
         if (!CollectionUtils.isEmpty(docs)) {
-            String folderPath = folderPathMap.get(rootFolder.getId());
             Integer projectId = parentFolder.getProjectId();
             Integer folderId = parentFolder.getId();
             if (folder != null) {
-                folderPath = folderPath + "/" + folder.getFolderPath(); // 子目录挂载上去
                 folderId = folder.getId();
             }
             // 保存folder docs
             for (ExportApiDocVo apiDocVo : docs) {
-                Pair<String, ApiDoc> existsDocPair = existsDocMap.get(apiDocVo.getDocKey());
+                Pair<String, ApiDoc> existsDocPair = existsDocMap.get(calcDocKey(projectInfo.getId(), apiDocVo));
                 apiDocVo.setDocVersion(1);
+                apiDocVo.setInfoId(projectInfo.getId());
+                apiDocVo.setProjectId(projectId);
+                apiDocVo.setFolderId(folderId);
                 ApiDoc existsDoc = null;
-                if (existsDocPair != null && StringUtils.equals(existsDocPair.getKey(), folderPath)
-                        && existsDocPair.getValue() != null) { // 目录相同
+                if (existsDocPair != null && existsDocPair.getValue() != null) { // 目录相同
                     existsDoc = existsDocPair.getValue();
                     apiDocVo.setId(existsDoc.getId());
                     apiDocVo.setStatus(existsDoc.getStatus());
                     apiDocVo.setDocVersion(existsDoc.getDocVersion());
                     apiDocVo.setSortId(existsDoc.getSortId());
+                    apiDocVo.setFolderId(existsDoc.getFolderId());
                     apiDocSchemaService.deleteByDoc(apiDocVo.getId());
                 }
-                apiDocVo.setInfoId(projectInfo.getId());
                 if (ApiDocConstants.DOC_TYPE_API.equals(apiDocVo.getDocType())) {
                     apiDocVo.setSpecVersion(projectInfo.getSpecVersion());
                 }
-                apiDocVo.setProjectId(projectId);
-                apiDocVo.setFolderId(folderId);
                 apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc);
                 saveApiDocSchemas(apiDocVo);
             }
