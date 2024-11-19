@@ -93,7 +93,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         } else {
             SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
             folder.setStatus(existsFolder.getStatus());
-//            folder.setSortId(existsFolder.getSortId());
+            folder.setSortId(existsFolder.getSortId());
             updateById(SimpleModelUtils.addAuditInfo(folder)); // 更新
         }
         pathFolderMap.put(folderPath, folder);
