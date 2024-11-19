@@ -60,10 +60,42 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
         Map<String, Pair<String, ApiDoc>> existsDocMap = calcDocMap(apiDocService.loadByProject(project.getId()), folderPathMap);
         ApiFolder finalMountFolder = mountFolder; // 挂载目录
-        apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, finalMountFolder, folder, folderMapPair, existsDocMap));
-        this.saveApiDocs(projectInfo, mountFolder, null, extraDocs, existsDocMap);
+        List<ApiFolder> newFolders = new ArrayList<>();
+        List<ApiDoc> apiDocs = new ArrayList<>();
+        apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, finalMountFolder, folder, folderMapPair, existsDocMap, newFolders, apiDocs));
+        this.saveApiDocs(projectInfo, mountFolder, null, extraDocs, existsDocMap, apiDocs);
+        removeFoldersWithoutDocs(folderMapPair, newFolders, apiDocs);
         return apiFolders.size();
     }
+
+    protected void removeFoldersWithoutDocs(Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair, List<ApiFolder> newFolders, List<ApiDoc> apiDocs){
+        Map<Integer, List<ApiFolder>> childFoldersMap = calcChildFoldersMap(folderMapPair.getLeft().values());
+        Set<Integer> foldersToDelete = new HashSet<>();
+        newFolders.forEach(folder -> {
+            int docCount = calcFolderDocCount(childFoldersMap, folder, apiDocs);
+            if (docCount == 0) {
+                foldersToDelete.add(folder.getId());
+            }
+        });
+        removeByIds(foldersToDelete);
+    }
+
+    protected Map<Integer, List<ApiFolder>> calcChildFoldersMap(Collection<ApiFolder> folders) {
+        return folders.stream().filter(folder -> Objects.nonNull(folder.getParentId())).collect(Collectors.groupingBy(ApiFolder::getParentId));
+    }
+
+    protected int calcFolderDocCount(Map<Integer, List<ApiFolder>> childFoldersMap, ApiFolder parentFolder, List<ApiDoc> apiDocs) {
+        // 直接计算当前文件夹的文档数量
+        int docCount = (int) apiDocs.stream().filter(doc -> parentFolder.getId().equals(doc.getFolderId())).count();
+        // 获取当前文件夹的子文件夹
+        List<ApiFolder> subFolders = childFoldersMap.getOrDefault(parentFolder.getId(), Collections.emptyList());
+        // 遍历子文件夹，递归累加文档数量
+        for (ApiFolder folder : subFolders) {
+            docCount += calcFolderDocCount(childFoldersMap, folder, apiDocs);
+        }
+        return docCount;
+    }
+
 
     protected Map<String, Pair<String, ApiDoc>> calcDocMap(List<ApiDoc> docs, Map<Integer, String> folderPathMap) {
         Map<String, Pair<String, ApiDoc>> docMap = new HashMap<>();
@@ -80,7 +112,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
 
     protected void saveApiFolderVo(ApiProjectInfo projectInfo, ApiFolder rootFolder, ApiFolder parentFolder, ExportApiFolderVo folder,
                                    Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
-                                   Map<String, Pair<String, ApiDoc>> existsDocMap) {
+                                   Map<String, Pair<String, ApiDoc>> existsDocMap,
+                                   List<ApiFolder> newFolders, List<ApiDoc> apiDocs) {
         Map<String, ApiFolder> pathFolderMap = folderMapPair.getKey();
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
         String folderPath = folderPathMap.get(rootFolder.getId()) + "/" + folder.getFolderPath();
@@ -89,6 +122,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             folder.setParentId(parentFolder.getId());
             folder.setProjectId(parentFolder.getProjectId());
             save(SimpleModelUtils.addAuditInfo(folder));
+            newFolders.add(folder);
             existsFolder = folder;
         } else {
             SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
@@ -98,10 +132,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         }
         pathFolderMap.put(folderPath, folder);
         folderPathMap.put(folder.getId(), folderPath);
-        saveApiDocs(projectInfo, parentFolder, folder, folder.getDocs(), existsDocMap);
+        saveApiDocs(projectInfo, parentFolder, folder, folder.getDocs(), existsDocMap, apiDocs);
         if (!CollectionUtils.isEmpty(folder.getFolders())) { // 子目录
             for (ExportApiFolderVo subFolder : folder.getFolders()) {
-                saveApiFolderVo(projectInfo, rootFolder, existsFolder, subFolder, folderMapPair, existsDocMap);
+                saveApiFolderVo(projectInfo, rootFolder, existsFolder, subFolder, folderMapPair, existsDocMap, newFolders, apiDocs);
             }
         }
     }
@@ -114,10 +148,11 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
      * @param folder        父级目录
      * @param docs          文档列表
      * @param existsDocMap  已保存文档map
+     * @param apiDocs  保存的apiDocs信息
      */
     protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder parentFolder,
                                ExportApiFolderVo folder, List<ExportApiDocVo> docs,
-                               Map<String, Pair<String, ApiDoc>> existsDocMap) {
+                               Map<String, Pair<String, ApiDoc>> existsDocMap, List<ApiDoc> apiDocs) {
         if (!CollectionUtils.isEmpty(docs)) {
             Integer projectId = parentFolder.getProjectId();
             Integer folderId = parentFolder.getId();
@@ -132,7 +167,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                 apiDocVo.setProjectId(projectId);
                 apiDocVo.setFolderId(folderId);
                 ApiDoc existsDoc = null;
-                if (existsDocPair != null && existsDocPair.getValue() != null) { // 目录相同
+                if (existsDocPair != null && existsDocPair.getValue() != null) { // 文档存在
                     existsDoc = existsDocPair.getValue();
                     apiDocVo.setId(existsDoc.getId());
                     apiDocVo.setStatus(existsDoc.getStatus());
@@ -145,6 +180,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     apiDocVo.setSpecVersion(projectInfo.getSpecVersion());
                 }
                 apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc);
+                apiDocs.add(apiDocVo);
                 saveApiDocSchemas(apiDocVo);
             }
         }

@@ -32,7 +32,6 @@ import {
 import { calcProjectIconUrl, loadDetail } from '@/api/ApiProjectApi'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import ApiFolderApi, { updateFolderSorts } from '@/api/ApiFolderApi'
-import { ElMessage } from 'element-plus'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep } from 'lodash-es'
@@ -215,7 +214,6 @@ const addOrEditFolder = async (id, parentFolder) => {
 const saveFolder = () => {
   return ApiFolderApi.saveOrUpdate({ ...currentEditFolder.value, children: undefined }, { loading: true }).then(data => {
     if (data.success) {
-      ElMessage.success($i18nBundle('common.msg.saveSuccess'))
       refreshProjectItem()
       showEditWindow.value = false
     }
