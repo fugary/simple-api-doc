@@ -1,14 +1,13 @@
 package com.fugary.simple.api.web.controllers;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.contants.SystemErrorConstants;
-import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.LoginResultVo;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.LoginVo;
+import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,8 +30,7 @@ public class LoginController {
 
     @PostMapping("/login")
     public SimpleResult<LoginResultVo> login(@RequestBody LoginVo user) {
-        ApiUser loginUser = apiUserService.getOne(Wrappers.<ApiUser>query().eq("user_name",
-                user.getUserName()));
+        ApiUserVo loginUser = apiUserService.loadUser(user.getUserName());
         if (loginUser == null || !apiUserService.matchPassword(user.getUserPassword(), loginUser.getUserPassword())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2001);
         }

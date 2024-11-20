@@ -1,6 +1,5 @@
 package com.fugary.simple.api.security;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiUser;
@@ -9,6 +8,7 @@ import com.fugary.simple.api.service.token.TokenService;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
@@ -49,8 +49,7 @@ public class UserSecurityInterceptor implements HandlerInterceptor {
             String accessToken = authorization.replaceFirst("Bearer ", StringUtils.EMPTY).trim();
             userResult = getTokenService().validate(accessToken);
             if (userResult.isSuccess()) {
-                ApiUser user = apiUserService.getOne(Wrappers.<ApiUser>query()
-                        .eq("user_name", userResult.getResultData().getUserName()));
+                ApiUserVo user = apiUserService.loadUser(userResult.getResultData().getUserName());
                 if (user != null) {
                     request.setAttribute(ApiDocConstants.API_USER_KEY, user);
                     return true;

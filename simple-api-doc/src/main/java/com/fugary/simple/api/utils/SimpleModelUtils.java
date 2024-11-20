@@ -334,6 +334,9 @@ public class SimpleModelUtils {
      * @param <S>
      */
     public static <T, S> T copy(S from, Class<T> to) {
+        if (from == null) {
+            return null;
+        }
         Constructor<T> constructor = null;
         T target = null;
         try {

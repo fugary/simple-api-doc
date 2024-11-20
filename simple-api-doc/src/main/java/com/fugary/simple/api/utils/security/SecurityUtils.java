@@ -4,6 +4,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
+import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,10 +29,10 @@ public class SecurityUtils {
      *
      * @return
      */
-    public static ApiUser getLoginUser() {
+    public static ApiUserVo getLoginUser() {
         HttpServletRequest request = HttpRequestUtils.getCurrentRequest();
         if (request != null) {
-            return (ApiUser) request.getAttribute(ApiDocConstants.API_USER_KEY);
+            return (ApiUserVo) request.getAttribute(ApiDocConstants.API_USER_KEY);
         }
         return null;
     }
@@ -115,6 +116,18 @@ public class SecurityUtils {
         ApiUser loginUser = getLoginUser();
         if (loginUser != null && StringUtils.isNotBlank(targetUserName)) {
             return ADMIN_USER.equals(loginUser.getUserName()) || loginUser.getUserName().equals(targetUserName);
+        }
+        return false;
+    }
+
+    /**
+     * 判断是否是admin
+     * @return
+     */
+    public static boolean isAdmin(){
+        ApiUser loginUser = getLoginUser();
+        if (loginUser != null) {
+            return ADMIN_USER.equals(loginUser.getUserName());
         }
         return false;
     }
