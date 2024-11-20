@@ -237,6 +237,8 @@ const splitRef = ref()
             v-model="projectItem"
             v-model:current-doc="currentDoc"
             :share-doc="projectShare"
+            :show-close="true"
+            @close-left="showDrawerMenu=false"
           />
         </el-drawer>
       </el-container>

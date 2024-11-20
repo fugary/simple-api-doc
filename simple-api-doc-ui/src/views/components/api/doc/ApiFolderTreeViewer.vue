@@ -49,6 +49,10 @@ const props = defineProps({
   editable: {
     type: Boolean,
     default: false
+  },
+  showClose: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -122,7 +126,7 @@ const rootFolder = computed(() => {
   return projectItem.value?.folders?.find(folder => folder.rootFlag)
 })
 
-defineEmits(['toAddFolder', 'deleteFolder', 'toEditFolder', 'toAddDoc', 'toEditDoc', 'deleteDoc'])
+defineEmits(['toAddFolder', 'deleteFolder', 'toEditFolder', 'toAddDoc', 'toEditDoc', 'deleteDoc', 'closeLeft'])
 const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
@@ -350,6 +354,17 @@ defineExpose(handlerData)
           :icon-size="20"
           :handlers="shareTopHandlers"
         />
+        <el-link
+          v-if="showClose"
+          :underline="false"
+          class="margin-left2"
+        >
+          <common-icon
+            icon="Close"
+            :size="20"
+            @click="$emit('closeLeft')"
+          />
+        </el-link>
       </el-header>
       <el-header
         v-if="editable"
