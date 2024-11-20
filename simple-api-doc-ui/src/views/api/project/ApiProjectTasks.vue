@@ -42,22 +42,19 @@ const loadProjectTasks = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
 const { initLoadOnce } = useInitLoadOnce(async () => {
-  if (!inProject) {
-    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
-  }
-  await loadProjectTasks()
-})
-
-onMounted(async () => {
   if (inProject) {
     await loadProjectItem(projectCode)
     const projectId = projectItem.value?.id
     searchParam.value.projectId = projectId
     searchParam.value.userName = projectItem.value?.userName
     loadValidFolders(searchParam.value.projectId)
+  } else {
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
-  return initLoadOnce()
+  await loadProjectTasks()
 })
+
+onMounted(initLoadOnce)
 
 onActivated(initLoadOnce)
 

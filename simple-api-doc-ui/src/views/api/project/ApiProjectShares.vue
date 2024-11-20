@@ -41,13 +41,6 @@ const editTreeNodes = ref([])
 const showTreeConfigWindow = ref(false)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
-  if (!inProject) {
-    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
-  }
-  await loadProjectShares()
-})
-
-onMounted(async () => {
   if (inProject) {
     await loadProjectItem(projectCode)
     searchParam.value.projectId = projectItem.value?.id
@@ -55,9 +48,13 @@ onMounted(async () => {
     const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
     editTreeNodes.value = docTreeNodes
     infoList.value = projectItem.value?.infoList
+  } else {
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
-  return initLoadOnce()
+  await loadProjectShares()
 })
+
+onMounted(initLoadOnce)
 
 onActivated(initLoadOnce)
 
