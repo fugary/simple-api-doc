@@ -237,10 +237,10 @@ const exportTreeNodes = ref([])
 const showExportWindow = ref(false)
 const currentExportType = ref('json')
 const toShowTreeConfigWindow = (type) => {
-  if (!exportTreeNodes.value?.length) {
-    const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
-    exportTreeNodes.value = docTreeNodes
-  }
+  const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value), null, {
+    defaultShowLabel: sharePreference.defaultShowLabel
+  })
+  exportTreeNodes.value = docTreeNodes
   currentExportType.value = type
   showExportWindow.value = true
 }
@@ -249,11 +249,11 @@ const showCodeGenConfigWindow = ref(false)
 const generateTreeNodes = ref([])
 const generateSelectedKeys = ref([])
 const toShowCodeGenConfigWindow = () => {
-  if (!generateTreeNodes.value?.length) {
-    const filteredItem = filterApiProjectItem(projectItem.value)
-    const { docTreeNodes } = calcProjectItem(filteredItem)
-    generateTreeNodes.value = docTreeNodes
-  }
+  const filteredItem = filterApiProjectItem(projectItem.value)
+  const { docTreeNodes } = calcProjectItem(filteredItem, null, {
+    defaultShowLabel: sharePreference.defaultShowLabel
+  })
+  generateTreeNodes.value = docTreeNodes
   showCodeGenConfigWindow.value = true
 }
 
