@@ -140,6 +140,13 @@ export const TASK_STATUS_MAPPING = {
   stopped: 'danger'
 }
 
+export const ALL_AUTHORITIES = [
+  { value: 'forbid', label: '禁止访问' },
+  { value: 'read', label: '只读' },
+  { value: 'readwrite', label: '可读写' },
+  { value: 'delete', label: '可删除' }
+]
+
 export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH_TYPE.JWT)
 
 export const ALL_STATUS_CODES = [200, 201, 202, 301, 302, 307, 400, 401, 404, 405, 415, 500, 502, 503]

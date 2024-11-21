@@ -16,6 +16,7 @@ import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import { ElMessage, ElUpload } from 'element-plus'
+import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 
 const { width } = useWindowSize()
 
@@ -31,9 +32,11 @@ const loadApiProjects = (pageNumber) => {
   return searchMethod(pageNumber)
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
+const { projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
   await loadUsersAndRefreshOptions()
+  await loadGroupsAndRefreshOptions()
   await loadApiProjects()
 })
 
@@ -55,6 +58,15 @@ const searchFormOptions = computed(() => {
     attrs: {
       clearable: false
     },
+    change () {
+      loadApiProjects(1)
+    }
+  }, {
+    labelKey: 'api.label.projectGroups',
+    prop: 'groupCode',
+    type: 'select',
+    enabled: !!projectGroupOptions.value?.length,
+    children: projectGroupOptions.value,
     change () {
       loadApiProjects(1)
     }
@@ -132,6 +144,13 @@ const editFormOptions = computed(() => defineFormOptions([{
     }
   }
 }, useFormStatus(), {
+  enabled: !!projectGroupOptions.value?.length,
+  labelKey: 'api.label.projectGroups',
+  prop: 'groupCode',
+  value: searchParam.value?.groupCode,
+  type: 'select',
+  children: projectGroupOptions.value
+}, {
   labelKey: 'common.label.description',
   prop: 'description',
   attrs: {
@@ -339,6 +358,8 @@ const toCopyProject = (project, $event) => {
     <api-project-import-window
       v-model="showImportWindow"
       :auto-alert="false"
+      :default-group-code="searchParam.groupCode"
+      :group-options="projectGroupOptions"
       @import-success="importSuccessCallback"
     />
   </el-container>

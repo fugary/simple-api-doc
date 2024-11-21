@@ -9,6 +9,7 @@ import com.fugary.simple.api.entity.api.ApiUserGroup;
 import com.fugary.simple.api.mapper.api.ApiGroupMapper;
 import com.fugary.simple.api.mapper.api.ApiUserGroupMapper;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
+import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserGroupVo;
@@ -16,10 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -33,11 +31,19 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
     @Autowired
     private ApiUserGroupMapper apiUserGroupMapper;
 
+    @Autowired
+    private ApiUserService apiUserService;
+
     @Override
     public boolean existsGroup(ApiGroup group) {
         List<ApiGroup> exists = list(Wrappers.<ApiGroup>query()
                 .eq("group_code", group.getGroupCode()).or().eq("group_name", group.getGroupName()));
         return exists.stream().anyMatch(existGroup -> !existGroup.getId().equals(group.getId()));
+    }
+
+    @Override
+    public ApiGroup loadGroup(String groupCode) {
+        return getOne(Wrappers.<ApiGroup>query().eq("group_code", groupCode), false);
     }
 
     @Override
@@ -58,6 +64,11 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
             }
         }
         return results;
+    }
+
+    @Override
+    public List<ApiUserGroup> loadGroupUsers(String groupCode) {
+        return apiUserGroupMapper.selectList(Wrappers.<ApiUserGroup>query().eq("group_code", groupCode));
     }
 
     @Override

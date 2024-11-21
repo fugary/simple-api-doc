@@ -127,9 +127,18 @@ public class SecurityUtils {
     public static boolean isAdmin(){
         ApiUser loginUser = getLoginUser();
         if (loginUser != null) {
-            return ADMIN_USER.equals(loginUser.getUserName());
+            return isAdmin(loginUser.getUserName());
         }
         return false;
+    }
+
+
+    /**
+     * 判断是否是admin
+     * @return
+     */
+    public static boolean isAdmin(String userName){
+        return ADMIN_USER.equals(userName);
     }
 
     /**

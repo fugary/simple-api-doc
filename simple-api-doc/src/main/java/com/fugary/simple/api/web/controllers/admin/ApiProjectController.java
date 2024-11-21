@@ -68,6 +68,11 @@ public class ApiProjectController {
                 .like(StringUtils.isNotBlank(keyword), "project_name", keyword)
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
                 .eq("user_name", userName);
+        if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
+            queryWrapper.eq("group_code", queryVo.getGroupCode());
+        } else {
+            queryWrapper.and(wrapper -> wrapper.isNull("group_code").or().eq("group_code", ""));
+        }
         return SimpleResultUtils.createSimpleResult(apiProjectService.page(page, queryWrapper));
     }
 

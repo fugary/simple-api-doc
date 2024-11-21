@@ -29,6 +29,14 @@ const props = defineProps({
   showButtons: {
     type: Boolean,
     default: false
+  },
+  defaultGroupCode: {
+    type: String,
+    default: ''
+  },
+  groupOptions: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -180,6 +188,13 @@ const formOptions = computed(() => {
     slots: {
       default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder"/>
     }
+  }, {
+    enabled: !props.project?.id && !!props.groupOptions.length,
+    labelKey: 'api.label.projectGroups',
+    prop: 'groupCode',
+    value: props.defaultGroupCode,
+    type: 'select',
+    children: props.groupOptions
   }])
 })
 const emit = defineEmits(['import-success'])

@@ -34,4 +34,12 @@ export default [{
     icon: 'InputFilled',
     labelKey: 'api.label.importManagement'
   }
+}, {
+  path: `${BASE_PATH}/groups`,
+  name: 'ApiProjectGroups',
+  component: () => import('@/views/api/project/ApiProjectGroups.vue'),
+  meta: {
+    icon: 'Grid',
+    labelKey: 'api.label.projectGroups'
+  }
 }]

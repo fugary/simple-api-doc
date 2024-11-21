@@ -10,6 +10,14 @@ const props = defineProps({
   autoAlert: {
     type: Boolean,
     default: true
+  },
+  defaultGroupCode: {
+    type: String,
+    default: ''
+  },
+  groupOptions: {
+    type: Array,
+    default: () => []
   }
 })
 const showWindow = defineModel('modelValue', { type: Boolean, default: false })
@@ -35,6 +43,8 @@ defineEmits(['import-success'])
     <api-project-import
       ref="importRef"
       :project="project"
+      :default-group-code="defaultGroupCode"
+      :group-options="groupOptions"
       @import-success="$emit('import-success', $event)"
     />
   </common-window>

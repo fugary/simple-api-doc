@@ -38,6 +38,14 @@ export const ALL_MENUS = [
     menuUrl: '/admin/imports'
   },
   {
+    id: 16,
+    parentId: 1,
+    iconCls: 'Grid',
+    nameCn: '项目分组',
+    nameEn: 'Project Groups',
+    menuUrl: '/admin/groups'
+  },
+  {
     id: 5,
     iconCls: 'setting',
     nameCn: '系统管理',

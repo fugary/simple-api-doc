@@ -209,6 +209,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         }
         exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
         exportVo.setIconUrl(StringUtils.defaultIfBlank(importVo.getIconUrl(), exportVo.getIconUrl()));
+        exportVo.setGroupCode(importVo.getGroupCode());
         return SimpleResultUtils.createSimpleResult(exportVo);
     }
 
