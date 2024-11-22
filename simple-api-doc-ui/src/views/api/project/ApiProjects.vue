@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, onMounted, onActivated, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { useDefaultPage } from '@/config'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { defineFormOptions } from '@/components/utils'
@@ -17,6 +17,8 @@ import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import { ElMessage, ElUpload } from 'element-plus'
 import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { checkCurrentAuthAccess } from '@/services/api/ApiCommonService'
+import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 
 const { width } = useWindowSize()
 
@@ -29,10 +31,11 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   searchMethod: search
 })
 const loadApiProjects = (pageNumber) => {
+  tableData.value = []
   return searchMethod(pageNumber)
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
-const { projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
+const { projectGroups, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
   await loadUsersAndRefreshOptions()
@@ -59,6 +62,7 @@ const searchFormOptions = computed(() => {
       clearable: false
     },
     change () {
+      loadGroupsAndRefreshOptions()
       loadApiProjects(1)
     }
   }, {
@@ -90,7 +94,7 @@ const deleteProjects = () => {
     .then(() => ApiProjectApi.removeByIds(selectedRows.value.map(item => item.id)), { loading: true })
     .then(() => loadApiProjects())
 }
-
+const editProjectGroupOptions = computed(() => projectGroupOptions.value.filter(item => projectCheckAccess(item.value, AUTHORITY_TYPE.WRITABLE)))
 const showEditWindow = ref(false)
 const currentProject = ref()
 const newOrEdit = async (id, $event) => {
@@ -144,12 +148,13 @@ const editFormOptions = computed(() => defineFormOptions([{
     }
   }
 }, useFormStatus(), {
-  enabled: !!projectGroupOptions.value?.length,
+  enabled: !!editProjectGroupOptions.value?.length,
   labelKey: 'api.label.projectGroups',
   prop: 'groupCode',
   value: searchParam.value?.groupCode,
   type: 'select',
-  children: projectGroupOptions.value
+  children: editProjectGroupOptions.value,
+  disabled: !isWritable.value
 }, {
   labelKey: 'common.label.description',
   prop: 'description',
@@ -219,6 +224,18 @@ const toCopyProject = (project, $event) => {
     })
 }
 
+const projectCheckAccess = (groupCode, authority) => {
+  const authorities = projectGroups.value?.find(group => group.groupCode === groupCode)?.authorities
+  return checkCurrentAuthAccess({
+    userName: useCurrentUserName(),
+    groupCode,
+    authorities
+  }, authority)
+}
+
+const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE))
+const isDeletable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))
+
 </script>
 
 <template>
@@ -234,19 +251,21 @@ const toCopyProject = (project, $event) => {
     >
       <template #buttons>
         <el-button
+          v-if="isWritable"
           type="info"
           @click="newOrEdit()"
         >
           {{ $t('common.label.new') }}
         </el-button>
         <el-button
-          v-if="selectedRows?.length"
+          v-if="selectedRows?.length&&isDeletable"
           type="danger"
           @click="deleteProjects()"
         >
           {{ $t('common.label.delete') }}
         </el-button>
         <el-button
+          v-if="isWritable"
           type="success"
           @click="showImportWindow = true"
         >
@@ -308,7 +327,7 @@ const toCopyProject = (project, $event) => {
                 </div>
               </el-checkbox>
               <el-button
-                v-if="project.showOperations"
+                v-if="project.showOperations&&isWritable"
                 v-common-tooltip="$t('common.label.edit')"
                 type="primary"
                 size="small"
@@ -318,7 +337,7 @@ const toCopyProject = (project, $event) => {
                 <common-icon icon="Edit" />
               </el-button>
               <el-button
-                v-if="project.showOperations"
+                v-if="project.showOperations&&isWritable"
                 v-common-tooltip="$t('common.label.copy')"
                 type="warning"
                 size="small"
@@ -328,7 +347,7 @@ const toCopyProject = (project, $event) => {
                 <common-icon icon="FileCopyFilled" />
               </el-button>
               <el-button
-                v-if="project.showOperations"
+                v-if="project.showOperations&&isDeletable"
                 v-common-tooltip="$t('common.label.delete')"
                 type="danger"
                 size="small"
@@ -359,7 +378,7 @@ const toCopyProject = (project, $event) => {
       v-model="showImportWindow"
       :auto-alert="false"
       :default-group-code="searchParam.groupCode"
-      :group-options="projectGroupOptions"
+      :group-options="editProjectGroupOptions"
       @import-success="importSuccessCallback"
     />
   </el-container>

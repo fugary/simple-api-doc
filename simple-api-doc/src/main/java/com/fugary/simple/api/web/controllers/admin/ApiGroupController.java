@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiGroup;
 import com.fugary.simple.api.entity.api.ApiUserGroup;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
@@ -15,6 +16,7 @@ import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
+import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import org.apache.commons.lang3.StringUtils;
@@ -40,15 +42,17 @@ public class ApiGroupController {
     private ApiUserService apiUserService;
 
     @GetMapping("/loadProjectGroups")
-    public SimpleResult<List<ApiGroup>> loadProjectGroups(@ModelAttribute ProjectQueryVo queryVo) {
+    public SimpleResult<List<ApiGroupVo>> loadProjectGroups(@ModelAttribute ProjectQueryVo queryVo) {
         queryVo.setUserName(StringUtils.defaultIfBlank(queryVo.getUserName(), SecurityUtils.getLoginUserName()));
-        List<ApiGroup> apiGroups;
+        List<ApiGroupVo> apiGroups;
         if (SecurityUtils.isAdmin(queryVo.getUserName())) {
-            apiGroups = apiGroupService.list(Wrappers.<ApiGroup>query().eq("status", ApiDocConstants.STATUS_ENABLED));
+            List<ApiGroup> adminGroups = apiGroupService.list(Wrappers.<ApiGroup>query().eq("status", ApiDocConstants.STATUS_ENABLED));
+            apiGroups = adminGroups.stream().map(group -> SimpleModelUtils.copy(group, ApiGroupVo.class)).collect(Collectors.toList());
         } else {
             ApiUserVo userVo = apiUserService.loadUser(queryVo.getUserName());
             apiGroups = apiGroupService.loadUserGroups(userVo.getId()).stream()
-                    .map(vo -> SimpleModelUtils.copy(vo, ApiGroup.class)).collect(Collectors.toList());
+                    .filter(apiGroupVo -> apiGroupService.checkGroupAccess(userVo, apiGroupVo.getGroupCode(), ApiGroupAuthority.READABLE))
+                    .collect(Collectors.toList());
         }
         return SimpleResultUtils.createSimpleResult(apiGroups);
     }

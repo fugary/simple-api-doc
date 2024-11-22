@@ -8,9 +8,11 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.exports.ApiDocExporter;
+import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -57,6 +59,9 @@ public class ApiProjectController {
     private ApiProjectService apiProjectService;
 
     @Autowired
+    private ApiGroupService apiGroupService;
+
+    @Autowired
     private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
     @GetMapping
@@ -66,12 +71,15 @@ public class ApiProjectController {
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query()
                 .like(StringUtils.isNotBlank(keyword), "project_name", keyword)
-                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
-                .eq("user_name", userName);
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
         if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
+            if (!apiGroupService.checkGroupAccess(getLoginUser(), queryVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
             queryWrapper.eq("group_code", queryVo.getGroupCode());
         } else {
-            queryWrapper.and(wrapper -> wrapper.isNull("group_code").or().eq("group_code", ""));
+            queryWrapper.eq("user_name", userName)
+                    .and(wrapper -> wrapper.isNull("group_code").or().eq("group_code", ""));
         }
         return SimpleResultUtils.createSimpleResult(apiProjectService.page(page, queryWrapper));
     }
@@ -86,6 +94,9 @@ public class ApiProjectController {
         ApiProject project = apiProjectService.getById(id);
         if (project == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiGroupService.checkGroupAccess(getLoginUser(), project.getGroupCode(), ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiProjectService.copyProject(project));
     }
@@ -102,6 +113,9 @@ public class ApiProjectController {
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiGroupService.checkGroupAccess(getLoginUser(), detailVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(detailVo);
     }
 
@@ -117,6 +131,9 @@ public class ApiProjectController {
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiGroupService.checkGroupAccess(getLoginUser(), detailVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(detailVo);
     }
 
@@ -126,6 +143,9 @@ public class ApiProjectController {
                 .projectCode(projectCode).build());
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiGroupService.checkGroupAccess(getLoginUser(), detailVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(detailVo);
     }
@@ -137,6 +157,9 @@ public class ApiProjectController {
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiGroupService.checkGroupAccess(getLoginUser(), detailVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(detailVo);
     }
 
@@ -146,7 +169,8 @@ public class ApiProjectController {
         if (project == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (!SecurityUtils.validateUserUpdate(project.getUserName())) {
+        if (!SecurityUtils.validateUserUpdate(project.getUserName())
+                || !apiGroupService.checkGroupAccess(getLoginUser(), project.getGroupCode(), ApiGroupAuthority.DELETABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiProjectService.deleteApiProject(id));
@@ -154,6 +178,12 @@ public class ApiProjectController {
 
     @DeleteMapping("/removeByIds/{ids}")
     public SimpleResult<Boolean> removeByIds(@PathVariable("ids") List<Integer> ids) {
+        List<ApiProject> apiProjects = apiProjectService.listByIds(ids);
+        for (ApiProject apiProject : apiProjects) {
+            if (!apiGroupService.checkGroupAccess(getLoginUser(), apiProject.getGroupCode(), ApiGroupAuthority.DELETABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+        }
         return SimpleResultUtils.createSimpleResult(apiProjectService.deleteApiProjects(ids));
     }
 
@@ -163,7 +193,8 @@ public class ApiProjectController {
         if (StringUtils.isBlank(project.getUserName()) && loginUser != null) {
             project.setUserName(loginUser.getUserName());
         }
-        if (!SecurityUtils.validateUserUpdate(project.getUserName())) {
+        if (!SecurityUtils.validateUserUpdate(project.getUserName())
+                || !apiGroupService.checkGroupAccess(getLoginUser(), project.getGroupCode(), ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         project.setProjectCode(StringUtils.defaultIfBlank(project.getProjectCode(), SimpleModelUtils.uuid()));
