@@ -112,7 +112,8 @@ export const useSelectProjects = (searchParam) => {
   }
   const loadProjectsAndRefreshOptions = async () => {
     await loadSelectProjects({
-      userName: searchParam.value?.userName || useCurrentUserName()
+      userName: searchParam.value?.userName || useCurrentUserName(),
+      groupCode: searchParam.value?.groupCode
     })
     const currentProj = projects.value.find(proj => proj.projectCode === searchParam.value.projectCode)
     searchParam.value.projectCode = currentProj?.projectCode

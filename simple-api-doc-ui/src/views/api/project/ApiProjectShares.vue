@@ -1,7 +1,16 @@
 <script setup lang="jsx">
 import { computed, onMounted, ref, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
-import { $copyText, $coreConfirm, $openNewWin, $randomStr, formatDate, useBackUrl, isAdminUser, $goto } from '@/utils'
+import {
+  $copyText,
+  $coreConfirm,
+  $openNewWin,
+  $randomStr,
+  formatDate,
+  useBackUrl,
+  isAdminUser,
+  $goto
+} from '@/utils'
 import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -20,6 +29,8 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
+import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -36,6 +47,7 @@ const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
 
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
+const { projectCheckAccess, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
 const infoList = ref([])
 const editTreeNodes = ref([])
 const showTreeConfigWindow = ref(false)
@@ -49,7 +61,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     editTreeNodes.value = docTreeNodes
     infoList.value = projectItem.value?.infoList
   } else {
-    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
   await loadProjectShares()
 })
@@ -140,6 +152,7 @@ const buttons = computed(() => {
     }
   }, {
     labelKey: 'common.label.edit',
+    enabled: !!isWritable.value,
     type: 'primary',
     click: item => {
       newOrEdit(item.id)
@@ -147,6 +160,7 @@ const buttons = computed(() => {
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
+    enabled: !!isDeletable.value,
     click: item => {
       $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
         .then(() => ApiProjectShareApi.deleteById(item.id))
@@ -166,6 +180,17 @@ const searchFormOptions = computed(() => {
       attrs: {
         clearable: false
       },
+      change: async () => {
+        await loadProjectsAndRefreshOptions()
+        await loadGroupsAndRefreshOptions()
+        loadProjectShares(1)
+      }
+    }, {
+      labelKey: 'api.label.projectGroups',
+      prop: 'groupCode',
+      type: 'select',
+      enabled: !!projectGroupOptions.value?.length,
+      children: projectGroupOptions.value,
       change: async () => {
         await loadProjectsAndRefreshOptions()
         loadProjectShares(1)
@@ -379,6 +404,9 @@ const saveProjectShare = (item) => {
   return ApiProjectShareApi.saveOrUpdate(item).then(() => loadProjectShares())
 }
 
+const isDeletable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))
+const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
+
 </script>
 
 <template>
@@ -406,6 +434,7 @@ const saveProjectShare = (item) => {
     >
       <template #buttons>
         <el-button
+          v-if="isWritable"
           type="info"
           @click="newOrEdit()"
         >

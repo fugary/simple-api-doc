@@ -2,6 +2,7 @@ import { useResourceApi } from '@/hooks/ApiHooks'
 import { $http, $httpPost } from '@/vendors/axios'
 import { ref } from 'vue'
 import { isAdminUser, useCurrentUserName } from '@/utils'
+import { checkCurrentAuthAccess } from '@/services/api/ApiCommonService'
 
 const BASE_URL = '/admin/groups'
 
@@ -59,11 +60,21 @@ export const useSelectProjectGroups = (searchParam) => {
     }
   }
 
+  const projectCheckAccess = (groupCode, authority) => {
+    const authorities = projectGroups.value?.find(group => group.groupCode === groupCode)?.authorities
+    return checkCurrentAuthAccess({
+      userName: useCurrentUserName(),
+      groupCode,
+      authorities
+    }, authority)
+  }
+
   return {
     projectGroups,
     projectGroupOptions,
     loadSelectGroups,
-    loadGroupsAndRefreshOptions
+    loadGroupsAndRefreshOptions,
+    projectCheckAccess
   }
 }
 

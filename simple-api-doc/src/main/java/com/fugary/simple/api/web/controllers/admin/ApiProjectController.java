@@ -72,14 +72,8 @@ public class ApiProjectController {
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query()
                 .like(StringUtils.isNotBlank(keyword), "project_name", keyword)
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
-        if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
-            if (!apiGroupService.checkGroupAccess(getLoginUser(), queryVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
-                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
-            }
-            queryWrapper.eq("group_code", queryVo.getGroupCode());
-        } else {
-            queryWrapper.eq("user_name", userName)
-                    .and(wrapper -> wrapper.isNull("group_code").or().eq("group_code", ""));
+        if (!checkGroupCodeQuery(queryVo, queryWrapper, userName)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiProjectService.page(page, queryWrapper));
     }
@@ -209,9 +203,24 @@ public class ApiProjectController {
     public SimpleResult<List<ApiProject>> selectProjects(@ModelAttribute ProjectQueryVo queryVo) {
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query();
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
-        queryWrapper.eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED)
-                .and(wrapper -> wrapper.and(wrapper1 -> wrapper1.eq("user_name", userName)));
+        queryWrapper.eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED);
+        if (!checkGroupCodeQuery(queryVo, queryWrapper, userName)){
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(apiProjectService.list(queryWrapper));
+    }
+
+    protected boolean checkGroupCodeQuery(ProjectQueryVo queryVo, QueryWrapper<ApiProject> queryWrapper, String userName) {
+        if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
+            if (!apiGroupService.checkGroupAccess(getLoginUser(), queryVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+                return false;
+            }
+            queryWrapper.eq("group_code", queryVo.getGroupCode());
+        } else {
+            queryWrapper.eq("user_name", userName)
+                    .and(wrapper -> wrapper.isNull("group_code").or().eq("group_code", ""));
+        }
+        return true;
     }
 
     @PostMapping("/checkExportDownloadDocs")

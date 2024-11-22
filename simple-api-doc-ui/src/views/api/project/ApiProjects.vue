@@ -17,7 +17,6 @@ import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import { ElMessage, ElUpload } from 'element-plus'
 import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
-import { checkCurrentAuthAccess } from '@/services/api/ApiCommonService'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 
 const { width } = useWindowSize()
@@ -35,7 +34,7 @@ const loadApiProjects = (pageNumber) => {
   return searchMethod(pageNumber)
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
-const { projectGroups, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
+const { projectCheckAccess, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
   await loadUsersAndRefreshOptions()
@@ -223,15 +222,6 @@ const toCopyProject = (project, $event) => {
       ElMessage.success($i18nBundle('common.msg.operationSuccess'))
       loadApiProjects()
     })
-}
-
-const projectCheckAccess = (groupCode, authority) => {
-  const authorities = projectGroups.value?.find(group => group.groupCode === groupCode)?.authorities
-  return checkCurrentAuthAccess({
-    userName: useCurrentUserName(),
-    groupCode,
-    authorities
-  }, authority)
 }
 
 const isDeletable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))

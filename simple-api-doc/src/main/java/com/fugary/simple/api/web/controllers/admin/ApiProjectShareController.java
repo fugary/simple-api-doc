@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
+import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -23,6 +25,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
+
 /**
  * Create date 2024/9/27<br>
  *
@@ -38,15 +42,23 @@ public class ApiProjectShareController {
     @Autowired
     private ApiProjectService apiProjectService;
 
+    @Autowired
+    private ApiGroupService apiGroupService;
+
     @GetMapping
     public SimpleResult<List<ApiProjectShare>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProjectShare> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
+        if (StringUtils.isNotBlank(queryVo.getGroupCode())
+                && !apiGroupService.checkGroupAccess(getLoginUser(), queryVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         QueryWrapper<ApiProjectShare> queryWrapper = Wrappers.<ApiProjectShare>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
                 .like(StringUtils.isNotBlank(keyword), "share_name", keyword)
-                .exists("select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.user_name={0}", userName);
+                .exists(StringUtils.isBlank(queryVo.getGroupCode()), "select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.user_name={0}", userName)
+                .exists(StringUtils.isNotBlank(queryVo.getGroupCode()), "select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.group_code={0}", queryVo.getGroupCode());
         Page<ApiProjectShare> pageResult = apiProjectShareService.page(page, queryWrapper);
         if (!pageResult.getRecords().isEmpty()) {
             Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id",
