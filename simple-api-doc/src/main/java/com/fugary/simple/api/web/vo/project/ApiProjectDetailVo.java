@@ -14,4 +14,5 @@ public class ApiProjectDetailVo extends ApiProject {
     private List<ApiDoc> docs = new ArrayList<>();
     private List<ApiProjectShareVo> shares = new ArrayList<>();
     private List<ApiProjectTask> tasks = new ArrayList<>();
+    private String authorities;
 }

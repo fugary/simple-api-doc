@@ -40,13 +40,13 @@ const historyCount = ref(0)
 const loadCurrentDoc = (id) => {
   currentDoc.value && (currentDoc.value.docContent = '')
   $coreShowLoading({ delay: 0, target: '.home-main' })
-  if (props.editable) {
+  if (!props.shareDoc) {
     return ApiDocApi.getById(id).then(data => {
       Object.assign(currentDoc.value, data.resultData)
       historyCount.value = data.addons?.historyCount || 0
       $coreHideLoading()
     }).catch(() => $coreHideLoading())
-  } else if (props.shareDoc) {
+  } else {
     return loadMdDoc({
       shareId: props.shareDoc.shareId,
       docId: id

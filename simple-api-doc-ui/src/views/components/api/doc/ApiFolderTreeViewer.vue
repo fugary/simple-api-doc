@@ -50,6 +50,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  deletable: {
+    type: Boolean,
+    default: false
+  },
   showClose: {
     type: Boolean,
     default: false
@@ -286,6 +290,8 @@ const handleDragEnd = (draggingNode, dropNode, type) => {
   }
 }
 
+const isDeletable = computed(() => props.deletable)
+
 const handlerData = {
   sharePreference,
   refreshProjectItem,
@@ -295,7 +301,8 @@ const handlerData = {
   toShowCodeGenConfigWindow,
   refreshFolderTree,
   reload,
-  hasApiDoc
+  hasApiDoc,
+  isDeletable
 }
 
 defineExpose(handlerData)

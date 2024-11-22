@@ -9,6 +9,8 @@ import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.
 import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
+import { checkCurrentAuthAccess } from '@/services/api/ApiCommonService'
+import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -45,6 +47,17 @@ const folderContainerHeight = computed(() => {
 watch(loading, (newLoading) => {
   newLoading ? $coreShowLoading({ delay: 0, target: '.home-main' }) : $coreHideLoading()
 }, { immediate: true })
+
+const projectCheckAccess = (authority) => {
+  if (projectItem.value) {
+    const { authorities, userName, groupCode } = projectItem.value
+    return checkCurrentAuthAccess({ userName, groupCode, authorities }, authority)
+  }
+}
+
+const isDeletable = computed(() => projectCheckAccess(AUTHORITY_TYPE.DELETABLE))
+const isWritable = computed(() => projectCheckAccess(AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
+
 </script>
 
 <template>
@@ -71,6 +84,7 @@ watch(loading, (newLoading) => {
             {{ $t('common.label.back') }}
           </el-button>
           <el-badge
+            v-if="isWritable"
             :value="projectItem.shares?.filter(share=>share.status).length"
             :show-zero="false"
             type="primary"
@@ -88,6 +102,7 @@ watch(loading, (newLoading) => {
             </el-button>
           </el-badge>
           <el-badge
+            v-if="isWritable"
             :value="projectItem.tasks?.filter(task=>task.status).length"
             :show-zero="false"
             type="success"
@@ -125,7 +140,8 @@ watch(loading, (newLoading) => {
               v-model="projectItem"
               v-model:current-doc="currentDoc"
               :project-item="projectItem"
-              editable
+              :editable="isWritable"
+              :deletable="isDeletable"
             />
           </template>
           <template #split-1>
@@ -151,7 +167,7 @@ watch(loading, (newLoading) => {
               <markdown-doc-viewer
                 v-if="currentDoc?.docType==='md'"
                 v-model="currentDoc"
-                editable
+                :editable="isWritable"
                 scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
               />
               <api-doc-viewer

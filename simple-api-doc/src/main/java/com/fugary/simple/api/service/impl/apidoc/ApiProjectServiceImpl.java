@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
@@ -13,7 +14,6 @@ import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
-import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
@@ -21,6 +21,7 @@ import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
+import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import lombok.SneakyThrows;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -62,6 +63,9 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Autowired
     private ApiProjectTaskService apiProjectTaskService;
+
+    @Autowired
+    private ApiGroupService apiGroupService;
 
     @Lazy
     @Autowired
@@ -139,6 +143,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 }
                 apiProjectVo.setTasks(tasks);
             }
+            ApiUserVo loginUser = getLoginUser();
+            if (queryVo.isIncludeAuthorities() && StringUtils.isNotBlank(apiProject.getGroupCode()) && loginUser != null) {
+                List<ApiUserGroup> userGroups = apiGroupService.loadGroupUsers(loginUser.getId(), apiProject.getGroupCode());
+                if (!userGroups.isEmpty()) {
+                    apiProjectVo.setAuthorities(userGroups.get(0).getAuthorities());
+                }
+            }
             return apiProjectVo;
         }
         return null;
@@ -177,7 +188,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         if (projectId != null) {
             ApiProject project = getById(projectId);
             if (project != null) {
-                if (!SecurityUtils.validateUserUpdate(project.getUserName())) {
+                if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.WRITABLE)) {
                     return false;
                 }
             }

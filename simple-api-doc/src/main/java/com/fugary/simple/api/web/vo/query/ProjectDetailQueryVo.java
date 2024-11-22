@@ -24,5 +24,6 @@ public class ProjectDetailQueryVo implements Serializable {
     private boolean includeTasks;
     private boolean includesShares;
     private boolean removeAuditFields;
+    private boolean includeAuthorities;
     private Set<Integer> docIds;
 }

@@ -233,8 +233,8 @@ const projectCheckAccess = (groupCode, authority) => {
   }, authority)
 }
 
-const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE))
 const isDeletable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))
+const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
 
 </script>
 

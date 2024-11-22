@@ -191,7 +191,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
     }
   }, ...apiDocConfig,
   ...calcShowCleanHandlers(folder, preference, handlerData), {
-    enabled: !folder.rootFlag,
+    enabled: !folder.rootFlag && handlerData.isDeletable?.value,
     icon: 'FolderDelete',
     type: 'danger',
     label: $i18nBundle('common.label.delete'),
@@ -237,6 +237,7 @@ export const getDocHandlers = (doc, handlerData) => {
         .then(() => handlerData.refreshProjectItem())
     }
   }, {
+    enabled: !!handlerData.isDeletable?.value,
     icon: 'Delete',
     type: 'danger',
     label: $i18nBundle('common.label.commonDelete', [label]),
