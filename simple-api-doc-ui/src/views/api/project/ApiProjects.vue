@@ -94,7 +94,8 @@ const deleteProjects = () => {
     .then(() => ApiProjectApi.removeByIds(selectedRows.value.map(item => item.id)), { loading: true })
     .then(() => loadApiProjects())
 }
-const editProjectGroupOptions = computed(() => projectGroupOptions.value.filter(item => projectCheckAccess(item.value, AUTHORITY_TYPE.WRITABLE)))
+const editProjectGroupOptions = computed(() => projectGroupOptions.value
+  .filter(item => projectCheckAccess(item.value, AUTHORITY_TYPE.WRITABLE) || projectCheckAccess(item.value, AUTHORITY_TYPE.DELETABLE)))
 const showEditWindow = ref(false)
 const currentProject = ref()
 const newOrEdit = async (id, $event) => {
@@ -151,7 +152,7 @@ const editFormOptions = computed(() => defineFormOptions([{
   enabled: !!editProjectGroupOptions.value?.length,
   labelKey: 'api.label.projectGroups',
   prop: 'groupCode',
-  value: searchParam.value?.groupCode,
+  value: isWritable.value ? searchParam.value?.groupCode : '',
   type: 'select',
   children: editProjectGroupOptions.value,
   disabled: !isWritable.value
