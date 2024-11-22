@@ -140,12 +140,19 @@ export const TASK_STATUS_MAPPING = {
   stopped: 'danger'
 }
 
-export const ALL_AUTHORITIES = [
-  { value: 'forbid', label: '禁止访问' },
-  { value: 'read', label: '只读' },
-  { value: 'readwrite', label: '可读写' },
-  { value: 'delete', label: '可删除' }
-]
+export const AUTHORITY_TYPE = {
+  FORBIDDEN: 'forbidden',
+  READABLE: 'readable',
+  WRITABLE: 'writable',
+  DELETABLE: 'deletable'
+}
+
+export const ALL_AUTHORITIES = Object.values(AUTHORITY_TYPE).map(value => {
+  return {
+    value,
+    labelKey: `api.label.authority_${value}`
+  }
+})
 
 export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH_TYPE.JWT)
 

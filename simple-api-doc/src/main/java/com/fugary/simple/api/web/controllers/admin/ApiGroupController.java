@@ -15,6 +15,7 @@ import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
+import com.fugary.simple.api.web.vo.user.ApiUserGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,11 +59,27 @@ public class ApiGroupController {
         if (apiGroup == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        return SimpleResultUtils.createSimpleResult(apiGroupService.loadGroupUsers(groupCode));
+        return SimpleResultUtils.createSimpleResult(apiGroupService.loadGroupUsers(groupCode))
+                .add("group", apiGroup);
+    }
+
+    @PostMapping("/saveUserGroups")
+    public SimpleResult<Boolean> saveUserGroups(@RequestBody ApiUserGroupVo userGroupVo) {
+        ApiGroup apiGroup = apiGroupService.loadGroup(userGroupVo.getGroupCode());
+        if (apiGroup == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!SecurityUtils.isAdmin()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        return SimpleResultUtils.createSimpleResult(apiGroupService.saveUserGroups(userGroupVo));
     }
 
     @GetMapping
     public SimpleResult<List<ApiGroup>> search(@ModelAttribute SimpleQueryVo queryVo) {
+        if (!SecurityUtils.isAdmin()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         Page<ApiGroup> page = SimpleResultUtils.toPage(queryVo);
         QueryWrapper<ApiGroup> queryWrapper = Wrappers.query();
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
@@ -80,6 +97,9 @@ public class ApiGroupController {
 
     @DeleteMapping("/{id}")
     public SimpleResult<Boolean> remove(@PathVariable("id") Integer id) {
+        if (!SecurityUtils.isAdmin()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(apiGroupService.removeById(id));
     }
 

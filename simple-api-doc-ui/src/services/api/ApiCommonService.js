@@ -1,4 +1,4 @@
-import { $coreConfirm, formatDate, getSingleSelectOptions } from '@/utils'
+import { $coreConfirm, formatDate, getSingleSelectOptions, isUserAdmin, useCurrentUserName } from '@/utils'
 import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
@@ -156,4 +156,25 @@ export const calcPreviewHeaders = config => {
   if (accept && config.headers[accept]?.includes('image')) {
     config.responseType = 'arraybuffer'
   }
+}
+
+export const checkUserAuthAccess = (userName, accessData, authority) => {
+  if (isUserAdmin(userName)) {
+    return true
+  }
+  if (!accessData.groupCode) {
+    return userName === accessData.userName
+  }
+  let authorities = accessData.authorities
+  if (authorities && isString(authorities)) {
+    authorities = authorities.split(',').map(auth => auth.trim())
+  }
+  if (authorities?.length) {
+    return authorities.includes(authority)
+  }
+  return false
+}
+
+export const checkCurrentAuthAccess = (accessData, authority) => {
+  return checkUserAuthAccess(useCurrentUserName(), accessData, authority)
 }

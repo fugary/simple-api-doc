@@ -9,6 +9,7 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
+import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -41,12 +42,14 @@ const columns = [{
   minWidth: '120px'
 }]
 
+const groupUsersConfigRef = ref()
+
 const buttons = computed(() => {
   return [{
     labelKey: 'api.label.projectGroupUsers',
     type: 'success',
     click: item => {
-      console.log('=======================配置用户', item)
+      groupUsersConfigRef.value?.toConfigGroupUsers(item.groupCode)
     }
   }, {
     labelKey: 'common.label.edit',
@@ -147,6 +150,7 @@ const saveProjectGroup = (data) => {
       :save-current-item="saveProjectGroup"
       label-width="130px"
     />
+    <api-group-users-config-window ref="groupUsersConfigRef" />
   </el-container>
 </template>
 

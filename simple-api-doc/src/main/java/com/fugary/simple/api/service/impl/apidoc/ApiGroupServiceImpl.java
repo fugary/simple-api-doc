@@ -9,7 +9,6 @@ import com.fugary.simple.api.entity.api.ApiUserGroup;
 import com.fugary.simple.api.mapper.api.ApiGroupMapper;
 import com.fugary.simple.api.mapper.api.ApiUserGroupMapper;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
-import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserGroupVo;
@@ -17,7 +16,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -30,9 +32,6 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
 
     @Autowired
     private ApiUserGroupMapper apiUserGroupMapper;
-
-    @Autowired
-    private ApiUserService apiUserService;
 
     @Override
     public boolean existsGroup(ApiGroup group) {
