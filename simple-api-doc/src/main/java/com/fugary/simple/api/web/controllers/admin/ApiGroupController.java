@@ -7,8 +7,10 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiGroup;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiUserGroup;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
+import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -40,6 +42,9 @@ public class ApiGroupController {
 
     @Autowired
     private ApiUserService apiUserService;
+
+    @Autowired
+    private ApiProjectService apiProjectService;
 
     @GetMapping("/loadProjectGroups")
     public SimpleResult<List<ApiGroupVo>> loadProjectGroups(@ModelAttribute ProjectQueryVo queryVo) {
@@ -104,6 +109,13 @@ public class ApiGroupController {
         if (!SecurityUtils.isAdmin()) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        ApiGroup apiGroup = apiGroupService.getOne(Wrappers.<ApiGroup>query().eq("id", id));
+        if (apiGroup == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        apiGroupService.deleteUserGroupsByCode(apiGroup.getGroupCode());
+        apiProjectService.update(Wrappers.<ApiProject>update().eq("group_code", apiGroup.getGroupCode())
+                .set("group_code", ""));
         return SimpleResultUtils.createSimpleResult(apiGroupService.removeById(id));
     }
 

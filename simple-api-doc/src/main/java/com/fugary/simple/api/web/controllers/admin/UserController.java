@@ -5,6 +5,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -33,6 +34,9 @@ public class UserController {
     @Autowired
     private ApiUserService apiUserService;
 
+    @Autowired
+    private ApiGroupService apiGroupService;
+
     @GetMapping
     public SimpleResult<List<ApiUser>> search(@ModelAttribute SimpleQueryVo queryVo) {
         Page<ApiUser> page = SimpleResultUtils.toPage(queryVo);
@@ -52,6 +56,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     public SimpleResult remove(@PathVariable("id") Integer id) {
+        apiGroupService.deleteUserGroupsByUid(id);
         return SimpleResultUtils.createSimpleResult(apiUserService.deleteUser(id));
     }
 
