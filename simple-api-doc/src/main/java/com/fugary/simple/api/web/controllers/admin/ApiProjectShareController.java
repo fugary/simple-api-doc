@@ -51,7 +51,7 @@ public class ApiProjectShareController {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         String groupCode = StringUtils.trimToEmpty(queryVo.getGroupCode());
-        if (StringUtils.isNotBlank(queryVo.getGroupCode())
+        if (StringUtils.isNotBlank(groupCode)
                 && !apiGroupService.checkGroupAccess(getLoginUser(), groupCode, ApiGroupAuthority.READABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }

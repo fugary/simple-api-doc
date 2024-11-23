@@ -199,7 +199,7 @@ const searchFormOptions = computed(() => {
       labelKey: 'api.label.project',
       prop: 'projectId',
       type: 'select',
-      enabled: !inProject && projectOptions.value.length > 1,
+      enabled: !inProject && !!projectOptions.value.length,
       children: projectOptions.value,
       change () {
         loadProjectShares(1)
