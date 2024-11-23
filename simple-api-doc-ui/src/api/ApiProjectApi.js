@@ -115,8 +115,9 @@ export const useSelectProjects = (searchParam) => {
       userName: searchParam.value?.userName || useCurrentUserName(),
       groupCode: searchParam.value?.groupCode
     })
-    const currentProj = projects.value.find(proj => proj.projectCode === searchParam.value.projectCode)
+    const currentProj = projects.value.find(proj => proj.projectCode === searchParam.value.projectCode || proj.id === searchParam.value.projectId)
     searchParam.value.projectCode = currentProj?.projectCode
+    searchParam.value.projectId = currentProj?.projectId
     if (isAdminUser() && currentProj?.userName) {
       searchParam.value.userName = currentProj.userName
     }

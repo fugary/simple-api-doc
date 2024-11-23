@@ -146,7 +146,7 @@ const saveProjectGroup = (data) => {
       v-model="currentModel"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
-      :name="$t('api.label.importData')"
+      :name="$t('api.label.projectGroups')"
       :save-current-item="saveProjectGroup"
       label-width="130px"
     />

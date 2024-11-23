@@ -181,8 +181,8 @@ const searchFormOptions = computed(() => {
         clearable: false
       },
       change: async () => {
-        await loadProjectsAndRefreshOptions()
         await loadGroupsAndRefreshOptions()
+        await loadProjectsAndRefreshOptions()
         loadProjectShares(1)
       }
     }, {

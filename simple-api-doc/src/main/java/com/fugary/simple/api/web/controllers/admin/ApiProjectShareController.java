@@ -50,15 +50,16 @@ public class ApiProjectShareController {
         Page<ApiProjectShare> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
+        String groupCode = StringUtils.trimToEmpty(queryVo.getGroupCode());
         if (StringUtils.isNotBlank(queryVo.getGroupCode())
-                && !apiGroupService.checkGroupAccess(getLoginUser(), queryVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
+                && !apiGroupService.checkGroupAccess(getLoginUser(), groupCode, ApiGroupAuthority.READABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         QueryWrapper<ApiProjectShare> queryWrapper = Wrappers.<ApiProjectShare>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
                 .like(StringUtils.isNotBlank(keyword), "share_name", keyword)
-                .exists(StringUtils.isBlank(queryVo.getGroupCode()), "select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.user_name={0}", userName)
-                .exists(StringUtils.isNotBlank(queryVo.getGroupCode()), "select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.group_code={0}", queryVo.getGroupCode());
+                .exists(StringUtils.isBlank(groupCode), "select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.user_name={0} and (p.group_code is null or p.group_code = '')", userName)
+                .exists(StringUtils.isNotBlank(groupCode), "select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.group_code={0}", groupCode);
         Page<ApiProjectShare> pageResult = apiProjectShareService.page(page, queryWrapper);
         if (!pageResult.getRecords().isEmpty()) {
             Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id",
@@ -90,6 +91,9 @@ public class ApiProjectShareController {
 
     @PostMapping
     public SimpleResult save(@RequestBody ApiProjectShare apiShare) {
+        if (!validateShareUser(apiShare)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         if (!validateShareUser(apiShare)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }

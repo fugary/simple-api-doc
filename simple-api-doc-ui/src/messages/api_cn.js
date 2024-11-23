@@ -144,7 +144,7 @@ api.label.authority_forbidden = '禁止访问'
 api.label.authority_readable = '可读'
 api.label.authority_writable = '可写'
 api.label.authority_deletable = '可删除'
-api.label.authorityFullAccess = '无访问限制'
+api.label.authorityFullAccess = '完全访问'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出API文档数据？'
