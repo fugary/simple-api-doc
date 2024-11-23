@@ -14,7 +14,7 @@ import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import {
-  AUTH_TYPE,
+  AUTH_TYPE, AUTHORITY_TYPE,
   IMPORT_AUTH_TYPES,
   IMPORT_SOURCE_TYPES,
   IMPORT_TASK_TYPES, TASK_STATUS_MAPPING,
@@ -26,6 +26,7 @@ import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
 import { ElTag } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
+import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -41,6 +42,7 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
 const loadProjectTasks = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
+const { projectCheckAccess, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
 const { initLoadOnce } = useInitLoadOnce(async () => {
   if (inProject) {
     await loadProjectItem(projectCode)
@@ -49,7 +51,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     searchParam.value.userName = projectItem.value?.userName
     loadValidFolders(searchParam.value.projectId)
   } else {
-    await Promise.allSettled([loadUsersAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+    await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
   await loadProjectTasks()
 })
@@ -131,6 +133,7 @@ const buttons = computed(() => {
   return [{
     labelKey: 'api.label.importNow',
     type: 'success',
+    enabled: !!isWritable.value,
     click: item => {
       triggerTask(item.id, { loading: true, timeout: 60000 })
         .then((data) => {
@@ -143,12 +146,14 @@ const buttons = computed(() => {
   }, {
     labelKey: 'common.label.edit',
     type: 'primary',
+    enabled: !!isWritable.value,
     click: item => {
       newOrEdit(item.id)
     }
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
+    enabled: !!isDeletable.value,
     click: item => {
       $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
         .then(() => ApiProjectTaskApi.deleteById(item.id))
@@ -169,6 +174,18 @@ const searchFormOptions = computed(() => {
         clearable: false
       },
       change: async () => {
+        await loadGroupsAndRefreshOptions()
+        await loadProjectsAndRefreshOptions()
+        loadProjectTasks(1)
+      }
+    }, {
+      labelKey: 'api.label.projectGroups',
+      prop: 'groupCode',
+      type: 'select',
+      enabled: !!projectGroupOptions.value?.length,
+      children: projectGroupOptions.value,
+      change: async () => {
+        tableData.value = []
         await loadProjectsAndRefreshOptions()
         loadProjectTasks(1)
       }
@@ -176,7 +193,7 @@ const searchFormOptions = computed(() => {
       labelKey: 'api.label.project',
       prop: 'projectId',
       type: 'select',
-      enabled: !inProject && projectOptions.value.length > 1,
+      enabled: !inProject && !!projectOptions.value.length,
       children: projectOptions.value,
       change () {
         loadProjectTasks(1)
@@ -319,6 +336,9 @@ const saveProjectTask = (item) => {
 
 const importRef = ref()
 
+const isDeletable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))
+const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
+
 </script>
 
 <template>
@@ -355,6 +375,7 @@ const importRef = ref()
           >
             <template #buttons>
               <el-button
+                v-if="isWritable"
                 type="info"
                 @click="newOrEdit()"
               >
@@ -375,7 +396,7 @@ const importRef = ref()
           />
         </el-container>
       </el-tab-pane>
-      <el-tab-pane>
+      <el-tab-pane :disabled="!isWritable">
         <template #label>
           {{ $t('api.label.manualImportData') }}
         </template>
@@ -404,6 +425,7 @@ const importRef = ref()
       >
         <template #buttons>
           <el-button
+            v-if="isWritable"
             type="info"
             @click="newOrEdit()"
           >

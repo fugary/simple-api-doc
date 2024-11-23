@@ -192,6 +192,7 @@ const searchFormOptions = computed(() => {
       enabled: !!projectGroupOptions.value?.length,
       children: projectGroupOptions.value,
       change: async () => {
+        tableData.value = []
         await loadProjectsAndRefreshOptions()
         loadProjectShares(1)
       }
