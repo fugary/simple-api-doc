@@ -29,7 +29,7 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { inProjectCheckAccess, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 
 const route = useRoute()
@@ -405,8 +405,20 @@ const saveProjectShare = (item) => {
   return ApiProjectShareApi.saveOrUpdate(item).then(() => loadProjectShares())
 }
 
-const isDeletable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))
-const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
+const isDeletable = computed(() => {
+  if (inProject) {
+    return inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE)
+  } else {
+    return projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE)
+  }
+})
+const isWritable = computed(() => {
+  if (inProject) {
+    return inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || isDeletable.value
+  } else {
+    return projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value
+  }
+})
 
 </script>
 

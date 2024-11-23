@@ -136,6 +136,7 @@ public class ApiProjectController {
     @GetMapping("/loadBasic/{projectCode}")
     public SimpleResult<ApiProjectDetailVo> loadBasic(@PathVariable("projectCode") String projectCode) throws Exception {
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+                .includeAuthorities(true)
                 .projectCode(projectCode).build());
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
@@ -149,6 +150,7 @@ public class ApiProjectController {
     @GetMapping("/loadBasicById/{projectId}")
     public SimpleResult<ApiProjectDetailVo> loadBasicById(@PathVariable("projectId") Integer projectId) throws Exception {
         ApiProjectDetailVo detailVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+                .includeAuthorities(true)
                 .projectId(projectId).build());
         if (detailVo == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);

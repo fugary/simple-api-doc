@@ -9,8 +9,8 @@ import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.
 import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
-import { checkCurrentAuthAccess } from '@/services/api/ApiCommonService'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
+import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -48,15 +48,8 @@ watch(loading, (newLoading) => {
   newLoading ? $coreShowLoading({ delay: 0, target: '.home-main' }) : $coreHideLoading()
 }, { immediate: true })
 
-const projectCheckAccess = (authority) => {
-  if (projectItem.value) {
-    const { authorities, userName, groupCode } = projectItem.value
-    return checkCurrentAuthAccess({ userName, groupCode, authorities }, authority)
-  }
-}
-
-const isDeletable = computed(() => projectCheckAccess(AUTHORITY_TYPE.DELETABLE))
-const isWritable = computed(() => projectCheckAccess(AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
+const isDeletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
+const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
 
 </script>
 

@@ -78,4 +78,11 @@ export const useSelectProjectGroups = (searchParam) => {
   }
 }
 
+export const inProjectCheckAccess = (projectItem, authority) => {
+  if (projectItem) {
+    const { authorities, userName, groupCode } = projectItem
+    return checkCurrentAuthAccess({ userName, groupCode, authorities }, authority)
+  }
+}
+
 export default ApiProjectGroupApi
