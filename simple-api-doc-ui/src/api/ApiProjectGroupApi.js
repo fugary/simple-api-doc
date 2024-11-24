@@ -46,7 +46,7 @@ export const useSelectProjectGroups = (searchParam) => {
   const loadSelectGroups = (data, config) => {
     return loadProjectGroups(data, config).then(result => {
       projectGroups.value = result || []
-      projectGroupOptions.value = projectGroups.value.map(group => ({ label: group.groupName, value: group.groupCode }))
+      projectGroupOptions.value = projectGroups.value.map(group => ({ label: `${group.groupName}-${group.userName}`, value: group.groupCode }))
     })
   }
   const loadGroupsAndRefreshOptions = async () => {
@@ -61,7 +61,12 @@ export const useSelectProjectGroups = (searchParam) => {
   }
 
   const projectCheckAccess = (groupCode, authority) => {
-    const authorities = projectGroups.value?.find(group => group.groupCode === groupCode)?.authorities
+    const currentGroup = projectGroups.value?.find(group => group.groupCode === groupCode)
+    const currentUserName = useCurrentUserName()
+    if (currentUserName === currentGroup?.userName) {
+      return true
+    }
+    const authorities = currentGroup?.authorities
     return checkCurrentAuthAccess({
       userName: useCurrentUserName(),
       groupCode,
@@ -80,7 +85,11 @@ export const useSelectProjectGroups = (searchParam) => {
 
 export const inProjectCheckAccess = (projectItem, authority) => {
   if (projectItem) {
-    const { authorities, userName, groupCode } = projectItem
+    const { apiGroup, userName, groupCode } = projectItem
+    if (apiGroup?.userName === useCurrentUserName()) {
+      return true
+    }
+    const authorities = apiGroup?.authorities
     return checkCurrentAuthAccess({ userName, groupCode, authorities }, authority)
   }
 }

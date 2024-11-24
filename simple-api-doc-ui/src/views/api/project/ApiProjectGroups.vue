@@ -61,7 +61,7 @@ const columns = computed(() => {
           const apiUser = apiUserMap[userGroup.userId]
           if (apiUser) {
             return <ElText type="info" size="small">
-              <strong>{apiUser.nickName || apiUser.userName}</strong>: {
+              <strong class="margin-right1">{apiUser.userName}:</strong>{
               userGroup.authorities?.split(/\s*,\s*/).filter(key => !!key).map(authority => {
                 return <>
                   <ElTag class="margin-right1" type={AUTHORITY_TYPE_MAPPING[authority]}>{ labelMap[authority] }</ElTag>

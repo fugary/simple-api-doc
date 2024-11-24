@@ -37,10 +37,10 @@ public interface ApiGroupService extends IService<ApiGroup> {
     /**
      * 加载用户支持的组
      *
-     * @param userId
+     * @param apiUser
      * @return
      */
-    List<ApiGroupVo> loadUserGroups(Integer userId);
+    List<ApiGroupVo> loadUserGroups(ApiUser apiUser);
 
     /**
      * 加载组用户

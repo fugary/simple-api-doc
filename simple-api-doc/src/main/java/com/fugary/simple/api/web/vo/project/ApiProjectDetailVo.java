@@ -1,6 +1,7 @@
 package com.fugary.simple.api.web.vo.project;
 
 import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -14,5 +15,5 @@ public class ApiProjectDetailVo extends ApiProject {
     private List<ApiDoc> docs = new ArrayList<>();
     private List<ApiProjectShareVo> shares = new ArrayList<>();
     private List<ApiProjectTask> tasks = new ArrayList<>();
-    private String authorities;
+    private ApiGroupVo apiGroup;
 }

@@ -59,7 +59,7 @@ public class ApiGroupController {
             apiGroups = adminGroups.stream().map(group -> SimpleModelUtils.copy(group, ApiGroupVo.class)).collect(Collectors.toList());
         } else {
             ApiUserVo userVo = apiUserService.loadUser(queryVo.getUserName());
-            apiGroups = apiGroupService.loadUserGroups(userVo.getId()).stream()
+            apiGroups = apiGroupService.loadUserGroups(userVo).stream()
                     .filter(apiGroupVo -> apiGroupService.checkGroupAccess(userVo, apiGroupVo.getGroupCode(), ApiGroupAuthority.READABLE))
                     .collect(Collectors.toList());
         }

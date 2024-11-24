@@ -21,6 +21,7 @@ import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
+import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import lombok.SneakyThrows;
 import org.apache.commons.collections.CollectionUtils;
@@ -145,9 +146,15 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             }
             ApiUserVo loginUser = getLoginUser();
             if (queryVo.isIncludeAuthorities() && StringUtils.isNotBlank(apiProject.getGroupCode()) && loginUser != null) {
-                List<ApiUserGroup> userGroups = apiGroupService.loadGroupUsers(loginUser.getId(), apiProject.getGroupCode());
-                if (!userGroups.isEmpty()) {
-                    apiProjectVo.setAuthorities(userGroups.get(0).getAuthorities());
+                ApiGroup apiGroup = apiGroupService.loadGroup(apiProject.getGroupCode());
+                if (apiGroup != null) {
+                    ApiGroupVo groupVo = SimpleModelUtils.copy(apiGroup, ApiGroupVo.class);
+                    List<ApiUserGroup> userGroups = apiGroupService.loadGroupUsers(loginUser.getId(), apiProject.getGroupCode());
+                    if (!userGroups.isEmpty()) {
+                        groupVo.setUserGroups(userGroups);
+                        groupVo.setAuthorities(userGroups.get(0).getAuthorities());
+                    }
+                    apiProjectVo.setApiGroup(groupVo);
                 }
             }
             return apiProjectVo;

@@ -33,6 +33,7 @@ const processGroupUsers = (groupCode, data) => {
       userId: user.id,
       groupCode,
       user,
+      group: groupItem.value,
       authorityList: groupUser?.authorities ? groupUser.authorities.split(',') : [],
       ...groupUser,
       formOption: {
@@ -85,7 +86,7 @@ const columns = computed(() => {
   }, {
     labelKey: 'api.label.authorities',
     formatter: (item, column, cellValue, index) => {
-      if (isUserAdmin(item.user?.userName)) {
+      if (isUserAdmin(item.user?.userName) || item.user?.userName === item.group?.userName) {
         return <ElTag type="success">{$i18nBundle('api.label.authorityFullAccess')}</ElTag>
       }
       return <CommonFormControl option={item.formOption} model={item} prop={`userGroups[${index}].${item.formOption.prop}`}/>
@@ -98,7 +99,7 @@ const saveConfigModel = computed(() => {
   const model = { ...configModel.value }
   model.userGroups = model.userGroups.map(userGroup => {
     const authorities = userGroup.authorityList?.length ? userGroup.authorityList.join(',') : ''
-    const newUserGroup = omit(userGroup, ['user', 'formOption', 'authorityList'])
+    const newUserGroup = omit(userGroup, ['user', 'group', 'formOption', 'authorityList'])
     newUserGroup.authorities = authorities
     return newUserGroup
   }).filter(userGroup => !!userGroup.authorities)

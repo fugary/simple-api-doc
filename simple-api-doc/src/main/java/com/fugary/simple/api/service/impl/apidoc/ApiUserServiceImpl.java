@@ -40,7 +40,7 @@ public class ApiUserServiceImpl extends ServiceImpl<ApiUserMapper, ApiUser> impl
         ApiUser apiUser = getOne(Wrappers.<ApiUser>query().eq("user_name", userName));
         ApiUserVo userVo = SimpleModelUtils.copy(apiUser, ApiUserVo.class);
         if (userVo != null) {
-            List<ApiGroupVo> groups = apiGroupService.loadUserGroups(userVo.getId());
+            List<ApiGroupVo> groups = apiGroupService.loadUserGroups(userVo);
             userVo.setGroups(groups);
         }
         return userVo;

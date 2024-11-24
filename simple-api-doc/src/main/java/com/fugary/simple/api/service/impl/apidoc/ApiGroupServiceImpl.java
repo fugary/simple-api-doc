@@ -53,9 +53,12 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
     }
 
     @Override
-    public List<ApiGroupVo> loadUserGroups(Integer userId) {
+    public List<ApiGroupVo> loadUserGroups(ApiUser apiUser) {
+        Integer userId = apiUser.getId();
+        String userName = apiUser.getUserName();
         QueryWrapper<ApiGroup> queryWrapper = Wrappers.<ApiGroup>query().eq("status", ApiDocConstants.STATUS_ENABLED)
-                .exists("select 1 from t_api_user_group g where g.group_code = t_api_group.group_code and g.user_id={0}", userId);
+                .and(wrapper -> wrapper.exists("select 1 from t_api_user_group g where g.group_code = t_api_group.group_code and g.user_id={0}", userId)
+                        .or().eq("user_name", userName));
         List<ApiGroup> groups = list(queryWrapper);
         List<ApiGroupVo> results = new ArrayList<>();
         if (!groups.isEmpty()) {
@@ -117,14 +120,7 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
         if (apiUser == null || StringUtils.isBlank(groupCode)) {
             return false;
         }
-        if (SecurityUtils.isAdmin(apiUser.getUserName())) {
-            return true;
-        }
-        List<ApiUserGroup> userGroups = loadGroupUsers(apiUser.getId(), groupCode);
-        if (userGroups.isEmpty() || StringUtils.isBlank(userGroups.get(0).getAuthorities())) {
-            return false;
-        }
-        return ApiGroupAuthority.checkAccess(userGroups.get(0).getAuthorities(), apiAuthority);
+        return checkGroupAccess(apiUser, loadGroup(groupCode), apiAuthority);
     }
 
     @Override
@@ -132,7 +128,14 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
         if (apiUser == null || apiGroup == null) {
             return false;
         }
-        return checkGroupAccess(apiUser, apiGroup.getGroupCode(), apiAuthority);
+        if (SecurityUtils.isAdmin(apiUser.getUserName()) || StringUtils.equals(apiUser.getUserName(), apiGroup.getUserName())) {
+            return true;
+        }
+        List<ApiUserGroup> userGroups = loadGroupUsers(apiUser.getId(), apiGroup.getGroupCode());
+        if (userGroups.isEmpty() || StringUtils.isBlank(userGroups.get(0).getAuthorities())) {
+            return false;
+        }
+        return ApiGroupAuthority.checkAccess(userGroups.get(0).getAuthorities(), apiAuthority);
     }
 
     @Override
