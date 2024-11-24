@@ -9,7 +9,7 @@ import ApiProjectTaskApi, { triggerTask } from '@/api/ApiProjectTaskApi'
 import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
-import { useFormStatus } from '@/consts/GlobalConstants'
+import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
@@ -199,8 +199,9 @@ const searchFormOptions = computed(() => {
       change () {
         loadProjectTasks(1)
       }
-    },
-    {
+    }, useSearchStatus({
+      change: () => loadProjectTasks(1)
+    }), {
       labelKey: 'common.label.keywords',
       prop: 'keyword'
     }

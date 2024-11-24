@@ -5,6 +5,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -40,7 +41,8 @@ public class UserController {
     @GetMapping
     public SimpleResult<List<ApiUser>> search(@ModelAttribute SimpleQueryVo queryVo) {
         Page<ApiUser> page = SimpleResultUtils.toPage(queryVo);
-        QueryWrapper<ApiUser> queryWrapper = Wrappers.query();
+        QueryWrapper<ApiUser> queryWrapper = Wrappers.<ApiUser>query()
+                .eq(queryVo.getStatus() != null, ApiDocConstants.STATUS_KEY, queryVo.getStatus());
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         if (StringUtils.isNotBlank(keyword)) {
             queryWrapper.and(wrapper -> wrapper.like("user_name", keyword)

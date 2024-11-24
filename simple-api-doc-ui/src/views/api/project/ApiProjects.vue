@@ -74,7 +74,7 @@ const searchFormOptions = computed(() => {
       loadApiProjects(1)
     }
   },
-  useSearchStatus(),
+  useSearchStatus({ change: () => loadApiProjects(1) }),
   {
     labelKey: 'common.label.keywords',
     prop: 'keyword'

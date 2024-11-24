@@ -18,7 +18,7 @@ import ApiProjectShareApi, { getShareUrl } from '@/api/ApiProjectShareApi'
 import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
-import { useFormStatus } from '@/consts/GlobalConstants'
+import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElTag, ElButton, ElText } from 'element-plus'
@@ -206,8 +206,9 @@ const searchFormOptions = computed(() => {
       change () {
         loadProjectShares(1)
       }
-    },
-    {
+    }, useSearchStatus({
+      change: () => loadProjectShares(1)
+    }), {
       labelKey: 'common.label.keywords',
       prop: 'keyword'
     }

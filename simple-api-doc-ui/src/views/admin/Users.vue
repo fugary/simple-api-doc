@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="jsx">
 import { computed, onMounted } from 'vue'
 import { useDefaultPage } from '@/config'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
@@ -6,6 +6,8 @@ import { showUserInfo } from '@/utils/DynamicUtils'
 import ApiUserApi from '@/api/ApiUserApi'
 import { isAdminUser, $goto, $coreConfirm, isUserAdmin } from '@/utils'
 import { $i18nBundle } from '@/messages'
+import { useSearchStatus } from '@/consts/GlobalConstants'
+import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -17,6 +19,11 @@ onMounted(() => {
   loadUsers()
 })
 
+const saveUser = (user) => {
+  ApiUserApi.saveOrUpdate(user, { loading: true })
+    .then(() => loadUsers())
+}
+
 /**
  *
  * @type {[CommonTableColumn]}
@@ -27,6 +34,21 @@ const columns = [{
 }, {
   labelKey: 'common.label.nickName',
   property: 'nickName'
+}, {
+  labelKey: 'common.label.status',
+  formatter (data) {
+    const clickToToggle = !isUserAdmin(data.userName)
+    const enableOrDisable = (status) => {
+      if (clickToToggle) {
+        return saveUser({ ...data, status })
+      }
+    }
+    return <DelFlagTag v-model={data.status} clickToToggle={clickToToggle}
+                       onToggleValue={enableOrDisable}/>
+  },
+  attrs: {
+    align: 'center'
+  }
 }, {
   labelKey: 'common.label.email',
   property: 'userEmail'
@@ -58,12 +80,12 @@ const buttons = computed(() => {
 })
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
-  return [
-    {
-      labelKey: 'common.label.keywords',
-      prop: 'keyword'
-    }
-  ]
+  return [useSearchStatus({
+    change: () => loadUsers(1)
+  }), {
+    labelKey: 'common.label.keywords',
+    prop: 'keyword'
+  }]
 })
 const doSearch = () => {
   loadUsers()
