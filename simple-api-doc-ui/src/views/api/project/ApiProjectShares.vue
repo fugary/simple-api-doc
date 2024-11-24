@@ -57,6 +57,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     await loadProjectItem(projectCode)
     searchParam.value.projectId = projectItem.value?.id
     searchParam.value.userName = projectItem.value?.userName
+    searchParam.value.groupCode = projectItem.value?.groupCode
     const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
     editTreeNodes.value = docTreeNodes
     infoList.value = projectItem.value?.infoList

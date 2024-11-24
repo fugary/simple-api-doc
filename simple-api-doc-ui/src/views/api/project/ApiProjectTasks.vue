@@ -49,6 +49,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     const projectId = projectItem.value?.id
     searchParam.value.projectId = projectId
     searchParam.value.userName = projectItem.value?.userName
+    searchParam.value.groupCode = projectItem.value?.groupCode
     loadValidFolders(searchParam.value.projectId)
   } else {
     await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
