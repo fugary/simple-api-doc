@@ -8,6 +8,7 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiGroup;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.entity.api.ApiUserGroup;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
@@ -25,7 +26,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -85,7 +89,7 @@ public class ApiGroupController {
     }
 
     @GetMapping
-    public SimpleResult<List<ApiGroup>> search(@ModelAttribute SimpleQueryVo queryVo) {
+    public SimpleResult<List<ApiGroupVo>> search(@ModelAttribute SimpleQueryVo queryVo) {
         if (!SecurityUtils.isAdmin()) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
@@ -96,7 +100,23 @@ public class ApiGroupController {
             queryWrapper.and(wrapper -> wrapper.like("group_name", keyword)
                     .or().like("description", keyword));
         }
-        return SimpleResultUtils.createSimpleResult(apiGroupService.page(page, queryWrapper));
+        Page<ApiGroup> groupPage = apiGroupService.page(page, queryWrapper);
+        List<String> groupCodes = groupPage.getRecords().stream().map(ApiGroup::getGroupCode).distinct().collect(Collectors.toList());
+        List<ApiUserGroup> apiUserGroups = apiGroupService.loadGroupUsers(groupCodes);
+        Map<String, List<ApiUserGroup>> groupUsersMap = apiUserGroups.stream().collect(Collectors.groupingBy(ApiUserGroup::getGroupCode));
+        List<Integer> userIds = apiUserGroups.stream().map(ApiUserGroup::getUserId).distinct().collect(Collectors.toList());
+        List<ApiGroupVo> apiGroups = groupPage.getRecords().stream().map(group -> {
+            ApiGroupVo groupVo = SimpleModelUtils.copy(group, ApiGroupVo.class);
+            List<ApiUserGroup> userGroups = groupUsersMap.getOrDefault(group.getGroupCode(), new ArrayList<>());
+            if (!userGroups.isEmpty()) {
+                groupVo.setAuthorities(userGroups.get(0).getAuthorities());
+            }
+            groupVo.setUserGroups(userGroups);
+            return groupVo;
+        }).collect(Collectors.toList());
+        List<ApiUser> apiUsers = apiUserService.listByIds(userIds);
+        return SimpleResultUtils.createSimpleResult(apiGroups)
+                .add("users", (Serializable) apiUsers);
     }
 
     @GetMapping("/{id}")

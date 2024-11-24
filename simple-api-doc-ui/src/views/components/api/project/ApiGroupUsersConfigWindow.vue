@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { loadGroupUsers, saveUserGroups } from '@/api/ApiProjectGroupApi'
 import CommonFormControl from '@/components/common-form-control/index.vue'
-import { ALL_AUTHORITIES, AUTHORITY_TYPE } from '@/consts/ApiConstants'
+import { ALL_AUTHORITIES, AUTHORITY_TYPE, AUTHORITY_TYPE_MAPPING } from '@/consts/ApiConstants'
 import { omit } from 'lodash-es'
 import { isUserAdmin } from '@/utils'
 import { $i18nBundle } from '@/messages'
@@ -39,7 +39,16 @@ const processGroupUsers = (groupCode, data) => {
         showLabel: false,
         prop: 'authorityList',
         type: 'checkbox-group',
-        children: ALL_AUTHORITIES,
+        children: ALL_AUTHORITIES.map(allAuthority => {
+          return {
+            value: allAuthority.value,
+            slots: {
+              default () {
+                return <ElTag type={AUTHORITY_TYPE_MAPPING[allAuthority.value]}>{ $i18nBundle(allAuthority.labelKey) }</ElTag>
+              }
+            }
+          }
+        }),
         change (value) {
           if (value?.length >= 2 && value.includes(AUTHORITY_TYPE.FORBIDDEN)) {
             const item = configModel.value.userGroups.find(userGroup => userGroup.userId === user.id)
@@ -76,12 +85,12 @@ const columns = computed(() => {
   }, {
     labelKey: 'api.label.authorities',
     formatter: (item, column, cellValue, index) => {
-      console.log('===========================item', item, column, cellValue, index)
       if (isUserAdmin(item.user?.userName)) {
         return <ElTag type="success">{$i18nBundle('api.label.authorityFullAccess')}</ElTag>
       }
       return <CommonFormControl option={item.formOption} model={item} prop={`userGroups[${index}].${item.formOption.prop}`}/>
-    }
+    },
+    minWidth: '200px'
   }]
 })
 
@@ -96,12 +105,15 @@ const saveConfigModel = computed(() => {
   return model
 })
 
+const emit = defineEmits(['savedGroupUsers'])
+
 const saveGroupUsersConfig = () => {
   console.log('=============================', saveConfigModel.value)
   saveUserGroups(saveConfigModel.value)
     .then(data => {
       console.log('=============================data', data)
       if (data.success) {
+        emit('savedGroupUsers', saveConfigModel.value)
         showWindow.value = false
       }
     })

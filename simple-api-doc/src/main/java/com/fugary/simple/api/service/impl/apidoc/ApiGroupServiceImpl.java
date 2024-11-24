@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -67,6 +66,7 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
                 List<ApiUserGroup> groupUsers = userGroupMap.getOrDefault(group.getGroupCode(), new ArrayList<>());
                 if (!groupUsers.isEmpty()) {
                     groupVo.setAuthorities(groupUsers.get(0).getAuthorities());
+                    groupVo.setUserGroups(groupUsers);
                 }
                 results.add(groupVo);
             }
@@ -83,6 +83,11 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
     public List<ApiUserGroup> loadGroupUsers(Integer userId, String groupCode) {
         return apiUserGroupMapper.selectList(Wrappers.<ApiUserGroup>query().eq("group_code", groupCode)
                 .eq("user_id", userId));
+    }
+
+    @Override
+    public List<ApiUserGroup> loadGroupUsers(List<String> groupCodes) {
+        return apiUserGroupMapper.selectList(Wrappers.<ApiUserGroup>query().in("group_code", groupCodes));
     }
 
     @Override

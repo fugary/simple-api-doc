@@ -53,6 +53,14 @@ public interface ApiGroupService extends IService<ApiGroup> {
     /**
      * 加载组用户
      *
+     * @param groupCodes
+     * @return
+     */
+    List<ApiUserGroup> loadGroupUsers(List<String> groupCodes);
+
+    /**
+     * 加载组用户
+     *
      * @param userId
      * @param groupCode
      * @return

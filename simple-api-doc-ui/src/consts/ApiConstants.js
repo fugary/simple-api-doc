@@ -147,6 +147,13 @@ export const AUTHORITY_TYPE = {
   DELETABLE: 'deletable'
 }
 
+export const AUTHORITY_TYPE_MAPPING = {
+  readable: 'primary',
+  writable: 'success',
+  deletable: 'warning',
+  forbidden: 'danger'
+}
+
 export const ALL_AUTHORITIES = Object.values(AUTHORITY_TYPE).map(value => {
   return {
     value,

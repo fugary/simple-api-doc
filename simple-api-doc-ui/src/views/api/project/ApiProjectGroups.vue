@@ -10,10 +10,20 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
+import { ALL_AUTHORITIES, AUTHORITY_TYPE_MAPPING } from '@/consts/ApiConstants'
+import { ElText, ElTag } from 'element-plus'
 
+const apiUsers = ref([])
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
-  searchMethod: ApiProjectGroupApi.search
+  searchMethod: ApiProjectGroupApi.search,
+  dataProcessor: (data) => {
+    apiUsers.value = []
+    if (data.addons.users?.length) {
+      apiUsers.value = data.addons.users
+    }
+    return data.resultData
+  }
 })
 const loadProjectGroups = (pageNumber) => searchMethod(pageNumber)
 const { initLoadOnce } = useInitLoadOnce(async () => loadProjectGroups())
@@ -22,25 +32,53 @@ onMounted(initLoadOnce)
 
 onActivated(initLoadOnce)
 
-const columns = [{
-  labelKey: 'api.label.projectGroupName',
-  prop: 'groupName',
-  minWidth: '120px'
-}, {
-  labelKey: 'common.label.status',
-  minWidth: '100px',
-  formatter (data) {
-    return <DelFlagTag v-model={data.status} clickToToggle={true}
-                       onToggleValue={(status) => saveProjectGroup({ ...data, status })}/>
-  },
-  attrs: {
-    align: 'center'
-  }
-}, {
-  labelKey: 'common.label.description',
-  property: 'description',
-  minWidth: '120px'
-}]
+const columns = computed(() => {
+  const apiUserMap = Object.fromEntries(apiUsers.value.map(apiUser => [apiUser.id, apiUser]))
+  return [{
+    labelKey: 'api.label.projectGroupName',
+    prop: 'groupName',
+    minWidth: '120px'
+  }, {
+    labelKey: 'common.label.status',
+    formatter (data) {
+      return <DelFlagTag v-model={data.status} clickToToggle={true}
+                         onToggleValue={(status) => saveProjectGroup({ ...data, status })}/>
+    },
+    attrs: {
+      align: 'center'
+    }
+  }, {
+    labelKey: 'api.label.projectGroupUsers1',
+    formatter (data) {
+      if (data.userGroups?.length) {
+        const labelMap = Object.fromEntries(ALL_AUTHORITIES.map(allAuthority => [allAuthority.value, $i18nBundle(allAuthority.labelKey)]))
+        const groupComps = data.userGroups.map(userGroup => {
+          const apiUser = apiUserMap[userGroup.userId]
+          if (apiUser) {
+            return <ElText type="info" size="small">
+              <strong>{apiUser.nickName || apiUser.userName}</strong>: {
+              userGroup.authorities?.split(/\s*,\s*/).filter(key => !!key).map(authority => {
+                return <>
+                  <ElTag class="margin-right1" type={AUTHORITY_TYPE_MAPPING[authority]}>{ labelMap[authority] }</ElTag>
+                </>
+              })
+            } <br/>
+            </ElText>
+          }
+          return undefined
+        })
+        return <>
+          {groupComps}
+        </>
+      }
+    },
+    minWidth: '150px'
+  }, {
+    labelKey: 'common.label.description',
+    property: 'description',
+    minWidth: '150px'
+  }]
+})
 
 const groupUsersConfigRef = ref()
 
@@ -150,7 +188,10 @@ const saveProjectGroup = (data) => {
       :save-current-item="saveProjectGroup"
       label-width="130px"
     />
-    <api-group-users-config-window ref="groupUsersConfigRef" />
+    <api-group-users-config-window
+      ref="groupUsersConfigRef"
+      @saved-group-users="loadProjectGroups()"
+    />
   </el-container>
 </template>
 
