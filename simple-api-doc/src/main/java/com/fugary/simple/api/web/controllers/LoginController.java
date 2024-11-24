@@ -31,7 +31,7 @@ public class LoginController {
     @PostMapping("/login")
     public SimpleResult<LoginResultVo> login(@RequestBody LoginVo user) {
         ApiUserVo loginUser = apiUserService.loadUser(user.getUserName());
-        if (loginUser == null || !apiUserService.matchPassword(user.getUserPassword(), loginUser.getUserPassword())) {
+        if (loginUser == null || !loginUser.isEnabled() || !apiUserService.matchPassword(user.getUserPassword(), loginUser.getUserPassword())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2001);
         }
         LoginResultVo resultVo = new LoginResultVo();
