@@ -41,7 +41,7 @@ export const useFormStatus = (prop = 'status', activeValue = 1, inactiveValue = 
   }
 }
 
-export const useSearchStatus = (prop = 'status', activeValue = 1, inactiveValue = 0) => {
+export const useSearchStatus = ({ prop = 'status', activeValue = 1, inactiveValue = 0, change }) => {
   return {
     labelKey: 'common.label.status',
     prop,
@@ -49,7 +49,8 @@ export const useSearchStatus = (prop = 'status', activeValue = 1, inactiveValue 
     children: [
       { value: activeValue, label: $i18nBundle('common.label.statusEnabled') },
       { value: inactiveValue, label: $i18nBundle('common.label.statusDisabled') }
-    ]
+    ],
+    change
   }
 }
 

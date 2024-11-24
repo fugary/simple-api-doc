@@ -12,8 +12,5 @@ public class ProjectQueryVo extends SimpleQueryVo {
 
     private static final long serialVersionUID = 7288952527227126289L;
     private Integer projectId;
-
-    private String userName;
-
     private String groupCode;
 }

@@ -43,8 +43,7 @@ export const ALL_MENUS = [
     iconCls: 'Grid',
     nameCn: '项目分组',
     nameEn: 'Project Groups',
-    menuUrl: '/admin/groups',
-    checkEnabled: isAdminUser
+    menuUrl: '/admin/groups'
   },
   {
     id: 5,

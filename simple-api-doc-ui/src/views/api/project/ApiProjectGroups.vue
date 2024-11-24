@@ -1,17 +1,18 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted, ref } from 'vue'
-import { $coreConfirm } from '@/utils'
+import { $coreConfirm, isAdminUser, useCurrentUserName } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectGroupApi from '@/api/ApiProjectGroupApi'
 import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
-import { useFormStatus } from '@/consts/GlobalConstants'
+import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
 import { ALL_AUTHORITIES, AUTHORITY_TYPE_MAPPING } from '@/consts/ApiConstants'
 import { ElText, ElTag } from 'element-plus'
+import { useAllUsers } from '@/api/ApiUserApi'
 
 const apiUsers = ref([])
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
@@ -26,7 +27,11 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   }
 })
 const loadProjectGroups = (pageNumber) => searchMethod(pageNumber)
-const { initLoadOnce } = useInitLoadOnce(async () => loadProjectGroups())
+const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
+const { initLoadOnce } = useInitLoadOnce(async () => {
+  loadUsersAndRefreshOptions()
+  loadProjectGroups()
+})
 
 onMounted(initLoadOnce)
 
@@ -108,6 +113,20 @@ const buttons = computed(() => {
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
   return [{
+    labelKey: 'common.label.user',
+    prop: 'userName',
+    type: 'select',
+    enabled: isAdminUser(),
+    children: userOptions.value,
+    attrs: {
+      clearable: false
+    },
+    change () {
+      loadProjectGroups(1)
+    }
+  }, useSearchStatus({
+    change: () => loadProjectGroups(1)
+  }), {
     labelKey: 'common.label.keywords',
     prop: 'keyword'
   }]
@@ -124,7 +143,8 @@ const newOrEdit = async (id) => {
     })
   } else {
     currentModel.value = {
-      status: 1
+      status: 1,
+      userName: searchParam.value?.userName || useCurrentUserName()
     }
   }
   showEditWindow.value = true
@@ -132,6 +152,15 @@ const newOrEdit = async (id) => {
 
 const editFormOptions = computed(() => {
   return defineFormOptions([{
+    labelKey: 'common.label.user',
+    prop: 'userName',
+    type: 'select',
+    enabled: isAdminUser(),
+    children: userOptions.value,
+    attrs: {
+      clearable: false
+    }
+  }, {
     labelKey: 'api.label.projectGroupName',
     prop: 'groupName',
     required: true

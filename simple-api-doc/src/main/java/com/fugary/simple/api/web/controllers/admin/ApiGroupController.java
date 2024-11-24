@@ -72,6 +72,9 @@ public class ApiGroupController {
         if (apiGroup == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!SecurityUtils.validateUserUpdate(apiGroup.getUserName())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(apiGroupService.loadGroupUsers(groupCode))
                 .add("group", apiGroup);
     }
@@ -82,7 +85,7 @@ public class ApiGroupController {
         if (apiGroup == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (!SecurityUtils.isAdmin()) {
+        if (!SecurityUtils.validateUserUpdate(apiGroup.getUserName())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiGroupService.saveUserGroups(userGroupVo));
@@ -90,16 +93,14 @@ public class ApiGroupController {
 
     @GetMapping
     public SimpleResult<List<ApiGroupVo>> search(@ModelAttribute SimpleQueryVo queryVo) {
-        if (!SecurityUtils.isAdmin()) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
-        }
         Page<ApiGroup> page = SimpleResultUtils.toPage(queryVo);
-        QueryWrapper<ApiGroup> queryWrapper = Wrappers.query();
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
-        if (StringUtils.isNotBlank(keyword)) {
-            queryWrapper.and(wrapper -> wrapper.like("group_name", keyword)
-                    .or().like("description", keyword));
-        }
+        String userName = SecurityUtils.getUserName(queryVo.getUserName());
+        QueryWrapper<ApiGroup> queryWrapper = Wrappers.<ApiGroup>query()
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
+                .eq("user_name", userName)
+                .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("group_name", keyword)
+                        .or().like("description", keyword));
         Page<ApiGroup> groupPage = apiGroupService.page(page, queryWrapper);
         List<String> groupCodes = groupPage.getRecords().stream().map(ApiGroup::getGroupCode).distinct().collect(Collectors.toList());
         List<ApiUserGroup> apiUserGroups = apiGroupService.loadGroupUsers(groupCodes);
@@ -126,12 +127,12 @@ public class ApiGroupController {
 
     @DeleteMapping("/{id}")
     public SimpleResult<Boolean> remove(@PathVariable("id") Integer id) {
-        if (!SecurityUtils.isAdmin()) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
-        }
         ApiGroup apiGroup = apiGroupService.getOne(Wrappers.<ApiGroup>query().eq("id", id));
         if (apiGroup == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!SecurityUtils.validateUserUpdate(apiGroup.getUserName())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         apiGroupService.deleteUserGroupsByCode(apiGroup.getGroupCode());
         apiProjectService.update(Wrappers.<ApiProject>update().eq("group_code", apiGroup.getGroupCode())
@@ -144,7 +145,7 @@ public class ApiGroupController {
         if (apiGroupService.existsGroup(group)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
-        if (!SecurityUtils.isAdmin()) {
+        if (!SecurityUtils.validateUserUpdate(group.getUserName())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         if (StringUtils.isBlank(group.getGroupCode())) {
