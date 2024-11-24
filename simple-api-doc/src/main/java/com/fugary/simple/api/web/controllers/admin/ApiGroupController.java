@@ -22,6 +22,7 @@ import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserVo;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -115,7 +116,10 @@ public class ApiGroupController {
             groupVo.setUserGroups(userGroups);
             return groupVo;
         }).collect(Collectors.toList());
-        List<ApiUser> apiUsers = apiUserService.listByIds(userIds);
+        List<ApiUser> apiUsers = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(userIds)) {
+            apiUsers = apiUserService.listByIds(userIds);
+        }
         return SimpleResultUtils.createSimpleResult(apiGroups)
                 .add("users", (Serializable) apiUsers);
     }

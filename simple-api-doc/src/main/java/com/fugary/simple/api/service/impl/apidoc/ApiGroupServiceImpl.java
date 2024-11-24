@@ -17,6 +17,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserGroupVo;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -90,6 +91,9 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
 
     @Override
     public List<ApiUserGroup> loadGroupUsers(List<String> groupCodes) {
+        if (CollectionUtils.isEmpty(groupCodes)) {
+            return new ArrayList<>();
+        }
         return apiUserGroupMapper.selectList(Wrappers.<ApiUserGroup>query().in("group_code", groupCodes));
     }
 
