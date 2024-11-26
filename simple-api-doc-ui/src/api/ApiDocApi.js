@@ -21,4 +21,8 @@ export const copyApiDoc = function (docId, config) {
   return $httpPost(`${BASE_URL}/copyApiDoc/${docId}`, null, config)
 }
 
+export const updateApiDoc = function (apiDoc, config) {
+  return $httpPost(`${BASE_URL}/updateApiDoc`, apiDoc, config)
+}
+
 export default ApiDocApi

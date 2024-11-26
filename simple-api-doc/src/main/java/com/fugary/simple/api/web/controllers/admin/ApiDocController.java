@@ -9,6 +9,7 @@ import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
@@ -19,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,6 +116,22 @@ public class ApiDocController {
             apiDoc.setDocVersion(1);
         }
         apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDoc), null);
+        return SimpleResultUtils.createSimpleResult(apiDoc);
+    }
+
+    @PostMapping("/updateApiDoc")
+    public SimpleResult<ApiDoc> updateApiDoc(@RequestBody ApiDoc apiDoc) {
+        if (!validateUserProject(apiDoc)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (apiDoc.getDocVersion() == null) {
+            apiDoc.setDocVersion(1);
+        }
+        apiDocService.update(Wrappers.<ApiDoc>update().eq("id", apiDoc.getId())
+                .set(ApiDocConstants.STATUS_KEY, apiDoc.getStatus())
+                .set(ApiDocConstants.MODIFIER_KEY, SecurityUtils.getLoginUserName())
+                .set("locked", apiDoc.getLocked())
+                .set("modify_date", new Date()));
         return SimpleResultUtils.createSimpleResult(apiDoc);
     }
 

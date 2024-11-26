@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import ApiDocApi, { copyApiDoc } from '@/api/ApiDocApi'
+import ApiDocApi, { copyApiDoc, updateApiDoc } from '@/api/ApiDocApi'
 import {
   checkExportDownloadDocs,
   downloadExportShareDocs
@@ -203,14 +203,8 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
   }]
 }
 
-export const docHandlerSaveDoc = async (doc, newData) => {
-  let newDoc = doc
-  if (doc.id) {
-    newDoc = await ApiDocApi.getById(doc.id).then(data => data.resultData)
-  }
-  if (newDoc) {
-    return ApiDocApi.saveOrUpdate({ ...newDoc, ...newData, parent: null })
-  }
+export const docHandlerSaveDoc = (doc, newData) => {
+  return updateApiDoc({ ...doc, ...newData, parent: null })
 }
 
 /**
