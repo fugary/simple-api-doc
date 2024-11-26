@@ -101,14 +101,35 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
     }, {
       labelKey: 'common.label.status',
       formatter () {
-        return <DelFlagTag v-model={originalDoc.status} />
+        let lockStatus = <></>
+        if (originalDoc.locked) {
+          lockStatus = <CommonIcon icon="LockFilled" size={18} class="margin-left1"
+                                   style="vertical-align: middle;"
+                                   v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+        }
+        return <>
+          <DelFlagTag v-model={originalDoc.status}/>
+          {lockStatus}
+        </>
       }
     }, {
       labelFormatter: calcFormatter({
         key: 'status', value: $i18nBundle('common.label.status')
       }),
       formatter () {
-        return <DelFlagTag v-model={modifiedDoc.status} />
+        let lockStatus = <></>
+        if (modifiedDoc.locked) {
+          const type = originalDoc.locked !== modifiedDoc.locked ? 'warning' : ''
+          lockStatus = <ElText type={type}>
+            <CommonIcon icon="LockFilled" size={18} class="margin-left1"
+                        style="vertical-align: middle;"
+                        v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+          </ElText>
+        }
+        return <>
+          <DelFlagTag v-model={modifiedDoc.status}/>
+          {lockStatus}
+        </>
       }
     }, {
       labelKey: 'common.label.sortId',

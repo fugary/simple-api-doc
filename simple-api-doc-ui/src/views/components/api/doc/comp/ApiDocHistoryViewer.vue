@@ -5,6 +5,7 @@ import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import { ElText, ElTag } from 'element-plus'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
+import CommonIcon from '@/components/common-icon/index.vue'
 import ApiDocHistoryDiffViewer from '@/views/components/api/doc/comp/ApiDocHistoryDiffViewer.vue'
 import { $i18nBundle } from '@/messages'
 import { $copyText } from '@/utils'
@@ -63,7 +64,16 @@ const columns = [{
 }, {
   labelKey: 'common.label.status',
   formatter (data) {
-    return <DelFlagTag v-model={data.status}/>
+    let lockStatus = <></>
+    if (data.locked) {
+      lockStatus = <CommonIcon icon="LockFilled" size={18} class="margin-left1"
+                               style="vertical-align: middle;"
+                               v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+    }
+    return <>
+      <DelFlagTag v-model={data.status}/>
+      {lockStatus}
+    </>
   },
   attrs: {
     align: 'center'
