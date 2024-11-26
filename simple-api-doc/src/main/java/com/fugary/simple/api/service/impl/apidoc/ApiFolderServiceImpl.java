@@ -167,6 +167,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                 apiDocVo.setProjectId(projectId);
                 apiDocVo.setFolderId(folderId);
                 ApiDoc existsDoc = null;
+                boolean locked = false;
                 if (existsDocPair != null && existsDocPair.getValue() != null) { // 文档存在
                     existsDoc = existsDocPair.getValue();
                     apiDocVo.setId(existsDoc.getId());
@@ -174,14 +175,19 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     apiDocVo.setDocVersion(existsDoc.getDocVersion());
                     apiDocVo.setSortId(existsDoc.getSortId());
                     apiDocVo.setFolderId(existsDoc.getFolderId());
-                    apiDocSchemaService.deleteByDoc(apiDocVo.getId());
+                    locked = Boolean.TRUE.equals(existsDoc.getLocked());
+                    if (!locked) {
+                        apiDocSchemaService.deleteByDoc(apiDocVo.getId());
+                    }
                 }
                 if (ApiDocConstants.DOC_TYPE_API.equals(apiDocVo.getDocType())) {
                     apiDocVo.setSpecVersion(projectInfo.getSpecVersion());
                 }
-                apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc);
+                if (!locked) {
+                    apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc);
+                    saveApiDocSchemas(apiDocVo);
+                }
                 apiDocs.add(apiDocVo);
-                saveApiDocSchemas(apiDocVo);
             }
         }
     }

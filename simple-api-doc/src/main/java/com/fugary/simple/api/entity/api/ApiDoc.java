@@ -17,6 +17,7 @@ public class ApiDoc extends ModelBase {
     private Integer infoId;
     private String specVersion;
     private Integer sortId;
+    private Boolean locked;
     private String docType;
     private String docName;
     private String docKey;

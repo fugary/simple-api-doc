@@ -435,6 +435,7 @@ defineExpose(handlerData)
             <el-text
               :type="!data.enabled?'warning':''"
               class="custom-tree-node"
+              :tag="!data.enabled?'del':'span'"
               @mouseenter="showDropdown(data, false)"
               @mouseleave="leaveDropdown(data)"
             >
@@ -443,6 +444,13 @@ defineExpose(handlerData)
                 :show-icon="shareDoc?.showTreeIcon!==false"
                 :icon-leaf="calcNodeLeaf(data)"
               >
+                <common-icon
+                  v-if="editable&&data.locked"
+                  v-common-tooltip="$t('api.msg.apiDocLocked')"
+                  :size="18"
+                  icon="LockFilled"
+                  style="vertical-align: middle;"
+                />
                 <api-method-tag
                   v-if="data.docType==='api'"
                   :method="data.method"

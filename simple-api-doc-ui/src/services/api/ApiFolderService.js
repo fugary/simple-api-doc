@@ -202,6 +202,17 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
     }
   }]
 }
+
+export const docHandlerSaveDoc = async (doc, newData) => {
+  let newDoc = doc
+  if (doc.id) {
+    newDoc = await ApiDocApi.getById(doc.id).then(data => data.resultData)
+  }
+  if (newDoc) {
+    return ApiDocApi.saveOrUpdate({ ...newDoc, ...newData, parent: null })
+  }
+}
+
 /**
  * doc处理工具
  * @param doc
@@ -211,6 +222,7 @@ export const getDocHandlers = (doc, handlerData) => {
   const isApi = doc.docType === 'api'
   const label = isApi ? $i18nBundle('api.label.interfaces') : $i18nBundle('api.label.mdDocument')
   const statusLabel = doc.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
+  const lockedLabel = $i18nBundle(doc.locked ? 'api.label.apiDocUnlock' : 'api.label.apiDocLock')
   return [{
     enabled: !isApi,
     icon: 'Edit',
@@ -228,12 +240,20 @@ export const getDocHandlers = (doc, handlerData) => {
         .then(() => handlerData.refreshProjectItem())
     }
   }, {
+    icon: doc.locked ? 'LockOpenFilled' : 'LockFilled',
+    label: lockedLabel,
+    handler: () => {
+      $coreConfirm($i18nBundle('common.msg.commonConfirm', [lockedLabel]))
+        .then(() => docHandlerSaveDoc(doc, { locked: doc.locked ? 0 : 1 }))
+        .then(() => handlerData.refreshProjectItem())
+    }
+  }, {
     icon: doc.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
     type: doc.status === 1 ? 'warning' : '',
     label: $i18nBundle(statusLabel, [label]),
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle(statusLabel, [label])]))
-        .then(() => ApiDocApi.saveOrUpdate({ ...doc, status: doc.status === 1 ? 0 : 1, parent: null }))
+        .then(() => docHandlerSaveDoc(doc, { status: doc.status === 1 ? 0 : 1 }))
         .then(() => handlerData.refreshProjectItem())
     }
   }, {
