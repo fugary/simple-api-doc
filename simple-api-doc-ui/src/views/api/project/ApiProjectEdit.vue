@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
 import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl } from '@/utils'
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onActivated, onMounted } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
@@ -11,12 +11,13 @@ import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
+import { useInitLoadOnce } from '@/hooks/CommonHooks'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
 
 const { goBack } = useBackUrl('/api/projects')
-const { projectItem, loading } = useApiProjectItem(projectCode)
+const { projectItem, loading, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false })
 
 const folderTreeRef = ref()
 const currentDoc = ref(null)
@@ -47,6 +48,10 @@ const folderContainerHeight = computed(() => {
 watch(loading, (newLoading) => {
   newLoading ? $coreShowLoading({ delay: 0, target: '.home-main' }) : $coreHideLoading()
 }, { immediate: true })
+
+const { initLoadOnce } = useInitLoadOnce(() => loadProjectItem(projectCode))
+onMounted(initLoadOnce)
+onActivated(initLoadOnce)
 
 const isDeletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
 const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
