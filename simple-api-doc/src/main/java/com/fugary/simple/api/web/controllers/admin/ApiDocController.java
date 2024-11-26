@@ -124,13 +124,19 @@ public class ApiDocController {
         if (!validateUserProject(apiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        ApiDoc existsDoc = apiDocService.getById(apiDoc.getId());
         if (apiDoc.getDocVersion() == null) {
             apiDoc.setDocVersion(1);
         }
+        if (existsDoc != null && existsDoc.getDocVersion() != null) {
+            apiDoc.setDocVersion(existsDoc.getDocVersion() + 1);
+        }
+        apiDocHistoryService.saveByApiDoc(existsDoc);
         apiDocService.update(Wrappers.<ApiDoc>update().eq("id", apiDoc.getId())
                 .set(ApiDocConstants.STATUS_KEY, apiDoc.getStatus())
                 .set(ApiDocConstants.MODIFIER_KEY, SecurityUtils.getLoginUserName())
                 .set("locked", apiDoc.getLocked())
+                .set("doc_version", apiDoc.getDocVersion())
                 .set("modify_date", new Date()));
         return SimpleResultUtils.createSimpleResult(apiDoc);
     }

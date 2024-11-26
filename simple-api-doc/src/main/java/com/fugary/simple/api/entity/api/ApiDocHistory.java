@@ -16,6 +16,7 @@ public class ApiDocHistory extends ModelBase {
     private static final long serialVersionUID = 4847408942480677814L;
     private Integer docId;
     private Integer sortId;
+    private Boolean locked;
     private String docType;
     private String docName;
     private String docKey;
