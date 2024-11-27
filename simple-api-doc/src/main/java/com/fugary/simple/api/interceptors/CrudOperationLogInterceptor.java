@@ -86,7 +86,8 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                     .logType(request.getMethod())
                     .createDate(createDate)
                     .logTime(createDate.getTime() - startTime)
-                    .extend1(JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)))
+                    .requestUrl(HttpRequestUtils.getRequestUrl(request))
+                    .headers(JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)))
                     .exceptions(exception == null ? null : ExceptionUtils.getStackTrace(exception));
             if (loginUser != null) {
                 logBuilder.userName(loginUser.getUserName())
@@ -94,9 +95,10 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
             }
             boolean success = exception == null;
             if (result instanceof SimpleResult) {
-                SimpleResult simpleResult = ((SimpleResult<?>) result);
+                SimpleResult<?> simpleResult = ((SimpleResult<?>) result);
                 logBuilder.logMessage(simpleResult.getMessage());
                 success = simpleResult.isSuccess();
+                logBuilder.responseBody(JsonUtils.toJson(simpleResult));
             }
             logBuilder.logResult(success ? ApiDocConstants.SUCCESS : ApiDocConstants.FAIL);
             Pair<Boolean, LoginVo> loginPair = checkLogin(logName, args);

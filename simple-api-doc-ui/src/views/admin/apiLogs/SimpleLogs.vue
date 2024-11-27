@@ -70,9 +70,10 @@ const columns = computed(() => {
     labelKey: 'api.label.logData',
     minWidth: '150px',
     formatter (data) {
-      return <ElText onClick={() => showCodeWindow(data.logData)}
+      const dataStr = data.logData || data.responseBody
+      return <ElText onClick={() => showCodeWindow(dataStr)}
                      style="white-space: nowrap;cursor: pointer;">
-        {data.logData}
+        {dataStr}
       </ElText>
     }
   }, {
