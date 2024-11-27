@@ -6,6 +6,7 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import eslint from 'vite-plugin-eslint'
 import { visualizer } from 'rollup-plugin-visualizer'
 import packageJson from './package.json'
+import dayjs from 'dayjs'
 
 const optionalPlugins = [{
   plugin: visualizer({ open: true }),
@@ -23,10 +24,14 @@ const IMG_FILE_NAMES = 'images/[name]-[hash].[ext]'
 // https://vitejs.dev/config/
 export default ({ mode }) => {
   const env = loadEnv(mode, process.cwd())
+  let appVersion = packageJson.version
+  if (appVersion) {
+    appVersion = `${appVersion}+${dayjs().format('YYYYMMDD')}`
+  }
   return defineConfig({
     base: env.VITE_APP_CONTEXT_PATH,
     define: {
-      'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version),
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
       'import.meta.env.VITE_APP_GITHUB_ADDRESS': JSON.stringify(packageJson.repository?.url)
     },
     plugins: [vue(), vueJsx(), eslint(), ...optionalPlugins],

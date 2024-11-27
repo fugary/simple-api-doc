@@ -66,7 +66,7 @@ watch(currentDoc, (newDoc, oldDoc) => {
 }, { immediate: true })
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-const copyRight = useCopyRight()
+const copyRight = useCopyRight(props.shareDoc)
 </script>
 
 <template>

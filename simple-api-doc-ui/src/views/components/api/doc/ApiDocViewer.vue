@@ -132,7 +132,7 @@ const supportedAuthModels = computed(() => {
   console.log('===================================authContentModel', authContentModel.value)
   return authContentModel.value?.authModels?.filter(authModel => authModel.isSupported) || []
 })
-const copyRight = useCopyRight()
+const copyRight = useCopyRight(props.shareDoc)
 </script>
 
 <template>

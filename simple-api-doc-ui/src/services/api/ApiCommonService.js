@@ -144,7 +144,8 @@ export const useScreenCheck = () => {
 export const useCopyRight = (shareDoc) => {
   const copyRight = ref(`Copyright © ${formatDate(new Date(), 'YYYY')} Version: ${APP_VERSION}`)
   if (shareDoc?.copyRight) {
-    copyRight.value = `Copyright © ${formatDate(new Date(), 'YYYY')} ${shareDoc.copyRight}`
+    const shareCopyRight = shareDoc.copyRight.replace('{{version}}', APP_VERSION)
+    copyRight.value = `Copyright © ${formatDate(new Date(), 'YYYY')} ${shareCopyRight}`
   }
   return copyRight
 }
