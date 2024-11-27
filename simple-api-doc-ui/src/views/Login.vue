@@ -96,7 +96,7 @@ const copyRight = useCopyRight()
     </el-card>
     <el-container class="text-center padding-10 flex-center">
       <span>
-        <el-text>{{ copyRight }}</el-text>
+        <el-text><copy-right /></el-text>
       </span>
     </el-container>
   </el-container>

@@ -185,7 +185,7 @@ const copyRight = useCopyRight(props.shareDoc)
       style="flex-grow: 0"
     >
       <span>
-        <el-text>{{ copyRight }}</el-text>
+        <el-text><copy-right /></el-text>
       </span>
     </el-container>
     <el-backtop

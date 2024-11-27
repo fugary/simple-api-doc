@@ -82,7 +82,7 @@ const copyRight = useCopyRight()
           class="text-center padding-10 flex-center"
         >
           <span>
-            <el-text>{{ copyRight }}</el-text>
+            <el-text><copy-right /></el-text>
           </span>
         </el-container>
         <el-backtop

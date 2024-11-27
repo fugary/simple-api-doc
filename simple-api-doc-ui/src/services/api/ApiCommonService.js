@@ -7,7 +7,7 @@ import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 import { useMediaQuery } from '@vueuse/core'
 import { removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
-import { ref } from 'vue'
+import { ref, h } from 'vue'
 
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
@@ -147,7 +147,7 @@ export const useCopyRight = (shareDoc) => {
     const shareCopyRight = shareDoc.copyRight.replace('{{version}}', APP_VERSION)
     copyRight.value = `Copyright © ${formatDate(new Date(), 'YYYY')} ${shareCopyRight}`
   }
-  return copyRight
+  return h('span', { innerHTML: copyRight.value })
 }
 
 export const checkImageAccept = headers => Object.keys(headers || {}).find(key => key.toLowerCase() === 'accept')
