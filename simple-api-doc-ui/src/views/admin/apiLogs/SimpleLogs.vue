@@ -8,6 +8,7 @@ import { showCodeWindow } from '@/utils/DynamicUtils'
 import { ElText, ElTag } from 'element-plus'
 import { useDefaultPage } from '@/config'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
+import { $i18nKey } from '@/messages'
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -70,7 +71,7 @@ const columns = computed(() => {
     labelKey: 'api.label.logData',
     minWidth: '150px',
     formatter (data) {
-      const dataStr = data.logData || data.responseBody
+      const dataStr = data.responseBody || data.logData
       return <ElText onClick={() => showCodeWindow(dataStr)}
                      style="white-space: nowrap;cursor: pointer;">
         {dataStr}
@@ -97,7 +98,24 @@ const buttons = computed(() => {
     labelKey: 'common.label.view',
     type: 'primary',
     click: item => {
-      showCodeWindow(JSON.stringify(item))
+      showCodeWindow(JSON.stringify(item), {
+        showSelectButton: true,
+        buttons: [{
+          enabled: !!item.logData,
+          type: 'info',
+          label: $i18nKey('common.label.commonView', 'api.label.requestBody1'),
+          click: () => {
+            showCodeWindow(item.logData)
+          }
+        }, {
+          enabled: !!item.responseBody,
+          label: $i18nKey('common.label.commonView', 'api.label.responseBody1'),
+          type: 'info',
+          click: () => {
+            showCodeWindow(item.responseBody)
+          }
+        }]
+      })
     }
   }]
 })

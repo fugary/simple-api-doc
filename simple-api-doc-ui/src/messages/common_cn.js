@@ -101,6 +101,7 @@ common.label.yaml = 'YAML'
 common.label.selectAll = '全选'
 common.label.sortId = '排序号'
 common.label.version = '版本号'
+common.label.selection = '选中'
 
 //= ============通用============
 common.label.commonCode = '{0}代码'

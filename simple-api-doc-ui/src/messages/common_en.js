@@ -101,6 +101,7 @@ common.label.yaml = 'YAML'
 common.label.selectAll = 'Select All'
 common.label.sortId = 'Sort ID'
 common.label.version = 'Version'
+common.label.selection = 'Selection'
 
 //= ============通用============
 common.label.commonConfig = 'Config {0}'
