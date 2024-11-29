@@ -6,12 +6,14 @@ import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.event.log.OperationLogEvent;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SimpleLogUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.LoginVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -24,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
@@ -58,13 +61,18 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
         long startTime = System.currentTimeMillis();
         Object result = null;
         Exception exception = null;
+        boolean apiLogEnabled = simpleApiConfigProperties.isApiLogEnabled();
+        ApiLog.ApiLogBuilder logBuilder = apiLogEnabled ? initLogBuilder(joinpoint) : null;
         try {
+            SimpleLogUtils.setLogBuilder(logBuilder);
             result = joinpoint.proceed();
         } catch (Exception e) {
             exception = e;
+        } finally {
+            SimpleLogUtils.clearLogBuilder();
         }
-        if (simpleApiConfigProperties.isApiLogEnabled()) {
-            processApiLog(joinpoint, startTime, result, exception);
+        if (apiLogEnabled) {
+            processApiLog(logBuilder, joinpoint, startTime, result, exception);
         }
         if (exception != null) {
             throw exception;
@@ -72,22 +80,31 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
         return result;
     }
 
-    private void processApiLog(ProceedingJoinPoint joinpoint, long startTime, Object result, Exception exception) {
-        MethodSignature signature = (MethodSignature) joinpoint.getSignature();
-        Object[] args = joinpoint.getArgs();
+    protected ApiLog.ApiLogBuilder initLogBuilder(ProceedingJoinPoint joinpoint) {
         HttpServletRequest request = HttpRequestUtils.getCurrentRequest();
-        if (request != null && !HttpMethod.GET.matches(request.getMethod())) {
+        ApiLog.ApiLogBuilder logBuilder = null;
+        if (request != null) {
+            if (checkNeedLog(joinpoint)) {
+                logBuilder = ApiLog.builder()
+                        .ipAddress(HttpRequestUtils.getIp(request))
+                        .logType(request.getMethod())
+                        .headers(JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)))
+                        .requestUrl(HttpRequestUtils.getRequestUrl(request));
+            }
+        }
+        return logBuilder;
+    }
+
+    private void processApiLog(ApiLog.ApiLogBuilder logBuilder, ProceedingJoinPoint joinpoint, long startTime, Object result, Exception exception) {
+        if (logBuilder != null) {
+            MethodSignature signature = (MethodSignature) joinpoint.getSignature();
+            Object[] args = joinpoint.getArgs();
             String logName = getLogName(signature);
             ApiUser loginUser = SecurityUtils.getLoginUser();
             Date createDate = new Date();
-            ApiLog.ApiLogBuilder logBuilder = ApiLog.builder()
-                    .ipAddress(HttpRequestUtils.getIp(request))
-                    .logName(logName)
-                    .logType(request.getMethod())
+            logBuilder.logName(logName)
                     .createDate(createDate)
                     .logTime(createDate.getTime() - startTime)
-                    .requestUrl(HttpRequestUtils.getRequestUrl(request))
-                    .headers(JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)))
                     .exceptions(exception == null ? null : ExceptionUtils.getStackTrace(exception));
             if (loginUser != null) {
                 logBuilder.userName(loginUser.getUserName())
@@ -100,6 +117,11 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                 success = simpleResult.isSuccess();
                 logBuilder.responseBody(JsonUtils.toJson(simpleResult));
             }
+            if (result instanceof ResponseEntity<?>) {
+                ResponseEntity<?> responseEntity = ((ResponseEntity<?>) result);
+                success = responseEntity.getStatusCode().is2xxSuccessful();
+                logBuilder.responseBody(SimpleLogUtils.getResponseBody(responseEntity));
+            }
             logBuilder.logResult(success ? ApiDocConstants.SUCCESS : ApiDocConstants.FAIL);
             Pair<Boolean, LoginVo> loginPair = checkLogin(logName, args);
             if (loginPair.getLeft()) {
@@ -109,7 +131,7 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                     logBuilder.creator(loginVo.getUserName());
                 }
                 logBuilder.logData(SimpleModelUtils.logDataString(List.of(loginVo)));
-            } else {
+            } else if (!isNotNeedArgs(signature.getMethod().getName())) {
                 List<Object> argsList = Arrays.stream(args).filter(this::isValidParam).collect(Collectors.toList());
                 logBuilder.logData(SimpleModelUtils.logDataString(argsList));
             }
@@ -120,6 +142,18 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
 
     private boolean isValidParam(Object target) {
         return target != null && (target.getClass().isPrimitive() || target instanceof Serializable);
+    }
+
+    protected boolean isNotNeedArgs(String methodName) {
+        return StringUtils.equalsAny(methodName, "proxyApi");
+    }
+
+    private boolean checkNeedLog(ProceedingJoinPoint joinpoint) {
+        HttpServletRequest request = HttpRequestUtils.getCurrentRequest();
+        MethodSignature signature = (MethodSignature) joinpoint.getSignature();
+        String methodName = signature.getMethod().getName();
+        return request != null && !StringUtils.startsWithAny(methodName, "load", "get", "query", "find", "search", "list")
+                && (isNotNeedArgs(methodName) || !HttpMethod.GET.matches(request.getMethod()));
     }
 
     private Pair<Boolean, LoginVo> checkLogin(String logName, Object[] args) {

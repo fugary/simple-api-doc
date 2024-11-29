@@ -3,6 +3,7 @@ package com.fugary.simple.api.push;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SimpleLogUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
@@ -60,6 +61,7 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
             entity = new HttpEntity<>(getMultipartBody(mockParams), getHeaders(mockParams));
         }
         try {
+            SimpleLogUtils.addRequestData(mockParams);
             ResponseEntity<byte[]> responseEntity = restTemplate.exchange(requestUrl,
                     Optional.ofNullable(HttpMethod.resolve(mockParams.getMethod())).orElse(HttpMethod.GET),
                     entity, byte[].class);
