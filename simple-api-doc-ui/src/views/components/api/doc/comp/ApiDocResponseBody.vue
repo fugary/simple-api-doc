@@ -12,6 +12,13 @@ const projectInfoDetail = computed(() => {
   return apiDocDetail.value.projectInfoDetail
 })
 const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
+const responsesSchemas = computed(() => {
+  return apiDocDetail.value.responsesSchemas?.toSorted((a, b) => {
+    const statusA = a.statusCode || 600
+    const statusB = b.statusCode || 600
+    return statusA - statusB
+  })
+})
 </script>
 
 <template>
@@ -21,7 +28,7 @@ const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
     </h3>
     <el-tabs>
       <el-tab-pane
-        v-for="(responseSchema, index) in apiDocDetail.responsesSchemas"
+        v-for="(responseSchema, index) in responsesSchemas"
         :key="index"
         lazy
       >
