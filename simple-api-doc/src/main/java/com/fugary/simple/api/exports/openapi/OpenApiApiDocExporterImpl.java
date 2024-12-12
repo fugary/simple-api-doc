@@ -162,9 +162,9 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         PathItem pathItem = new PathItem();
         Map<String, Consumer<Operation>> pathFunctions = getPathFunctions(pathItem);
         Operation operation = new Operation().addTagsItem(apiFolder.getFolderName())
-                .summary(apiDocDetail.getSummary())
+                .summary(apiDocDetail.getDocName())
                 .operationId(apiDocDetail.getOperationId())
-                .description(apiDocDetail.getDescription());
+                .description(StringUtils.defaultIfBlank(apiDocDetail.getDocContent(), apiDocDetail.getDescription()));
         ApiDocSchema parametersSchema = apiDocDetail.getParametersSchema();
         if (parametersSchema != null && StringUtils.isNotBlank(parametersSchema.getSchemaContent())) {
             List<Parameter> parameters = SchemaJsonUtils.fromJson(parametersSchema.getSchemaContent(), new TypeReference<>() {
