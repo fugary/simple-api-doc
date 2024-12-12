@@ -20,6 +20,9 @@ const loadCurrentDoc = (id) => {
   $coreShowLoading({ delay: 0, target: '.home-main' })
   ApiDocApi.getById(id).then(data => {
     Object.assign(currentDocModel.value, data.resultData)
+    if (!currentDocModel.value.docContent && currentDocModel.value.docType === 'api') {
+      currentDocModel.value.docContent = currentDocModel.value.description
+    }
     $coreHideLoading()
   }).catch(() => $coreHideLoading())
 }

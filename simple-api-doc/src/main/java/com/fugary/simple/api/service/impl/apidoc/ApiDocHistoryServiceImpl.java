@@ -1,7 +1,6 @@
 package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiDocHistory;
 import com.fugary.simple.api.mapper.api.ApiDocHistoryMapper;
@@ -19,7 +18,7 @@ public class ApiDocHistoryServiceImpl extends ServiceImpl<ApiDocHistoryMapper, A
 
     @Override
     public boolean saveByApiDoc(ApiDoc apiDoc) {
-        if (apiDoc != null && ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType())) {
+        if (apiDoc != null) {
             ApiDocHistory apiDocHistory = SimpleModelUtils.copy(apiDoc, ApiDocHistory.class);
             apiDocHistory.setId(null);
             apiDocHistory.setDocId(apiDoc.getId());

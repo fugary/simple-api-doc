@@ -175,6 +175,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     apiDocVo.setDocVersion(existsDoc.getDocVersion());
                     apiDocVo.setSortId(existsDoc.getSortId());
                     apiDocVo.setFolderId(existsDoc.getFolderId());
+                    processModifiedApiDoc(apiDocVo, existsDoc);
                     locked = Boolean.TRUE.equals(existsDoc.getLocked());
                     if (!locked) {
                         apiDocSchemaService.deleteByDoc(apiDocVo.getId());
@@ -188,6 +189,17 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     saveApiDocSchemas(apiDocVo);
                 }
                 apiDocs.add(apiDocVo);
+            }
+        }
+    }
+
+    protected void processModifiedApiDoc(ExportApiDocVo apiDocVo, ApiDoc existsDoc) {
+        if (existsDoc != null && ApiDocConstants.DOC_TYPE_API.equals(existsDoc.getDocType())) {
+            if (!StringUtils.equals(existsDoc.getDocName(), existsDoc.getSummary())) { // 修改过docName
+                apiDocVo.setDocName(existsDoc.getDocName());
+            }
+            if (StringUtils.isNotBlank(existsDoc.getDocContent())) { // 修改过docContent
+                apiDocVo.setDocContent(existsDoc.getDocContent());
             }
         }
     }

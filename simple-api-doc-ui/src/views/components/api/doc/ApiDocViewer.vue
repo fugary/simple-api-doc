@@ -23,6 +23,10 @@ const props = defineProps({
     type: Object,
     default: undefined
   },
+  editable: {
+    type: Boolean,
+    default: false
+  },
   projectItem: {
     type: Object,
     default: undefined
@@ -54,6 +58,7 @@ const securitySchemas = ref()
 const supportedAuthTypes = ref()
 const authContentModel = ref(getAuthContentModel())
 const loading = ref(false)
+const historyCount = ref(0)
 const loadDocDetail = async () => {
   if (loading.value) {
     return
@@ -69,7 +74,10 @@ const loadDocDetail = async () => {
       })
       .finally(() => (loading.value = false))
   } else {
-    apiDocDetail.value = await loadDoc(apiDoc.value.id).then(data => data.resultData).finally(() => {
+    apiDocDetail.value = await loadDoc(apiDoc.value.id).then(data => {
+      historyCount.value = data.addons?.historyCount || 0
+      return data.resultData
+    }).finally(() => {
       loading.value = false
     })
   }
@@ -133,6 +141,11 @@ const supportedAuthModels = computed(() => {
   return authContentModel.value?.authModels?.filter(authModel => authModel.isSupported) || []
 })
 const copyRight = useCopyRight(props.shareDoc)
+
+const docContent = computed(() => {
+  return apiDocDetail.value?.docContent || apiDocDetail.value?.description
+})
+
 </script>
 
 <template>
@@ -142,7 +155,11 @@ const copyRight = useCopyRight(props.shareDoc)
     style="height: 100%"
     class="padding-left2 flex-column padding-right2"
   >
-    <api-doc-view-header v-model="apiDoc" />
+    <api-doc-view-header
+      v-model="apiDoc"
+      :editable="editable"
+      :history-count="historyCount"
+    />
     <api-doc-path-header
       v-model="apiDocDetail"
       :env-configs="envConfigs"
@@ -156,15 +173,15 @@ const copyRight = useCopyRight(props.shareDoc)
       class="flex-column scroll-main-container"
     >
       <el-scrollbar class="api-doc-viewer">
-        <h3 v-if="apiDocDetail?.description">
+        <h3 v-if="docContent">
           {{ $t('api.label.apiDescription') }}
         </h3>
         <md-preview
-          v-if="apiDocDetail?.description"
+          v-if="docContent"
           no-mermaid
           no-katex
           :theme="theme"
-          :model-value="apiDocDetail?.description"
+          :model-value="docContent"
         />
         <api-doc-parameters
           v-if="apiDocDetail?.projectInfoDetail&&apiDocDetail?.parametersSchema||!apiDocDetail?.requestsSchemas?.length"

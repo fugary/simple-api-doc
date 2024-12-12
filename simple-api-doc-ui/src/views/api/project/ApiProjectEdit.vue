@@ -148,14 +148,8 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
               class="height100"
             >
               <markdown-doc-editor
-                v-if="currentDoc?.docType==='md'"
                 v-model="currentDoc"
                 @saved-doc="savedApiDoc"
-              />
-              <api-doc-viewer
-                v-if="currentDoc?.docType==='api'"
-                v-model="currentDoc"
-                :project-item="projectItem"
               />
             </el-container>
             <el-container
@@ -172,6 +166,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
                 v-if="currentDoc?.docType==='api'"
                 v-model="currentDoc"
                 :project-item="projectItem"
+                :editable="isWritable"
                 @to-debug-api="toDebugApi"
               />
             </el-container>

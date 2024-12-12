@@ -153,7 +153,9 @@ public class ApiDocController {
         ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
         apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
-        return SimpleResultUtils.createSimpleResult(apiDocVo);
+        SimpleResult<ApiDocDetailVo> result = SimpleResultUtils.createSimpleResult(apiDocVo);
+        result.add("historyCount", apiDocHistoryService.count(Wrappers.<ApiDocHistory>query().eq("doc_id", docId)));
+        return result;
     }
 
     /**
