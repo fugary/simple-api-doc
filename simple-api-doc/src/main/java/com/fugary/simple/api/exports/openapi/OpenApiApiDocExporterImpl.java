@@ -181,13 +181,15 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         }
         if (!apiDocDetail.getResponsesSchemas().isEmpty()) {
             ApiResponses apiResponses = new ApiResponses();
-            apiDocDetail.getResponsesSchemas().stream().filter(schema -> StringUtils.isNotBlank(schema.getSchemaContent()))
+            apiDocDetail.getResponsesSchemas()
                     .forEach(schema -> {
                         ApiResponse apiResponse = new ApiResponse();
-                        apiResponse.setContent(new Content());
                         apiResponse.setDescription(schema.getDescription());
-                        apiResponse.getContent().addMediaType(schema.getContentType(),
-                                SchemaJsonUtils.fromJson(schema.getSchemaContent(), MediaType.class, SchemaJsonUtils.isV31(openAPI)));
+                        if (StringUtils.isNotBlank(schema.getSchemaContent())) {
+                            apiResponse.setContent(new Content());
+                            apiResponse.getContent().addMediaType(schema.getContentType(),
+                                    SchemaJsonUtils.fromJson(schema.getSchemaContent(), MediaType.class, SchemaJsonUtils.isV31(openAPI)));
+                        }
                         apiResponses.addApiResponse(schema.getSchemaName(), apiResponse);
                     });
             operation.responses(apiResponses);
