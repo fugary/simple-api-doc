@@ -70,7 +70,11 @@ const treeProps = {
       :load="loadTreeNode"
     >
       <template #empty>
-        <el-empty :description="$t('common.msg.noData')" />
+        <div class="text-left padding-10">
+          <el-text type="info">
+            {{ $t('common.msg.noData') }}
+          </el-text>
+        </div>
       </template>
       <template #default="{data}">
         <schema-tree-node :data="data" />

@@ -306,6 +306,14 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                         responseSchema.setStatusCode(calcStatusCode(responseCode).value());
                         apiDoc.getResponsesSchemas().add(responseSchema);
                     });
+                } else {
+                    ExportApiDocSchemaVo responseSchema = new ExportApiDocSchemaVo();
+                    responseSchema.setSchemaName(responseCode);
+                    responseSchema.setDescription(response.getDescription());
+                    responseSchema.setBodyType(ApiDocConstants.DOC_SCHEMA_TYPE_RESPONSE);
+                    responseSchema.setStatus(ApiDocConstants.STATUS_ENABLED);
+                    responseSchema.setStatusCode(calcStatusCode(responseCode).value());
+                    apiDoc.getResponsesSchemas().add(responseSchema);
                 }
             });
         }

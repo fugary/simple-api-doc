@@ -320,6 +320,9 @@ export const processProperties = schema => {
 }
 
 export const processSchemas = (docSchema, componentsMap, recursive = false) => {
+  if (!docSchema?.schemaContent) {
+    return []
+  }
   const saveSchema = JSON.parse(docSchema.schemaContent)
   let resultArr = []
   if (isArray(saveSchema)) {

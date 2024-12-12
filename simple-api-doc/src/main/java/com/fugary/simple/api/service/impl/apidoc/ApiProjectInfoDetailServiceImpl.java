@@ -137,15 +137,17 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
      * @param detailMap
      */
     protected void calcRelatedSchemas(Set<String> schemaKeys, String content, Map<String, ApiProjectInfoDetail> detailMap) {
-        Matcher matcher = SCHEMA_COMPONENT_PATTERN.matcher(content);
-        while (matcher.find()) {
-            String schemaName = matcher.group(1);
-            // 如果 schema 已经被处理过，则跳过该 schema，避免重复递归
-            if (!schemaKeys.contains(schemaName)) {
-                schemaKeys.add(schemaName);  // 处理当前 schema，避免重复
-                ApiProjectInfoDetail targetDetail = detailMap.get(schemaName);
-                if (targetDetail != null && StringUtils.isNotBlank(targetDetail.getSchemaContent())) {
-                    calcRelatedSchemas(schemaKeys, targetDetail.getSchemaContent(), detailMap);
+        if (StringUtils.isNotBlank(content)) {
+            Matcher matcher = SCHEMA_COMPONENT_PATTERN.matcher(content);
+            while (matcher.find()) {
+                String schemaName = matcher.group(1);
+                // 如果 schema 已经被处理过，则跳过该 schema，避免重复递归
+                if (!schemaKeys.contains(schemaName)) {
+                    schemaKeys.add(schemaName);  // 处理当前 schema，避免重复
+                    ApiProjectInfoDetail targetDetail = detailMap.get(schemaName);
+                    if (targetDetail != null && StringUtils.isNotBlank(targetDetail.getSchemaContent())) {
+                        calcRelatedSchemas(schemaKeys, targetDetail.getSchemaContent(), detailMap);
+                    }
                 }
             }
         }
