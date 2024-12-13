@@ -4,7 +4,7 @@ import { getEnvConfigs, loadShareDoc } from '@/api/SimpleShareApi'
 import { loadDoc } from '@/api/ApiDocApi'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import ApiDocPathHeader from '@/views/components/api/doc/comp/ApiDocPathHeader.vue'
-import { MdPreview } from 'md-editor-v3'
+import { MdCatalog, MdPreview } from 'md-editor-v3'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.vue'
@@ -59,6 +59,7 @@ const supportedAuthTypes = ref()
 const authContentModel = ref(getAuthContentModel())
 const loading = ref(false)
 const historyCount = ref(0)
+const viewAsMarkdown = ref(false)
 const loadDocDetail = async () => {
   if (loading.value) {
     return
@@ -66,7 +67,7 @@ const loadDocDetail = async () => {
   loading.value = true
   if (props.shareDoc?.shareId) {
     const shareId = props.shareDoc.shareId
-    apiDocDetail.value = await loadShareDoc({ shareId, docId: apiDoc.value.id })
+    apiDocDetail.value = await loadShareDoc({ shareId, docId: apiDoc.value.id, markdown: viewAsMarkdown.value })
       .then(data => data.resultData)
       .catch(err => {
         emitter.emit('share-doc-error', err)
@@ -74,7 +75,7 @@ const loadDocDetail = async () => {
       })
       .finally(() => (loading.value = false))
   } else {
-    apiDocDetail.value = await loadDoc(apiDoc.value.id).then(data => {
+    apiDocDetail.value = await loadDoc(apiDoc.value.id, viewAsMarkdown.value).then(data => {
       historyCount.value = data.addons?.historyCount || 0
       return data.resultData
     }).finally(() => {
@@ -162,17 +163,24 @@ const docContent = computed(() => {
     />
     <api-doc-path-header
       v-model="apiDocDetail"
+      v-model:view-as-markdown="viewAsMarkdown"
       :env-configs="envConfigs"
       :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareDoc)"
+      view-as-enabled
       :auth-enabled="!isMobile&&!!supportedAuthModels?.length"
       :auth-configured="lastParamTarget.hasInheritAuth"
+      @update:view-as-markdown="loadDocDetail"
       @debug-api="$emit('toDebugApi', projectInfoDetail, apiDocDetail, handlerConfig)"
       @config-auth="toEditAuthorization"
     />
     <el-container
+      v-if="apiDocDetail"
       class="flex-column scroll-main-container"
     >
-      <el-scrollbar class="api-doc-viewer">
+      <el-scrollbar
+        v-if="!viewAsMarkdown"
+        class="api-doc-viewer"
+      >
         <h3 v-if="docContent">
           {{ $t('api.label.apiDescription') }}
         </h3>
@@ -196,6 +204,28 @@ const docContent = computed(() => {
           v-model="apiDocDetail"
         />
       </el-scrollbar>
+      <el-container
+        v-else
+        class="scroll-main-container"
+      >
+        <md-preview
+          class="md-doc-container"
+          editor-id="api-doc-preview-only"
+          :theme="theme"
+          no-mermaid
+          no-katex
+          :model-value="apiDocDetail.apiMarkdown"
+        />
+        <el-scrollbar
+          v-if="!isMobile"
+          class="md-doc-catalog"
+        >
+          <md-catalog
+            class="md-catalog"
+            editor-id="api-doc-preview-only"
+          />
+        </el-scrollbar>
+      </el-container>
     </el-container>
     <el-container
       class="text-center padding-10 padding-bottom3 flex-center"
@@ -206,8 +236,9 @@ const docContent = computed(() => {
       </span>
     </el-container>
     <el-backtop
+      v-if="apiDocDetail"
       v-common-tooltip="$t('common.label.backtop')"
-      target=".api-doc-viewer .el-scrollbar__wrap"
+      :target="viewAsMarkdown?'.scroll-main-container':'.api-doc-viewer .el-scrollbar__wrap'"
       :right="70"
       :bottom="70"
     />

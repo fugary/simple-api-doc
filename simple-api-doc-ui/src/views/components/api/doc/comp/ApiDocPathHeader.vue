@@ -10,6 +10,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  viewAsEnabled: {
+    type: Boolean,
+    default: false
+  },
   debugEnabled: {
     type: Boolean,
     default: false
@@ -27,6 +31,11 @@ const props = defineProps({
 const apiDocDetail = defineModel({
   type: Object,
   default: () => ({})
+})
+
+const viewAsMarkdown = defineModel('viewAsMarkdown', {
+  type: Boolean,
+  default: false
 })
 const docFormOption = computed(() => {
   return {
@@ -47,7 +56,7 @@ const docFormOption = computed(() => {
     }
   }
 })
-defineEmits(['debug-api', 'config-auth'])
+defineEmits(['debug-api', 'config-auth', 'change-view-as'])
 const requestUrl = computed(() => {
   return joinPath(apiDocDetail.value.targetUrl, apiDocDetail.value?.url)
 })
@@ -75,6 +84,19 @@ const requestUrl = computed(() => {
         {{ apiDocDetail?.url }}
       </el-link>
     </span>
+    <el-button
+      v-if="viewAsEnabled"
+      class="margin-top1"
+      type="info"
+      style="padding-left: 10px;"
+      @click="viewAsMarkdown=!viewAsMarkdown;$emit('change-view-as', viewAsMarkdown)"
+    >
+      <common-icon
+        :icon="viewAsMarkdown?'custom-api':'custom-markdown'"
+        :size="18"
+      />
+      {{ $t(viewAsMarkdown ? 'api.label.viewAsApi' : 'api.label.viewAsMarkdown') }}
+    </el-button>
     <el-button
       v-if="debugEnabled"
       class="margin-top1"

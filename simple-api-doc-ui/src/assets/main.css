@@ -567,6 +567,14 @@ html, body, #app, .index-container {
     animation: spin 1s linear infinite;
 }
 
+.md-doc-container {
+    flex-grow: 1;
+}
+.md-doc-catalog {
+    overflow: unset;
+    overflow-x: visible;
+}
+
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }

@@ -22,4 +22,5 @@ public class ApiDocDetailVo extends ApiDoc {
     private List<ApiDocSchema> responsesSchemas = new ArrayList<>();
     private ApiProjectInfoDetailVo projectInfoDetail;
     private ApiProjectShareVo apiShare;
+    private String apiMarkdown;
 }

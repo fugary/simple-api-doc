@@ -3,6 +3,7 @@ package com.fugary.simple.api.web.controllers.share;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.exports.ApiDocExporter;
+import com.fugary.simple.api.exports.ApiDocViewGenerator;
 import com.fugary.simple.api.push.ApiInvokeProcessor;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
@@ -69,6 +70,9 @@ public class SimpleShareController {
 
     @Autowired
     private ApiDocExporter<OpenAPI> apiApiDocExporter;
+
+    @Autowired
+    private ApiDocViewGenerator apiDocViewGenerator;
 
     @GetMapping("/loadShare/{shareId}")
     public SimpleResult<ApiProjectShareVo> loadShare(@PathVariable("shareId") String shareId,
@@ -139,7 +143,11 @@ public class SimpleShareController {
     }
 
     @GetMapping("/loadShareDoc/{shareId}/{docId}")
-    public SimpleResult<ApiDocDetailVo> loadShareDoc(@PathVariable("shareId") String shareId, @PathVariable("docId") Integer docId) {
+    public SimpleResult<ApiDocDetailVo> loadShareDoc(@PathVariable("shareId") String shareId,
+                                                     @PathVariable("docId") Integer docId,
+                                                     @RequestParam(value = "md",
+                                                             required = false,
+                                                             defaultValue = "false") Boolean markdown) {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         ApiDoc apiDoc = apiDocService.getById(docId);
         if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
@@ -159,6 +167,10 @@ public class SimpleShareController {
         apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         apiDocVo.setApiShare(SimpleModelUtils.toShareVo(apiShare));
+        if (Boolean.TRUE.equals(markdown)) {
+            String apiMarkdown = apiDocViewGenerator.generate(apiDocVo);
+            apiDocVo.setApiMarkdown(apiMarkdown);
+        }
         return SimpleResultUtils.createSimpleResult(apiDocVo);
     }
 

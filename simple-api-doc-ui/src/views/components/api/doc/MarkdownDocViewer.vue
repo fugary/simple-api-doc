@@ -121,11 +121,5 @@ const copyRight = useCopyRight(props.shareDoc)
 </template>
 
 <style scoped>
-.md-doc-container {
-  flex-grow: 1;
-}
-.md-doc-catalog {
-  overflow: unset;
-  overflow-x: visible;
-}
+
 </style>
