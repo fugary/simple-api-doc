@@ -442,4 +442,18 @@ public class SimpleModelUtils {
         }
         return folderIds;
     }
+
+    /**
+     * 包装list
+     * @param list
+     * @return
+     * @param <T>
+     */
+    public static <T> List<T> wrap(List<T> list) {
+        if (list == null) {
+            return new ArrayList<>();
+        }
+        return list;
+    }
+
 }
