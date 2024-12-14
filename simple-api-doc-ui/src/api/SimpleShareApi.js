@@ -39,9 +39,9 @@ export const loadShare = function ({ shareId, password }, config) {
   return $httpGet(loadShareUrl, config)
 }
 
-export const loadShareDoc = function ({ shareId, docId, markdown = false }, config) {
+export const loadShareDoc = function ({ shareId, docId }, config) {
   config = Object.assign(getShareConfig(shareId), config || {})
-  return $httpGet(`${SHARE_BASE_URL}/loadShareDoc/${shareId}/${docId}?md=${markdown}`, config)
+  return $httpGet(`${SHARE_BASE_URL}/loadShareDoc/${shareId}/${docId}`, config)
 }
 
 export const loadMdDoc = function ({ shareId, docId }, config) {
