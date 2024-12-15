@@ -1,4 +1,4 @@
-## ${message('api.label.basicInfo')}
+### ${message('api.label.basicInfo')}
 
 <#if apiDocDetail.docName??>
 * **${message('api.label.apiName')}：** ${apiDocDetail.docName}
@@ -7,7 +7,7 @@
 * **${message('api.label.requestPath')}：** `${apiDocDetail.url}`
 
 <#if apiDocDetail.docContent?? || apiDocDetail.description??>
-## ${message('api.label.apiDescription')}
+### ${message('api.label.apiDescription')}
 
 <#if apiDocDetail.docContent??>
 ${apiDocDetail.docContent}
@@ -18,16 +18,16 @@ ${apiDocDetail.description}
 </#if>
 </#if>
 <#if parameters??>
-## ${message('api.label.queryParams')}
+### ${message('api.label.queryParams')}
 
 ${utils.parametersToTable(parameters)}
 </#if>
 
 <#if requestsSchemas?? && (requestsSchemas?size > 0)>
-## ${message('api.label.requestBody')}
+### ${message('api.label.requestBody')}
 
 <#list requestsSchemas as requestSchema>
-### ${requestSchema.contentType}
+#### ${requestSchema.contentType}
 
 <#if utils.getSchemaDescription(requestSchema)??>
 > ${utils.getSchemaDescription(requestSchema)}
@@ -43,10 +43,10 @@ ${utils.schemaToTable(requestSchema.schema)}
 </#if>
 
 <#if responsesSchemas?? && (responsesSchemas?size > 0)>
-## ${message('api.label.responseBody')}
+### ${message('api.label.responseBody')}
 
 <#list responsesSchemas as responseSchema>
-### ${responseSchema.schemaName!''} <#if utils.getSchemaDescription(responseSchema, false)??>${utils.getSchemaDescription(responseSchema, false)}</#if>
+#### ${responseSchema.schemaName!''} <#if utils.getSchemaDescription(responseSchema, false)??>${utils.getSchemaDescription(responseSchema, false)}</#if>
 
 * **Content-Type**: ${responseSchema.contentType!""}
 * **${message('api.label.statusCode')}**: ${responseSchema.statusCode!''}
@@ -61,10 +61,10 @@ ${utils.schemaToTable(responseSchema.schema)}
 </#if>
 
 <#if schemasMap?? && (schemasMap?size > 0)>
-## ${message('api.label.apiModel')}
+### ${message('api.label.apiModel')}
 
 <#list schemasMap as name, schema>
-### ${name}
+#### ${name}
 <#if utils.getSchemaDescription(schema)??>
 ${utils.getSchemaDescription(schema)}
 </#if>

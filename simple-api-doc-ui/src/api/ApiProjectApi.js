@@ -185,7 +185,7 @@ export const generateJWT = function (data, config) {
 }
 
 export const checkExportProjectDocs = function (param, config) {
-  return $httpPost(`${API_PROJECT_URL}/checkExportDownloadDocs`, param, config)
+  return $httpPost(`${API_PROJECT_URL}/checkExportDownloadDocs`, param, Object.assign({ loading: true, timeout: 60000 }, config))
 }
 
 export const downloadExportProjectDocs = function ({ type, projectCode, uuid }) {

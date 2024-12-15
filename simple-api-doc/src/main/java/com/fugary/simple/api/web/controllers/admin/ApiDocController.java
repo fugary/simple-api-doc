@@ -7,6 +7,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.exports.ApiDocViewGenerator;
+import com.fugary.simple.api.exports.md.MdViewContext;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -163,7 +164,7 @@ public class ApiDocController {
         SimpleResult<ApiDocDetailVo> result = SimpleResultUtils.createSimpleResult(apiDocVo);
         result.add("historyCount", apiDocHistoryService.count(Wrappers.<ApiDocHistory>query().eq("doc_id", docId)));
         if (Boolean.TRUE.equals(markdown)) {
-            String apiMarkdown = apiDocViewGenerator.generate(apiDocVo);
+            String apiMarkdown = apiDocViewGenerator.generate(new MdViewContext(apiDocVo));
             apiDocVo.setApiMarkdown(apiMarkdown);
         }
         return result;

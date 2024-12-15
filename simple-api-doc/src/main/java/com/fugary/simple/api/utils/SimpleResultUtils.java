@@ -184,23 +184,28 @@ public class SimpleResultUtils {
      * 创建临时文件并返回uuid
      *
      * @param apiApiDocExporter
+     * @param apiApiDocMdExporter
      * @param applicationName
      * @param downloadVo
      * @param projectId
      * @return
      */
     public static String createTempExportFile(ApiDocExporter<OpenAPI> apiApiDocExporter,
+                                              ApiDocExporter<String> apiApiDocMdExporter,
                                               ExportDownloadVo downloadVo,
                                               String applicationName,
                                               Integer projectId) {
         String uuid = SimpleModelUtils.uuid();
         String type = StringUtils.defaultIfBlank(downloadVo.getType(), "json");
-        OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo.getDocIds());
         String content;
         if (StringUtils.equals(type, "json")) {
+            OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo.getDocIds());
             content = SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
-        } else {
+        } else if(StringUtils.equals(type, "yaml")) {
+            OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo.getDocIds());
             content = SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
+        } else {
+            content = apiApiDocMdExporter.export(projectId, downloadVo.getDocIds());
         }
         if (downloadVo.isReturnContent()) {
             return content;

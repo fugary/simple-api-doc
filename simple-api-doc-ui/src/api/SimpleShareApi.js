@@ -56,7 +56,7 @@ export const loadProject = function (shareId, config) {
 
 export const checkExportDownloadDocs = function (param, config) {
   const shareId = param.shareId
-  config = Object.assign(getShareConfig(shareId), config || {})
+  config = Object.assign(getShareConfig(shareId), { loading: true, timeout: 60000 }, config || {})
   return $httpPost(`${SHARE_BASE_URL}/checkExportDownloadDocs`, param, config)
 }
 

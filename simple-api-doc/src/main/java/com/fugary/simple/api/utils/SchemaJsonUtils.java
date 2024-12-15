@@ -4,14 +4,19 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.core.util.Json31;
+import io.swagger.v3.core.util.RefUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.SpecVersion;
+import io.swagger.v3.oas.models.media.Schema;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Create date 2024/10/23<br>
@@ -87,5 +92,42 @@ public class SchemaJsonUtils {
 
     public static boolean isV31(OpenAPI openAPI) {
         return SpecVersion.V31.equals(openAPI.getSpecVersion());
+    }
+
+    public static boolean isV31(SpecVersion specVersion) {
+        return SpecVersion.V31.equals(specVersion);
+    }
+
+    public static void processXxxOf(List<Schema> xxxOf, Map<String, Schema<?>> schemasMap) {
+        xxxOf = SimpleModelUtils.wrap(xxxOf);
+        for (int i = 0; i < xxxOf.size(); i++) {
+            Schema<?> calcSchema = getSchema(xxxOf.get(i), schemasMap);
+            if (calcSchema != null) {
+                xxxOf.set(i, calcSchema);
+            }
+        }
+    }
+
+    public static Schema<?> getSchema(Schema<?> schema, Map<String, Schema<?>> schemasMap) {
+        if (schema != null) {
+            if (StringUtils.isNotBlank(schema.get$ref())) {
+                String refType = (String) RefUtils.extractSimpleName(schema.get$ref()).getKey();
+                schema = schemasMap.get(refType);
+                if (schema != null && StringUtils.isBlank(schema.getName())) {
+                    schema.setName(refType);
+                }
+            }
+            if (schema != null) {
+                boolean xxxOf = CollectionUtils.isNotEmpty(schema.getAllOf())
+                        || CollectionUtils.isNotEmpty(schema.getAnyOf())
+                        || CollectionUtils.isNotEmpty(schema.getOneOf());
+                if (xxxOf) {
+                    processXxxOf(schema.getAllOf(), schemasMap);
+                    processXxxOf(schema.getAnyOf(), schemasMap);
+                    processXxxOf(schema.getOneOf(), schemasMap);
+                }
+            }
+        }
+        return schema;
     }
 }

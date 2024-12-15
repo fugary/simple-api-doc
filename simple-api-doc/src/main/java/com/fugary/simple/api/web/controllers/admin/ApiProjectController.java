@@ -64,6 +64,9 @@ public class ApiProjectController {
     @Autowired
     private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
+    @Autowired
+    private ApiDocExporter<String> apiApiDocMdExporter;
+
     @GetMapping
     public SimpleResult<List<ApiProject>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProject> page = SimpleResultUtils.toPage(queryVo);
@@ -231,7 +234,7 @@ public class ApiProjectController {
         if (apiProject == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, downloadVo, applicationName, apiProject.getId());
+        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, downloadVo, applicationName, apiProject.getId());
         return SimpleResultUtils.createSimpleResult(uuid);
     }
 

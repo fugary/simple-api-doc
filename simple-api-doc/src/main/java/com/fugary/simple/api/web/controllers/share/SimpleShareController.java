@@ -4,6 +4,7 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.exports.ApiDocViewGenerator;
+import com.fugary.simple.api.exports.md.MdViewContext;
 import com.fugary.simple.api.push.ApiInvokeProcessor;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.service.token.TokenService;
@@ -72,6 +73,9 @@ public class SimpleShareController {
     private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
     @Autowired
+    private ApiDocExporter<String> apiApiDocMdExporter;
+
+    @Autowired
     private ApiDocViewGenerator apiDocViewGenerator;
 
     @GetMapping("/loadShare/{shareId}")
@@ -128,7 +132,7 @@ public class SimpleShareController {
         if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
         }
-        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, downloadVo, applicationName, apiShare.getProjectId());
+        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, downloadVo, applicationName, apiShare.getProjectId());
         return SimpleResultUtils.createSimpleResult(uuid);
     }
 
@@ -168,7 +172,7 @@ public class SimpleShareController {
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         apiDocVo.setApiShare(SimpleModelUtils.toShareVo(apiShare));
         if (Boolean.TRUE.equals(markdown)) {
-            String apiMarkdown = apiDocViewGenerator.generate(apiDocVo);
+            String apiMarkdown = apiDocViewGenerator.generate(new MdViewContext(apiDocVo));
             apiDocVo.setApiMarkdown(apiMarkdown);
         }
         return SimpleResultUtils.createSimpleResult(apiDocVo);

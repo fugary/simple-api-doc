@@ -7,9 +7,11 @@ import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.NameValueObj;
+import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import io.swagger.v3.oas.models.SpecVersion;
+import io.swagger.v3.oas.models.media.Schema;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -441,6 +443,25 @@ public class SimpleModelUtils {
             }
         }
         return folderIds;
+    }
+
+    /**
+     * 处理Components
+     *
+     * @param apiDocDetail
+     * @param specVersion
+     * @param schemasMap
+     */
+    public static void processComponents(ApiDocDetailVo apiDocDetail, SpecVersion specVersion, Map<String, Schema<?>> schemasMap) {
+        List<ApiProjectInfoDetail> componentSchemas = apiDocDetail.getProjectInfoDetail().getComponentSchemas();
+        componentSchemas.forEach(detail -> {
+            if (!schemasMap.containsKey(detail.getSchemaName())) {
+                Schema<?> schema = SchemaJsonUtils.fromJson(detail.getSchemaContent(), Schema.class, SchemaJsonUtils.isV31(specVersion));
+                if (schema != null) {
+                    schemasMap.put(detail.getSchemaName(), SchemaJsonUtils.getSchema(schema, schemasMap));
+                }
+            }
+        });
     }
 
     /**

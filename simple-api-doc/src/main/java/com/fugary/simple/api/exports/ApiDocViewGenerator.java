@@ -1,6 +1,6 @@
 package com.fugary.simple.api.exports;
 
-import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
+import com.fugary.simple.api.exports.md.MdViewContext;
 
 /**
  * Create date 2024/12/13<br>
@@ -11,8 +11,8 @@ public interface ApiDocViewGenerator {
     /**
      * 将API数据转成显示的格式
      *
-     * @param apiDocDetail
+     * @param context
      * @return
      */
-    String generate(ApiDocDetailVo apiDocDetail);
+    String generate(MdViewContext context);
 }

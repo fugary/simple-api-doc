@@ -81,7 +81,7 @@ export const calcShowCleanHandlers = (folder, preference, config = {}) => {
 export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
   const isShareDoc = shareDoc && !!shareDoc.shareId
   if (config.hasApiDoc?.value && (!isShareDoc || shareDoc?.exportEnabled)) {
-    const supportedTypes = ['json', 'yaml']
+    const supportedTypes = ['json', 'yaml', 'md']
     const results = supportedTypes.map(type => {
       return {
         icon: `custom-icon-${type}`,
