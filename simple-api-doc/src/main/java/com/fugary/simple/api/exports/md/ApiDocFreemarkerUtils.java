@@ -372,7 +372,7 @@ public class ApiDocFreemarkerUtils {
      * @param markdown Markdown 格式字符串
      * @return HTML 格式字符串
      */
-    private String markdownToHtml(String markdown) {
+    public String markdownToHtml(String markdown) {
         if (StringUtils.isBlank(markdown)) {
             return "";
         }
@@ -381,6 +381,10 @@ public class ApiDocFreemarkerUtils {
         String result = htmlRenderer.render(document);
         if (StringUtils.isNotBlank(result)) {
             result = StringUtils.replace(result, "\n", "");
+            // 如果内容只在一个段落中，去掉 <p></p>
+            if (result.startsWith("<p>") && result.endsWith("</p>")) {
+                result = result.substring(3, result.length() - 4);
+            }
         }
         return result;
     }

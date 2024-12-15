@@ -65,8 +65,9 @@ ${utils.schemaToTable(responseSchema.schema)}
 
 <#list schemasMap as name, schema>
 ### ${name}
-
+<#if utils.getSchemaDescription(schema)??>
 ${utils.getSchemaDescription(schema)}
+</#if>
 
 ${utils.schemaToTable(schema)}
 </#list>
