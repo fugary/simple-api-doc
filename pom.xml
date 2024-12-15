@@ -28,6 +28,7 @@
         <commons-fileupload.version>1.5</commons-fileupload.version>
         <swagger-parser.version>2.1.22</swagger-parser.version>
         <springdoc.version>1.8.0</springdoc.version>
+        <flexmark.version>0.64.8</flexmark.version>
     </properties>
 
     <dependencyManagement>
@@ -66,6 +67,11 @@
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-ui</artifactId>
                 <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vladsch.flexmark</groupId>
+                <artifactId>flexmark-all</artifactId>
+                <version>${flexmark.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

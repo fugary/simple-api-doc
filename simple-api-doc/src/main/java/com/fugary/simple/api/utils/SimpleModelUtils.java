@@ -445,15 +445,31 @@ public class SimpleModelUtils {
 
     /**
      * 包装list
+     *
      * @param list
-     * @return
      * @param <T>
+     * @return
      */
     public static <T> List<T> wrap(List<T> list) {
         if (list == null) {
             return new ArrayList<>();
         }
         return list;
+    }
+
+    /**
+     * 包装map
+     *
+     * @param map
+     * @param <K>
+     * @param <V>
+     * @return
+     */
+    public static <K, V> Map<K, V> wrap(Map<K, V> map) {
+        if (map == null) {
+            return new HashMap<>();
+        }
+        return map;
     }
 
 }

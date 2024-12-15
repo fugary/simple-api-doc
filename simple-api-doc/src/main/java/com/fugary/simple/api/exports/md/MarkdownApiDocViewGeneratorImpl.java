@@ -47,6 +47,9 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
     @Autowired
     private FreemarkerMessageMethod freemarkerMessageMethod;
 
+    @Autowired
+    private ApiDocFreemarkerUtils apiDocFreemarkerUtils;
+
     @Override
     public String generate(ApiDocDetailVo apiDocDetail) {
         // 设置数据
@@ -66,14 +69,18 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                 model.put("parameters", parameters);
             }
         }
+        List<String> reqOrResNames = new ArrayList<>();
         List<FmApiDocSchema> requestSchemas = apiDocDetail.getRequestsSchemas().stream()
                 .map(requestSchema -> {
                     if (StringUtils.isNotBlank(requestSchema.getSchemaContent())) {
                         FmApiDocSchema newSchema = SimpleModelUtils.copy(requestSchema, FmApiDocSchema.class);
                         MediaType mediaType = SchemaJsonUtils.fromJson(requestSchema.getSchemaContent(),
                                 MediaType.class, isV31(specVersion));
-                        if (mediaType != null) {
+                        if (mediaType != null && mediaType.getSchema() != null) {
                             newSchema.setSchema(getSchema(mediaType.getSchema(), schemasMap));
+                            if (StringUtils.isNotBlank(newSchema.getSchema().getName())) {
+                                reqOrResNames.add(newSchema.getSchema().getName());
+                            }
                         }
                         return newSchema;
                     }
@@ -86,8 +93,11 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                     if (StringUtils.isNotBlank(newSchema.getSchemaContent())) {
                         MediaType mediaType = SchemaJsonUtils.fromJson(responseSchema.getSchemaContent(),
                                 MediaType.class, isV31(specVersion));
-                        if (mediaType != null) {
+                        if (mediaType != null && mediaType.getSchema() != null) {
                             newSchema.setSchema(getSchema(mediaType.getSchema(), schemasMap));
+                            if (StringUtils.isNotBlank(newSchema.getSchema().getName())) {
+                                reqOrResNames.add(newSchema.getSchema().getName());
+                            }
                         }
                     }
                     return newSchema;
@@ -97,6 +107,7 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                     return status1 - status2;
                 }).collect(Collectors.toList());
         model.put("responsesSchemas", responseSchemas);
+        reqOrResNames.forEach(schemasMap::remove);
         try {
             // 加载模板
             Template template = freemarkerConfig.getTemplate("ApiDocMdView.md.ftl");
@@ -130,6 +141,9 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         if (StringUtils.isNotBlank(schema.get$ref())) {
             String refType = (String) RefUtils.extractSimpleName(schema.get$ref()).getKey();
             schema = schemasMap.get(refType);
+            if (schema != null && StringUtils.isBlank(schema.getName())) {
+                schema.setName(refType);
+            }
         }
         boolean xxxOf = CollectionUtils.isNotEmpty(schema.getAllOf())
                 || CollectionUtils.isNotEmpty(schema.getAnyOf())
@@ -149,6 +163,6 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
     @Override
     public void afterPropertiesSet() throws Exception {
         freemarkerConfig.setSharedVariable("message", freemarkerMessageMethod);
-        freemarkerConfig.setSharedVariable("utils", new ApiDocFreemarkerUtils());
+        freemarkerConfig.setSharedVariable("utils", apiDocFreemarkerUtils);
     }
 }
