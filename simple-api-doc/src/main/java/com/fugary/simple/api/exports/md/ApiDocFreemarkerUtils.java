@@ -5,7 +5,6 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
-import io.swagger.models.properties.Property;
 import io.swagger.v3.core.util.RefUtils;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
@@ -22,10 +21,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -62,11 +58,31 @@ public class ApiDocFreemarkerUtils {
      * @return
      */
     public String propertyType(Schema<?> schema) {
+        return propertyType(schema, true);
+    }
+
+    /**
+     * 计算类型
+     *
+     * @param schema
+     * @param markdown
+     * @return
+     */
+    public String propertyType(Schema<?> schema, boolean markdown) {
         if (schema != null) {
+            String typeStr = schema.getType();
             if (schema instanceof ArraySchema) {
-                return "array<" + propertyType(schema.getItems()) + ">";
+                typeStr = "array<" + propertyType(schema.getItems(), false) + ">";
             }
-            return StringUtils.defaultIfBlank(schema.getType(), unRef(schema.get$ref()));
+            List<Schema> xxxOf = getXxxOf(schema);
+            if (CollectionUtils.isNotEmpty(xxxOf)) {
+                typeStr = xxxOf.stream().map(xxx -> propertyType(xxx, false)).collect(Collectors.joining(", "));
+            }
+            String refLink = unRef(schema.get$ref());
+            if (StringUtils.isNotBlank(refLink)) {
+                typeStr = StringUtils.join("[" + refLink + "](#", refLink, ")");
+            }
+            return markdown ? markdownToHtml(typeStr) : typeStr;
         }
         return StringUtils.EMPTY;
     }
@@ -122,16 +138,39 @@ public class ApiDocFreemarkerUtils {
             }
             if (MapUtils.isNotEmpty(properties)) {
                 properties.forEach((key, valueSchema) -> {
-                    resultProperties.put(key, valueSchema);
-                    if (StringUtils.isBlank(valueSchema.getName()) && MapUtils.isNotEmpty(valueSchema.getProperties())) {
-                        valueSchema.getProperties().forEach((objKey, objValue) -> {
-                            resultProperties.put(key + "." + objKey, (Schema) objValue);
-                        });
+                    if (valueSchema != null) {
+                        resultProperties.put(key, valueSchema);
+                        if (StringUtils.isBlank(valueSchema.getName()) && MapUtils.isNotEmpty(valueSchema.getProperties())) {
+                            valueSchema.getProperties().forEach((objKey, objValue) -> {
+                                resultProperties.put(key + "." + objKey, (Schema) objValue);
+                            });
+                        }
                     }
                 });
             }
         }
         return Pair.of(required, resultProperties);
+    }
+
+    /**
+     * 获取xxxOf
+     *
+     * @param schema
+     * @return
+     */
+    public List<Schema> getXxxOf(Schema schema) {
+        if (schema != null) {
+            if (CollectionUtils.isNotEmpty(schema.getAllOf())) {
+                return schema.getAllOf();
+            }
+            if (CollectionUtils.isNotEmpty(schema.getAnyOf())) {
+                return schema.getAnyOf();
+            }
+            if (CollectionUtils.isNotEmpty(schema.getOneOf())) {
+                return schema.getOneOf();
+            }
+        }
+        return new ArrayList<>();
     }
 
     /**
@@ -145,8 +184,7 @@ public class ApiDocFreemarkerUtils {
         List<String> required = schemaPropertiesPair.getLeft();
         Map<String, Schema> schemaProperties = schemaPropertiesPair.getRight();
         if (MapUtils.isNotEmpty(schemaProperties)) {
-            boolean hasDescription = schemaProperties.values().stream().anyMatch(property -> StringUtils.isNotBlank(property.getDescription())
-                    || CollectionUtils.isNotEmpty(property.getEnum()) || property.getExample() != null || property.getDefault() != null);
+            boolean hasDescription = schemaProperties.values().stream().anyMatch(this::checkDescription);
             StringBuilder sb = new StringBuilder();
             // 添加表头
             sb.append("| ").append(getMessage("api.label.paramName")).append(" | ")
@@ -167,7 +205,7 @@ public class ApiDocFreemarkerUtils {
                     sb.append("`").append(key).append("`");
                 }
                 sb.append(" | ")
-                        .append("`").append(propertyType(property)).append("`").append(" | ");
+                        .append(propertyType(property)).append(" | ");
                 // 判断是否必填
                 sb.append(isRequired(required, key) ? "`Y`" : "N").append(" | ");
                 appendConditional(hasDescription, () -> sb.append(getSchemaDescription(property)).append(" | "));
@@ -176,6 +214,11 @@ public class ApiDocFreemarkerUtils {
             return sb.toString();
         }
         return StringUtils.EMPTY; // 如果没有属性，返回空字符串
+    }
+
+    private boolean checkDescription(Schema schema) {
+        return schema != null && (StringUtils.isNotBlank(schema.getDescription())
+                || CollectionUtils.isNotEmpty(schema.getEnum()) || schema.getExample() != null || schema.getDefault() != null);
     }
 
     private void appendConditional(Supplier<Boolean> supplier, Supplier<StringBuilder> appender) {
@@ -198,7 +241,8 @@ public class ApiDocFreemarkerUtils {
      */
     public String parametersToTable(List<Parameter> parameters) {
         if (parameters != null && !parameters.isEmpty()) {
-            boolean hasDescription = SimpleModelUtils.wrap(parameters).stream().anyMatch(parameter -> StringUtils.isNotBlank(parameter.getDescription()));
+            boolean hasDescription = SimpleModelUtils.wrap(parameters).stream().anyMatch(parameter
+                    -> StringUtils.isNotBlank(parameter.getDescription()) || parameter.getExample() != null || checkDescription(parameter.getSchema()));
             StringBuilder sb = new StringBuilder();
             // 添加表头
             sb.append("| ").append(getMessage("api.label.paramName")).append(" | ")
@@ -222,7 +266,7 @@ public class ApiDocFreemarkerUtils {
                     sb.append("`").append(parameter.getName()).append("`");
                 }
                 sb.append(" | ")
-                        .append("`").append(propertyType(parameter.getSchema())).append("`").append(" | ")
+                        .append(propertyType(parameter.getSchema())).append(" | ")
                         .append(isTrue(parameter.getRequired()) ? "`Y`" : "N").append(" | ")
                         .append("*").append(parameter.getIn()).append("*").append(" | ");
                 // 判断是否必填
@@ -273,12 +317,16 @@ public class ApiDocFreemarkerUtils {
                 result += StringUtils.join("**", getMessage("api.label.example"), "**: ", defaultStr, "<br>");
             }
             result += description;
-        } else if (target instanceof Property) {
-            Property schema = (Property) target;
-            String exampleStr = getExample(schema.getExample());
-            String description = StringUtils.trimToEmpty(schema.getDescription());
+        } else if (target instanceof Parameter) {
+            Parameter parameter = (Parameter) target;
+            String exampleStr = getExample(parameter.getExample());
+            String description = StringUtils.trimToEmpty(parameter.getDescription());
             if (StringUtils.isNotBlank(exampleStr)) {
                 result += StringUtils.join("**", getMessage("api.label.example"), "**: ", exampleStr, "<br>");
+            }
+            String schemaDescription = getSchemaDescription(parameter.getSchema(), false);
+            if (StringUtils.isNotBlank(schemaDescription)) {
+                result += schemaDescription;
             }
             result += description;
         }
@@ -346,5 +394,38 @@ public class ApiDocFreemarkerUtils {
      */
     public String getMessage(String code, Object... args) {
         return messageSource.getMessage(code, args, LocaleContextHolder.getLocale());
+    }
+
+    /**
+     * 处理合并在一起的SchemaProperties
+     *
+     * @param schema
+     * @param schemaNames
+     * @param schemaMap
+     */
+    public void calcInlineSchemaProperties(Schema schema, Stack<String> schemaNames, Map<String, Schema<?>> schemaMap) {
+        List<Schema> xxxOf = getXxxOf(schema);
+        if (CollectionUtils.isNotEmpty(xxxOf)) {
+            xxxOf.forEach(xxx -> calcInlineSchemaProperties(xxx, schemaNames, schemaMap));
+        }
+        if (MapUtils.isNotEmpty(schema.getProperties())) {
+            schema.getProperties().forEach((key, value) -> {
+                if (value != null) {
+                    String schemaKey = (String) key;
+                    Schema valueSchema = (Schema) value;
+                    if (valueSchema.getItems() != null) {
+                        valueSchema = valueSchema.getItems();
+                    }
+                    if (StringUtils.isBlank(valueSchema.getName()) && MapUtils.isNotEmpty(valueSchema.getProperties())) {
+                        schemaNames.push(schemaKey);
+                        String refName = StringUtils.join(schemaNames, ".");
+                        valueSchema.set$ref(RefUtils.constructRef(refName));
+                        schemaMap.put(refName, valueSchema);
+                        calcInlineSchemaProperties(valueSchema, schemaNames, schemaMap);
+                        schemaNames.pop();
+                    }
+                }
+            });
+        }
     }
 }

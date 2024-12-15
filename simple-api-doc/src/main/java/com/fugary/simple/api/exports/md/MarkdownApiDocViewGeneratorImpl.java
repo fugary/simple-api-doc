@@ -78,9 +78,13 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                                 MediaType.class, isV31(specVersion));
                         if (mediaType != null && mediaType.getSchema() != null) {
                             newSchema.setSchema(getSchema(mediaType.getSchema(), schemasMap));
-                            if (StringUtils.isNotBlank(newSchema.getSchema().getName())) {
-                                reqOrResNames.add(newSchema.getSchema().getName());
+                            Schema<?> schema = newSchema.getSchema();
+                            if (StringUtils.isNotBlank(schema.getName())) {
+                                reqOrResNames.add(schema.getName());
                             }
+                            Stack<String> schemaNames = new Stack<>();
+                            schemaNames.push(StringUtils.defaultIfBlank(schema.getName(), "_request"));
+                            apiDocFreemarkerUtils.calcInlineSchemaProperties(schema, schemaNames, schemasMap);
                         }
                         return newSchema;
                     }
@@ -95,9 +99,13 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                                 MediaType.class, isV31(specVersion));
                         if (mediaType != null && mediaType.getSchema() != null) {
                             newSchema.setSchema(getSchema(mediaType.getSchema(), schemasMap));
-                            if (StringUtils.isNotBlank(newSchema.getSchema().getName())) {
-                                reqOrResNames.add(newSchema.getSchema().getName());
+                            Schema<?> schema = newSchema.getSchema();
+                            if (StringUtils.isNotBlank(schema.getName())) {
+                                reqOrResNames.add(schema.getName());
                             }
+                            Stack<String> schemaNames = new Stack<>();
+                            schemaNames.push(StringUtils.defaultIfBlank(schema.getName(), "_response"));
+                            apiDocFreemarkerUtils.calcInlineSchemaProperties(schema, schemaNames, schemasMap);
                         }
                     }
                     return newSchema;

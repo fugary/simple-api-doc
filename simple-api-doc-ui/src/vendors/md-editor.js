@@ -20,6 +20,19 @@ const imagePathTransformPlugin = (md) => {
   }
 }
 
+export const initEditorLink = () => {
+  document.addEventListener('click', (event) => {
+    if (event.target.matches('.md-doc-container a')) {
+      const href = event.target.getAttribute('href')
+      if (href?.startsWith('#')) {
+        event.preventDefault()
+        const title = href.substring(1)
+        document.querySelector(`.md-editor-catalog-link span[title='${title}']`)?.click()
+      }
+    }
+  })
+}
+
 export default {
   install () {
     config({
@@ -27,5 +40,6 @@ export default {
         mdit.use(imagePathTransformPlugin)
       }
     })
+    initEditorLink()
   }
 }
