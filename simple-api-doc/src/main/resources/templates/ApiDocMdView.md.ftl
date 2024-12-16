@@ -33,11 +33,7 @@ ${utils.parametersToTable(parameters)}
 > ${utils.getSchemaDescription(requestSchema)}
 </#if>
 <#if requestSchema.schema?? && requestSchema.schema.getName()??>
-* **${message('api.label.modelName')}**: **`${requestSchema.schema.getName()}`**
-</#if>
-
-<#if requestSchema.schema??>
-${utils.schemaToTable(requestSchema.schema)}
+* **${message('api.label.modelName')}**: **[${requestSchema.schema.getName()}](#${requestSchema.schema.getName()})**
 </#if>
 </#list>
 </#if>
@@ -51,11 +47,7 @@ ${utils.schemaToTable(requestSchema.schema)}
 * **Content-Type**: ${responseSchema.contentType!""}
 * **${message('api.label.statusCode')}**: ${responseSchema.statusCode!''}
 <#if responseSchema.schema?? && responseSchema.schema.getName()??>
-* **${message('api.label.modelName')}**: **`${responseSchema.schema.getName()}`**
-</#if>
-
-<#if responseSchema.schema??>
-${utils.schemaToTable(responseSchema.schema)}
+* **${message('api.label.modelName')}**: **[${responseSchema.schema.getName()}](#${responseSchema.schema.getName()})**
 </#if>
 </#list>
 </#if>

@@ -64,7 +64,6 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                 model.put("parameters", parameters);
             }
         }
-        List<String> reqOrResNames = context.getReqOrResNames();
         List<FmApiDocSchema> requestSchemas = apiDocDetail.getRequestsSchemas().stream()
                 .map(requestSchema -> {
                     if (StringUtils.isNotBlank(requestSchema.getSchemaContent())) {
@@ -74,9 +73,6 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                         if (mediaType != null && mediaType.getSchema() != null) {
                             newSchema.setSchema(SchemaJsonUtils.getSchema(mediaType.getSchema(), schemasMap));
                             Schema<?> schema = newSchema.getSchema();
-                            if (StringUtils.isNotBlank(schema.getName())) {
-                                reqOrResNames.add(schema.getName());
-                            }
                             Stack<String> schemaNames = new Stack<>();
                             schemaNames.push(StringUtils.defaultIfBlank(schema.getName(), "_request"));
                             apiDocFreemarkerUtils.calcInlineSchemaProperties(schema, schemaNames, schemasMap);
@@ -95,9 +91,6 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                         if (mediaType != null && mediaType.getSchema() != null) {
                             newSchema.setSchema(SchemaJsonUtils.getSchema(mediaType.getSchema(), schemasMap));
                             Schema<?> schema = newSchema.getSchema();
-                            if (StringUtils.isNotBlank(schema.getName())) {
-                                reqOrResNames.add(schema.getName());
-                            }
                             Stack<String> schemaNames = new Stack<>();
                             schemaNames.push(StringUtils.defaultIfBlank(schema.getName(), "_response"));
                             apiDocFreemarkerUtils.calcInlineSchemaProperties(schema, schemaNames, schemasMap);
@@ -112,7 +105,6 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         model.put("responsesSchemas", responseSchemas);
         if (context.isGenerateComponents()) {
             model.put("schemasMap", schemasMap);
-            reqOrResNames.forEach(schemasMap::remove);
         }
         try {
             // 加载模板

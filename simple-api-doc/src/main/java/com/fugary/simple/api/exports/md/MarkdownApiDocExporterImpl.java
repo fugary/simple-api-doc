@@ -97,7 +97,6 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
                 apiDocDetail.setApiMarkdown(apiMarkdown);
             }
         }
-        context.getReqOrResNames().forEach(schemasMap::remove);
         // 设置数据
         Map<String, Object> model = new HashMap<>();
         model.put("apiProject", detailVo);
