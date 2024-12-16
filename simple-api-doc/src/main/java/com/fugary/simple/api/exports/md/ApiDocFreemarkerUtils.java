@@ -74,7 +74,7 @@ public class ApiDocFreemarkerUtils {
             if (schema instanceof ArraySchema) {
                 typeStr = "array<" + propertyType(schema.getItems(), false) + ">";
             }
-            List<Schema> xxxOf = getXxxOf(schema);
+            List<Schema> xxxOf = getXxxOf(schema).getRight();
             if (CollectionUtils.isNotEmpty(xxxOf)) {
                 typeStr = xxxOf.stream().map(xxx -> propertyType(xxx, false)).collect(Collectors.joining(", "));
             }
@@ -126,11 +126,10 @@ public class ApiDocFreemarkerUtils {
                 required.addAll(arraySchemaPair.getLeft());
                 properties.putAll(arraySchemaPair.getRight());
             }
-            boolean xxxOf = CollectionUtils.isNotEmpty(schema.getAllOf())
-                    || CollectionUtils.isNotEmpty(schema.getAnyOf())
-                    || CollectionUtils.isNotEmpty(schema.getOneOf());
-            if (xxxOf) {
-                SimpleModelUtils.wrap(schema.getAllOf()).forEach(allOf -> {
+            Pair<String, List<Schema>> xxxOfPair = getXxxOf(schema);
+            String xxxOfName = xxxOfPair.getKey();
+            if (StringUtils.isNotBlank(xxxOfName)) {
+                SimpleModelUtils.wrap(xxxOfPair.getRight()).forEach(allOf -> {
                     Pair<List<String>, Map<String, Schema>> allOfPair = getSchemaProperties(allOf);
                     required.addAll(allOfPair.getLeft());
                     properties.putAll(allOfPair.getRight());
@@ -153,19 +152,19 @@ public class ApiDocFreemarkerUtils {
      * @param schema
      * @return
      */
-    public List<Schema> getXxxOf(Schema schema) {
+    public Pair<String, List<Schema>> getXxxOf(Schema schema) {
         if (schema != null) {
             if (CollectionUtils.isNotEmpty(schema.getAllOf())) {
-                return schema.getAllOf();
+                return Pair.of("allOf", schema.getAllOf());
             }
             if (CollectionUtils.isNotEmpty(schema.getAnyOf())) {
-                return schema.getAnyOf();
+                return Pair.of("anyOf", schema.getAnyOf());
             }
             if (CollectionUtils.isNotEmpty(schema.getOneOf())) {
-                return schema.getOneOf();
+                return Pair.of("oneOf", schema.getOneOf());
             }
         }
-        return new ArrayList<>();
+        return Pair.of("", new ArrayList<>());
     }
 
     /**
@@ -207,6 +206,8 @@ public class ApiDocFreemarkerUtils {
                 sb.append(System.lineSeparator());
             });
             return sb.toString();
+        } else if (schema != null) {
+            return propertyType(schema, false);
         }
         return StringUtils.EMPTY; // 如果没有属性，返回空字符串
     }
@@ -403,7 +404,7 @@ public class ApiDocFreemarkerUtils {
      * @param schemaMap
      */
     public void calcInlineSchemaProperties(Schema schema, Stack<String> schemaNames, Map<String, Schema<?>> schemaMap) {
-        List<Schema> xxxOf = getXxxOf(schema);
+        List<Schema> xxxOf = getXxxOf(schema).getRight();
         if (CollectionUtils.isNotEmpty(xxxOf)) {
             xxxOf.forEach(xxx -> calcInlineSchemaProperties(xxx, schemaNames, schemaMap));
         }
@@ -426,5 +427,26 @@ public class ApiDocFreemarkerUtils {
                 }
             });
         }
+    }
+
+    /**
+     * @param schema
+     * @return
+     */
+    public String getSchemaName(Schema schema) {
+        return getSchemaName(schema, true);
+    }
+
+    /**
+     * @param schema
+     * @param markdown
+     * @return
+     */
+    public String getSchemaName(Schema schema, boolean markdown) {
+        if (schema != null && StringUtils.isNotBlank(schema.getName())) {
+            String schemaName = StringUtils.join("[", schema.getName(), "](#", schema.getName(), ")");
+            return markdown ? schemaName : schema.getName();
+        }
+        return propertyType(schema, markdown);
     }
 }

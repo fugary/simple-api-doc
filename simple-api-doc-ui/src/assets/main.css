@@ -572,6 +572,7 @@ html, body, #app, .index-container {
     container-type: inline-size;
 }
 .md-doc-catalog {
+    max-width: 40%;
     overflow: unset;
     overflow-x: visible;
 }

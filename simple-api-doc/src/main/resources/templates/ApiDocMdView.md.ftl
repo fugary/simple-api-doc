@@ -32,8 +32,8 @@ ${utils.parametersToTable(parameters)}
 <#if utils.getSchemaDescription(requestSchema)??>
 > ${utils.getSchemaDescription(requestSchema)}
 </#if>
-<#if requestSchema.schema?? && requestSchema.schema.getName()??>
-* **${message('api.label.modelName')}**: **[${requestSchema.schema.getName()}](#${requestSchema.schema.getName()})**
+<#if requestSchema.schema?? && requestSchema.schema??>
+* **${message('api.label.modelName')}**: **${utils.getSchemaName(requestSchema.schema)}**
 </#if>
 </#list>
 </#if>
@@ -42,12 +42,16 @@ ${utils.parametersToTable(parameters)}
 ### ${message('api.label.responseBody')}
 
 <#list responsesSchemas as responseSchema>
-#### ${responseSchema.schemaName!''} <#if utils.getSchemaDescription(responseSchema, false)??>${utils.getSchemaDescription(responseSchema, false)}</#if>
+#### ${responseSchema.schemaName!''}
+
+<#if utils.getSchemaDescription(responseSchema, false)??>
+> ${utils.getSchemaDescription(responseSchema, false)}
+</#if>
 
 * **Content-Type**: ${responseSchema.contentType!""}
 * **${message('api.label.statusCode')}**: ${responseSchema.statusCode!''}
-<#if responseSchema.schema?? && responseSchema.schema.getName()??>
-* **${message('api.label.modelName')}**: **[${responseSchema.schema.getName()}](#${responseSchema.schema.getName()})**
+<#if responseSchema.schema?? && responseSchema.schema??>
+* **${message('api.label.modelName')}**: **${utils.getSchemaName(responseSchema.schema)}**
 </#if>
 </#list>
 </#if>
