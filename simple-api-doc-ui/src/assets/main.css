@@ -579,7 +579,13 @@ html, body, #app, .index-container {
 .md-doc-container table {
     width: 100%;
 }
-@container (min-width: 768px) {
+
+@container (min-width: 480px) {
+    .md-doc-container table th {
+        min-width: 80px;
+    }
+}
+@container (min-width: 600px) {
     .md-doc-container table th {
         min-width: 100px;
     }

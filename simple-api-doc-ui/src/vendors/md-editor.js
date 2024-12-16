@@ -26,8 +26,8 @@ export const initEditorLink = () => {
       const href = event.target.getAttribute('href')
       if (href?.startsWith('#')) {
         event.preventDefault()
-        const title = href.substring(1)
-        document.querySelector(`.md-editor-catalog-link span[title='${title}']`)?.click()
+        const targetId = href.substring(1)
+        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' })
       }
     }
   })

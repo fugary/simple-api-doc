@@ -87,7 +87,8 @@ const requestUrl = computed(() => {
     <el-button
       v-if="viewAsEnabled"
       class="margin-top1"
-      type="info"
+      type="primary"
+      plain
       style="padding-left: 10px;"
       @click="viewAsMarkdown=!viewAsMarkdown;$emit('change-view-as', viewAsMarkdown)"
     >
