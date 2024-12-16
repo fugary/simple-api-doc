@@ -140,11 +140,6 @@ public class ApiDocFreemarkerUtils {
                 properties.forEach((key, valueSchema) -> {
                     if (valueSchema != null) {
                         resultProperties.put(key, valueSchema);
-                        if (StringUtils.isBlank(valueSchema.getName()) && MapUtils.isNotEmpty(valueSchema.getProperties())) {
-                            valueSchema.getProperties().forEach((objKey, objValue) -> {
-                                resultProperties.put(key + "." + objKey, (Schema) objValue);
-                            });
-                        }
                     }
                 });
             }
