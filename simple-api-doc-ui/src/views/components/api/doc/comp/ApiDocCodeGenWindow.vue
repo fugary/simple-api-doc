@@ -118,7 +118,7 @@ const generateSelectedDocs = (data) => {
       {{ $t('api.label.generateClientCode') }}
       <el-link
         :underline="false"
-        href="https://generator.swagger.io"
+        href="https://openapi-generator.tech/"
         target="_blank"
       >
         {{ $t('api.label.generatorProvider') }}: {{ $t('api.label.generatorProviderSwagger') }}
