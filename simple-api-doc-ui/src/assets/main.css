@@ -569,6 +569,7 @@ html, body, #app, .index-container {
 
 .md-doc-container {
     flex-grow: 1;
+    container-type: inline-size;
 }
 .md-doc-catalog {
     overflow: unset;
@@ -578,11 +579,11 @@ html, body, #app, .index-container {
 .md-doc-container table {
     width: 100%;
 }
-
-.md-doc-container table th:not(:last-child) {
-    min-width: 100px;
+@container (min-width: 768px) {
+    .md-doc-container table th {
+        min-width: 100px;
+    }
 }
-
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
