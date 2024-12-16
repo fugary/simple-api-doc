@@ -575,6 +575,14 @@ html, body, #app, .index-container {
     overflow-x: visible;
 }
 
+.md-doc-container table {
+    width: 100%;
+}
+
+.md-doc-container table th:not(:last-child) {
+    min-width: 100px;
+}
+
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
