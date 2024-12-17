@@ -1,10 +1,17 @@
 import { useResourceApi } from '@/hooks/ApiHooks'
 import { useDefaultPage } from '@/config'
-import { $httpPost } from '@/vendors/axios'
+import { $http, $httpPost } from '@/vendors/axios'
 
 const BASE_URL = '/admin/folders'
 
 const ApiFolderApi = useResourceApi(BASE_URL)
+
+export const clearFolder = (id, config) => {
+  return $http(Object.assign({
+    url: `${BASE_URL}/clearFolder/${id}`,
+    method: 'delete'
+  }, config)).then(response => response.data)
+}
 
 export const loadAvailableFolders = (projectId) => {
   return ApiFolderApi.search({ projectId, page: useDefaultPage(200) })

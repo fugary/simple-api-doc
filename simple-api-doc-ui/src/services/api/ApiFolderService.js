@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import ApiFolderApi, { loadAvailableFolders } from '@/api/ApiFolderApi'
+import ApiFolderApi, { clearFolder, loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import ApiDocApi, { copyApiDoc, updateApiDoc } from '@/api/ApiDocApi'
@@ -189,18 +189,27 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         sortId: getMdChildrenSortId(folder)
       }, true)
     }
-  }, ...apiDocConfig,
-  ...calcShowCleanHandlers(folder, preference, handlerData), {
+  }, {
     enabled: !folder.rootFlag && handlerData.isDeletable?.value,
     icon: 'FolderDelete',
     type: 'danger',
-    label: $i18nBundle('common.label.delete'),
+    label: $i18nKey('common.label.commonDelete', 'api.label.folder'),
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [folder.folderName]))
         .then(() => ApiFolderApi.deleteById(folder.id))
         .then(() => handlerData.refreshProjectItem())
     }
-  }]
+  }, {
+    enabled: handlerData.isDeletable?.value,
+    icon: 'Folder',
+    type: 'danger',
+    label: $i18nKey('common.label.commonClear', 'api.label.folder'),
+    handler: () => {
+      $coreConfirm($i18nBundle('common.msg.commonClearConfirm', [folder.folderName]))
+        .then(() => clearFolder(folder.id))
+        .then(() => handlerData.refreshProjectItem())
+    }
+  }, ...apiDocConfig, ...calcShowCleanHandlers(folder, preference, handlerData)]
 }
 
 export const docHandlerSaveDoc = (doc, newData) => {

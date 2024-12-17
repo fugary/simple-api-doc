@@ -5,8 +5,9 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
-import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
+import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Create date 2024/9/27<br>
@@ -31,6 +33,9 @@ public class ApiFolderController {
 
     @Autowired
     private ApiFolderService apiFolderService;
+
+    @Autowired
+    private ApiDocService apiDocService;
 
     @Autowired
     private ApiProjectService apiProjectService;
@@ -50,13 +55,12 @@ public class ApiFolderController {
         return SimpleResultUtils.createSimpleResult(apiFolderService.getById(id));
     }
 
-    @DeleteMapping("/{id}")
-    public SimpleResult<Boolean> removeFolder(@PathVariable("id") Integer id) {
+    private SimpleResult<Boolean> removeFolder(Integer id, boolean clear) {
         ApiFolder apiFolder = apiFolderService.getById(id);
         if (apiFolder == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (BooleanUtils.isTrue(apiFolder.getRootFlag())) {
+        if (!clear && BooleanUtils.isTrue(apiFolder.getRootFlag())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2007);
         }
         if (!validateUserProject(apiFolder)) {
@@ -64,9 +68,25 @@ public class ApiFolderController {
         }
         List<ApiFolder> folders = apiFolderService.loadSubFolders(id);
         if (!folders.isEmpty()) {
-            folders.forEach(folder -> apiFolderService.deleteFolder(folder.getId()));
+            folders.forEach(folder -> {
+                if (clear && Objects.equals(id, folder.getId())) { // clear时仅删除子文档
+                    apiDocService.deleteByFolder(folder.getId());
+                } else {
+                    apiFolderService.deleteFolder(folder.getId());
+                }
+            });
         }
         return SimpleResultUtils.createSimpleResult(!folders.isEmpty());
+    }
+
+    @DeleteMapping("/{id}")
+    public SimpleResult<Boolean> removeFolder(@PathVariable("id") Integer id) {
+        return removeFolder(id, false);
+    }
+
+    @DeleteMapping("/clearFolder/{id}")
+    public SimpleResult<Boolean> clearFolder(@PathVariable("id") Integer id) {
+        return removeFolder(id, true);
     }
 
     @PostMapping
