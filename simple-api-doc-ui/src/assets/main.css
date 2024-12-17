@@ -581,6 +581,10 @@ html, body, #app, .index-container {
     width: 100%;
 }
 
+.md-doc-container s, .md-doc-container s code {
+    color: var(--el-color-warning);
+}
+
 @container (min-width: 480px) {
     .md-doc-container table th {
         min-width: 80px;

@@ -194,9 +194,9 @@ public class ApiDocFreemarkerUtils {
                 sb.append("| ");
                 // 判断是否标记为废弃
                 if (isTrue(property.getDeprecated())) {
-                    sb.append("~~`").append(key).append("~~`");
+                    sb.append("~~**`").append(key).append("`**~~");
                 } else {
-                    sb.append("`").append(key).append("`");
+                    sb.append("**`").append(key).append("`**");
                 }
                 sb.append(" | ")
                         .append(propertyType(property)).append(" | ");
@@ -257,9 +257,9 @@ public class ApiDocFreemarkerUtils {
                 sb.append("| ");
                 // 判断是否标记为废弃
                 if (isTrue(parameter.getDeprecated())) {
-                    sb.append("~~`").append(parameter.getName()).append("~~`");
+                    sb.append("~~**`").append(parameter.getName()).append("`**~~");
                 } else {
-                    sb.append("`").append(parameter.getName()).append("`");
+                    sb.append("**`").append(parameter.getName()).append("`**");
                 }
                 sb.append(" | ")
                         .append(propertyType(parameter.getSchema())).append(" | ")
