@@ -21,7 +21,7 @@ ${apiDoc.apiMarkdown}
 
 <#list schemasMap as name, schema>
 ### ${name}
-<#if utils.getSchemaDescription(schema)??>
+<#if utils.isNotBlank(utils.getSchemaDescription(schema))>
 ${utils.getSchemaDescription(schema)}
 </#if>
 

@@ -29,7 +29,7 @@ ${utils.parametersToTable(parameters)}
 <#list requestsSchemas as requestSchema>
 #### ${requestSchema.contentType}
 
-<#if utils.getSchemaDescription(requestSchema)??>
+<#if utils.isNotBlank(utils.getSchemaDescription(requestSchema))>
 > ${utils.getSchemaDescription(requestSchema)}
 </#if>
 <#if requestSchema.schema?? && requestSchema.schema??>
@@ -44,7 +44,7 @@ ${utils.parametersToTable(parameters)}
 <#list responsesSchemas as responseSchema>
 #### ${responseSchema.schemaName!''}
 
-<#if utils.getSchemaDescription(responseSchema, false)??>
+<#if utils.isNotBlank(utils.getSchemaDescription(responseSchema))>
 > ${utils.getSchemaDescription(responseSchema, false)}
 </#if>
 
@@ -61,7 +61,7 @@ ${utils.parametersToTable(parameters)}
 
 <#list schemasMap as name, schema>
 #### ${name}
-<#if utils.getSchemaDescription(schema)??>
+<#if utils.isNotBlank(utils.getSchemaDescription(schema))>
 ${utils.getSchemaDescription(schema)}
 </#if>
 

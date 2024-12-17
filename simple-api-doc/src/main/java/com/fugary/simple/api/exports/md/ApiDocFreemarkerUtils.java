@@ -449,4 +449,13 @@ public class ApiDocFreemarkerUtils {
         }
         return propertyType(schema, markdown);
     }
+
+    /**
+     * 不为空判断
+     * @param str
+     * @return
+     */
+    public boolean isNotBlank(String str) {
+        return StringUtils.isNotBlank(str);
+    }
 }
