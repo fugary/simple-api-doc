@@ -2,18 +2,12 @@
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
 import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
-import ApiDocSchemaTable from '@/views/components/api/doc/comp/ApiDocSchemaTable.vue'
 
 const apiDocDetail = defineModel({
   type: Object,
   default: () => ({})
 })
-defineProps({
-  viewAsMarkdown: {
-    type: Boolean,
-    default: false
-  }
-})
+
 const projectInfoDetail = computed(() => {
   return apiDocDetail.value.projectInfoDetail
 })
@@ -67,21 +61,13 @@ const responsesSchemas = computed(() => {
               <el-text>{{ responseSchema.statusCode }}</el-text>
             </el-text>
           </el-container>
-          <template v-if="projectInfoDetail">
-            <api-doc-schema-tree
-              v-if="!viewAsMarkdown"
-              :model-value="responseSchema"
-              :spec-version="projectInfoDetail.specVersion"
-              :component-schemas="projectInfoDetail.componentSchemas"
-              :show-merge-all-of="showMergeAllOf"
-            />
-            <api-doc-schema-table
-              v-else
-              :model-value="responseSchema"
-              :component-schemas="projectInfoDetail.componentSchemas"
-              :show-merge-all-of="showMergeAllOf"
-            />
-          </template>
+          <api-doc-schema-tree
+            v-if="projectInfoDetail"
+            :model-value="responseSchema"
+            :spec-version="projectInfoDetail.specVersion"
+            :component-schemas="projectInfoDetail.componentSchemas"
+            :show-merge-all-of="showMergeAllOf"
+          />
         </el-container>
       </el-tab-pane>
     </el-tabs>

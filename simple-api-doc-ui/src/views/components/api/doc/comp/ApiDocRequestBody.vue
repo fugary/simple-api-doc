@@ -2,18 +2,12 @@
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
 import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
-import ApiDocSchemaTable from '@/views/components/api/doc/comp/ApiDocSchemaTable.vue'
 
 const apiDocDetail = defineModel({
   type: Object,
   default: () => ({})
 })
-defineProps({
-  viewAsMarkdown: {
-    type: Boolean,
-    default: false
-  }
-})
+
 const projectInfoDetail = computed(() => {
   return apiDocDetail.value.projectInfoDetail
 })
@@ -42,20 +36,11 @@ const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
             </el-text>
           </span>
         </template>
-        <el-container
-          v-if="projectInfoDetail"
-          class="flex-column"
-        >
+        <el-container class="flex-column">
           <api-doc-schema-tree
-            v-if="!viewAsMarkdown"
+            v-if="projectInfoDetail"
             :model-value="requestsSchema"
             :spec-version="projectInfoDetail.specVersion"
-            :component-schemas="projectInfoDetail.componentSchemas"
-            :show-merge-all-of="showMergeAllOf"
-          />
-          <api-doc-schema-table
-            v-else
-            :model-value="requestsSchema"
             :component-schemas="projectInfoDetail.componentSchemas"
             :show-merge-all-of="showMergeAllOf"
           />
