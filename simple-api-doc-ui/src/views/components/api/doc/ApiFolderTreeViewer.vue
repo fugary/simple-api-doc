@@ -134,13 +134,11 @@ defineEmits(['toAddFolder', 'deleteFolder', 'toEditFolder', 'toAddDoc', 'toEditD
 const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
-  if (rootFolder.value && props.shareDoc) {
-    if (hasApiDoc.value) {
-      return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
-        calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
-        calcDebugInWindowHandler(rootFolder.value, sharePreference),
-        ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
-    }
+  if (rootFolder.value && hasApiDoc.value) {
+    return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
+      calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
+      calcDebugInWindowHandler(rootFolder.value, sharePreference),
+      ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
   }
   return []
 })
@@ -358,6 +356,7 @@ defineExpose(handlerData)
         />
         <more-actions-link
           v-if="shareTopHandlers?.length"
+          icon="Setting"
           :icon-size="20"
           :handlers="shareTopHandlers"
         />
@@ -396,8 +395,10 @@ defineExpose(handlerData)
           :handlers="exportTopHandlers"
         />
         <more-actions-link
-          class="margin-right2"
-          :handlers="getFolderHandlers(rootFolder, sharePreference, handlerData)"
+          v-if="shareTopHandlers?.length"
+          icon="Setting"
+          :icon-size="20"
+          :handlers="shareTopHandlers"
         />
       </el-header>
       <common-form-control
@@ -525,7 +526,7 @@ defineExpose(handlerData)
 
 .custom-tree-node .more-actions {
   position: absolute;
-  right: 5px;
+  right: 10px;
   margin-top: 8px;
 }
 </style>

@@ -142,11 +142,6 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
  */
 export const getFolderHandlers = (folder, preference, handlerData) => {
   const statusLabel = folder.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
-  const apiDocConfig = handlerData.hasApiDoc?.value
-    ? [calcShowDocLabelHandler(folder, preference),
-        calcShowMergeAllOfHandler(folder, preference),
-        calcDebugInWindowHandler(folder, preference)]
-    : []
   return [{
     icon: 'FolderAdd',
     label: $i18nKey('common.label.commonAdd', 'api.label.subFolder'),
@@ -212,7 +207,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         .then(() => clearFolder(folder.id))
         .then(() => handlerData.refreshProjectItem())
     }
-  }, ...apiDocConfig, ...calcShowCleanHandlers(folder, preference, handlerData)]
+  }]
 }
 
 export const docHandlerSaveDoc = (doc, newData) => {
