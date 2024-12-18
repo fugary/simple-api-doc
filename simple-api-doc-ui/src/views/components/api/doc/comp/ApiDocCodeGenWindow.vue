@@ -6,7 +6,7 @@ import { $i18nBundle } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { calcNodeLeaf, calcPreferenceId } from '@/services/api/ApiFolderService'
 import { cloneDeep, isNumber } from 'lodash-es'
-import { generateCode } from '@/api/SwaggerGeneratorApi'
+import { newGenerateCode } from '@/api/SwaggerGeneratorApi'
 import { $coreConfirm, $coreHideLoading, $coreShowLoading, $downloadWithLinkClick } from '@/utils'
 import { checkExportDownloadDocs } from '@/api/SimpleShareApi'
 import { checkExportProjectDocs } from '@/api/ApiProjectApi'
@@ -71,10 +71,14 @@ const okButtonClick = () => {
       const paramModel = getSavedGenParam()
       $coreShowLoading()
       generateSelectedDocs(treeSelectKeys.value).then(data => {
-        return generateCode(paramModel._language, {
-          spec: JSON.parse(data),
-          options: { ...paramModel, _language: undefined }
-        }).then(data => {
+        return newGenerateCode({
+          shareDoc: props.shareDoc,
+          language: paramModel._language,
+          data: {
+            spec: JSON.parse(data),
+            options: { ...paramModel, _language: undefined }
+          }
+        }, { loading: true }).then(data => {
           if (data.link) {
             $downloadWithLinkClick(data.link)
           }

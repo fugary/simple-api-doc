@@ -138,7 +138,13 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
      */
     protected HttpHeaders getHeaders(ApiParamsVo paramsVo) {
         HttpHeaders headers = new HttpHeaders();
-        paramsVo.getHeaderParams().forEach(nv -> headers.addIfAbsent(nv.getName(), nv.getValue()));
+        paramsVo.getHeaderParams().forEach(nv -> {
+            if (StringUtils.equalsIgnoreCase(nv.getName(), HttpHeaders.ACCEPT_ENCODING)
+                    && StringUtils.containsIgnoreCase(nv.getValue(), "zstd")) {
+                nv.setValue("gzip, deflate, br");
+            }
+            headers.addIfAbsent(nv.getName(), nv.getValue());
+        });
         return headers;
     }
 

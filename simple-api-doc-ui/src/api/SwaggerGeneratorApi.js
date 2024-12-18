@@ -1,4 +1,8 @@
 import axios from 'axios'
+import { SIMPLE_API_ACCESS_TOKEN_HEADER, SIMPLE_API_TARGET_URL_HEADER } from '@/consts/ApiConstants'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import { useLoginConfigStore } from '@/stores/LoginConfigStore'
+import { $httpPost } from '@/vendors/axios'
 
 const GEN_BASE_URL = import.meta.env.VITE_APP_SWAGGER_GENERATOR_URL
 
@@ -38,4 +42,17 @@ export const generateCode = (language, data, config = {}) => {
   return $http({
     url: `${GEN_CLIENTS_URL}/${language}`, data, method: 'post'
   }, config).then(response => response.data)
+}
+
+export const newGenerateCode = (param, config) => {
+  let targetUrl = `/admin/proxy${GEN_CLIENTS_URL}/${param.language}` // 服务端代理发送
+  const headers = {
+    [SIMPLE_API_TARGET_URL_HEADER]: GEN_BASE_URL
+  }
+  headers[SIMPLE_API_ACCESS_TOKEN_HEADER] = useLoginConfigStore().accessToken
+  if (param.shareDoc) {
+    targetUrl = `/shares/proxy${GEN_CLIENTS_URL}/${param.language}`
+    headers[SIMPLE_API_ACCESS_TOKEN_HEADER] = useShareConfigStore().getShareToken(param.shareDoc.shareId)
+  }
+  return $httpPost(targetUrl, param.data, Object.assign({ headers }, config))
 }
