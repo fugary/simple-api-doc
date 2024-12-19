@@ -1,11 +1,15 @@
 package com.fugary.simple.api.exports.md;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fugary.simple.api.entity.api.ApiDocSchema;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import io.swagger.v3.core.util.RefUtils;
+import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
@@ -24,6 +28,8 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.fugary.simple.api.utils.SchemaJsonUtils.FORMATED_MAPPER;
 
 @Slf4j
 @Getter
@@ -349,6 +355,25 @@ public class ApiDocFreemarkerUtils {
     }
 
     /**
+     * 获取ApiSchema示例
+     *
+     * @param docSchema
+     * @return
+     */
+    public String getApiSchemaExamples(ApiDocSchema docSchema, boolean v31) {
+        if (docSchema != null && StringUtils.isNotBlank(docSchema.getExamples())) {
+            List<Example> examples = SchemaJsonUtils.fromJson(docSchema.getExamples(), new TypeReference<List<Example>>() {
+            }, v31);
+            return SimpleModelUtils.wrap(examples)
+                    .stream().filter(example -> example.getValue() != null)
+                    .map(example -> StringUtils.join("```json\n",
+                            SchemaJsonUtils.toJson(FORMATED_MAPPER, example.getValue()), "\n```"))
+                    .collect(Collectors.joining("\n"));
+        }
+        return StringUtils.EMPTY;
+    }
+
+    /**
      * 获取枚举数据
      *
      * @param enums
@@ -444,18 +469,35 @@ public class ApiDocFreemarkerUtils {
      * @return
      */
     public String getSchemaName(Schema schema, boolean markdown) {
+        String schemaName = StringUtils.EMPTY;
+        if (schema != null && StringUtils.isNotBlank(schema.getName())) {
+            schemaName = StringUtils.join("[", schema.getName(), "](#", schema.getName(), ")");
+        }
+        if (StringUtils.isNotBlank(schemaName)) {
+            return markdown ? markdownToHtml(schemaName) : schemaName;
+        }
+        return propertyType(schema, markdown);
+    }
+
+    /**
+     * 获取xxxOf信息
+     *
+     * @param schema
+     * @param markdown
+     * @return
+     */
+    public String getXxxOfInfo(Schema schema, boolean markdown) {
         Pair<String, List<Schema>> xxxOfPair = getXxxOf(schema);
         String xxxOfName = xxxOfPair.getLeft();
         List<Schema> schemaList = xxxOfPair.getRight();
         if (StringUtils.isNotBlank(xxxOfName)) {
             String xxxSchemaStr = schemaList.stream().map(allOf -> getSchemaName(allOf, false)).collect(Collectors.joining(", "));
-            xxxSchemaStr = StringUtils.join("`", xxxOfName, "[", schemaList.size(), "]", "`: ", xxxSchemaStr);
+            if (StringUtils.isNotBlank(xxxSchemaStr)) {
+                xxxSchemaStr = StringUtils.join("**", xxxOfName, "[", schemaList.size(), "]**: ", xxxSchemaStr);
+            }
             return markdown ? markdownToHtml(xxxSchemaStr) : xxxSchemaStr;
-        } else if (schema != null && StringUtils.isNotBlank(schema.getName())) {
-            String schemaName = StringUtils.join("[", schema.getName(), "](#", schema.getName(), ")");
-            return markdown ? markdownToHtml(schemaName) : schemaName;
         }
-        return propertyType(schema, markdown);
+        return StringUtils.EMPTY;
     }
 
     /**

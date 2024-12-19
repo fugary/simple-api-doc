@@ -103,6 +103,7 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                     return status1 - status2;
                 }).collect(Collectors.toList());
         model.put("responsesSchemas", responseSchemas);
+        model.put("v31", SchemaJsonUtils.isV31(specVersion));
         if (context.isGenerateComponents()) {
             model.put("schemasMap", schemasMap);
         }

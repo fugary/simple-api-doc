@@ -2,6 +2,7 @@ package com.fugary.simple.api.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.core.util.Json31;
 import io.swagger.v3.core.util.RefUtils;
@@ -36,6 +37,15 @@ public class SchemaJsonUtils {
      * 默认Mapper
      */
     private static final ObjectMapper MAPPER_V31 = Json31.mapper();
+
+    /**
+     * 最简单mapper
+     */
+    public static final ObjectMapper FORMATED_MAPPER = new ObjectMapper();
+
+    static {
+        FORMATED_MAPPER.enable(SerializationFeature.INDENT_OUTPUT); // 开启缩进
+    }
 
     public static ObjectMapper getMapper(boolean v31) {
         return v31 ? MAPPER_V31 : MAPPER;
@@ -129,5 +139,21 @@ public class SchemaJsonUtils {
             }
         }
         return schema;
+    }
+
+    /**
+     * 自定义Mapper
+     * @param mapper
+     * @param input
+     * @return
+     */
+    public static String toJson(ObjectMapper mapper, Object input) {
+        String result = StringUtils.EMPTY;
+        try {
+            result = mapper.writeValueAsString(input);
+        } catch (Exception e) {
+            log.error("输出json错误", e);
+        }
+        return result;
     }
 }
