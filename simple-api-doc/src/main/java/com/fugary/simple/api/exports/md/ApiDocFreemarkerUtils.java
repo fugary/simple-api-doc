@@ -491,11 +491,17 @@ public class ApiDocFreemarkerUtils {
         String xxxOfName = xxxOfPair.getLeft();
         List<Schema> schemaList = xxxOfPair.getRight();
         if (StringUtils.isNotBlank(xxxOfName)) {
-            String xxxSchemaStr = schemaList.stream().map(allOf -> getSchemaName(allOf, false)).collect(Collectors.joining(", "));
-            if (StringUtils.isNotBlank(xxxSchemaStr)) {
+            Set<String> nameCheck = new HashSet<>();
+            String xxxSchemaStr = schemaList.stream().map(allOf -> {
+                String schemaName = getSchemaName(allOf, false);
+                nameCheck.add(schemaName);
+                return schemaName;
+            }).collect(Collectors.joining(", "));
+            boolean onlyObj = nameCheck.size() == 1 && nameCheck.contains("object"); // 在md中不显示
+            if (StringUtils.isNotBlank(xxxSchemaStr) && !onlyObj) {
                 xxxSchemaStr = StringUtils.join("**", xxxOfName, "[", schemaList.size(), "]**: ", xxxSchemaStr);
+                return markdown ? markdownToHtml(xxxSchemaStr) : xxxSchemaStr;
             }
-            return markdown ? markdownToHtml(xxxSchemaStr) : xxxSchemaStr;
         }
         return StringUtils.EMPTY;
     }
