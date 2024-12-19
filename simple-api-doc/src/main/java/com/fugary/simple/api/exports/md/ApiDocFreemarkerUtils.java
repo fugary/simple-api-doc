@@ -82,6 +82,10 @@ public class ApiDocFreemarkerUtils {
             if (StringUtils.isNotBlank(refLink)) {
                 typeStr = StringUtils.join("[" + refLink + "](#", refLink, ")");
             }
+            String enumStr = getEnums(schema.getEnum());
+            if (StringUtils.isNotBlank(enumStr)) {
+                typeStr = StringUtils.join(typeStr, " (", getMessage("api.label.enums"), ": `", enumStr, "`)");
+            }
             return markdown ? markdownToHtml(typeStr) : typeStr;
         }
         return StringUtils.EMPTY;
@@ -199,7 +203,7 @@ public class ApiDocFreemarkerUtils {
                     sb.append("**`").append(key).append("`**");
                 }
                 sb.append(" | ")
-                        .append(propertyType(property)).append(" | ");
+                        .append(getSchemaName(property)).append(" | ");
                 // 判断是否必填
                 sb.append(isRequired(required, key) ? "`Y`" : "N").append(" | ");
                 appendConditional(hasDescription, () -> sb.append(getSchemaDescription(property)).append(" | "));
@@ -207,7 +211,7 @@ public class ApiDocFreemarkerUtils {
             });
             return sb.toString();
         } else if (schema != null) {
-            return propertyType(schema, false);
+            return getSchemaName(schema, false);
         }
         return StringUtils.EMPTY; // 如果没有属性，返回空字符串
     }
@@ -262,7 +266,7 @@ public class ApiDocFreemarkerUtils {
                     sb.append("**`").append(parameter.getName()).append("`**");
                 }
                 sb.append(" | ")
-                        .append(propertyType(parameter.getSchema())).append(" | ")
+                        .append(getSchemaName(parameter.getSchema())).append(" | ")
                         .append(isTrue(parameter.getRequired()) ? "`Y`" : "N").append(" | ")
                         .append("*").append(parameter.getIn()).append("*").append(" | ");
                 // 判断是否必填
@@ -299,13 +303,9 @@ public class ApiDocFreemarkerUtils {
             result = StringUtils.defaultIfBlank(docSchema.getDescription(), schemaDesc);
         } else if (target instanceof Schema) {
             Schema schema = (Schema) target;
-            String enumStr = getEnums(schema.getEnum());
             String exampleStr = getExample(schema.getExample());
             String defaultStr = getExample(schema.getDefault());
             String description = StringUtils.trimToEmpty(schema.getDescription());
-            if (StringUtils.isNotBlank(enumStr)) {
-                result += StringUtils.join("**", getMessage("api.label.enums"), "**: ", enumStr, "<br>");
-            }
             if (StringUtils.isNotBlank(exampleStr)) {
                 result += StringUtils.join("**", getMessage("api.label.example"), "**: ", exampleStr, "<br>");
             }
@@ -404,7 +404,8 @@ public class ApiDocFreemarkerUtils {
      * @param schemaMap
      */
     public void calcInlineSchemaProperties(Schema schema, Stack<String> schemaNames, Map<String, Schema<?>> schemaMap) {
-        List<Schema> xxxOf = getXxxOf(schema).getRight();
+        Pair<String, List<Schema>> xxxOfPair = getXxxOf(schema);
+        List<Schema> xxxOf = xxxOfPair.getRight();
         if (CollectionUtils.isNotEmpty(xxxOf)) {
             xxxOf.forEach(xxx -> calcInlineSchemaProperties(xxx, schemaNames, schemaMap));
         }
@@ -443,15 +444,23 @@ public class ApiDocFreemarkerUtils {
      * @return
      */
     public String getSchemaName(Schema schema, boolean markdown) {
-        if (schema != null && StringUtils.isNotBlank(schema.getName())) {
+        Pair<String, List<Schema>> xxxOfPair = getXxxOf(schema);
+        String xxxOfName = xxxOfPair.getLeft();
+        List<Schema> schemaList = xxxOfPair.getRight();
+        if (StringUtils.isNotBlank(xxxOfName)) {
+            String xxxSchemaStr = schemaList.stream().map(allOf -> getSchemaName(allOf, false)).collect(Collectors.joining(", "));
+            xxxSchemaStr = StringUtils.join("`", xxxOfName, "[", schemaList.size(), "]", "`: ", xxxSchemaStr);
+            return markdown ? markdownToHtml(xxxSchemaStr) : xxxSchemaStr;
+        } else if (schema != null && StringUtils.isNotBlank(schema.getName())) {
             String schemaName = StringUtils.join("[", schema.getName(), "](#", schema.getName(), ")");
-            return markdown ? schemaName : schema.getName();
+            return markdown ? markdownToHtml(schemaName) : schemaName;
         }
         return propertyType(schema, markdown);
     }
 
     /**
      * 不为空判断
+     *
      * @param str
      * @return
      */
