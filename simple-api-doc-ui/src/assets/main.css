@@ -572,9 +572,16 @@ html, body, #app, .index-container {
     container-type: inline-size;
 }
 .md-doc-catalog {
-    max-width: 40%;
+    max-width: 35%;
+    min-width: 20%;
     overflow: unset;
     overflow-x: visible;
+}
+
+.md-doc-catalog .md-editor-catalog-link span {
+    word-break: break-all;
+    white-space: normal;
+    text-overflow: unset;
 }
 
 .md-doc-container table {
