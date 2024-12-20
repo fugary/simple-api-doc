@@ -236,13 +236,22 @@ const docContent = computed(() => {
         <el-text><copy-right /></el-text>
       </span>
     </el-container>
-    <el-backtop
-      v-if="apiDocDetail"
-      v-common-tooltip="$t('common.label.backtop')"
-      :target="viewAsMarkdown?'.scroll-main-container':'.api-doc-viewer .el-scrollbar__wrap'"
-      :right="70"
-      :bottom="70"
-    />
+    <template v-if="apiDocDetail">
+      <el-backtop
+        v-if="viewAsMarkdown"
+        v-common-tooltip="$t('common.label.backtop')"
+        target=".md-editor-preview-wrapper"
+        :right="70"
+        :bottom="70"
+      />
+      <el-backtop
+        v-else
+        v-common-tooltip="$t('common.label.backtop')"
+        target=".api-doc-viewer .el-scrollbar__wrap"
+        :right="70"
+        :bottom="70"
+      />
+    </template>
     <common-window
       v-model="showAuthorizationWindow"
       :title="$t('api.label.authorization')"
