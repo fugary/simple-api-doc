@@ -80,7 +80,8 @@ const okButtonClick = () => {
           }
         }, { loading: true }).then(data => {
           if (data.link) {
-            $downloadWithLinkClick(data.link)
+            const link = data.link.replace('http://', 'https://')
+            $downloadWithLinkClick(link)
           }
         })
       }).finally(() => $coreHideLoading())
