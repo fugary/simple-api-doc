@@ -26,7 +26,7 @@ const route = useRoute()
 const { search, getById, deleteById, saveOrUpdate } = ApiProjectApi
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
-  defaultParam: { page: useDefaultPage(50) },
+  defaultParam: { page: useDefaultPage(10) },
   dataProcessor: data => (data?.resultData || []).map(project => {
     project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
     project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
@@ -36,6 +36,9 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
 })
 const loadApiProjects = (pageNumber) => {
   tableData.value = []
+  if (colSize.value && searchParam.value.page) {
+    searchParam.value.page.pageSize = Math.floor(10 / colSize.value) * colSize.value
+  }
   return searchMethod(pageNumber)
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
@@ -207,6 +210,7 @@ const tableProjectItems = computed(() => {
           </ElText>
         }
       }, {
+        enabled: project.userName !== useCurrentUserName(),
         labelFormatter () {
           return <ElText type="primary" tag="b">
             {$i18nBundle('api.label.owner')}
@@ -219,8 +223,22 @@ const tableProjectItems = computed(() => {
         }
       }, {
         labelKey: 'common.label.modifyDate',
-        value: formatDate(project.modifyDate) || formatDate(project.createDate),
-        enabled: !!project.modifyDate || !!project.createDate
+        enabled: !!project.createDate || !!project.modifyDate,
+        formatter () {
+          let modifyStr = ''
+          const format = 'YYYY-MM-DD HH:mm'
+          if (project.modifyDate) {
+            modifyStr = <>
+              <CommonIcon icon="EditCalendarFilled" size={20} class="margin-left1" style="top: 4px;"/>
+              {formatDate(project.modifyDate, format)}
+            </>
+          }
+          return <>
+            <CommonIcon icon="CalendarMonthFilled" size={20} style="top: 4px;"/>
+            {formatDate(project.createDate, format)}
+            {modifyStr}
+          </>
+        }
       }, {
         labelKey: 'common.label.description',
         value: project.description,
@@ -263,6 +281,10 @@ const isGroupWritable = computed(() => projectCheckAccess(searchParam.value.grou
 
 const selectedRowsDeletable = computed(() => selectedRows.value.every(project => project?.isDeletable))
 
+const pageAttrs = {
+  layout: 'total, prev, pager, next',
+  background: true
+}
 </script>
 
 <template>
@@ -329,61 +351,62 @@ const selectedRowsDeletable = computed(() => selectedRows.value.every(project =>
             :class="{'project-selected': project.selected}"
             @click="toEditProject(project)"
           >
-            <div
-              class="card-header"
-              style="padding-bottom: 12px"
-            >
-              <el-checkbox
-                v-model="project.selected"
-                style="margin-right: auto;"
-                @click="$event.stopPropagation()"
+            <template #header>
+              <div
+                class="card-header"
               >
-                <div class="flex-center-col">
-                  <img
-                    v-if="project.iconUrl"
-                    :src="project.iconUrl"
-                    class="api-project-icon-cls margin-right1"
-                    alt="logo"
-                  >
-                  <el-text
-                    tag="b"
-                    :type="project.status===1?'':'danger'"
-                  >
-                    {{ project.projectName }}
-                  </el-text>
-                </div>
-              </el-checkbox>
-              <el-button
-                v-if="project.showOperations&&project.isWritable"
-                v-common-tooltip="$t('common.label.edit')"
-                type="primary"
-                size="small"
-                round
-                @click="newOrEdit(project.id, $event)"
-              >
-                <common-icon icon="Edit" />
-              </el-button>
-              <el-button
-                v-if="project.showOperations&&project.isWritable"
-                v-common-tooltip="$t('common.label.copy')"
-                type="warning"
-                size="small"
-                round
-                @click="toCopyProject(project, $event)"
-              >
-                <common-icon icon="FileCopyFilled" />
-              </el-button>
-              <el-button
-                v-if="project.showOperations&&project.isDeletable"
-                v-common-tooltip="$t('common.label.delete')"
-                type="danger"
-                size="small"
-                round
-                @click="deleteProject(project, $event)"
-              >
-                <common-icon icon="DeleteFilled" />
-              </el-button>
-            </div>
+                <el-checkbox
+                  v-model="project.selected"
+                  style="margin-right: auto;"
+                  @click="$event.stopPropagation()"
+                >
+                  <div class="flex-center-col">
+                    <img
+                      v-if="project.iconUrl"
+                      :src="project.iconUrl"
+                      class="api-project-icon-cls margin-right1"
+                      alt="logo"
+                    >
+                    <el-text
+                      tag="b"
+                      :type="project.status===1?'':'danger'"
+                    >
+                      {{ project.projectName }}
+                    </el-text>
+                  </div>
+                </el-checkbox>
+                <el-button
+                  v-if="project.showOperations&&project.isWritable"
+                  v-common-tooltip="$t('common.label.edit')"
+                  type="primary"
+                  size="small"
+                  round
+                  @click="newOrEdit(project.id, $event)"
+                >
+                  <common-icon icon="Edit" />
+                </el-button>
+                <el-button
+                  v-if="project.showOperations&&project.isWritable"
+                  v-common-tooltip="$t('common.label.copy')"
+                  type="warning"
+                  size="small"
+                  round
+                  @click="toCopyProject(project, $event)"
+                >
+                  <common-icon icon="FileCopyFilled" />
+                </el-button>
+                <el-button
+                  v-if="project.showOperations&&project.isDeletable"
+                  v-common-tooltip="$t('common.label.delete')"
+                  type="danger"
+                  size="small"
+                  round
+                  @click="deleteProject(project, $event)"
+                >
+                  <common-icon icon="DeleteFilled" />
+                </el-button>
+              </div>
+            </template>
             <common-descriptions
               :column="1"
               :min-width="minWidth"
@@ -392,6 +415,14 @@ const selectedRowsDeletable = computed(() => selectedRows.value.every(project =>
           </el-card>
         </el-col>
       </el-row>
+      <el-pagination
+        style="justify-content: center;"
+        :total="searchParam.page.totalCount"
+        :page-size="searchParam.page.pageSize"
+        :current-page="searchParam.page.pageNumber"
+        v-bind="pageAttrs"
+        @current-change="loadApiProjects($event)"
+      />
     </el-container>
     <simple-edit-window
       v-model="currentProject"
