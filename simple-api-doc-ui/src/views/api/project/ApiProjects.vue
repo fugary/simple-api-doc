@@ -15,7 +15,7 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
-import { ElMessage, ElUpload } from 'element-plus'
+import { ElMessage, ElUpload, ElText } from 'element-plus'
 import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 
@@ -27,6 +27,11 @@ const { search, getById, deleteById, saveOrUpdate } = ApiProjectApi
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { page: useDefaultPage(50) },
+  dataProcessor: data => (data?.resultData || []).map(project => {
+    project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
+    project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
+    return project
+  }),
   searchMethod: search
 })
 const loadApiProjects = (pageNumber) => {
@@ -112,56 +117,61 @@ const newOrEdit = async (id, $event) => {
   }
   showEditWindow.value = true
 }
-const editFormOptions = computed(() => defineFormOptions([{
-  labelKey: 'common.label.user',
-  prop: 'userName',
-  type: 'select',
-  enabled: isAdminUser(),
-  children: userOptions.value,
-  attrs: {
-    clearable: false
-  }
-}, {
-  labelKey: 'api.label.projectName',
-  prop: 'projectName',
-  required: true
-}, {
-  labelKey: 'api.label.projectIcon',
-  prop: 'iconUrl',
-  tooltip: $i18nBundle('api.msg.projectIconTooltip'),
-  slots: {
-    prefix () {
-      if (currentProject.value.iconUrl) {
-        const iconUrl = calcProjectIconUrl(currentProject.value?.iconUrl)
-        return <img src={iconUrl} class="api-project-icon-cls margin-right1" alt="logo"/>
-      }
-    },
-    append () {
-      const changeFile = ($event) => {
-        uploadFiles($event.raw, (resultData) => {
-          currentProject.value.iconUrl = resultData?.[0]
-        })
-      }
-      return <ElUpload class="custom-img-upload" showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
-        <CommonIcon size={18} icon="Upload" class="append-icon-cls"/>
-      </ElUpload>
+const editFormOptions = computed(() => {
+  const isWritable = projectCheckAccess(currentProject.value?.groupCode, AUTHORITY_TYPE.WRITABLE) ||
+      projectCheckAccess(currentProject.value?.groupCode, AUTHORITY_TYPE.DELETABLE)
+  return defineFormOptions([{
+    labelKey: 'common.label.user',
+    prop: 'userName',
+    type: 'select',
+    enabled: isAdminUser(),
+    children: userOptions.value,
+    attrs: {
+      clearable: false
     }
-  }
-}, useFormStatus(), {
-  enabled: !!editProjectGroupOptions.value?.length,
-  labelKey: 'api.label.projectGroups',
-  prop: 'groupCode',
-  value: isWritable.value ? searchParam.value?.groupCode : '',
-  type: 'select',
-  children: editProjectGroupOptions.value,
-  disabled: !isWritable.value
-}, {
-  labelKey: 'common.label.description',
-  prop: 'description',
-  attrs: {
-    type: 'textarea'
-  }
-}]))
+  }, {
+    labelKey: 'api.label.projectName',
+    prop: 'projectName',
+    required: true
+  }, {
+    labelKey: 'api.label.projectIcon',
+    prop: 'iconUrl',
+    tooltip: $i18nBundle('api.msg.projectIconTooltip'),
+    slots: {
+      prefix () {
+        if (currentProject.value.iconUrl) {
+          const iconUrl = calcProjectIconUrl(currentProject.value?.iconUrl)
+          return <img src={iconUrl} class="api-project-icon-cls margin-right1" alt="logo"/>
+        }
+      },
+      append () {
+        const changeFile = ($event) => {
+          uploadFiles($event.raw, (resultData) => {
+            currentProject.value.iconUrl = resultData?.[0]
+          })
+        }
+        return <ElUpload class="custom-img-upload" showFileList={false} autoUpload={false}
+                         onChange={(...args) => changeFile(...args)} accept="image/*">
+          <CommonIcon size={18} icon="Upload" class="append-icon-cls"/>
+        </ElUpload>
+      }
+    }
+  }, useFormStatus(), {
+    enabled: !!editProjectGroupOptions.value?.length,
+    labelKey: 'api.label.projectGroups',
+    prop: 'groupCode',
+    value: isWritable ? searchParam.value?.groupCode : '',
+    type: 'select',
+    children: editProjectGroupOptions.value,
+    disabled: !isWritable
+  }, {
+    labelKey: 'common.label.description',
+    prop: 'description',
+    attrs: {
+      type: 'textarea'
+    }
+  }])
+})
 const saveProjectItem = (item) => {
   return saveOrUpdate(item).then(() => loadApiProjects())
 }
@@ -182,6 +192,30 @@ const tableProjectItems = computed(() => {
         formatter () {
           return <DelFlagTag v-model={project.status} clickToToggle={true}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
+        }
+      }, {
+        labelFormatter () {
+          return <ElText type="primary" tag="b">
+            {$i18nBundle('api.label.projectGroups')}
+          </ElText>
+        },
+        enabled: !!project.groupCode,
+        formatter () {
+          const groupOption = projectGroupOptions.value?.find(group => group.value === project.groupCode)
+          return <ElText type="primary">
+            {groupOption?.label || project.projectCode}
+          </ElText>
+        }
+      }, {
+        labelFormatter () {
+          return <ElText type="primary" tag="b">
+            {$i18nBundle('api.label.owner')}
+          </ElText>
+        },
+        formatter () {
+          return <ElText type="primary">
+            {project.userName}
+          </ElText>
         }
       }, {
         labelKey: 'common.label.modifyDate',
@@ -224,8 +258,10 @@ const toCopyProject = (project, $event) => {
     })
 }
 
-const isDeletable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))
-const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
+const isGroupWritable = computed(() => projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) ||
+    projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE))
+
+const selectedRowsDeletable = computed(() => selectedRows.value.every(project => project?.isDeletable))
 
 </script>
 
@@ -242,21 +278,21 @@ const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode
     >
       <template #buttons>
         <el-button
-          v-if="isWritable"
+          v-if="isGroupWritable"
           type="info"
           @click="newOrEdit()"
         >
           {{ $t('common.label.new') }}
         </el-button>
         <el-button
-          v-if="selectedRows?.length&&isDeletable"
+          v-if="selectedRows?.length&&selectedRowsDeletable"
           type="danger"
           @click="deleteProjects()"
         >
           {{ $t('common.label.delete') }}
         </el-button>
         <el-button
-          v-if="isWritable"
+          v-if="isGroupWritable"
           type="success"
           @click="showImportWindow = true"
         >
@@ -318,7 +354,7 @@ const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode
                 </div>
               </el-checkbox>
               <el-button
-                v-if="project.showOperations&&isWritable"
+                v-if="project.showOperations&&project.isWritable"
                 v-common-tooltip="$t('common.label.edit')"
                 type="primary"
                 size="small"
@@ -328,7 +364,7 @@ const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode
                 <common-icon icon="Edit" />
               </el-button>
               <el-button
-                v-if="project.showOperations&&isWritable"
+                v-if="project.showOperations&&project.isWritable"
                 v-common-tooltip="$t('common.label.copy')"
                 type="warning"
                 size="small"
@@ -338,7 +374,7 @@ const isWritable = computed(() => projectCheckAccess(searchParam.value.groupCode
                 <common-icon icon="FileCopyFilled" />
               </el-button>
               <el-button
-                v-if="project.showOperations&&isDeletable"
+                v-if="project.showOperations&&project.isDeletable"
                 v-common-tooltip="$t('common.label.delete')"
                 type="danger"
                 size="small"

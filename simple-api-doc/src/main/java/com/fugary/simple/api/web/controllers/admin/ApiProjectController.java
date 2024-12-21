@@ -14,6 +14,7 @@ import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -23,6 +24,7 @@ import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.JwtParamVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
+import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import io.swagger.v3.oas.models.OpenAPI;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -62,6 +64,9 @@ public class ApiProjectController {
     private ApiGroupService apiGroupService;
 
     @Autowired
+    private ApiUserService apiUserService;
+
+    @Autowired
     private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
     @Autowired
@@ -75,9 +80,10 @@ public class ApiProjectController {
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query()
                 .like(StringUtils.isNotBlank(keyword), "project_name", keyword)
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
-        if (!checkGroupCodeQuery(queryVo, queryWrapper, userName)) {
+        if (!checkGroupCodeQuery(queryVo)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        addGroupCodeQuery(queryVo, queryWrapper, userName);
         return SimpleResultUtils.createSimpleResult(apiProjectService.page(page, queryWrapper));
     }
 
@@ -209,23 +215,34 @@ public class ApiProjectController {
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query();
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         queryWrapper.eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED);
-        if (!checkGroupCodeQuery(queryVo, queryWrapper, userName)){
+        if (!checkGroupCodeQuery(queryVo)){
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        addGroupCodeQuery(queryVo, queryWrapper, userName);
         return SimpleResultUtils.createSimpleResult(apiProjectService.list(queryWrapper));
     }
 
-    protected boolean checkGroupCodeQuery(ProjectQueryVo queryVo, QueryWrapper<ApiProject> queryWrapper, String userName) {
+    protected boolean checkGroupCodeQuery(ProjectQueryVo queryVo) {
+        return StringUtils.isBlank(queryVo.getGroupCode()) || apiGroupService.checkGroupAccess(getLoginUser(), queryVo.getGroupCode(), ApiGroupAuthority.READABLE);
+    }
+
+    /**
+     * 添加项目查询sql
+     *
+     * @param queryVo
+     * @param queryWrapper
+     * @param userName
+     */
+    protected void addGroupCodeQuery(ProjectQueryVo queryVo, QueryWrapper<ApiProject> queryWrapper, String userName) {
         if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
-            if (!apiGroupService.checkGroupAccess(getLoginUser(), queryVo.getGroupCode(), ApiGroupAuthority.READABLE)) {
-                return false;
-            }
             queryWrapper.eq("group_code", queryVo.getGroupCode());
         } else {
-            queryWrapper.eq("user_name", userName)
-                    .and(wrapper -> wrapper.isNull("group_code").or().eq("group_code", ""));
+            ApiUserVo apiUser = apiUserService.loadUser(userName);
+            Integer userId = apiUser != null ? apiUser.getId() : null;
+            queryWrapper.and(wrapper -> wrapper.exists("select 1 from t_api_user_group g where g.group_code = t_api_project.group_code and g.user_id={0}", userId)
+                    .or().exists("select 1 from t_api_group g where g.group_code = t_api_project.group_code and g.user_name={0}", userName)
+                    .or().eq("user_name", userName));
         }
-        return true;
     }
 
     @PostMapping("/checkExportDownloadDocs")
