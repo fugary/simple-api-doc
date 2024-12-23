@@ -11,9 +11,7 @@
 
 <#if apiDocDetail.docContent??>
 ${apiDocDetail.docContent}
-</#if>
-
-<#if apiDocDetail.description??>
+<#elseif apiDocDetail.description??>
 ${apiDocDetail.description}
 </#if>
 </#if>
