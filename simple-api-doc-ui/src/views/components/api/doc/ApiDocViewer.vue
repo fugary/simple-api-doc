@@ -187,6 +187,7 @@ const docContent = computed(() => {
         </h3>
         <md-preview
           v-if="docContent"
+          class="md-doc-container"
           no-mermaid
           no-katex
           :theme="theme"
