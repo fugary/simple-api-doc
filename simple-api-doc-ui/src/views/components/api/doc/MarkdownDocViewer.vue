@@ -4,13 +4,11 @@ import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
-import { useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
+import { useCopyRight, useContainerCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
-
-const { isMobile } = useScreenCheck()
 
 const props = defineProps({
   scrollElement: {
@@ -67,13 +65,15 @@ watch(currentDoc, (newDoc, oldDoc) => {
 
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 const copyRight = useCopyRight(props.shareDoc)
+
+const { isSmallContainer, containerRef } = useContainerCheck()
 </script>
 
 <template>
   <el-container
     :key="`markdown-doc-preview-${currentDoc.id}`"
     class="padding-left2 padding-right2 flex-column"
-    :style="!isMobile?'height:100%':''"
+    :style="!isSmallContainer?'height:100%':''"
   >
     <api-doc-view-header
       v-model="currentDoc"
@@ -81,6 +81,7 @@ const copyRight = useCopyRight(props.shareDoc)
       :history-count="historyCount"
     />
     <el-container
+      ref="containerRef"
       class="markdown-doc-viewer scroll-main-container"
     >
       <md-preview
@@ -92,7 +93,7 @@ const copyRight = useCopyRight(props.shareDoc)
         :model-value="currentDoc.docContent"
       />
       <el-scrollbar
-        v-if="!isMobile"
+        v-if="!isSmallContainer"
         class="md-doc-catalog"
       >
         <md-catalog

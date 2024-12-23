@@ -4,10 +4,10 @@ import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
 import { cloneDeep, isArray, isFunction, isString } from 'lodash-es'
 import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
-import { useMediaQuery } from '@vueuse/core'
+import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
@@ -136,6 +136,20 @@ export const useScreenCheck = () => {
     isLargeScreen
   }
 }
+
+export const useContainerCheck = (size = 500) => {
+  const containerRef = ref()
+  const { width } = useElementSize(containerRef)
+  const isSmallContainer = computed(() => {
+    return containerRef.value && width.value < size
+  })
+  return {
+    width,
+    isSmallContainer,
+    containerRef
+  }
+}
+
 /**
  * copyRight计算
  * @param [shareDoc]

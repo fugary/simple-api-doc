@@ -14,7 +14,7 @@ import emitter from '@/vendors/emitter'
 import { AUTH_TYPE } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { calcAuthModelBySchemas, calcSecuritySchemas } from '@/services/api/ApiDocPreviewService'
-import { useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
+import { useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
 
@@ -158,7 +158,7 @@ const copyRight = useCopyRight(props.shareDoc)
 const docContent = computed(() => {
   return apiDocDetail.value?.docContent || apiDocDetail.value?.description
 })
-
+const { isSmallContainer, containerRef } = useContainerCheck()
 </script>
 
 <template>
@@ -219,6 +219,7 @@ const docContent = computed(() => {
       </el-scrollbar>
       <el-container
         v-else
+        ref="containerRef"
         class="scroll-main-container"
       >
         <md-preview
@@ -230,7 +231,7 @@ const docContent = computed(() => {
           :model-value="apiDocDetail.apiMarkdown"
         />
         <el-scrollbar
-          v-if="!isMobile"
+          v-if="!isSmallContainer"
           class="md-doc-catalog"
         >
           <md-catalog
