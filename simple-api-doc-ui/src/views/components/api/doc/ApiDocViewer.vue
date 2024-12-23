@@ -45,9 +45,10 @@ const projectInfoDetail = ref()
 const envConfigs = ref([])
 
 const paramTargetId = calcPreferenceId(props.projectItem, props.shareDoc)
+const sharePreference = shareConfigStore.sharePreferenceView[paramTargetId]
 const getAuthContentModel = () => {
   return {
-    ...shareConfigStore.sharePreferenceView[paramTargetId]?.defaultAuthModel || {
+    ...sharePreference?.defaultAuthModel || {
       authType: AUTH_TYPE.NONE,
       authModels: []
     }
@@ -86,10 +87,10 @@ const loadDocDetail = async () => {
   calcSecuritySchemas(projectInfoDetail.value, securitySchemas, supportedAuthTypes)
   calcAuthModelBySchemas(apiDocDetail.value, authContentModel.value, securitySchemas.value)
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
-  apiDocDetail.value.targetUrl = envConfigs.value[0]?.url
+  apiDocDetail.value.targetUrl = sharePreference?.targetUrl || envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
   lastParamTarget = shareConfigStore.shareParamTargets[calcParamTargetId] = shareConfigStore.shareParamTargets[calcParamTargetId] || reactive({})
-  lastParamTarget.hasInheritAuth = !!shareConfigStore.sharePreferenceView[paramTargetId]?.defaultAuthModel
+  lastParamTarget.hasInheritAuth = !!sharePreference?.defaultAuthModel
   console.log('======================apiDocDetail', apiDocDetail.value)
 }
 
@@ -100,9 +101,19 @@ const handlerConfig = {
     notSavedKeys.forEach(key => delete savedTarget[key])
     return Object.assign(target, lastParamTarget)
   },
-  changeHandler: target => Object.assign(lastParamTarget, target)
+  changeHandler: target => {
+    Object.assign(lastParamTarget, target)
+    if (apiDocDetail.value?.targetUrl !== target.targetUrl) {
+      apiDocDetail.value.targetUrl = lastParamTarget.targetUrl
+    }
+  }
 }
 
+watch(() => apiDocDetail.value?.targetUrl, (targetUrl) => {
+  if (sharePreference) {
+    sharePreference.targetUrl = targetUrl
+  }
+})
 watch(apiDoc, loadDocDetail, {
   immediate: true
 })
@@ -119,9 +130,9 @@ const toEditAuthorization = () => {
 const saveAuthorization = ({ form }) => {
   form.validate(valid => {
     if (valid) {
-      if (shareConfigStore.sharePreferenceView[paramTargetId]) {
-        shareConfigStore.sharePreferenceView[paramTargetId].defaultAuthModel = { ...authContentModel.value }
-        lastParamTarget.hasInheritAuth = !!shareConfigStore.sharePreferenceView[paramTargetId].defaultAuthModel
+      if (sharePreference) {
+        sharePreference.defaultAuthModel = { ...authContentModel.value }
+        lastParamTarget.hasInheritAuth = !!sharePreference.defaultAuthModel
       }
       showAuthorizationWindow.value = false
     }
