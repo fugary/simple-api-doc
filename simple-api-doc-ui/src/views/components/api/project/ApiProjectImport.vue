@@ -190,7 +190,7 @@ const formOptions = computed(() => {
     }
   }, {
     enabled: !props.project?.id && !!props.groupOptions.length,
-    labelKey: 'api.label.projectGroups',
+    labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     value: props.defaultGroupCode,
     type: 'select',

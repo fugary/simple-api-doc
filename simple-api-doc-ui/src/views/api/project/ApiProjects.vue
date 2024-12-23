@@ -73,7 +73,7 @@ const searchFormOptions = computed(() => {
       loadApiProjects(1)
     }
   }, {
-    labelKey: 'api.label.projectGroups',
+    labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     type: 'select',
     enabled: !!projectGroupOptions.value?.length,
@@ -161,7 +161,7 @@ const editFormOptions = computed(() => {
     }
   }, useFormStatus(), {
     enabled: !!editProjectGroupOptions.value?.length,
-    labelKey: 'api.label.projectGroups',
+    labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     value: isWritable ? searchParam.value?.groupCode : '',
     type: 'select',
@@ -199,7 +199,7 @@ const tableProjectItems = computed(() => {
       }, {
         labelFormatter () {
           return <ElText type="primary" tag="b">
-            {$i18nBundle('api.label.projectGroups')}
+            {$i18nBundle('api.label.projectGroups1')}
           </ElText>
         },
         enabled: !!project.groupCode,

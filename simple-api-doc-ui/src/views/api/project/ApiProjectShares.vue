@@ -187,7 +187,7 @@ const searchFormOptions = computed(() => {
         loadProjectShares(1)
       }
     }, {
-      labelKey: 'api.label.projectGroups',
+      labelKey: 'api.label.projectGroups1',
       prop: 'groupCode',
       type: 'select',
       enabled: !!projectGroupOptions.value?.length,

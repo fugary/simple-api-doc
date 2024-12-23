@@ -213,7 +213,7 @@ const saveProjectGroup = (data) => {
       v-model="currentModel"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
-      :name="$t('api.label.projectGroups')"
+      :name="$t('api.label.projectGroups1')"
       :save-current-item="saveProjectGroup"
       label-width="130px"
     />
