@@ -129,7 +129,7 @@ const calcSuggestions = (key = 'name') => {
 const paramsOptions = computed(() => {
   const nameSuggestions = calcSuggestions('name')
   const valueSuggestions = calcSuggestions('value')
-  return params.value.map((param) => {
+  return params.value.map((param, index) => {
     const nvSpan = 8
     const paramValueSuggestions = concatValueSuggestions(param.valueSuggestions, valueSuggestions)
     return defineFormOptions([{
@@ -147,7 +147,8 @@ const paramsOptions = computed(() => {
       type: nameSuggestions ? 'autocomplete' : 'input',
       attrs: {
         fetchSuggestions: nameSuggestions,
-        triggerOnFocus: false
+        triggerOnFocus: false,
+        tabindex: index * 2 + 1
       },
       dynamicOption: (item, ...args) => {
         if (isFunction(item.dynamicOption)) {
@@ -177,7 +178,8 @@ const paramsOptions = computed(() => {
       type: paramValueSuggestions ? 'autocomplete' : 'input',
       attrs: {
         fetchSuggestions: paramValueSuggestions,
-        triggerOnFocus: false
+        triggerOnFocus: false,
+        tabindex: 100 + index * 2 + 2
       },
       dynamicOption: (item, ...args) => {
         if (isFunction(item.dynamicOption)) {
