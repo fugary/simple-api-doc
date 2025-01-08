@@ -1,6 +1,8 @@
 # ${apiProject.projectName}
 
+<#if utils.isNotBlank(apiProject.description)>
 ${apiProject.description}
+</#if>
 
 <#if apiDocs?? && (apiDocs?size > 0)>
 # ${message('api.label.docDetails')}
