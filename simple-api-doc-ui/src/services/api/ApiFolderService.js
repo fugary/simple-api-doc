@@ -80,7 +80,7 @@ export const calcShowCleanHandlers = (folder, preference, config = {}) => {
 
 export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
   const isShareDoc = shareDoc && !!shareDoc.shareId
-  if (config.hasApiDoc?.value && (!isShareDoc || shareDoc?.exportEnabled)) {
+  if ((!isShareDoc || shareDoc?.exportEnabled)) {
     const supportedTypes = ['json', 'yaml']
     if (!isShareDoc) {
       supportedTypes.push('md')
@@ -89,7 +89,7 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
       return {
         icon: `custom-icon-${type}`,
         label: $i18nKey('common.label.commonExport', `common.label.${type}`),
-        enabled: !projectItem.infoList?.length || projectItem.infoList?.length === 1,
+        enabled: config.hasApiDoc?.value || type === 'md',
         handler: () => {
           $coreConfirm($i18nBundle('api.msg.exportConfirm'))
             .then(() => {
@@ -111,6 +111,7 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
       return {
         icon: `custom-icon-${type}`,
         label: $i18nConcat($i18nBundle('api.label.exportSelectedApi'), $i18nBundle(`common.label.${type}`)),
+        enabled: config.hasApiDoc?.value || type === 'md',
         handler: () => {
           const { toShowTreeConfigWindow } = config
           if (isFunction(toShowTreeConfigWindow)) {
@@ -122,6 +123,7 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
     results.push({
       icon: 'custom-icon-zip',
       label: $i18nBundle('api.label.generateClientCode'),
+      enabled: config.hasApiDoc?.value,
       handler: () => {
         const { toShowCodeGenConfigWindow } = config
         if (isFunction(toShowCodeGenConfigWindow)) {
@@ -129,7 +131,7 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
         }
       }
     })
-    return results
+    return results.filter(result => result.enabled)
   }
   return []
 }
