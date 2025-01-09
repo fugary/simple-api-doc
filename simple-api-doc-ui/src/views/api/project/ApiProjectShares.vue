@@ -31,6 +31,7 @@ import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { inProjectCheckAccess, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
+import { useCustomDocLabel } from '@/services/api/ApiCommonService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -427,6 +428,8 @@ const isWritable = computed(() => {
   }
 })
 
+const { customDocLabel, customToggleButtons } = useCustomDocLabel()
+
 </script>
 
 <template>
@@ -492,6 +495,7 @@ const isWritable = computed(() => {
       :title="$t('api.label.selectShareDocs')"
       :ok-label="$t('common.label.close')"
       :show-cancel="false"
+      :buttons="customToggleButtons"
       @submit-keys="showTreeConfigWindow=false"
     >
       <template #default="{node, data}">
@@ -503,7 +507,7 @@ const isWritable = computed(() => {
             v-if="data.docType==='api'"
             :method="data.method"
           />
-          {{ node.label }}
+          {{ data[customDocLabel] || data.docName || data.url || node.label }}
         </tree-icon-label>
       </template>
     </tree-config-window>
