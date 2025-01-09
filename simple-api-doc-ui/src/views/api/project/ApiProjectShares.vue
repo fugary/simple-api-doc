@@ -283,6 +283,11 @@ const editFormOptions = computed(() => {
     prop: 'shareName',
     required: true
   }, {
+    labelKey: 'api.label.shareId',
+    prop: 'shareId',
+    enabled: !!currentShare.value?.shareId,
+    disabled: true
+  }, {
     labelKey: 'api.label.project',
     prop: 'projectId',
     required: true,
