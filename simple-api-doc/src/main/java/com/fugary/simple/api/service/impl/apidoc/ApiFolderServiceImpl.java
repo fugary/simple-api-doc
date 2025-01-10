@@ -107,7 +107,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     }
 
     protected String calcDocKey(Integer infoId, ApiDoc apiDoc) {
-        return StringUtils.join(List.of(infoId, apiDoc.getDocKey()), "__");
+        String infoIdStr = String.valueOf(infoId);
+        return StringUtils.join(List.of(infoIdStr, apiDoc.getDocKey()), "__");
     }
 
     protected void saveApiFolderVo(ApiProjectInfo projectInfo, ApiFolder rootFolder, ApiFolder parentFolder, ExportApiFolderVo folder,
