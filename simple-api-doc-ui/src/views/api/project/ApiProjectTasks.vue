@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $coreAlert, $coreConfirm, $goto, isAdminUser, useBackUrl } from '@/utils'
+import { $coreAlert, $coreConfirm, $goto, checkShowColumn, isAdminUser, useBackUrl } from '@/utils'
 import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -24,7 +24,7 @@ import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
-import { ElTag } from 'element-plus'
+import { ElLink, ElTag, ElText } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 
@@ -72,15 +72,18 @@ const columns = [{
   minWidth: '120px'
 }, {
   labelKey: 'api.label.project',
-  prop: 'project.projectName',
-  minWidth: '120px',
-  click (item) {
-    if (!inProject && item.project?.projectCode) {
-      $goto(`/api/projects/${item.project?.projectCode}?backUrl=${route.fullPath}`)
-    } else {
-      goBack()
+  formatter (data) {
+    const url = `/api/projects/${data.project?.projectCode}?backUrl=${route.fullPath}`
+    let groupInfo = ''
+    if (data.project?.groupCode) {
+      groupInfo = projectGroupOptions.value.find(group => group.value === data.project?.groupCode)?.label
     }
-  }
+    return <>
+      <ElLink type="primary" onClick={() => $goto(url)}>{data.project?.projectName}</ElLink>
+      {groupInfo ? <><br/><ElText type="info">{`(${groupInfo})`}</ElText></> : ''}
+    </>
+  },
+  minWidth: '120px'
 }, {
   labelKey: 'common.label.status',
   formatter (data) {
@@ -92,6 +95,7 @@ const columns = [{
   }
 }, {
   labelKey: 'api.label.runningStatus',
+  enabled: checkShowColumn(tableData.value, 'taskStatus'),
   formatter (data) {
     if (data.taskStatus) {
       const type = TASK_STATUS_MAPPING[data.taskStatus] || 'info'
@@ -103,6 +107,7 @@ const columns = [{
   }
 }, {
   labelKey: 'api.label.scheduleStatus',
+  enabled: checkShowColumn(tableData.value, 'scheduleStatus'),
   formatter (data) {
     if (data.scheduleStatus) {
       return <ElTag type={data.scheduleStatus === 'started' ? 'success' : 'danger'}>
@@ -445,7 +450,7 @@ const importRef = ref()
         :data="tableData"
         :columns="columns"
         :buttons="buttons"
-        :buttons-column-attrs="{minWidth:'250px'}"
+        :buttons-column-attrs="{minWidth:'200px'}"
         buttons-slot="buttons"
         :loading="loading"
         @page-size-change="loadProjectTasks()"

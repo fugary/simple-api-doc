@@ -21,7 +21,7 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { ElTag, ElButton, ElText } from 'element-plus'
+import { ElTag, ElButton, ElText, ElLink } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { calcProjectItem } from '@/services/api/ApiProjectService'
 import { cloneDeep, isNumber } from 'lodash-es'
@@ -79,7 +79,7 @@ onActivated(initLoadOnce)
 
 const columns = [{
   labelKey: 'api.label.shareName',
-  minWidth: '120px',
+  minWidth: '150px',
   formatter (data) {
     let shareUrl = getShareUrl(data.shareId)
     if (data.sharePassword) {
@@ -98,15 +98,18 @@ const columns = [{
   }
 }, {
   labelKey: 'api.label.project',
-  prop: 'project.projectName',
-  minWidth: '120px',
-  click (item) {
-    if (!inProject && item.project?.projectCode) {
-      $goto(`/api/projects/${item.project?.projectCode}?backUrl=${route.fullPath}`)
-    } else {
-      goBack()
+  formatter (data) {
+    const url = `/api/projects/${data.project?.projectCode}?backUrl=${route.fullPath}`
+    let groupInfo = ''
+    if (data.project?.groupCode) {
+      groupInfo = projectGroupOptions.value.find(group => group.value === data.project?.groupCode)?.label
     }
-  }
+    return <>
+      <ElLink type="primary" onClick={() => $goto(url)}>{data.project?.projectName}</ElLink>
+      {groupInfo ? <><br/><ElText type="info">{`(${groupInfo})`}</ElText></> : ''}
+    </>
+  },
+  minWidth: '120px'
 }, {
   labelKey: 'common.label.status',
   minWidth: '100px',
@@ -465,7 +468,7 @@ const { customDocLabel, customToggleButtons } = useCustomDocLabel()
       :columns="columns"
       :buttons="buttons"
       buttons-slot="buttons"
-      :buttons-column-attrs="{minWidth:'250px'}"
+      :buttons-column-attrs="{minWidth:'230px'}"
       :loading="loading"
       @page-size-change="loadProjectShares()"
       @current-page-change="loadProjectShares()"
