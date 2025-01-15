@@ -26,7 +26,7 @@ import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
 import { ElTag } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
-import { inProjectCheckAccess, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -37,6 +37,11 @@ const { folderTreeNodes, loadValidFolders } = useFolderTreeNodes()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
+  dataProcessor: data => (data?.resultData || []).map(dataItem => {
+    dataItem.isDeletable = projectCheckAccess(dataItem.project.groupCode, AUTHORITY_TYPE.DELETABLE)
+    dataItem.isWritable = projectCheckAccess(dataItem.project.groupCode, AUTHORITY_TYPE.WRITABLE) || dataItem.isDeletable
+    return dataItem
+  }),
   searchMethod: ApiProjectTaskApi.search
 })
 const loadProjectTasks = (pageNumber) => searchMethod(pageNumber)
@@ -134,7 +139,6 @@ const buttons = computed(() => {
   return [{
     labelKey: 'api.label.importNow',
     type: 'success',
-    enabled: !!isWritable.value,
     click: item => {
       triggerTask(item.id, { loading: true, timeout: 60000 })
         .then((data) => {
@@ -147,14 +151,14 @@ const buttons = computed(() => {
   }, {
     labelKey: 'common.label.edit',
     type: 'primary',
-    enabled: !!isWritable.value,
+    buttonIf: item => item.isWritable,
     click: item => {
       newOrEdit(item.id)
     }
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
-    enabled: !!isDeletable.value,
+    buttonIf: item => item.isDeletable,
     click: item => {
       $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
         .then(() => ApiProjectTaskApi.deleteById(item.id))
@@ -183,7 +187,7 @@ const searchFormOptions = computed(() => {
       labelKey: 'api.label.projectGroups1',
       prop: 'groupCode',
       type: 'select',
-      enabled: !!projectGroupOptions.value?.length,
+      enabled: !inProject && !!projectGroupOptions.value?.length,
       children: projectGroupOptions.value,
       change: async () => {
         tableData.value = []
@@ -252,6 +256,11 @@ const editFormOptions = computed(() => {
       prop: `authContentModel.${option.prop}`
     }
   })
+  const filteredProjectOptions = projectOptions.value.map((project) => {
+    project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
+    project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
+    return project
+  }).filter(project => project.isWritable)
   return defineFormOptions([{
     labelKey: 'api.label.taskName',
     prop: 'taskName',
@@ -263,7 +272,7 @@ const editFormOptions = computed(() => {
     type: 'select',
     enabled: !inProject,
     disabled: !!currentModel.value?.id,
-    children: projectOptions.value,
+    children: filteredProjectOptions,
     change: async (projectId) => {
       await loadValidFolders(projectId)
       currentModel.value.toFolder = folderTreeNodes.value[0]?.id
@@ -337,21 +346,6 @@ const saveProjectTask = (item) => {
 }
 
 const importRef = ref()
-
-const isDeletable = computed(() => {
-  if (inProject) {
-    return inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE)
-  } else {
-    return projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE)
-  }
-})
-const isWritable = computed(() => {
-  if (inProject) {
-    return inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || isDeletable.value
-  } else {
-    return projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value
-  }
-})
 
 </script>
 
@@ -439,7 +433,6 @@ const isWritable = computed(() => {
       >
         <template #buttons>
           <el-button
-            v-if="isWritable"
             type="info"
             @click="newOrEdit()"
           >
