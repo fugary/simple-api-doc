@@ -29,7 +29,7 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-import { inProjectCheckAccess, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useCustomDocLabel } from '@/services/api/ApiCommonService'
 
@@ -42,6 +42,11 @@ const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLo
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
+  dataProcessor: data => (data?.resultData || []).map(dataItem => {
+    dataItem.isDeletable = projectCheckAccess(dataItem.project.groupCode, AUTHORITY_TYPE.DELETABLE)
+    dataItem.isWritable = projectCheckAccess(dataItem.project.groupCode, AUTHORITY_TYPE.WRITABLE) || dataItem.isDeletable
+    return dataItem
+  }),
   searchMethod: ApiProjectShareApi.search
 })
 const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
@@ -154,15 +159,15 @@ const buttons = computed(() => {
     }
   }, {
     labelKey: 'common.label.edit',
-    enabled: !!isWritable.value,
     type: 'primary',
+    buttonIf: item => item.isWritable,
     click: item => {
       newOrEdit(item.id)
     }
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
-    enabled: !!isDeletable.value,
+    buttonIf: item => item.isDeletable,
     click: item => {
       $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
         .then(() => ApiProjectShareApi.deleteById(item.id))
@@ -191,7 +196,7 @@ const searchFormOptions = computed(() => {
       labelKey: 'api.label.projectGroups1',
       prop: 'groupCode',
       type: 'select',
-      enabled: !!projectGroupOptions.value?.length,
+      enabled: !inProject && !!projectGroupOptions.value?.length,
       children: projectGroupOptions.value,
       change: async () => {
         tableData.value = []
@@ -279,6 +284,11 @@ const editFormOptions = computed(() => {
       label: env.name || $i18nBundle('api.label.defaultAddress')
     }
   })
+  const filteredProjectOptions = projectOptions.value.map((project) => {
+    project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
+    project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
+    return project
+  }).filter(project => project.isWritable)
   return defineFormOptions([{
     labelKey: 'api.label.shareName',
     prop: 'shareName',
@@ -295,7 +305,7 @@ const editFormOptions = computed(() => {
     type: 'select',
     enabled: !inProject,
     disabled: !!currentShare.value?.id,
-    children: projectOptions.value,
+    children: filteredProjectOptions,
     change (projectId) {
       loadDetailById(projectId).then(data => {
         infoList.value = data?.infoList
@@ -413,21 +423,6 @@ const saveProjectShare = (item) => {
   return ApiProjectShareApi.saveOrUpdate(item).then(() => loadProjectShares())
 }
 
-const isDeletable = computed(() => {
-  if (inProject) {
-    return inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE)
-  } else {
-    return projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.DELETABLE)
-  }
-})
-const isWritable = computed(() => {
-  if (inProject) {
-    return inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || isDeletable.value
-  } else {
-    return projectCheckAccess(searchParam.value.groupCode, AUTHORITY_TYPE.WRITABLE) || isDeletable.value
-  }
-})
-
 const { customDocLabel, customToggleButtons } = useCustomDocLabel()
 
 </script>
@@ -457,7 +452,6 @@ const { customDocLabel, customToggleButtons } = useCustomDocLabel()
     >
       <template #buttons>
         <el-button
-          v-if="isWritable"
           type="info"
           @click="newOrEdit()"
         >
