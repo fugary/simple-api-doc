@@ -296,6 +296,7 @@ const editFormOptions = computed(() => {
       label: env.name || $i18nBundle('api.label.defaultAddress')
     }
   })
+  const isCopyData = currentShare.value?.shareName?.endsWith('-copy')
   const filteredProjectOptions = projectOptions.value.map((project) => {
     project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
     project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
@@ -309,14 +310,14 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.shareId',
     prop: 'shareId',
     enabled: !!currentShare.value?.shareId,
-    disabled: true
+    disabled: !isCopyData
   }, {
     labelKey: 'api.label.project',
     prop: 'projectId',
     required: true,
     type: 'select',
     enabled: !inProject,
-    disabled: !!currentShare.value?.id,
+    disabled: !!currentShare.value?.id && !isCopyData,
     children: filteredProjectOptions,
     change (projectId) {
       loadDetailById(projectId).then(data => {

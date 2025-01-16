@@ -285,7 +285,7 @@ const editFormOptions = computed(() => {
     required: true,
     type: 'select',
     enabled: !inProject,
-    disabled: !!currentModel.value?.id,
+    disabled: !!currentModel.value?.id && !currentModel.value?.taskName?.endsWith('-copy'),
     children: filteredProjectOptions,
     change: async (projectId) => {
       await loadValidFolders(projectId)

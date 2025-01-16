@@ -88,7 +88,7 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
         share.setShareId(SimpleModelUtils.uuid());
         share.setShareName(share.getShareName() + ApiDocConstants.COPY_SUFFIX);
         if (StringUtils.isNotBlank(share.getSharePassword())) {
-            share.setSharePassword(RandomStringUtils.randomAlphanumeric(8));
+            share.setSharePassword(RandomStringUtils.random(8, "abcdefghijklmnopqrstuvwxyz0123456789"));
         }
         save(share);
         return SimpleResultUtils.createSimpleResult(share);
