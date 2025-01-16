@@ -73,7 +73,7 @@ public class SimpleTaskUtils {
                 SimpleTaskUtils.getTaskId(projectTask.getId()), projectTask.getTaskName(), projectTask);
         return new ProjectAutoImportTask(projectTaskWrapper,
                 () -> projectAutoImportInvoker.importProject(projectTask),
-                simpleApiConfigProperties.getDefaultTaskDelay());
+                -1); // 去掉默认延迟，默认延迟schedule的rate的时间，不直接启动
     }
 
     /**

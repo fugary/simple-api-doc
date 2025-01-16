@@ -29,11 +29,6 @@ public class SimpleApiConfigProperties {
     private int taskPoolSize = 10;
 
     /**
-     * 任务启动延迟，单位毫秒
-     */
-    private long defaultTaskDelay = 5000;
-
-    /**
      * 记录数据库日志开关
      */
     private boolean apiLogEnabled = true;
