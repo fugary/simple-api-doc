@@ -63,7 +63,8 @@ public class ApiProjectShareController {
         }
         QueryWrapper<ApiProjectShare> queryWrapper = Wrappers.<ApiProjectShare>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
-                .like(StringUtils.isNotBlank(keyword), "share_name", keyword);
+                .like(StringUtils.isNotBlank(keyword), "share_name", keyword)
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());;
         addGroupCodeQuery(queryVo, queryWrapper, userName);
         Page<ApiProjectShare> pageResult = apiProjectShareService.page(page, queryWrapper);
         if (!pageResult.getRecords().isEmpty()) {

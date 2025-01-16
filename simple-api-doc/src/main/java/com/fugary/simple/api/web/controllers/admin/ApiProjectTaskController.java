@@ -79,7 +79,8 @@ public class ApiProjectTaskController {
         }
         QueryWrapper<ApiProjectTask> queryWrapper = Wrappers.<ApiProjectTask>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
-                .like(StringUtils.isNotBlank(keyword), "task_name", keyword);
+                .like(StringUtils.isNotBlank(keyword), "task_name", keyword)
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());;
         addGroupCodeQuery(queryVo, queryWrapper, userName);
         Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, queryWrapper);
         Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query()
