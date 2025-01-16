@@ -137,7 +137,10 @@ const searchFormOptions = computed(() => {
     labelKey: 'api.label.logResult',
     prop: 'logResult',
     type: 'select',
-    children: getSingleSelectOptions('SUCCESS', 'FAIL')
+    children: getSingleSelectOptions('SUCCESS', 'FAIL'),
+    change () {
+      loadApiLogs()
+    }
   }, {
     labelKey: 'api.label.logType',
     prop: 'logType'
