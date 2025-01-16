@@ -41,6 +41,14 @@ public interface ApiProjectShareService extends IService<ApiProjectShare> {
     int copyProjectShares(Integer fromProjectId, Integer toProjectId, Integer id, Map<Integer, Integer> docMappings);
 
     /**
+     * 复制一份新的数据
+     *
+     * @param apiProjectShare
+     * @return
+     */
+    SimpleResult<ApiProjectShare> copyProjectShare(ApiProjectShare apiProjectShare);
+
+    /**
      * 密码验证
      *
      * @param password

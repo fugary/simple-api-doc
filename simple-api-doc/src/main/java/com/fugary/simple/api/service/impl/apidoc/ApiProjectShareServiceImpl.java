@@ -16,6 +16,7 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -79,6 +80,18 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
             save(share);
         });
         return shares.size();
+    }
+
+    @Override
+    public SimpleResult<ApiProjectShare> copyProjectShare(ApiProjectShare share) {
+        SimpleModelUtils.cleanCreateModel(share);
+        share.setShareId(SimpleModelUtils.uuid());
+        share.setShareName(share.getShareName() + ApiDocConstants.COPY_SUFFIX);
+        if (StringUtils.isNotBlank(share.getSharePassword())) {
+            share.setSharePassword(RandomStringUtils.randomAlphanumeric(8));
+        }
+        save(share);
+        return SimpleResultUtils.createSimpleResult(share);
     }
 
     @Override

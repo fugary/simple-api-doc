@@ -14,7 +14,7 @@ import {
 import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectShareApi, { getShareUrl } from '@/api/ApiProjectShareApi'
+import ApiProjectShareApi, { copyProjectShare, getShareUrl } from '@/api/ApiProjectShareApi'
 import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
@@ -166,6 +166,15 @@ const buttons = computed(() => {
     buttonIf: item => item.isWritable,
     click: item => {
       newOrEdit(item.id)
+    }
+  }, {
+    type: 'warning',
+    labelKey: 'common.label.copy',
+    buttonIf: item => item.isWritable,
+    click: item => {
+      $coreConfirm($i18nBundle('common.msg.confirmCopy'))
+        .then(() => copyProjectShare(item.id))
+        .then(() => loadProjectShares())
     }
   }, {
     labelKey: 'common.label.delete',

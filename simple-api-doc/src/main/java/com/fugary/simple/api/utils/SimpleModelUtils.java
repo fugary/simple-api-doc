@@ -100,6 +100,16 @@ public class SimpleModelUtils {
     }
 
     /**
+     * 清理并创建数据
+     * @param target
+     */
+    public static void cleanCreateModel(ModelBase target) {
+        target.setId(null);
+        removeAuditInfo(target);
+        addAuditInfo(target);
+    }
+
+    /**
      * 计算保存为json的头信息
      *
      * @param headers

@@ -126,6 +126,19 @@ public class ApiProjectShareController {
         return SimpleResultUtils.createSimpleResult(apiProjectShareService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiShare)));
     }
 
+    @PostMapping("/copy/{id}")
+    public SimpleResult<ApiProjectShare> copy(@PathVariable("id") Integer id) {
+        ApiProjectShare projectShare = apiProjectShareService.getById(id);
+        if (projectShare == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        ApiProject apiProject = apiProjectService.getById(projectShare.getProjectId());
+        if (!apiGroupService.checkProjectAccess(getLoginUser(), apiProject, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        return SimpleResultUtils.createSimpleResult(apiProjectShareService.copyProjectShare(projectShare));
+    }
+
     protected boolean validateShareUser(ApiProjectShare projectShare) {
         if (projectShare != null) {
             return apiProjectService.validateUserProject(projectShare.getProjectId());
