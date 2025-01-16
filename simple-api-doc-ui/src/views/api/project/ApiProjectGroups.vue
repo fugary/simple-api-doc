@@ -10,7 +10,7 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
-import { ALL_AUTHORITIES, AUTHORITY_TYPE_MAPPING } from '@/consts/ApiConstants'
+import { ALL_AUTHORITIES, AUTHORITY_TYPE, AUTHORITY_TYPE_MAPPING } from '@/consts/ApiConstants'
 import { ElText, ElTag } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 
@@ -36,7 +36,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
 onMounted(initLoadOnce)
 
 onActivated(initLoadOnce)
-
+const authValues = Object.values(AUTHORITY_TYPE)
 const columns = computed(() => {
   const apiUserMap = Object.fromEntries(apiUsers.value.map(apiUser => [apiUser.id, apiUser]))
   return [{
@@ -62,7 +62,7 @@ const columns = computed(() => {
           if (apiUser) {
             return <ElText type="info" size="small">
               <strong class="margin-right1">{apiUser.userName}:</strong>{
-              userGroup.authorities?.split(/\s*,\s*/).filter(key => !!key).map(authority => {
+              userGroup.authorities?.split(/\s*,\s*/).filter(key => !!key).sort((key1, key2) => authValues.indexOf(key1) - authValues.indexOf(key2)).map(authority => {
                 return <>
                   <ElTag class="margin-right1" type={AUTHORITY_TYPE_MAPPING[authority]}>{ labelMap[authority] }</ElTag>
                 </>
