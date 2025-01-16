@@ -181,6 +181,27 @@ public class ApiProjectTaskController {
         return projectAutoImportInvoker.importProject(apiTask);
     }
 
+    @PostMapping("/copy/{id}")
+    public SimpleResult<ApiProjectTask> copy(@PathVariable("id") Integer id) {
+        ApiProjectTask projectTask = apiProjectTaskService.getById(id);
+        if (projectTask == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        ApiProject apiProject = apiProjectService.getById(projectTask.getProjectId());
+        if (!apiGroupService.checkProjectAccess(getLoginUser(), apiProject, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        SimpleResult<ApiProjectTask> simpleResult = apiProjectTaskService.copyProjectTask(projectTask);
+        if (simpleResult.isSuccess()) {
+            ApiProjectTask apiTask = simpleResult.getResultData();
+            if (apiTask.isEnabled() && ApiDocConstants.PROJECT_TASK_TYPE_AUTO.equals(apiTask.getTaskType())) {
+                simpleTaskManager.addOrUpdateAutoTask(SimpleTaskUtils.projectTask2SimpleTask(apiTask,
+                        projectAutoImportInvoker, simpleApiConfigProperties));
+            }
+        }
+        return simpleResult;
+    }
+
     protected boolean validateOperateUser(ApiProjectTask projectTask) {
         if (projectTask != null) {
             return apiProjectService.validateUserProject(projectTask.getProjectId());

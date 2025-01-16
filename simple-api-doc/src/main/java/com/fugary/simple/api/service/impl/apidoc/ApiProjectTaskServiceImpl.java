@@ -8,7 +8,10 @@ import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.mapper.api.ApiProjectTaskMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.tasks.SimpleTaskManager;
+import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -62,5 +65,13 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
             taskMap.put(oldId, task);
         });
         return taskMap;
+    }
+
+    @Override
+    public SimpleResult<ApiProjectTask> copyProjectTask(ApiProjectTask projectTask) {
+        SimpleModelUtils.cleanCreateModel(projectTask);
+        projectTask.setTaskName(projectTask.getTaskName() + ApiDocConstants.COPY_SUFFIX);
+        save(projectTask);
+        return SimpleResultUtils.createSimpleResult(projectTask);
     }
 }
