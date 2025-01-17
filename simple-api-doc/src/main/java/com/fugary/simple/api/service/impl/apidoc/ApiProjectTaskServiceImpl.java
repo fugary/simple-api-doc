@@ -61,6 +61,8 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
             if (newFolder != null) {
                 task.setToFolder(newFolder.getId());
             }
+            SimpleModelUtils.cleanCreateModel(task);
+            task.setExecDate(null);
             save(task);
             taskMap.put(oldId, task);
         });
@@ -70,6 +72,7 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
     @Override
     public SimpleResult<ApiProjectTask> copyProjectTask(ApiProjectTask projectTask) {
         SimpleModelUtils.cleanCreateModel(projectTask);
+        projectTask.setExecDate(null);
         projectTask.setTaskName(projectTask.getTaskName() + ApiDocConstants.COPY_SUFFIX);
         save(projectTask);
         return SimpleResultUtils.createSimpleResult(projectTask);

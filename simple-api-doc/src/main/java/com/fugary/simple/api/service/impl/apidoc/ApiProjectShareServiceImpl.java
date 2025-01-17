@@ -77,6 +77,7 @@ public class ApiProjectShareServiceImpl extends ServiceImpl<ApiProjectShareMappe
                     }
                 }
             }
+            SimpleModelUtils.cleanCreateModel(share);
             save(share);
         });
         return shares.size();
