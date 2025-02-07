@@ -95,6 +95,7 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true))
       .map(reqSchema => reqSchema.schema).filter(schema => !!schema)
     target.requestBodySchema = requestSchemas
+    target.requestExamples = apiDocDetail.requestsSchemas.filter(apiSchema => !!apiSchema.examples).map(apiSchema => apiSchema.examples)
   }
   target.securityRequirements = calcSecurityRequirements(projectInfoDetail, apiDocDetail)
   console.log('======================target', target, apiDocDetail, componentMap)
