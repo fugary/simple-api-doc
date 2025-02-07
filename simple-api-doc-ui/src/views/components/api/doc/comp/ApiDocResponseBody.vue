@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
 import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
+import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
+import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 
 const apiDocDetail = defineModel({
   type: Object,
@@ -19,6 +21,7 @@ const responsesSchemas = computed(() => {
     return statusA - statusB
   })
 })
+const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
 </script>
 
 <template>
@@ -51,6 +54,16 @@ const responsesSchemas = computed(() => {
             >
               Content Type:
               <el-text>{{ responseSchema.contentType }}</el-text>
+              <el-link
+                class="margin-left1"
+                type="primary"
+                @click="showGenerateSchemaSample(responseSchema, componentMap)"
+              >
+                <common-icon
+                  :size="18"
+                  :icon="responseSchema.contentType?.includes('xml') ? 'custom-icon-xml' : 'custom-icon-json'"
+                />
+              </el-link>
             </el-text>
             <el-text
               v-if="responseSchema.statusCode"

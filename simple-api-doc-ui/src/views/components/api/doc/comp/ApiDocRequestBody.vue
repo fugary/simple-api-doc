@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
 import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
+import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
+import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 
 const apiDocDetail = defineModel({
   type: Object,
@@ -12,6 +14,7 @@ const projectInfoDetail = computed(() => {
   return apiDocDetail.value.projectInfoDetail
 })
 const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
+const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
 </script>
 
 <template>
@@ -34,6 +37,16 @@ const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
             >
               {{ requestsSchema.contentType }}
             </el-text>
+            <el-link
+              class="margin-left1"
+              type="primary"
+              @click="showGenerateSchemaSample(requestsSchema, componentMap)"
+            >
+              <common-icon
+                :size="18"
+                :icon="requestsSchema.contentType?.includes('xml') ? 'custom-icon-xml' : 'custom-icon-json'"
+              />
+            </el-link>
           </span>
         </template>
         <el-container class="flex-column">

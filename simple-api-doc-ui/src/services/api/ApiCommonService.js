@@ -5,10 +5,11 @@ import { XMLBuilder } from 'fast-xml-parser'
 import { cloneDeep, isArray, isFunction, isString } from 'lodash-es'
 import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
-import { removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
+import { processSchemas, removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
 import { ref, h, computed } from 'vue'
 import { defineTableButtons } from '@/components/utils'
+import { showCodeWindow } from '@/utils/DynamicUtils'
 
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
@@ -34,6 +35,30 @@ export const generateSchemaSample = (schemaBody, type) => {
       }
       return resStr
     })
+}
+/**
+ * 显示示例
+ *
+ * @param requestsSchema
+ * @param componentMap
+ * @returns {Promise<void>}
+ */
+export const showGenerateSchemaSample = async (requestsSchema, componentMap) => {
+  let sampleStr = ''
+  if (requestsSchema.examples) {
+    const examples = JSON.parse(requestsSchema.examples)
+    sampleStr = examples?.[0]?.value && JSON.stringify(examples[0].value)
+  }
+  if (!sampleStr) {
+    const generateSchema = processSchemas(requestsSchema, componentMap, true)
+    console.log('===================generateSchema', generateSchema)
+    if (generateSchema[0]?.schema) {
+      sampleStr = await generateSchemaSample(generateSchema[0].schema, requestsSchema.contentType)
+    }
+  }
+  if (sampleStr) {
+    return showCodeWindow(sampleStr, { readOnly: false })
+  }
 }
 
 export const generateFormSample = (schemaBody) => {
