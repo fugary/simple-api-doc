@@ -26,7 +26,7 @@ import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
 import { ElLink, ElTag, ElText } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
-import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { inProjectCheckAccess, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -360,7 +360,9 @@ const saveProjectTask = (item) => {
 }
 
 const importRef = ref()
-
+const isWritable = computed(() => {
+  return !inProject || inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE)
+})
 </script>
 
 <template>
