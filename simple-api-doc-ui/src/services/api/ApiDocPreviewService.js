@@ -355,6 +355,13 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
     // processSchemaAllOf(schema)
     processSchemaXxxOf(schema, componentsMap, recursive)
     parent.isLeaf = checkLeaf(schema)
+    const schemaCache = componentsMap.__schemaCache__ = componentsMap.__schemaCache__ || {}
+    if (schema.name) {
+      if (schemaCache[schema.name]) {
+        return apiSchema
+      }
+      schemaCache[schema.name] = schema
+    }
     const properties = schema.properties
     if (properties) {
       Object.keys(properties).forEach(key => {
@@ -375,11 +382,13 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
 
 export const processSchemaRef = (schema, componentsMap) => {
   if (schema.$ref) {
-    const apiSchema = cloneDeep(componentsMap[schema.$ref]?.schema)
+    const refCache = componentsMap.__refCache__ = componentsMap.__refCache__ || {}
+    const apiSchema = refCache[schema.$ref] || cloneDeep(componentsMap[schema.$ref]?.schema)
     if (!apiSchema) {
       console.log('==============================$ref-null', schema.$ref, apiSchema)
     }
     apiSchema.name = $ref2Schema(schema.$ref)
+    refCache[schema.$ref] = apiSchema
     Object.assign(schema, apiSchema)
     delete schema.$ref
   }
