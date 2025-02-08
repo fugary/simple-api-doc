@@ -52,7 +52,10 @@ const sendRequest = (form) => {
 
 const requestExamples = computed(() => {
   const examples = paramTarget.value?.requestExamples
-  return examples ? JSON.parse(examples) : []
+  if (examples?.length) {
+    return examples.map(example => JSON.parse(example))
+  }
+  return []
 })
 
 const docFormOption = computed(() => {
