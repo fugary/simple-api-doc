@@ -38,6 +38,7 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
               {{ requestsSchema.contentType }}
             </el-text>
             <el-link
+              v-if="requestsSchema.schemaContent"
               class="margin-left1"
               type="primary"
               @click="showGenerateSchemaSample(requestsSchema, componentMap)"

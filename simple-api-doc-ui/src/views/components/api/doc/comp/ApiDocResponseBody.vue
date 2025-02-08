@@ -49,12 +49,14 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
         <el-container class="flex-column">
           <el-container class="padding-10">
             <el-text
+              v-if="responseSchema.contentType"
               type="info"
               class="margin-right3"
             >
               Content Type:
               <el-text>{{ responseSchema.contentType }}</el-text>
               <el-link
+                v-if="responseSchema.schemaContent"
                 class="margin-left1"
                 type="primary"
                 @click="showGenerateSchemaSample(responseSchema, componentMap)"
