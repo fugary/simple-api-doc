@@ -4,6 +4,8 @@ import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.v
 import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
+import { MdPreview } from 'md-editor-v3'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 
 const apiDocDetail = defineModel({
   type: Object,
@@ -15,6 +17,7 @@ const projectInfoDetail = computed(() => {
 })
 const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
+const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 </script>
 
 <template>
@@ -51,6 +54,14 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
           </span>
         </template>
         <el-container class="flex-column">
+          <md-preview
+            v-if="requestsSchema.description"
+            class="md-doc-container"
+            no-mermaid
+            no-katex
+            :theme="theme"
+            :model-value="requestsSchema.description"
+          />
           <api-doc-schema-tree
             v-if="projectInfoDetail"
             :model-value="requestsSchema"

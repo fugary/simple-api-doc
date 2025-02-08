@@ -4,6 +4,8 @@ import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.v
 import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
 import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
+import { MdPreview } from 'md-editor-v3'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 
 const apiDocDetail = defineModel({
   type: Object,
@@ -22,6 +24,7 @@ const responsesSchemas = computed(() => {
   })
 })
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
+const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 </script>
 
 <template>
@@ -29,7 +32,7 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
     <h3 id="api-doc-parameters">
       {{ $t('api.label.responseBody') }}
     </h3>
-    <el-tabs>
+    <el-tabs class="padding-right2">
       <el-tab-pane
         v-for="(responseSchema, index) in responsesSchemas"
         :key="index"
@@ -38,13 +41,15 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
         <template #label>
           <span>
             {{ responseSchema.schemaName }}
-            <el-text
-              type="info"
-              size="small"
-            >
-              {{ responseSchema.description }}
-            </el-text>
           </span>
+          <el-text
+            type="info"
+            size="small"
+            class="response-tab-truncated margin-left1"
+            truncated
+          >
+            {{ responseSchema.description }}
+          </el-text>
         </template>
         <el-container class="flex-column">
           <el-container class="padding-10">
@@ -76,6 +81,14 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
               <el-text>{{ responseSchema.statusCode }}</el-text>
             </el-text>
           </el-container>
+          <md-preview
+            v-if="responseSchema.description"
+            class="md-doc-container"
+            no-mermaid
+            no-katex
+            :theme="theme"
+            :model-value="responseSchema.description"
+          />
           <api-doc-schema-tree
             v-if="projectInfoDetail"
             :model-value="responseSchema"

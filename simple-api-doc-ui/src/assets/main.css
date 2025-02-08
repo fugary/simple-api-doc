@@ -288,7 +288,7 @@ html, body, #app, .index-container {
     cursor: pointer;
 }
 
-.common-autocomplete .el-tabs__nav-next, .el-tabs__nav-prev {
+.common-autocomplete .el-tabs__nav-next, .common-autocomplete .el-tabs__nav-prev {
     line-height: 30px;
 }
 
@@ -590,6 +590,10 @@ html, body, #app, .index-container {
 
 .md-doc-container s, .md-doc-container s code {
     color: var(--el-color-warning);
+}
+
+.response-tab-truncated {
+    max-width: 200px !important;
 }
 
 @container (min-width: 320px) {
