@@ -144,6 +144,7 @@ const buttons = computed(() => {
   return [{
     labelKey: 'api.label.importNow',
     type: 'success',
+    buttonIf: item => item.isWritable,
     click: item => {
       triggerTask(item.id, { loading: true, timeout: 60000 })
         .then((data) => {
@@ -245,7 +246,7 @@ const newOrEdit = async (id) => {
     currentModel.value = {
       projectId: projectItem.value?.id,
       status: 1,
-      taskType: IMPORT_TASK_TYPES[1].value,
+      taskType: IMPORT_TASK_TYPES[0].value,
       sourceType: IMPORT_SOURCE_TYPES[0].value,
       authType: AUTH_TYPE.NONE,
       toFolder: inProject ? folderTreeNodes.value[0]?.id : undefined,
