@@ -27,7 +27,7 @@
     "markdown-it": "^14.1.0",
     "md-editor-v3": "^4.21.3",
     "mitt": "^3.0.1",
-    "monaco-editor": "^0.47.0",
+    "monaco-editor": "^0.52.2",
     "nprogress": "^0.2.0",
     "numeral": "^2.0.6",
     "openapi-sampler": "^1.6.1",
