@@ -1,10 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import ApiRequestFormRes from '@/views/components/api/form/ApiRequestFormRes.vue'
 import ApiRequestFormReq from '@/views/components/api/form/ApiRequestFormReq.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-import { $copyText, joinPath } from '@/utils'
+import { $copyText, joinPath, addParamsToURL } from '@/utils'
 import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
@@ -35,6 +34,9 @@ const requestUrl = computed(() => {
   paramTarget.value?.pathParams?.forEach(pathParam => {
     reqUrl = reqUrl.replace(new RegExp(`:${pathParam.name}`, 'g'), pathParam.value)
       .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), pathParam.value)
+  })
+  paramTarget.value?.requestParams?.filter(requestParam => !!requestParam.name && requestParam.enabled).forEach(requestParam => {
+    reqUrl = addParamsToURL(reqUrl, { [requestParam.name]: requestParam.value })
   })
   return joinPath(paramTarget.value.targetUrl, reqUrl)
 })
@@ -95,7 +97,10 @@ const docFormOption = computed(() => {
             :model="paramTarget"
             class="margin-right2"
           />
-          <div class="api-path-url padding-top1">
+          <div
+            class="api-path-url padding-top1"
+            style="margin-right: 10px"
+          >
             <api-method-tag
               size="large"
               effect="dark"
@@ -105,16 +110,16 @@ const docFormOption = computed(() => {
             <el-link
               v-common-tooltip="requestUrl"
               type="primary"
+              style="white-space: break-spaces;"
               @click="$copyText(requestUrl)"
             >
               {{ requestUrl }}
             </el-link>
-            <url-copy-link
-              class="margin-left1 margin-top1"
-              :url-path="requestUrl"
-            />
           </div>
-          <div class="padding-top1">
+          <div
+            class="padding-top1"
+            style="margin-left: auto;"
+          >
             <el-button
               type="primary"
               @click="sendRequest(form)"
