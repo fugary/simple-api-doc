@@ -110,7 +110,7 @@ const docFormOption = computed(() => {
             <el-link
               v-common-tooltip="requestUrl"
               type="primary"
-              style="white-space: break-spaces;"
+              style="white-space: break-spaces;word-break: break-all;"
               @click="$copyText(requestUrl)"
             >
               {{ requestUrl }}
