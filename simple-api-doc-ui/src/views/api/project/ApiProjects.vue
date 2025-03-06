@@ -22,7 +22,7 @@ import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 const { width } = useWindowSize()
 
 const route = useRoute()
-
+const currentUserName = useCurrentUserName()
 const { search, getById, deleteById, saveOrUpdate } = ApiProjectApi
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
@@ -116,7 +116,7 @@ const newOrEdit = async (id, $event) => {
     currentProject.value = {
       status: 1,
       privateFlag: true,
-      userName: searchParam.value?.userName || useCurrentUserName()
+      userName: searchParam.value?.userName || currentUserName
     }
   }
   showEditWindow.value = true
@@ -217,7 +217,7 @@ const tableProjectItems = computed(() => {
           </ElText>
         }
       }, {
-        enabled: project.userName !== useCurrentUserName(),
+        enabled: project.userName !== currentUserName,
         labelFormatter () {
           return <ElText type="primary" tag="b">
             {$i18nBundle('api.label.owner')}
