@@ -1,14 +1,15 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted } from 'vue'
-import { $coreConfirm, $goto, isAdminUser } from '@/utils'
+import { $coreAlert, $coreConfirm, $goto, isAdminUser } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import SimpleTaskApi, { removeAndDisable } from '@/api/SimpleTaskApi'
-import { $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { TASK_STATUS_MAPPING } from '@/consts/ApiConstants'
 import { ElTag } from 'element-plus'
 import dayjs from 'dayjs'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { useRoute } from 'vue-router'
+import { triggerTask } from '@/api/ApiProjectTaskApi'
 
 const route = useRoute()
 
@@ -72,6 +73,19 @@ const columns = [{
 
 const buttons = computed(() => {
   return [{
+    labelKey: 'api.label.importNow',
+    type: 'success',
+    click: item => {
+      $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.importNow'))
+        .then(() => triggerTask(item.tid, { loading: true, timeout: 60000 })
+          .then((data) => {
+            if (data.success) {
+              $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+              loadSimpleTasks()
+            }
+          }))
+    }
+  }, {
     labelKey: 'api.label.stopTask',
     type: 'danger',
     click: item => {
@@ -125,7 +139,7 @@ const searchFormOptions = computed(() => {
     <common-table
       frontend-paging
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'150px'}"
+      :buttons-column-attrs="{minWidth:'200px'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"

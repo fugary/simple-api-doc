@@ -178,7 +178,14 @@ public class ApiProjectTaskController {
         if (!validateOperateUser(apiTask)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        return projectAutoImportInvoker.importProject(apiTask);
+        SimpleResult<ApiProject> result = projectAutoImportInvoker.importProject(apiTask);
+        if (result.isSuccess()) {
+            SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId()));
+            if (autoTask != null && autoTask.getTaskWrapper() != null) {
+                autoTask.getTaskWrapper().setLastExecDate(apiTask.getExecDate());
+            }
+        }
+        return result;
     }
 
     @PostMapping("/copy/{id}")
