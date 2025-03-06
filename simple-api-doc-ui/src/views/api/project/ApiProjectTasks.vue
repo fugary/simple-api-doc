@@ -6,7 +6,7 @@ import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectTaskApi, { copyProjectTask, triggerTask } from '@/api/ApiProjectTaskApi'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
 import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
@@ -146,13 +146,14 @@ const buttons = computed(() => {
     type: 'success',
     buttonIf: item => item.isWritable,
     click: item => {
-      triggerTask(item.id, { loading: true, timeout: 60000 })
-        .then((data) => {
-          if (data.success) {
-            $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
-            loadProjectTasks()
-          }
-        })
+      $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.importNow'))
+        .then(() => triggerTask(item.id, { loading: true, timeout: 60000 })
+          .then((data) => {
+            if (data.success) {
+              $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+              loadProjectTasks()
+            }
+          }))
     }
   }, {
     labelKey: 'common.label.edit',
@@ -337,7 +338,7 @@ const editFormOptions = computed(() => {
     rules: [{
       message: $i18nBundle('api.msg.proxyUrlMsg'),
       validator: () => {
-        return !currentModel.value.sourceUrl || /^https?:\/\//.test(currentModel.value.sourceUrl.trim())
+        return !currentModel.value.sourceUrl || /^https?:\/\/.+/.test(currentModel.value.sourceUrl.trim())
       }
     }]
   }, {
@@ -372,7 +373,6 @@ const saveProjectTask = (item) => {
   return ApiProjectTaskApi.saveOrUpdate(modelParam).then(() => loadProjectTasks())
 }
 
-const importRef = ref()
 const isWritable = computed(() => {
   return !inProject || inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE)
 })
@@ -440,7 +440,6 @@ const isWritable = computed(() => {
         <el-container class="form-edit-width-70 padding-top2">
           <api-project-import
             v-if="projectItem"
-            ref="importRef"
             show-buttons
             :project="projectItem"
             @import-success="goBack"

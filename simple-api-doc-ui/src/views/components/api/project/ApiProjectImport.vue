@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { $coreAlert, $coreError } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
 import {
@@ -133,7 +133,7 @@ const formOptions = computed(() => {
     rules: [{
       message: $i18nBundle('api.msg.proxyUrlMsg'),
       validator: () => {
-        return !importModel.value.url || /^https?:\/\//.test(importModel.value.url.trim())
+        return !importModel.value.url || /^https?:\/\/.+/.test(importModel.value.url.trim())
       }
     }]
   }, {
@@ -198,28 +198,32 @@ const formOptions = computed(() => {
   }])
 })
 const emit = defineEmits(['import-success'])
+const importFormRef = useTemplateRef('importForm')
 const doImportProject = (autoAlert = true) => {
-  if (importFiles.value?.length || importModel.value.importType === 'url') {
-    importModel.value.projectId = props.project?.id
-    const modelParam = { ...importModel.value }
-    if (importModel.value.authType !== AUTH_TYPE.NONE) {
-      modelParam.authContent = JSON.stringify(modelParam.authContentModel)
-      delete modelParam.authContentModel
-    }
-    importProject(importFiles.value, modelParam, {
-      loading: true
-    }).then(data => {
-      if (data.success) {
-        if (autoAlert) {
-          $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+  importFormRef.value?.form.validate((valid) => {
+    if (valid) {
+      if (importFiles.value?.length || importModel.value.importType === 'url') {
+        importModel.value.projectId = props.project?.id
+        const modelParam = { ...importModel.value }
+        if (importModel.value.authType !== AUTH_TYPE.NONE) {
+          modelParam.authContent = JSON.stringify(modelParam.authContentModel)
+          delete modelParam.authContentModel
         }
-        emit('import-success', data.resultData)
+        importProject(importFiles.value, modelParam, {
+          loading: true
+        }).then(data => {
+          if (data.success) {
+            if (autoAlert) {
+              $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+            }
+            emit('import-success', data.resultData)
+          }
+        })
+      } else {
+        $coreError($i18nBundle('api.msg.importFileNoFile'))
       }
-    })
-  } else {
-    $coreError($i18nBundle('api.msg.importFileNoFile'))
-  }
-  return false
+    }
+  })
 }
 
 defineExpose({
@@ -231,6 +235,7 @@ defineExpose({
 <template>
   <el-container class="flex-column">
     <common-form
+      ref="importForm"
       label-width="130px"
       class="form-edit-width-90"
       :options="formOptions"
