@@ -284,7 +284,12 @@ const envConfigs = computed(() => {
       }
       return []
     }).reduce((results, env) => {
-      results.find(result => result.url === env.url) || results.push(env)
+      const existsIndex = results.findIndex(result => result.url === env.url)
+      if (existsIndex > -1) {
+        results[existsIndex] = env
+      } else {
+        results.push(env)
+      }
       return results
     }, [])
   }
