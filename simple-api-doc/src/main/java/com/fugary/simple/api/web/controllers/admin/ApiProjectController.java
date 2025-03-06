@@ -78,7 +78,8 @@ public class ApiProjectController {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query()
-                .like(StringUtils.isNotBlank(keyword), "project_name", keyword)
+                .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("project_name", keyword)
+                        .or().like("description", keyword))
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
         if (!checkGroupCodeQuery(queryVo)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);

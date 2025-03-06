@@ -136,7 +136,7 @@ const editFormOptions = computed(() => {
     change: async (userName) => {
       await changedUser(userName)
       if (!editProjectGroupOptions.value.find(option => option.value === currentProject.value.groupCode)) {
-        currentProject.value.groupCode = ''
+        currentProject.value.groupCode = undefined
       }
     }
   }, {

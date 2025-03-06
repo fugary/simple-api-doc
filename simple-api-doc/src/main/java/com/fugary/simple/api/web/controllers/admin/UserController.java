@@ -44,10 +44,9 @@ public class UserController {
         QueryWrapper<ApiUser> queryWrapper = Wrappers.<ApiUser>query()
                 .eq(queryVo.getStatus() != null, ApiDocConstants.STATUS_KEY, queryVo.getStatus());
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
-        if (StringUtils.isNotBlank(keyword)) {
-            queryWrapper.and(wrapper -> wrapper.like("user_name", keyword)
-                    .or().like("nick_name", keyword));
-        }
+        queryWrapper.and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("user_name", keyword)
+                .or().like("nick_name", keyword)
+                .or().like("user_email", keyword));
         return SimpleResultUtils.createSimpleResult(apiUserService.page(page, queryWrapper));
     }
 

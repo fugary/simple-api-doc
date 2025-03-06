@@ -54,7 +54,8 @@ public class SimpleTaskController {
                     boolean result = true;
                     if (StringUtils.isNotBlank(keyword)) {
                         result = StringUtils.containsIgnoreCase(taskVo.getTaskName(), keyword)
-                                || StringUtils.containsIgnoreCase(taskVo.getProjectName(), keyword);
+                                || StringUtils.containsIgnoreCase(taskVo.getProjectName(), keyword)
+                                || StringUtils.containsIgnoreCase(taskVo.getDescription(), keyword);
                     }
                     if (result && StringUtils.isNotBlank(queryVo.getUserName())) {
                         result = StringUtils.equals(taskVo.getUserName(), queryVo.getUserName());
