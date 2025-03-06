@@ -56,7 +56,11 @@ onActivated(initLoadOnce)
 const toEditProject = (project) => {
   $goto(`/api/projects/${project.projectCode}?backUrl=${route.fullPath}`)
 }
-
+const changedUser = async (userName) => {
+  userName && (searchParam.value.userName = userName)
+  await loadGroupsAndRefreshOptions()
+  return loadApiProjects(1)
+}
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
   return [{
@@ -68,10 +72,7 @@ const searchFormOptions = computed(() => {
     attrs: {
       clearable: false
     },
-    change () {
-      loadGroupsAndRefreshOptions()
-      loadApiProjects(1)
-    }
+    change: changedUser
   }, {
     labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
@@ -131,6 +132,12 @@ const editFormOptions = computed(() => {
     children: userOptions.value,
     attrs: {
       clearable: false
+    },
+    change: async (userName) => {
+      await changedUser(userName)
+      if (!editProjectGroupOptions.value.find(option => option.value === currentProject.value.groupCode)) {
+        currentProject.value.groupCode = ''
+      }
     }
   }, {
     labelKey: 'api.label.projectName',
