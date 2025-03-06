@@ -187,6 +187,12 @@ const buttons = computed(() => {
     }
   }]
 })
+const changeGroup = async groupCode => {
+  searchParam.value.groupCode = groupCode
+  tableData.value = []
+  await loadProjectsAndRefreshOptions()
+  return loadProjectShares(1)
+}
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
   return [
@@ -210,11 +216,7 @@ const searchFormOptions = computed(() => {
       type: 'select',
       enabled: !inProject && !!projectGroupOptions.value?.length,
       children: projectGroupOptions.value,
-      change: async () => {
-        tableData.value = []
-        await loadProjectsAndRefreshOptions()
-        loadProjectShares(1)
-      }
+      change: changeGroup
     }, {
       labelKey: 'api.label.project',
       prop: 'projectId',
@@ -311,6 +313,16 @@ const editFormOptions = computed(() => {
     prop: 'shareId',
     enabled: !!currentShare.value?.shareId,
     disabled: !isCopyData
+  }, {
+    labelKey: 'api.label.projectGroups1',
+    prop: 'groupCode',
+    type: 'select',
+    enabled: !inProject && !!projectGroupOptions.value?.length,
+    children: projectGroupOptions.value,
+    change (groupCode) {
+      currentShare.value.projectId = null
+      changeGroup(groupCode)
+    }
   }, {
     labelKey: 'api.label.project',
     prop: 'projectId',

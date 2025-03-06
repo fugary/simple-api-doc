@@ -99,7 +99,7 @@ const deleteProject = (project, $event) => {
 
 const deleteProjects = () => {
   $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
-    .then(() => ApiProjectApi.removeByIds(selectedRows.value.map(item => item.id)), { loading: true })
+    .then(() => ApiProjectApi.removeByIds(selectedRows.value.map(item => item.id), { loading: true }))
     .then(() => loadApiProjects())
 }
 const editProjectGroupOptions = computed(() => projectGroupOptions.value
