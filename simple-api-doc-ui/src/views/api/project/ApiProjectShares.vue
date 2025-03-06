@@ -246,7 +246,7 @@ const newOrEdit = async (id) => {
       currentShare.value.showChildrenLength = currentShare.value.showChildrenLength ?? true
       currentShare.value.showTreeIcon = currentShare.value.showTreeIcon ?? true
       currentShare.value.shareDocsArr = currentShare.value.shareDocs ? (JSON.parse(currentShare.value.shareDocs) || []) : []
-      if (!inProject) {
+      if (!inProject && currentShare.value.projectId) {
         loadDetailById(currentShare.value.projectId).then(data => {
           infoList.value = data?.infoList
           const { docTreeNodes } = calcProjectItem(cloneDeep(data))
@@ -320,11 +320,13 @@ const editFormOptions = computed(() => {
     disabled: !!currentShare.value?.id && !isCopyData,
     children: filteredProjectOptions,
     change (projectId) {
-      loadDetailById(projectId).then(data => {
-        infoList.value = data?.infoList
-        const { docTreeNodes } = calcProjectItem(cloneDeep(data))
-        editTreeNodes.value = docTreeNodes
-      })
+      if (projectId) {
+        loadDetailById(projectId).then(data => {
+          infoList.value = data?.infoList
+          const { docTreeNodes } = calcProjectItem(cloneDeep(data))
+          editTreeNodes.value = docTreeNodes
+        })
+      }
       currentShare.value.shareDocsArr = []
       currentShare.value.shareEnvs = []
     }
