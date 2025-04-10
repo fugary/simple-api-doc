@@ -78,7 +78,7 @@ const okButtonClick = () => {
             spec: JSON.parse(data),
             options: { ...paramModel, _language: undefined }
           }
-        }, { loading: true }).then(data => {
+        }, { loading: true, addToken: false }).then(data => {
           if (data.link) {
             const link = data.link.replace('http://', 'https://')
             $downloadWithLinkClick(link)
