@@ -70,14 +70,17 @@ public class UserController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         boolean needEncryptPassword= true;
+        ApiUser existUser = null;
         if (user.getId() != null) {
-            ApiUser existUser = apiUserService.getById(user.getId());
+            existUser = apiUserService.getById(user.getId());
             needEncryptPassword = existUser == null || !StringUtils.equalsIgnoreCase(existUser.getUserPassword(), user.getUserPassword());
         }
         if (needEncryptPassword) {
             user.setUserPassword(apiUserService.encryptPassword(user.getUserPassword()));
         }
-        return SimpleResultUtils.createSimpleResult(apiUserService.saveOrUpdate(SimpleModelUtils.addAuditInfo(user)));
+        boolean saveResult = apiUserService.saveOrUpdate(SimpleModelUtils.addAuditInfo(user));
+        apiUserService.updateUserName(user, existUser);
+        return SimpleResultUtils.createSimpleResult(saveResult);
     }
 
     @GetMapping("/info")

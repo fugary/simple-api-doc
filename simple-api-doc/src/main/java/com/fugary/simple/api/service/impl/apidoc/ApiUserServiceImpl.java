@@ -2,7 +2,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.entity.api.ApiGroup;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.mapper.api.ApiUserMapper;
@@ -10,8 +10,6 @@ import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
-import com.fugary.simple.api.utils.SimpleResultUtils;
-import com.fugary.simple.api.web.vo.LoginResultVo;
 import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -72,5 +70,15 @@ public class ApiUserServiceImpl extends ServiceImpl<ApiUserMapper, ApiUser> impl
     @Override
     public boolean matchPassword(String password, String encryptPassword) {
         return StringUtils.equalsIgnoreCase(encryptPassword(password), encryptPassword);
+    }
+
+    @Override
+    public void updateUserName(ApiUser user, ApiUser existUser) {
+        if (existUser != null && !StringUtils.equalsIgnoreCase(existUser.getUserName(), user.getUserName())) {
+            apiGroupService.update(Wrappers.<ApiGroup>update().eq("user_name", existUser.getUserName())
+                    .set("user_name", user.getUserName()));
+            apiProjectService.update(Wrappers.<ApiProject>update().eq("user_name", existUser.getUserName())
+                    .set("user_name", user.getUserName()));
+        }
     }
 }

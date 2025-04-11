@@ -48,4 +48,12 @@ public interface ApiUserService extends IService<ApiUser> {
      * @return
      */
     boolean matchPassword(String password, String encryptPassword);
+
+    /**
+     * 更新用户名
+     *
+     * @param user
+     * @param existUser
+     */
+    void updateUserName(ApiUser user, ApiUser existUser);
 }
