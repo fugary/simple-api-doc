@@ -64,6 +64,20 @@ const { isMobile } = useScreenCheck()
           ({{ historyCount }})
         </el-text>
       </el-link>
+      <!-- 添加修改人和修改时间 -->
+      <el-row v-if="currentDoc&&(currentDoc.modifier||currentDoc.creator)">
+        <el-col>
+          <el-text type="info">
+            {{ $t('common.label.modifier') }}: {{ currentDoc.modifier||currentDoc.creator }}
+          </el-text>
+          <el-text
+            type="info"
+            class="margin-left3"
+          >
+            {{ $t('common.label.modifyDate') }}: {{ $date(currentDoc.modifyDate||currentDoc.createDate, 'YYYY-MM-DD HH:mm') }}
+          </el-text>
+        </el-col>
+      </el-row>
       <api-doc-history-viewer
         v-if="historyCount"
         ref="apiDocHistoryRef"

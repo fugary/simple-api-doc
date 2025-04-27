@@ -117,7 +117,7 @@ public class SimpleShareController {
                 .projectCode(project.getProjectCode())
                 .forceEnabled(true)
                 .includeDocContent(false)
-                .removeAuditFields(true)
+                .removeAuditFields(false)
                 .docIds(SimpleModelUtils.getShareDocIds(apiShare.getShareDocs()))
                 .includeDocs(true).build()));
     }

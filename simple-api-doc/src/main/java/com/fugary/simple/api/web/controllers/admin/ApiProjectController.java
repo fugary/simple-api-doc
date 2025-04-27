@@ -111,7 +111,7 @@ public class ApiProjectController {
                 .projectCode(projectCode)
                 .includeDocs(true)
                 .includeDocContent(false)
-                .removeAuditFields(true)
+                .removeAuditFields(false)
                 .includeTasks(true)
                 .includeAuthorities(true)
                 .includesShares(true).build());
@@ -130,7 +130,7 @@ public class ApiProjectController {
                 .projectId(projectId)
                 .includeDocs(true)
                 .includeDocContent(false)
-                .removeAuditFields(true)
+                .removeAuditFields(false)
                 .includeTasks(true)
                 .includeAuthorities(true)
                 .includesShares(true).build());
