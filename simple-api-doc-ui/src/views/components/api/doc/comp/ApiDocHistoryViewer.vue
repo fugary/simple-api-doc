@@ -87,8 +87,15 @@ const columns = [{
       {currentFlag}
     </>
   }
-},
-{
+}, {
+  labelKey: 'common.label.modifier',
+  formatter (data) {
+    return <ElText>{data.modifier || data.creator}</ElText>
+  },
+  attrs: {
+    align: 'center'
+  }
+}, {
   labelKey: 'common.label.modifyDate',
   property: 'createDate',
   dateFormat: 'YYYY-MM-DD HH:mm:ss'
