@@ -452,6 +452,10 @@ html, body, #app, .index-container {
     background-position: 50%;
 }
 
+.dark .common-split .gutter {
+    background-color: var(--el-color-black);
+}
+
 .common-split .gutter.gutter-horizontal {
     background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
     cursor: col-resize;
