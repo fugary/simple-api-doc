@@ -80,15 +80,19 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
 
     @Override
     public boolean saveApiDoc(ApiDoc apiDoc, ApiDoc existsDoc) {
+        return saveApiDoc(apiDoc, existsDoc, false);
+    }
+
+    @Override
+    public boolean saveApiDoc(ApiDoc apiDoc, ApiDoc existsDoc, boolean schemaChanged) {
         if (existsDoc == null && apiDoc.getId() != null) {
             existsDoc = getById(apiDoc.getId());
         }
-        if (!isSameApiDoc(apiDoc, existsDoc)) {
-            if (existsDoc != null) {
-                apiDocHistoryService.saveByApiDoc(existsDoc);
-                existsDoc.setModifier(apiDoc.getModifier());
-                existsDoc.setModifyDate(apiDoc.getModifyDate());
-            }
+        boolean sameApiDoc = isSameApiDoc(apiDoc, existsDoc);
+        if (!sameApiDoc && existsDoc != null) {
+            apiDocHistoryService.saveByApiDoc(existsDoc); // 保存历史
+        }
+        if (!sameApiDoc || schemaChanged) {
             return this.saveOrUpdate(apiDoc);
         }
         return true;

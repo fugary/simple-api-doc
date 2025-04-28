@@ -13,9 +13,11 @@ import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.project.ApiDocConfigSortsVo;
+import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiDocSortVo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -169,6 +171,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                 apiDocVo.setFolderId(folderId);
                 ApiDoc existsDoc = null;
                 boolean locked = false;
+                ApiDocDetailVo existsDocDetail = null;
                 if (existsDocPair != null && existsDocPair.getValue() != null) { // 文档存在
                     existsDoc = existsDocPair.getValue();
                     apiDocVo.setId(existsDoc.getId());
@@ -179,6 +182,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     processModifiedApiDoc(apiDocVo, existsDoc);
                     locked = Boolean.TRUE.equals(existsDoc.getLocked());
                     if (!locked) {
+                        existsDocDetail = apiDocSchemaService.loadDetailVo(apiDocVo);
                         apiDocSchemaService.deleteByDoc(apiDocVo.getId());
                     }
                 }
@@ -186,7 +190,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     apiDocVo.setSpecVersion(projectInfo.getSpecVersion());
                 }
                 if (!locked) {
-                    apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc);
+                    boolean schemaChanged = ApiDocParseUtils.processExistsSchemas(apiDocVo, existsDocDetail);
+                    apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc, schemaChanged);
                     saveApiDocSchemas(apiDocVo);
                 }
                 apiDocs.add(apiDocVo);

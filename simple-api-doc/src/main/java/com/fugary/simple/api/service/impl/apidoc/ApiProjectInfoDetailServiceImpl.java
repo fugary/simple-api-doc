@@ -9,6 +9,7 @@ import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.mapper.api.ApiProjectInfoDetailMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
@@ -16,10 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,10 +58,15 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public void saveApiProjectInfoDetails(ApiProject apiProject, ApiProjectInfo apiProjectInfo, List<ExportApiProjectInfoDetailVo> projectInfoDetails) {
+        Set<String> types = new HashSet<>(ApiDocConstants.PROJECT_SCHEMA_TYPES);
+        types.add(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
+        List<ApiProjectInfoDetail> infoDetails = loadByProjectAndInfo(apiProject.getId(), apiProjectInfo.getId(), types);
+        Map<String, ApiProjectInfoDetail> detailsMap = infoDetails.stream().collect(Collectors.toMap(ApiDocParseUtils::getProjectInfoDetailKey, Function.identity()));
         deleteByProjectInfo(apiProject.getId(), apiProjectInfo.getId());
         projectInfoDetails.forEach(projectInfoDetailVo -> {
             projectInfoDetailVo.setProjectId(apiProject.getId());
             projectInfoDetailVo.setInfoId(apiProjectInfo.getId());
+            ApiDocParseUtils.processProjectInfoDetail(detailsMap, projectInfoDetailVo);
             save(SimpleModelUtils.addAuditInfo(projectInfoDetailVo));
         });
     }
@@ -71,7 +74,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail) {
         List<ApiProjectInfoDetail> apiInfoDetails = loadByProjectAndInfo(apiInfo.getProjectId(), apiInfo.getId(), ApiDocConstants.PROJECT_SCHEMA_TYPES);
-        return parseInfoDetailVo(apiInfo, apiInfoDetails, List.of(apiDocDetail));
+        ApiProjectInfoDetailVo projectInfoDetailVo = parseInfoDetailVo(apiInfo, apiInfoDetails, List.of(apiDocDetail));
+        ApiDocParseUtils.overrideApiDocModifyInfo(projectInfoDetailVo, apiDocDetail);
+        return projectInfoDetailVo;
     }
 
     @Override

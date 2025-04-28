@@ -67,9 +67,20 @@ public interface ApiDocService extends IService<ApiDoc> {
     /**
      * 保存ApiDoc
      * @param apiDoc
+     * @param existsDoc
      * @return
      */
     boolean saveApiDoc(ApiDoc apiDoc, ApiDoc existsDoc);
+
+
+    /**
+     * 保存ApiDoc
+     * @param apiDoc
+     * @param existsDoc
+     * @param schemaChanged
+     * @return
+     */
+    boolean saveApiDoc(ApiDoc apiDoc, ApiDoc existsDoc, boolean schemaChanged);
 
     /**
      * 指定id删除doc，级联删除

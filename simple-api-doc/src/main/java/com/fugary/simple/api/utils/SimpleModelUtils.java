@@ -74,7 +74,7 @@ public class SimpleModelUtils {
             if (target.getId() == null) {
                 target.setCreateDate(Objects.requireNonNullElse(target.getCreateDate(), currentDate));
                 if (loginUser != null) {
-                    target.setCreator(loginUser.getUserName());
+                    target.setCreator(Objects.requireNonNullElse(target.getCreator(), loginUser.getUserName()));
                 }
             } else {
                 target.setModifyDate(currentDate);
@@ -96,6 +96,33 @@ public class SimpleModelUtils {
             target.setCreateDate(null);
             target.setModifier(null);
             target.setModifyDate(null);
+        }
+    }
+
+    /**
+     * 合并现有数据
+     * @param model
+     * @param existsModel
+     */
+    public static void mergeAuditInfo(ModelBase model, ModelBase existsModel) {
+        if (existsModel != null) {
+            SimpleModelUtils.addAuditInfo(existsModel);
+            model.setCreator(existsModel.getCreator());
+            model.setCreateDate(existsModel.getCreateDate());
+            model.setModifier(existsModel.getModifier());
+            model.setModifyDate(existsModel.getModifyDate());
+        }
+    }
+
+    /**
+     * 合并现有数据
+     * @param model
+     * @param existsModel
+     */
+    public static void mergeCreateInfo(ModelBase model, ModelBase existsModel) {
+        if (existsModel != null) {
+            model.setCreator(existsModel.getCreator());
+            model.setCreateDate(existsModel.getCreateDate());
         }
     }
 
