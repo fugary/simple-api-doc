@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.mapper.api.ApiProjectTaskMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
@@ -12,6 +13,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -76,5 +78,24 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
         projectTask.setTaskName(projectTask.getTaskName() + ApiDocConstants.COPY_SUFFIX);
         save(projectTask);
         return SimpleResultUtils.createSimpleResult(projectTask);
+    }
+
+    @Override
+    public SimpleResult<ApiProject> saveUrlImportAsTask(ApiProjectImportVo importVo, SimpleResult<ApiProject> importResult) {
+        if (importResult.isSuccess() && ApiDocConstants.IMPORT_TYPE_URL.equals(importVo.getImportType())) {
+            // url模式下自动保存一份数据为task
+            ApiProject project = importResult.getResultData();
+            ApiProjectTask projectTask = new ApiProjectTask();
+            projectTask.setProjectId(project.getId());
+            projectTask.setTaskType(ApiDocConstants.PROJECT_TASK_TYPE_MANUAL);
+            projectTask.setTaskName(project.getProjectName() + "-import");
+            projectTask.setStatus(ApiDocConstants.STATUS_ENABLED);
+            projectTask.setAuthType(importVo.getAuthType());
+            projectTask.setAuthContent(importVo.getAuthContent());
+            projectTask.setSourceType(importVo.getSourceType());
+            projectTask.setSourceUrl(importVo.getUrl());
+            save(projectTask);
+        }
+        return importResult;
     }
 }

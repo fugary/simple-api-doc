@@ -4,6 +4,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -49,6 +50,9 @@ public class ApiProjectImportController {
 
     @Autowired
     private ApiProjectService apiProjectService;
+
+    @Autowired
+    private ApiProjectTaskService apiProjectTaskService;
 
     @SneakyThrows
     @PostMapping("/parseProject")
@@ -96,7 +100,7 @@ public class ApiProjectImportController {
     public SimpleResult<ApiProject> importProject(@ModelAttribute ApiProjectImportVo importVo, HttpServletRequest request){
         SimpleResult<ExportApiProjectVo> parseResult = parseProject(importVo, request);
         if (parseResult.isSuccess()) {
-            return apiProjectService.importNewProject(parseResult.getResultData(), importVo);
+            return apiProjectTaskService.saveUrlImportAsTask(importVo, apiProjectService.importNewProject(parseResult.getResultData(), importVo));
         }
         return SimpleResult.<ApiProject>builder()
                 .code(parseResult.getCode())

@@ -2,8 +2,10 @@ package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiFolder;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Map;
@@ -41,4 +43,13 @@ public interface ApiProjectTaskService extends IService<ApiProjectTask> {
      * @return
      */
     SimpleResult<ApiProjectTask> copyProjectTask(ApiProjectTask projectTask);
+
+    /**
+     * 把url类型导入保存为任务，方便下次使用
+     *
+     * @param importVo
+     * @param importResult
+     * @return
+     */
+    SimpleResult<ApiProject> saveUrlImportAsTask(ApiProjectImportVo importVo, SimpleResult<ApiProject> importResult);
 }
