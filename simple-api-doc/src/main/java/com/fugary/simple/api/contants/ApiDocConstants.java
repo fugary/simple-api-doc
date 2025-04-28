@@ -19,6 +19,10 @@ public class ApiDocConstants {
 
     public static final String STATUS_KEY = "status";
 
+    public static final String CREATOR_KEY = "creator";
+
+    public static final String CREATE_DATE_KEY = "createDate";
+
     public static final String MODIFIER_KEY = "modifier";
 
     public static final String MODIFY_DATE_KEY = "modifyDate";
