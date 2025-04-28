@@ -231,7 +231,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         apiDocVo.setDocName(docName);
         apiDocVo.setDocType(ApiDocConstants.DOC_TYPE_API);
         apiDocVo.setUrl(url);
-        String docKey = operation.getOperationId();
+        String docKey = StringUtils.defaultIfBlank(operation.getOperationId(), url + "#" + method);
         if (folder != null) {
             docKey = folder.getFolderName() + "#" + docKey;
         }
