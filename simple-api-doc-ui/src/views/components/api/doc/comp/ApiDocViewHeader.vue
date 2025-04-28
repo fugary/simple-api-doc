@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
 import ApiDocHistoryViewer from '@/views/components/api/doc/comp/ApiDocHistoryViewer.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
-defineProps({
+const props = defineProps({
   editable: {
     type: Boolean,
     default: false
@@ -11,6 +11,10 @@ defineProps({
   historyCount: {
     type: Number,
     default: 0
+  },
+  currentDocDetail: {
+    type: Object,
+    default: undefined
   }
 })
 const currentDoc = defineModel({
@@ -25,6 +29,7 @@ const folderPaths = computed(() => {
 })
 const apiDocHistoryRef = ref()
 const { isMobile } = useScreenCheck()
+const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
 </script>
 
 <template>
@@ -65,16 +70,16 @@ const { isMobile } = useScreenCheck()
         </el-text>
       </el-link>
       <!-- 添加修改人和修改时间 -->
-      <el-row v-if="currentDoc&&(currentDoc.modifier||currentDoc.creator)">
+      <el-row v-if="docDetailInfo&&(docDetailInfo.modifier||docDetailInfo.creator)">
         <el-col>
           <el-text type="info">
-            {{ $t('common.label.modifier') }}: {{ currentDoc.modifier||currentDoc.creator }}
+            {{ $t('common.label.modifier') }}: {{ docDetailInfo.modifier||docDetailInfo.creator }}
           </el-text>
           <el-text
             type="info"
             class="margin-left3"
           >
-            {{ $t('common.label.modifyDate') }}: {{ $date(currentDoc.modifyDate||currentDoc.createDate, 'YYYY-MM-DD HH:mm') }}
+            {{ $t('common.label.modifyDate') }}: {{ $date(docDetailInfo.modifyDate||docDetailInfo.createDate, 'YYYY-MM-DD HH:mm') }}
           </el-text>
         </el-col>
       </el-row>

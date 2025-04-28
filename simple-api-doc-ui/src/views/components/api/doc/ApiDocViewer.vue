@@ -169,7 +169,8 @@ const { isSmallContainer, containerRef } = useContainerCheck()
     class="padding-left2 flex-column padding-right2"
   >
     <api-doc-view-header
-      v-model="apiDocDetail"
+      v-model="apiDoc"
+      :current-doc-detail="apiDocDetail"
       :editable="editable"
       :history-count="historyCount"
     />
