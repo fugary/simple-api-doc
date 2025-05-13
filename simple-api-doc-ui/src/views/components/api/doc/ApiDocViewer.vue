@@ -87,7 +87,7 @@ const loadDocDetail = async () => {
   calcSecuritySchemas(projectInfoDetail.value, securitySchemas, supportedAuthTypes)
   calcAuthModelBySchemas(apiDocDetail.value, authContentModel.value, securitySchemas.value)
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
-  apiDocDetail.value.targetUrl = sharePreference?.targetUrl || envConfigs.value[0]?.url
+  apiDocDetail.value.targetUrl = envConfigs.value?.find(env => env.url === sharePreference?.targetUrl)?.url || envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
   lastParamTarget = shareConfigStore.shareParamTargets[calcParamTargetId] = shareConfigStore.shareParamTargets[calcParamTargetId] || reactive({})
   lastParamTarget.hasInheritAuth = !!sharePreference?.defaultAuthModel
