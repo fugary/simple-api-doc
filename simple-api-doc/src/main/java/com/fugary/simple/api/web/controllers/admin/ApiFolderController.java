@@ -7,6 +7,7 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
+import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -40,6 +41,9 @@ public class ApiFolderController {
     @Autowired
     private ApiProjectService apiProjectService;
 
+    @Autowired
+    private ApiProjectInfoService apiProjectInfoService;
+
     @GetMapping
     public SimpleResult<List<ApiFolder>> searchFolder(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiFolder> page = SimpleResultUtils.toPage(queryVo);
@@ -71,6 +75,7 @@ public class ApiFolderController {
             folders.forEach(folder -> {
                 if (clear && Objects.equals(id, folder.getId())) { // clear时仅删除子文档
                     apiDocService.deleteByFolder(folder.getId());
+                    apiProjectInfoService.deleteByFolder(folder.getId());
                 } else {
                     apiFolderService.deleteFolder(folder.getId());
                 }

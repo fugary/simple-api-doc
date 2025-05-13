@@ -35,6 +35,14 @@ public interface ApiProjectInfoService extends IService<ApiProjectInfo> {
     ApiProjectInfo loadByProjectId(Integer projectId, Integer folderId);
 
     /**
+     * 按照folderId查找
+     *
+     * @param folderId
+     * @return
+     */
+    ApiProjectInfo loadByFolderId(Integer folderId);
+
+    /**
      * 保存导入数据
      *
      * @param projectInfoVo 导入项目信息
@@ -51,6 +59,14 @@ public interface ApiProjectInfoService extends IService<ApiProjectInfo> {
      * @return
      */
     boolean deleteByProject(Integer projectId);
+
+    /**
+     * 按照folderId删除
+     *
+     * @param folderId
+     * @return
+     */
+    boolean deleteByFolder(Integer folderId);
 
     /**
      * 复制info信息

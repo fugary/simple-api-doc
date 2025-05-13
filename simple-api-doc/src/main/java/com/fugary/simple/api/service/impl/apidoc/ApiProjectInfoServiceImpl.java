@@ -43,6 +43,11 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
     }
 
     @Override
+    public ApiProjectInfo loadByFolderId(Integer folderId) {
+        return getOne(Wrappers.<ApiProjectInfo>query().eq("folder_id", folderId));
+    }
+
+    @Override
     public ApiProjectInfo saveApiProjectInfo(ExportApiProjectInfoVo projectInfoVo, ApiProject apiProject, ApiFolder mountFolder, boolean importExists) {
         if (projectInfoVo != null) {
             projectInfoVo.setProjectId(apiProject.getId());
@@ -58,7 +63,17 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
 
     @Override
     public boolean deleteByProject(Integer projectId) {
+        apiProjectInfoDetailService.deleteByProject(projectId);
         return this.remove(Wrappers.<ApiProjectInfo>query().eq("project_id", projectId));
+    }
+
+    @Override
+    public boolean deleteByFolder(Integer folderId) {
+        ApiProjectInfo apiProjectInfo = loadByFolderId(folderId);
+        if (apiProjectInfo != null) {
+            apiProjectInfoDetailService.deleteByProjectInfo(apiProjectInfo.getProjectId(), apiProjectInfo.getId());
+        }
+        return this.remove(Wrappers.<ApiProjectInfo>query().eq("folder_id", folderId));
     }
 
     @Override

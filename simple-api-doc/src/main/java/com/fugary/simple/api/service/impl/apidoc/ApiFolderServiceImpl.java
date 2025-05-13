@@ -12,6 +12,7 @@ import com.fugary.simple.api.mapper.api.ApiFolderMapper;
 import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
+import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
@@ -44,6 +45,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
 
     @Autowired
     private ApiDocSchemaService apiDocSchemaService;
+
+    @Autowired
+    private ApiProjectInfoService apiProjectInfoService;
 
     private PathMatcher pathMatcher = new AntPathMatcher();
 
@@ -306,6 +310,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     @Override
     public boolean deleteFolder(Integer folderId) {
         apiDocService.deleteByFolder(folderId);
+        apiProjectInfoService.deleteByFolder(folderId);
         return this.removeById(folderId);
     }
 
