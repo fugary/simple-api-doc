@@ -60,7 +60,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             }).collect(Collectors.groupingBy(triple -> {
                 List<Pair<String, Operation>> operations = triple.getRight();
                 Pair<String, Operation> firstOptionPair = operations.get(0);
-                return firstOptionPair.getRight().getTags().get(0);
+                return getTagName0(firstOptionPair.getRight().getTags());
             }, LinkedHashMap::new, Collectors.toList()));
             projectVo = new ExportApiProjectVo();
             projectVo.setStatus(ApiDocConstants.STATUS_ENABLED);
@@ -342,11 +342,14 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         return examples;
     }
 
+    protected String getTagName0(List<String> tags) {
+        return CollectionUtils.isNotEmpty(tags) ? tags.get(0) : ApiDocConstants.SIMPLE_EMPTY_PATH_FOLDER_ALIAS;
+    }
 
     protected Pair<ExportApiFolderVo, ExportApiFolderVo> getOperationFolder(OpenAPI openAPI, List<ExportApiFolderVo> folders, Pair<String, Operation> operationPair) {
         // 获取Operation所在的Folder
         Operation operation = operationPair.getRight();
-        String folderPath = operation.getTags().get(0);
+        String folderPath = getTagName0(operation.getTags());
         if (operation.getExtensions() != null) {
             folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_APIFOX_FOLDER), folderPath);
             folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER), folderPath);

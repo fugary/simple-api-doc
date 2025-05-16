@@ -128,8 +128,12 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         if (existsFolder == null) {
             folder.setParentId(parentFolder.getId());
             folder.setProjectId(parentFolder.getProjectId());
-            save(SimpleModelUtils.addAuditInfo(folder));
-            newFolders.add(folder);
+            if (ApiDocConstants.SIMPLE_EMPTY_PATH_FOLDER_ALIAS.equals(folder.getFolderPath())) {
+                folder.setId(parentFolder.getId());
+            } else {
+                save(SimpleModelUtils.addAuditInfo(folder));
+                newFolders.add(folder);
+            }
             existsFolder = folder;
         } else {
             SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
