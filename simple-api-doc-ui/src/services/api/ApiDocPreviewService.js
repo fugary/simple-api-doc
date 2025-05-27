@@ -121,6 +121,24 @@ export const preProcessParams = (params = []) => {
 }
 
 /**
+ * 添加数据
+ * @param results
+ * @param name
+ * @param value
+ */
+export const addRequestParamsToResult = (results, name, value) => {
+  if (results[name]) {
+    if (!isArray(results[name])) {
+      results[name] = [results[name]]
+    }
+    results[name].push(value)
+  } else {
+    results[name] = value
+  }
+  return results
+}
+
+/**
  * 各种类型的body解析
  *
  * @param paramTarget

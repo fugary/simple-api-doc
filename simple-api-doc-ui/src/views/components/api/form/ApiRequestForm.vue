@@ -5,6 +5,8 @@ import ApiRequestFormReq from '@/views/components/api/form/ApiRequestFormReq.vue
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { $copyText, joinPath, addParamsToURL } from '@/utils'
 import { $i18nBundle } from '@/messages'
+import { addRequestParamsToResult } from '@/services/api/ApiDocPreviewService'
+import { processEvnParams } from '@/services/api/ApiCommonService'
 
 const props = defineProps({
   envConfigs: {
@@ -33,11 +35,14 @@ const requestUrl = computed(() => {
   let reqUrl = props.requestPath
   paramTarget.value?.pathParams?.forEach(pathParam => {
     reqUrl = reqUrl.replace(new RegExp(`:${pathParam.name}`, 'g'), pathParam.value)
-      .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), pathParam.value)
+      .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), processEvnParams(paramTarget.value.groupConfig, pathParam.value))
   })
-  paramTarget.value?.requestParams?.filter(requestParam => !!requestParam.name && requestParam.enabled).forEach(requestParam => {
-    reqUrl = addParamsToURL(reqUrl, { [requestParam.name]: requestParam.value })
-  })
+  if (paramTarget.value?.method?.toLowerCase() === 'get') {
+    const calcReqParams = paramTarget.value?.requestParams?.filter(requestParam => !!requestParam.name && requestParam.enabled).reduce((results, item) => {
+      return addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value))
+    }, {})
+    reqUrl = addParamsToURL(reqUrl, calcReqParams)
+  }
   return joinPath(paramTarget.value.targetUrl, reqUrl)
 })
 

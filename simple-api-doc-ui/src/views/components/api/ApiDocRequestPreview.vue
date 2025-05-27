@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import {
+  addRequestParamsToResult,
   calcParamTarget,
   calcRequestBody,
   preProcessParams,
@@ -10,7 +11,7 @@ import {
 import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { calcPreviewHeaders, processEvnParams } from '@/services/api/ApiCommonService'
-import { joinPath } from '@/utils'
+import { joinPath, toGetParams } from '@/utils'
 import {
   AUTH_TYPE,
   SIMPLE_API_ACCESS_TOKEN_HEADER,
@@ -71,7 +72,7 @@ const doDataPreview = async () => {
     }
   })
   const params = preProcessParams(paramTarget.value?.requestParams).reduce((results, item) => {
-    results[item.name] = processEvnParams(paramTarget.value.groupConfig, item.value)
+    addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value))
     return results
   }, {})
   const { data, hasBody } = calcRequestBody(paramTarget)
@@ -93,6 +94,7 @@ const doDataPreview = async () => {
   const config = {
     loading: true,
     params,
+    paramsSerializer: toGetParams,
     data,
     headers
   }
