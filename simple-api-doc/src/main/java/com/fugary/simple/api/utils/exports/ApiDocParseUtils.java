@@ -196,8 +196,8 @@ public class ApiDocParseUtils {
      * @return
      */
     public static List<ExportEnvConfigVo> distinctEnvConfigs(List<ExportEnvConfigVo> envConfigs) {
+        List<ExportEnvConfigVo> results = new ArrayList<>();
         if (envConfigs != null) {
-            List<ExportEnvConfigVo> results = new ArrayList<>();
             for (ExportEnvConfigVo envConfig : envConfigs) {
                 int index = SimpleModelUtils.indexOf(results, envConfig, Comparator.comparing(ExportEnvConfigVo::getUrl));
                 if (index > -1) {
@@ -207,7 +207,7 @@ public class ApiDocParseUtils {
                 }
             }
         }
-        return envConfigs;
+        return results;
     }
 
     public static List<ExportEnvConfigVo> mergeEnvConfigs(List<ExportEnvConfigVo> savedEnvConfigs, List<ExportEnvConfigVo> envConfigs) {
