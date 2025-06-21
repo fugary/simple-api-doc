@@ -239,11 +239,6 @@ const goBack = (...args) => {
         >
           {{ backLabel||$t('common.label.back') }}
         </el-button>
-        <slot
-          :form="form"
-          :model="formModel"
-          name="buttons"
-        />
       </el-form-item>
       <slot
         :form="form"

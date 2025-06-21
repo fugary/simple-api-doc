@@ -530,4 +530,23 @@ public class SimpleModelUtils {
         return map;
     }
 
+    /**
+     * index计算
+     *
+     * @param items
+     * @param item
+     * @return
+     * @param <T>
+     */
+    public static <T> int indexOf(List<T> items, T item, Comparator<T> comparator) {
+        if (items == null || comparator == null) {
+            return -1;
+        }
+        for (int i = 0; i < items.size(); i++) {
+            if (comparator.compare(items.get(i), item) == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }

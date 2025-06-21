@@ -9,8 +9,11 @@ import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.mapper.api.ApiProjectInfoMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
+import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,7 +57,9 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
             projectInfoVo.setFolderId(mountFolder.getId());
             ApiProjectInfo existsProjectInfo;
             if (importExists && (existsProjectInfo = loadByProjectId(projectInfoVo.getProjectId(), projectInfoVo.getFolderId())) != null) {
+                List<ExportEnvConfigVo> mergedEnvConfigs = ApiDocParseUtils.mergeEnvConfigs(existsProjectInfo.getEnvContent(), projectInfoVo.getEnvContent());
                 SimpleModelUtils.copyNoneNullValue(existsProjectInfo, projectInfoVo);
+                existsProjectInfo.setEnvContent(JsonUtils.toJson(mergedEnvConfigs));
             }
             saveOrUpdate(SimpleModelUtils.addAuditInfo(projectInfoVo));
         }

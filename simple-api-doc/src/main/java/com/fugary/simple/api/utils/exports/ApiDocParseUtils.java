@@ -1,14 +1,13 @@
 package com.fugary.simple.api.utils.exports;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiDocSchema;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
-import com.fugary.simple.api.web.vo.exports.ExportApiDocSchemaVo;
-import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
-import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
-import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
+import com.fugary.simple.api.web.vo.exports.*;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import lombok.AccessLevel;
@@ -188,5 +187,39 @@ public class ApiDocParseUtils {
                         apiDoc.setModifyDate(detail.getModifyDate());
                     }
                 });
+    }
+
+    /**
+     * 相同url保留一份
+     *
+     * @param envConfigs
+     * @return
+     */
+    public static List<ExportEnvConfigVo> distinctEnvConfigs(List<ExportEnvConfigVo> envConfigs) {
+        if (envConfigs != null) {
+            List<ExportEnvConfigVo> results = new ArrayList<>();
+            for (ExportEnvConfigVo envConfig : envConfigs) {
+                int index = SimpleModelUtils.indexOf(results, envConfig, Comparator.comparing(ExportEnvConfigVo::getUrl));
+                if (index > -1) {
+                    results.set(index, envConfig);
+                } else {
+                    results.add(envConfig);
+                }
+            }
+        }
+        return envConfigs;
+    }
+
+    public static List<ExportEnvConfigVo> mergeEnvConfigs(List<ExportEnvConfigVo> savedEnvConfigs, List<ExportEnvConfigVo> envConfigs) {
+        savedEnvConfigs.removeIf(savedConfig -> !Boolean.TRUE.equals(savedConfig.getManual()));
+        savedEnvConfigs.addAll(0, envConfigs);
+        return savedEnvConfigs;
+    }
+
+    public static List<ExportEnvConfigVo> mergeEnvConfigs(String savedEnvConfigStr, String envConfigStr) {
+        TypeReference<List<ExportEnvConfigVo>> typeReference = new TypeReference<>() {};
+        List<ExportEnvConfigVo> savedEnvConfigs = StringUtils.isNotBlank(savedEnvConfigStr)? JsonUtils.fromJson(savedEnvConfigStr, typeReference): new ArrayList<>();
+        List<ExportEnvConfigVo> envConfigs = StringUtils.isNotBlank(savedEnvConfigStr)? JsonUtils.fromJson(envConfigStr, typeReference): new ArrayList<>();
+        return mergeEnvConfigs(savedEnvConfigs, envConfigs);
     }
 }

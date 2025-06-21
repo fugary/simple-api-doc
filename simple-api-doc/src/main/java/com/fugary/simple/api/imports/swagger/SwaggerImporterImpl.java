@@ -111,11 +111,11 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         projectInfo.setStatus(ApiDocConstants.STATUS_ENABLED);
         projectInfo.setOasVersion(openAPI.getOpenapi());
         projectInfo.setSpecVersion(openAPI.getSpecVersion().name());
-        projectInfo.setEnvContent(SchemaJsonUtils.toJson(openAPI.getServers().stream().map(server -> {
+        projectInfo.setEnvContent(JsonUtils.toJson(ApiDocParseUtils.distinctEnvConfigs(openAPI.getServers().stream().map(server -> {
             String url = server.getUrl();
             String name = server.getDescription();
-            return new ExportEnvConfigVo(name, url);
-        }).collect(Collectors.toList()), SchemaJsonUtils.isV31(openAPI)));
+            return new ExportEnvConfigVo(name, url, null);
+        }).collect(Collectors.toList()))));
         Info info = openAPI.getInfo();
         if (info != null) {
             projectVo.setProjectName(info.getTitle());

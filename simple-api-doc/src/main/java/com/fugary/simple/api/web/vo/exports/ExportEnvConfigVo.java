@@ -19,4 +19,5 @@ public class ExportEnvConfigVo implements Serializable {
     private static final long serialVersionUID = 8028323405588182555L;
     private String name;
     private String url;
+    private Boolean manual;
 }
