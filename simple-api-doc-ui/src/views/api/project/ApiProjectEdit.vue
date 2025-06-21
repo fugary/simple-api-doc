@@ -12,6 +12,7 @@ import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vu
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
+import { toEditEnvConfigs } from '@/utils/DynamicUtils'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -80,6 +81,13 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
             @click="goBack"
           >
             {{ $t('common.label.back') }}
+          </el-button>
+          <el-button
+            v-if="projectItem.infoList?.length"
+            type="info"
+            @click="toEditEnvConfigs(projectItem.infoList?.[0]).then(() => initLoadOnce())"
+          >
+            {{ $t('api.label.environments') }}
           </el-button>
           <el-badge
             v-if="isWritable"

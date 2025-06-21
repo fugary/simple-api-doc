@@ -101,6 +101,21 @@ export const copyProject = (id, config) => {
   }, config)).then(response => response.data?.resultData)
 }
 
+/**
+ * 保存环境配置
+ * @param id
+ * @param data
+ * @param [config]
+ * @returns {Promise<axios.AxiosResponse<any>>}
+ */
+export const saveEnvConfigs = (id, data, config) => {
+  return $http(Object.assign({
+    url: `${API_PROJECT_URL}/saveEnvConfigs/${id}`,
+    method: 'POST',
+    data
+  }, config)).then(response => response.data?.resultData)
+}
+
 export const useSelectProjects = (searchParam) => {
   const projects = ref([])
   const projectOptions = ref([])

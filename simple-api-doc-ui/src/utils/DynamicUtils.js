@@ -3,6 +3,7 @@ import { DynamicHelper } from '@/components/directives'
 import { h, defineComponent, defineAsyncComponent } from 'vue'
 
 const ApiRequestPreviewWindow = () => import('@/views/components/api/ApiRequestPreviewWindow.vue')
+const ApiEnvContentWindow = () => import('@/views/components/api/project/ApiEnvContentWindow.vue')
 const ApiEnvParams = () => import('@/views/components/api/ApiEnvParams.vue')
 const ShowUserInfo = () => import('@/views/components/user/ShowUserInfo.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
@@ -34,6 +35,14 @@ export const toEditGroupEnvParams = async (...args) => {
     onClosed: () => dynamicHelper.destroy()
   })
   return vnode.component?.exposed?.toEditGroupEnvParams(...args)
+}
+
+export const toEditEnvConfigs = async (...args) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(ApiEnvContentWindow, {
+    onClosed: () => dynamicHelper.destroy()
+  })
+  return vnode.component?.exposed?.toEditEnvConfigs(...args)
 }
 
 /**

@@ -107,4 +107,12 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
         });
         return results;
     }
+
+    @Override
+    public boolean saveEnvConfigs(ApiProjectInfo apiProjectInfo, List<ExportEnvConfigVo> envConfigs) {
+        String jsonContent = JsonUtils.toJson(envConfigs);
+        return update(Wrappers.<ApiProjectInfo>lambdaUpdate()
+                .set(ApiProjectInfo::getEnvContent, jsonContent)
+                .eq(ApiProjectInfo::getId, apiProjectInfo.getId()));
+    }
 }

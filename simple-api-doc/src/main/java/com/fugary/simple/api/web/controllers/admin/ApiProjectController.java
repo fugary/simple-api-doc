@@ -10,9 +10,11 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
+import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -20,6 +22,7 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportDownloadVo;
+import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.JwtParamVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
@@ -71,6 +74,9 @@ public class ApiProjectController {
 
     @Autowired
     private ApiDocExporter<String> apiApiDocMdExporter;
+
+    @Autowired
+    private ApiProjectInfoService apiProjectInfoService;
 
     @GetMapping
     public SimpleResult<List<ApiProject>> search(@ModelAttribute ProjectQueryVo queryVo) {
@@ -209,6 +215,22 @@ public class ApiProjectController {
         }
         project.setPrivateFlag(ObjectUtils.defaultIfNull(project.getPrivateFlag(), true));
         return SimpleResultUtils.createSimpleResult(apiProjectService.saveProject(SimpleModelUtils.addAuditInfo(project)));
+    }
+
+    @PostMapping("/saveEnvConfigs/{infoId}")
+    public SimpleResult<Boolean> saveEnvConfigs(@PathVariable Integer infoId, @RequestBody List<ExportEnvConfigVo> envConfigs) {
+        if (envConfigs == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_400);
+        }
+        ApiProjectInfo apiProjectInfo = apiProjectInfoService.getById(infoId);
+        if (apiProjectInfo == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        ApiProject project = apiProjectService.getById(apiProjectInfo.getProjectId());
+        if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        return SimpleResultUtils.createSimpleResult(apiProjectInfoService.saveEnvConfigs(apiProjectInfo, envConfigs));
     }
 
     @GetMapping("/selectProjects")

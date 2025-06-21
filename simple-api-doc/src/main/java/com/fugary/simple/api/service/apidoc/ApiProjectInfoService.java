@@ -5,6 +5,7 @@ import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
+import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
@@ -78,4 +79,13 @@ public interface ApiProjectInfoService extends IService<ApiProjectInfo> {
      */
     Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> copyProjectInfos(Integer fromProjectId, Integer toProjectId,
                                                                         Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap);
+
+    /**
+     * 保存环境信息
+     *
+     * @param apiProjectInfo
+     * @param envConfigs
+     * @return
+     */
+    boolean saveEnvConfigs(ApiProjectInfo apiProjectInfo, List<ExportEnvConfigVo> envConfigs);
 }
