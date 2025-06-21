@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl } from '@/utils'
+import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl, $reload } from '@/utils'
 import { ref, watch, computed, onActivated, onMounted } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
@@ -85,7 +85,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
           <el-button
             v-if="projectItem.infoList?.length"
             type="info"
-            @click="toEditEnvConfigs(projectItem.infoList?.[0]).then(() => initLoadOnce())"
+            @click="toEditEnvConfigs(projectItem.infoList?.[0]).then(() => $reload(route))"
           >
             {{ $t('api.label.environments') }}
           </el-button>
