@@ -118,7 +118,7 @@ const codeHeight = '300px'
                 <el-link
                   v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.responseBody')"
                   type="primary"
-                  :underline="false"
+                  underline="never"
                   class="margin-left3"
                   @click="formatDocument"
                 >
@@ -130,7 +130,7 @@ const codeHeight = '300px'
                 <el-link
                   v-common-tooltip="$t('api.msg.showRawData')"
                   type="primary"
-                  :underline="false"
+                  underline="never"
                   class="margin-left3"
                   @click="contentRef=responseTarget?.data"
                 >

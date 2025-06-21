@@ -25,10 +25,10 @@ defineEmits(['enterDropdown', 'leaveDropdown', 'showDropdown'])
 
 <template>
   <el-dropdown @visible-change="$event&&$emit('showDropdown')">
-    <el-link :underline="false">
+    <el-link underline="never">
       <el-link
         type="info"
-        :underline="false"
+        underline="never"
       >
         <common-icon
           :size="iconSize"
@@ -49,7 +49,7 @@ defineEmits(['enterDropdown', 'leaveDropdown', 'showDropdown'])
           @click="handler.handler"
         >
           <el-link
-            :underline="false"
+            underline="never"
             :type="handler.type || 'default'"
           >
             <common-icon

@@ -338,7 +338,7 @@ defineExpose(handlerData)
           style="margin-right: auto;"
         >{{ shareDoc.shareName }}</span>
         <el-link
-          :underline="false"
+          underline="never"
           class="margin-right2"
         >
           <common-icon
@@ -362,7 +362,7 @@ defineExpose(handlerData)
         />
         <el-link
           v-if="showClose"
-          :underline="false"
+          underline="never"
           class="margin-left2"
         >
           <common-icon

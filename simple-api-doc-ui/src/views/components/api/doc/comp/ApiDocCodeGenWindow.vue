@@ -122,7 +122,7 @@ const generateSelectedDocs = (data) => {
     <template #header>
       {{ $t('api.label.generateClientCode') }}
       <el-link
-        :underline="false"
+        underline="never"
         href="https://openapi-generator.tech/"
         target="_blank"
       >

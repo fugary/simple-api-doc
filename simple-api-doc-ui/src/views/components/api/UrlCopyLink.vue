@@ -41,7 +41,7 @@ const copyInfo = () => {
     v-if="showLink"
     v-common-tooltip="tooltip"
     type="primary"
-    :underline="false"
+    underline="never"
     v-bind="$attrs"
     @click="copyInfo"
   >

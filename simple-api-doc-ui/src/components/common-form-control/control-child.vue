@@ -70,7 +70,7 @@ const tooltipFunc = ($event) => {
     >
       <span>
         <el-link
-          :underline="false"
+          underline="never"
           @click="tooltipFunc($event)"
         >&nbsp;
           <common-icon
