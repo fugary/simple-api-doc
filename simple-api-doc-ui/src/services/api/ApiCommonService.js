@@ -2,7 +2,7 @@ import { $coreConfirm, formatDate, getSingleSelectOptions, isUserAdmin, useCurre
 import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
-import { cloneDeep, isArray, isFunction, isString } from 'lodash-es'
+import { cloneDeep, isArray, isFunction, isObject, isString } from 'lodash-es'
 import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { processSchemas, removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
@@ -85,8 +85,8 @@ export const calcSuggestionsFunc = (keySuggestions) => {
     return keySuggestions
   } else if (isArray(keySuggestions)) {
     return (queryString, cb) => {
-      const dataList = keySuggestions.filter(item => item.toLowerCase().includes(queryString?.toLowerCase()))
-        .map(value => ({ value }))
+      const dataList = keySuggestions.map(value => isObject(value) ? value : ({ value }))
+        .filter(item => item?.value?.toLowerCase?.().includes(queryString?.toLowerCase()))
       cb(dataList)
     }
   }

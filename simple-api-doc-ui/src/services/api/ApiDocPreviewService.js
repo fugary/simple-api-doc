@@ -1,5 +1,5 @@
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
-import { cloneDeep, isArray, isString, lowerCase } from 'lodash-es'
+import { cloneDeep, isArray, isObject, isString, lowerCase } from 'lodash-es'
 import { hasLoading } from '@/vendors/axios'
 import {
   FORM_DATA,
@@ -203,13 +203,31 @@ export const calcSchemaParameters = (parametersSchema, componentMap, filter = it
     if (isArray(paramSchemas)) {
       return paramSchemas.filter(filter).map(param => {
         param.schema && processSchema(param, componentMap, true)
+        console.log('==============param', param)
+        const array = param.schema?.type === 'array'
+        const valueSuggestions = param.schema?.enum || []
+        let slots = null
+        if (!valueSuggestions.length && isObject(param.examples)) {
+          Object.values(param.examples).forEach(item => valueSuggestions.push(item))
+          slots = {
+            default: (data) => {
+              const item = data.item
+              return isObject(item) ? `${item.value} - ${item.description}` : item
+            }
+          }
+        }
         return {
           name: param.name,
           value: param.schema?.default || '',
           enabled: true,
+          array,
           valueRequired: param.required,
-          valueSuggestions: param.schema?.enum,
-          dynamicOption: () => ({ required: param.required })
+          valueSuggestions,
+          dynamicOption: () => ({
+            placeholder: param?.description || param.name,
+            required: param.required,
+            slots
+          })
         }
       })
     }
