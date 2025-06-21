@@ -46,7 +46,7 @@ const requestUrl = computed(() => {
   return joinPath(paramTarget.value.targetUrl, reqUrl)
 })
 
-const emit = defineEmits(['sendRequest'])
+const emit = defineEmits(['sendRequest', 'resetRequestForm'])
 
 const sendRequest = (form) => {
   form.validate(valid => {
@@ -144,6 +144,7 @@ const docFormOption = computed(() => {
             :schema-type="paramTarget.requestContentType"
             :schema-body="paramTarget.requestBodySchema"
             :examples="requestExamples"
+            @reset-request-form="$emit('resetRequestForm')"
           />
           <ApiRequestFormRes
             v-if="responseTarget"

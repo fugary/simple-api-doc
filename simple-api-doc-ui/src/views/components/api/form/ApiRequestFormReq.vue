@@ -57,8 +57,6 @@ const paramTarget = defineModel('modelValue', {
 
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, normalLanguageSelectOption, formatDocument, checkEditorLang } = useMonacoEditorOptions({ readOnly: false })
 const codeHeight = '300px'
-contentRef.value = paramTarget.value?.requestBody
-languageRef.value = paramTarget.value?.requestFormat || languageRef.value
 
 const customLanguageSelectOption = computed(() => {
   return {
@@ -96,12 +94,15 @@ watch(contentRef, val => {
 })
 
 const currentTabName = ref('requestParamsTab')
-const authContentModel = ref({
-  authType: AUTH_TYPE.NONE
-})
+const authContentModel = ref({})
 const paramList = ['requestBody', 'pathParams', 'requestParams', 'headerParams']
 const hasInheritAuth = ref(false)
-if (paramTarget.value) {
+const initParamTarget = () => {
+  contentRef.value = paramTarget.value?.requestBody
+  languageRef.value = paramTarget.value?.requestFormat || languageRef.value
+  authContentModel.value = {
+    authType: AUTH_TYPE.NONE
+  }
   currentTabName.value = paramTarget.value.method !== 'GET' ? 'requestBodyTab' : 'requestParamsTab'
   for (const key of paramList) {
     if (paramTarget.value[key]?.length) {
@@ -119,6 +120,7 @@ if (paramTarget.value) {
     paramTarget.value.authContent = authContentModel.value
   }
 }
+initParamTarget()
 const authValid = ref(true)
 
 const generateSample = async (schema) => {
@@ -170,6 +172,14 @@ const viewSchemaBody = () => {
 
 const supportedGenerates = computed(() => generateSampleCheckResults(props.schemaBody))
 
+const emit = defineEmits(['resetRequestForm'])
+const resetRequestForm = () => {
+  emit('resetRequestForm')
+  setTimeout(() => {
+    initParamTarget()
+  })
+}
+
 </script>
 
 <template>
@@ -182,6 +192,13 @@ const supportedGenerates = computed(() => generateSampleCheckResults(props.schem
     <template
       #add-icon
     >
+      <el-link
+        type="primary"
+        style="margin-top: -11px"
+        @click="resetRequestForm"
+      >
+        {{ $t('common.label.reset') }}
+      </el-link>
       <common-form-control
         :option="proxyModeOption"
         :model="paramTarget"

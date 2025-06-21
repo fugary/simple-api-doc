@@ -53,6 +53,12 @@ watch(paramTarget, () => {
   }
 }, { deep: true })
 
+const resetParamTarget = () => {
+  paramTarget.value = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
+  envConfigs.value = getEnvConfigs(apiDocDetail.value)
+  paramTarget.value.targetUrl = apiDocDetail.value.targetUrl || envConfigs.value[0]?.url
+}
+
 const requestPath = computed(() => {
   if (apiDocDetail.value) {
     return apiDocDetail.value.url
@@ -150,6 +156,7 @@ defineExpose({
       :response-target="responseTarget"
       v-bind="$attrs"
       @send-request="doDataPreview"
+      @reset-request-form="resetParamTarget"
     />
   </el-container>
 </template>
