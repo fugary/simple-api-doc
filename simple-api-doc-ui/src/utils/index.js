@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { markRaw, ref, h } from 'vue'
-import { isObject, isArray, set, isNumber, isFunction, cloneDeep } from 'lodash-es'
+import { isObject, isArray, set, isNumber, isFunction, cloneDeep, isBoolean } from 'lodash-es'
 import { ElLoading, ElMessageBox, ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import numeral from 'numeral'
@@ -37,6 +37,10 @@ export const useCurrentUserName = () => {
 
 export const isUserAdmin = userName => {
   return userName === 'admin'
+}
+
+export const isCurrentUser = userName => {
+  return useCurrentUserName() === userName
 }
 
 export const useSystemKey = () => {
@@ -136,7 +140,8 @@ export const addParamsToURL = (url, params = {}) => {
   const hasParams = queryIndex > -1
   const getParams = hasParams ? fromGetParams(url.substring(queryIndex + 1)) : {}
   const baseUrl = hasParams ? url.substring(0, queryIndex) : url
-  return `${baseUrl}?${toGetParams({ ...getParams, ...params })}`
+  const getParamsStr = toGetParams({ ...getParams, ...params })
+  return `${baseUrl}${getParamsStr ? `?${getParamsStr}` : ''}`
 }
 
 /**
@@ -154,21 +159,57 @@ export const getSingleSelectOptions = (...dataList) => {
 let router = null
 /**
  * @param {string|RouteLocationRaw|number} path 路径、路由对象、数字
- * @param replace 是否用replace方法
+ * @param {{replace?: Boolean, cache?: Boolean, currentPath2Close?: string}} config replace、是否使用跳转页面的缓存、是否关闭当前页面
  * @return {*|Promise<T>}
  */
-export const $goto = (path, replace = false) => {
+export const $goto = (path, config) => {
+  if (isBoolean(config)) { // 兼容原来的replace参数
+    config = { replace: config }
+  }
+  config = config || {}
+  if (config.cache === false) {
+    $removeTabCache(path)
+  }
+  if (config.currentPath2Close) {
+    $closeCurrentTab(config.currentPath2Close)
+  }
   path = path || -1
   if (isNumber(path)) {
     return Promise.resolve().then(() => router?.go(path))
   } else {
-    if (replace) {
+    if (config.replace) {
       return router?.replace(path)
     } else {
       return router?.push(path)
     }
   }
 }
+/**
+ * 清理tab的缓存
+ *
+ * @param path
+ */
+export const $removeTabCache = path => {
+  const tabsViewStore = useTabsViewStore()
+  if (tabsViewStore.isTabMode && tabsViewStore.isCachedTabMode) {
+    const historyTab = tabsViewStore.findHistoryTab(path)
+    if (historyTab) {
+      console.log('=========================removeTabCache', path)
+      tabsViewStore.removeCachedTab(historyTab)
+    }
+  }
+}
+
+/**
+ * 关闭当前tab
+ */
+export const $closeCurrentTab = (currentPath) => {
+  const tabsViewStore = useTabsViewStore()
+  if (tabsViewStore.isTabMode) {
+    tabsViewStore.removeHistoryTab({ path: currentPath })
+  }
+}
+
 // 定制窗口打开模式
 const oriOpen = window.open
 /**
@@ -209,6 +250,7 @@ export const useBackUrl = (defaultUrl) => {
     backUrl.value = url
   }
   const goBack = () => {
+    console.info('===================================goback', backUrl.value, window.history)
     if (backUrl.value) {
       if (REMEMBER_SEARCH_PARAM_ENABLED && useGlobalConfigStore().loadSaveParamMode === LoadSaveParamMode.BACK) {
         useGlobalSearchParamStore().setSaveParamBack(true)
@@ -385,8 +427,8 @@ export const $currencyShort = (value, prefix) => {
  * @type {CopyTextConfig}
  */
 const defaultCopyConfig = {
-  success: 'Copied Successfully!',
-  error: 'Copy Not supported!'
+  successKey: 'common.msg.copySuccess',
+  errorKey: 'common.msg.copyError'
 }
 /**
  * @param text {string | CopyTextConfig} 需要复制的文本
@@ -405,12 +447,12 @@ export const $copyText = (text) => {
       if (isSupported) {
         copy(config.text)
         ElMessage({
-          message: config.success,
+          message: config.success || $i18nBundle(config.successKey),
           type: 'success'
         })
       } else {
         ElMessage({
-          message: config.error,
+          message: config.error || $i18nBundle(config.errorKey),
           type: 'error'
         })
       }

@@ -1,5 +1,8 @@
 <script setup>
 import { $copyText, getPathUrl } from '@/utils'
+import { isExternalLink } from '@/components/utils'
+import { computed } from 'vue'
+import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
   showLink: {
@@ -16,7 +19,7 @@ const props = defineProps({
   },
   tooltip: {
     type: String,
-    default: 'Click to copy'
+    default: null
   },
   icon: {
     type: String,
@@ -24,15 +27,23 @@ const props = defineProps({
   }
 })
 
-const copyInfo = () => {
+const info = computed(() => {
   let info = props.content
   if (!info && props.urlPath) {
     info = getPathUrl(props.urlPath)
   }
-  if (info) {
-    $copyText(info)
+  return info
+})
+
+const copyInfo = () => {
+  if (info.value) {
+    $copyText(info.value)
   }
 }
+
+const externalLink = computed(() => isExternalLink(info.value) ? info.value : '')
+
+const tooltip = computed(() => props.tooltip ?? $i18nBundle('common.msg.clickToCopy'))
 
 </script>
 
@@ -40,15 +51,18 @@ const copyInfo = () => {
   <el-link
     v-if="showLink"
     v-common-tooltip="tooltip"
+    v-open-new-window="externalLink"
     type="primary"
     underline="never"
     v-bind="$attrs"
     @click="copyInfo"
   >
-    <common-icon
-      :size="18"
-      :icon="icon"
-    />
+    <slot>
+      <common-icon
+        :size="18"
+        :icon="icon"
+      />
+    </slot>
   </el-link>
 </template>
 
