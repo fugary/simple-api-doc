@@ -60,7 +60,7 @@ const supportedAuthTypes = ref()
 const authContentModel = ref(getAuthContentModel())
 const loading = ref(false)
 const historyCount = ref(0)
-const viewAsMarkdown = ref(false)
+const viewAsMarkdown = computed(() => sharePreference?.viewAsMarkdown)
 const loadDocDetail = async () => {
   if (loading.value) {
     return
@@ -176,7 +176,7 @@ const { isSmallContainer, containerRef } = useContainerCheck()
     />
     <api-doc-path-header
       v-model="apiDocDetail"
-      v-model:view-as-markdown="viewAsMarkdown"
+      v-model:view-as-markdown="sharePreference.viewAsMarkdown"
       :env-configs="envConfigs"
       :debug-enabled="!isMobile&&(apiDocDetail?.apiShare?.debugEnabled||!shareDoc)"
       view-as-enabled
