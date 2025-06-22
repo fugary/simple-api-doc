@@ -48,7 +48,7 @@ const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
         {{ folderPath }}
       </el-breadcrumb-item>
     </el-breadcrumb>
-    <h2>
+    <h2 class="margin-bottom2">
       {{ currentDoc?.docName || currentDoc?.url }}
       <el-button
         v-if="editable"
@@ -70,14 +70,16 @@ const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
         </el-text>
       </el-link>
       <!-- 添加修改人和修改时间 -->
-      <el-row v-if="docDetailInfo&&(docDetailInfo.modifier||docDetailInfo.creator)">
+      <el-row v-if="docDetailInfo&&(docDetailInfo.modifyDate||docDetailInfo.createDate)">
         <el-col>
-          <el-text type="info">
-            {{ $t('common.label.modifier') }}: {{ docDetailInfo.modifier||docDetailInfo.creator }}
+          <el-text
+            type="info"
+            class="margin-right3"
+          >
+            {{ $t('common.label.modifier') }}: {{ docDetailInfo.modifier||docDetailInfo.creator||'import' }}
           </el-text>
           <el-text
             type="info"
-            class="margin-left3"
           >
             {{ $t('common.label.modifyDate') }}: {{ $date(docDetailInfo.modifyDate||docDetailInfo.createDate, 'YYYY-MM-DD HH:mm') }}
           </el-text>

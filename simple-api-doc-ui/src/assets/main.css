@@ -574,6 +574,7 @@ html, body, #app, .index-container {
 .md-doc-container {
     flex-grow: 1;
     container-type: inline-size;
+    padding: 10px;
 }
 .md-doc-catalog {
     max-width: 35%;
