@@ -18,7 +18,7 @@ export default [{
     component: () => import('@/views/api/project/ApiProjectEdit.vue'),
     meta: {
       replaceTabHistory: 'ApiProjects',
-      labelKey: 'api.label.apiProjects',
+      labelKey: 'api.label.apiProjectDetails',
       icon: 'List',
       hideCopyRight: true
     }
