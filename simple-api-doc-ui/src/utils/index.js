@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { markRaw, ref, h } from 'vue'
+import { markRaw, ref, h, nextTick } from 'vue'
 import { isObject, isArray, set, isNumber, isFunction, cloneDeep, isBoolean } from 'lodash-es'
 import { ElLoading, ElMessageBox, ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
@@ -547,6 +547,19 @@ export const $downloadWithLinkClick = (downloadUrl) => {
   downloadLink.href = downloadUrl
   downloadLink.download = 'download'
   downloadLink.click()
+}
+
+/**
+ * 清空并设置
+ * @param valueRef
+ * @param newValue
+ * @param emptyValue
+ */
+export const clearAndSetValue = (valueRef, newValue, emptyValue) => {
+  valueRef.value = emptyValue
+  return nextTick(() => {
+    valueRef.value = newValue
+  })
 }
 
 export default {

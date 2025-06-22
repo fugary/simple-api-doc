@@ -34,8 +34,8 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import ApiFolderApi, { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
-import { cloneDeep } from 'lodash-es'
-import { useReload } from '@/utils'
+import { cloneDeep, debounce } from 'lodash-es'
+import { clearAndSetValue, useReload } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 
 const globalConfigStore = useGlobalConfigStore()
@@ -121,7 +121,7 @@ const showDocDetails = (doc, edit) => {
       treeRef.value?.setCurrentKey(doc.id)
     }
     doc.editing = !!edit
-    currentDoc.value = doc
+    clearAndSetValue(currentDoc, doc)
     sharePreference.lastDocId = doc.id
   }
 }
@@ -173,13 +173,15 @@ const treeProps = {
 const treeRef = ref()
 const showFolderTree = ref(true)
 
-const refreshFolderTree = () => {
+const refreshFolderTreeInternal = () => {
   showFolderTree.value = false
   nextTick(() => {
     calcProjectItemInfo()
     showFolderTree.value = true
   })
 }
+
+const refreshFolderTree = debounce(refreshFolderTreeInternal, 300)
 
 const refreshProjectItem = (...args) => {
   return new Promise((resolve, reject) => {
