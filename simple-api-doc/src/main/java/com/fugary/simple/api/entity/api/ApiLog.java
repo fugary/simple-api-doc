@@ -26,6 +26,7 @@ public class ApiLog implements Serializable {
     private String logData;
     private String ipAddress;
     private String headers;
+    private String responseHeaders;
     private String requestUrl;
     private String responseBody;
     private Long logTime;

@@ -31,6 +31,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
@@ -65,7 +66,8 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
     public SimpleResult<ApiProject> importProject(ApiProjectTask projectTask) {
         long start = System.currentTimeMillis();
         HttpServletRequest request = HttpRequestUtils.getCurrentRequest();
-        boolean manual = request != null;
+        HttpServletResponse response = HttpRequestUtils.getCurrentResponse();
+        boolean manual = request != null && response != null;
         Date createDate = new Date();
         ApiLog.ApiLogBuilder logBuilder = ApiLog.builder()
                 .ipAddress(manual ? HttpRequestUtils.getIp(request) : HttpRequestUtils.calcFirstLocalIp())
@@ -75,6 +77,7 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                 .projectId(String.valueOf(projectTask.getProjectId()))
                 .dataId(String.valueOf(projectTask.getId()))
                 .headers(manual ? JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)) : null)
+                .responseHeaders(manual ? JsonUtils.toJson(HttpRequestUtils.getResponseHeadersMap(response)) : null)
                 .requestUrl(manual ? HttpRequestUtils.getRequestUrl(request) : null)
                 .createDate(createDate);
         if (StringUtils.isNotBlank(projectTask.getSourceUrl())) {

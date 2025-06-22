@@ -30,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -121,6 +122,10 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                 ResponseEntity<?> responseEntity = ((ResponseEntity<?>) result);
                 success = responseEntity.getStatusCode().is2xxSuccessful();
                 logBuilder.responseBody(SimpleLogUtils.getResponseBody(responseEntity));
+            }
+            HttpServletResponse response = HttpRequestUtils.getCurrentResponse();
+            if (response != null) {
+                logBuilder.responseHeaders(JsonUtils.toJson(HttpRequestUtils.getResponseHeadersMap(response)));
             }
             logBuilder.logResult(success ? ApiDocConstants.SUCCESS : ApiDocConstants.FAIL);
             Pair<Boolean, LoginVo> loginPair = checkLogin(logName, args);

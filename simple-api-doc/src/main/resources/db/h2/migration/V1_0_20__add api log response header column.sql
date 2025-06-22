@@ -1,0 +1,1 @@
+ALTER TABLE t_api_log ADD COLUMN response_headers text;

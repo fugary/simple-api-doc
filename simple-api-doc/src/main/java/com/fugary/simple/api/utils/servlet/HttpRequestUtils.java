@@ -247,4 +247,17 @@ public class HttpRequestUtils {
 		}
 		return requestHeaders;
 	}
+
+	/**
+	 * 响应头获取
+	 * @param response
+	 */
+	public static Map<String, String> getResponseHeadersMap(HttpServletResponse response){
+		Collection<String> resHeaders = response.getHeaderNames();
+		Map<String, String> requestHeaders = new HashMap<>();
+		for (String resHeader : resHeaders) {
+			requestHeaders.put(resHeader, response.getHeader(resHeader));
+		}
+		return requestHeaders;
+	}
 }
