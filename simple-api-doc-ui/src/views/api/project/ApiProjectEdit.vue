@@ -25,9 +25,10 @@ const { projectItem, loading, loadProjectItem } = useApiProjectItem(projectCode,
 const folderTreeRef = ref()
 const currentDoc = ref(null)
 const savedApiDoc = (newDoc) => {
-  currentDoc.value = newDoc
   if (folderTreeRef.value?.sharePreference) {
-    folderTreeRef.value.sharePreference.lastDocId = currentDoc.value.id
+    folderTreeRef.value.sharePreference.lastDocId = newDoc.id
+  } else {
+    currentDoc.value = newDoc
   }
   folderTreeRef.value?.refreshProjectItem()
 }
