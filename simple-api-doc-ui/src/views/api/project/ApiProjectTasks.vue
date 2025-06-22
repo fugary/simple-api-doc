@@ -79,7 +79,7 @@ const columns = [{
       groupInfo = projectGroupOptions.value.find(group => group.value === data.project?.groupCode)?.label
     }
     return <>
-      <ElLink type="primary" onClick={() => $goto(url)}>{data.project?.projectName}</ElLink>
+      <ElLink type="primary" onClick={() => inProject ? goBack() : $goto(url)}>{data.project?.projectName}</ElLink>
       {groupInfo ? <><br/><ElText type="info">{`(${groupInfo})`}</ElText></> : ''}
     </>
   },

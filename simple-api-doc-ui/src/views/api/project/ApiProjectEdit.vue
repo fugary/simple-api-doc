@@ -13,11 +13,13 @@ import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
 import { toEditEnvConfigs } from '@/utils/DynamicUtils'
+import { $i18nKey } from '@/messages'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
 
-const { goBack } = useBackUrl('/api/projects')
+const defaultProjectUrl = '/api/projects'
+const { goBack, backUrl } = useBackUrl('/api/projects')
 const { projectItem, loading, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false })
 
 const folderTreeRef = ref()
@@ -77,6 +79,14 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
           v-if="projectItem"
           class="flex items-center"
         >
+          <el-link
+            v-if="defaultProjectUrl!==backUrl"
+            type="primary"
+            class="margin-right3"
+            @click="$goto(defaultProjectUrl)"
+          >
+            {{ $i18nKey('common.label.commonBack', 'api.label.apiProjects') }}
+          </el-link>
           <el-button
             @click="goBack"
           >
@@ -98,7 +108,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
           >
             <el-button
               type="primary"
-              @click="$goto(`/api/projects/shares/${projectItem.projectCode}`)"
+              @click="$goto(`/api/projects/shares/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
             >
               <common-icon
                 icon="Share"
@@ -116,7 +126,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
           >
             <el-button
               type="success"
-              @click="$goto(`/api/projects/tasks/${projectItem.projectCode}`)"
+              @click="$goto(`/api/projects/tasks/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
             >
               <common-icon
                 icon="InputFilled"
