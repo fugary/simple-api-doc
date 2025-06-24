@@ -35,7 +35,7 @@ import ApiFolderApi, { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep, debounce } from 'lodash-es'
-import { clearAndSetValue, useReload } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 
 const globalConfigStore = useGlobalConfigStore()
@@ -96,7 +96,9 @@ const calcProjectItemInfo = () => {
 }
 
 //* ************搜索框**************//
-const searchParam = ref({})
+const searchParam = ref({
+  keyword: ''
+})
 const searchFormOption = computed(() => {
   return {
     labelWidth: '1px',
@@ -184,12 +186,16 @@ const refreshFolderTreeInternal = () => {
 const refreshFolderTree = debounce(refreshFolderTreeInternal, 300)
 
 const refreshProjectItem = (...args) => {
+  $coreShowLoading({ delay: 0 })
   return new Promise((resolve, reject) => {
     if (projectItem.value?.projectCode) {
       loadDetail(projectItem.value.projectCode).then(data => {
         projectItem.value = data
         resolve(projectItem.value, ...args)
-        refreshFolderTree()
+        setTimeout(() => {
+          refreshFolderTreeInternal()
+          $coreHideLoading()
+        })
       }, reject)
     }
   })
