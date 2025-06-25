@@ -524,7 +524,7 @@ html, body, #app, .index-container {
 
 .scroll-main-container {
     flex-grow: 1;
-    overflow-y: auto;
+    overflow-y: hidden;
     padding-bottom: 10px;
 }
 
