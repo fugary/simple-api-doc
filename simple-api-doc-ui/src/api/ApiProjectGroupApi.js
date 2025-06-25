@@ -1,7 +1,7 @@
 import { useResourceApi } from '@/hooks/ApiHooks'
 import { $http, $httpPost } from '@/vendors/axios'
 import { ref } from 'vue'
-import { isAdminUser, useCurrentUserName } from '@/utils'
+import { useCurrentUserName } from '@/utils'
 import { checkCurrentAuthAccess } from '@/services/api/ApiCommonService'
 
 const BASE_URL = '/admin/groups'
@@ -55,9 +55,6 @@ export const useSelectProjectGroups = (searchParam) => {
     })
     const currentGroup = projectGroups.value.find(group => group.groupCode === searchParam.value.groupCode)
     searchParam.value.projectCode = currentGroup?.projectCode
-    if (isAdminUser() && currentGroup?.userName) {
-      searchParam.value.userName = currentGroup.userName
-    }
   }
 
   const projectCheckAccess = (groupCode, authority) => {
