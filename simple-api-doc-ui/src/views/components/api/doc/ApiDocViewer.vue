@@ -200,8 +200,6 @@ const { isSmallContainer, containerRef } = useContainerCheck()
         <md-preview
           v-if="docContent"
           class="md-doc-container"
-          no-mermaid
-          no-katex
           :theme="theme"
           :model-value="docContent"
         />
@@ -227,8 +225,6 @@ const { isSmallContainer, containerRef } = useContainerCheck()
           class="md-doc-container"
           editor-id="api-doc-preview-only"
           :theme="theme"
-          no-mermaid
-          no-katex
           :model-value="apiDocDetail.apiMarkdown"
         />
         <el-scrollbar

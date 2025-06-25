@@ -88,8 +88,6 @@ const { isSmallContainer, containerRef } = useContainerCheck()
         class="md-doc-container"
         :editor-id="id"
         :theme="theme"
-        no-mermaid
-        no-katex
         :model-value="currentDoc.docContent"
       />
       <el-scrollbar

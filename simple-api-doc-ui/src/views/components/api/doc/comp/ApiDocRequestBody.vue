@@ -57,8 +57,6 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
           <md-preview
             v-if="requestsSchema.description"
             class="md-doc-container"
-            no-mermaid
-            no-katex
             :theme="theme"
             :model-value="requestsSchema.description"
           />
