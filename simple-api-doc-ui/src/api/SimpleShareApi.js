@@ -23,11 +23,16 @@ const getShareConfig = (shareId) => {
 export const getEnvConfigs = (apiDocDetail) => {
   const apiShare = apiDocDetail?.apiShare
   const projectInfoDetail = apiDocDetail?.projectInfoDetail
-  const envContent = apiShare?.envContent || projectInfoDetail?.envContent
+  return mergeEnvConfigs(apiShare?.envContent, projectInfoDetail?.envContent)
+}
+
+export const mergeEnvConfigs = (envContent, projectEnvContent) => {
+  const projectConfigs = (JSON.parse(projectEnvContent) || []).filter(item => !item.disabled)
   if (envContent) {
-    return JSON.parse(envContent) || []
+    const sharedUrls = (JSON.parse(envContent) || []).map(item => item.url)
+    return projectConfigs.filter(item => !sharedUrls.includes(item.url))
   }
-  return []
+  return projectConfigs
 }
 
 export const loadShare = function ({ shareId, password }, config) {

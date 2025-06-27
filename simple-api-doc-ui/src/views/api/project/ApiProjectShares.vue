@@ -285,9 +285,7 @@ const envConfigs = computed(() => {
       return []
     }).reduce((results, env) => {
       const existsIndex = results.findIndex(result => result.url === env.url)
-      if (existsIndex > -1) {
-        results[existsIndex] = env
-      } else {
+      if (existsIndex <= -1) {
         results.push(env)
       }
       return results
@@ -297,7 +295,7 @@ const envConfigs = computed(() => {
 })
 
 const editFormOptions = computed(() => {
-  const envOptions = envConfigs.value.map(env => {
+  const envOptions = envConfigs.value.filter(env => !env.disabled).map(env => {
     return {
       value: env.url,
       label: env.name || $i18nBundle('api.label.defaultAddress')
