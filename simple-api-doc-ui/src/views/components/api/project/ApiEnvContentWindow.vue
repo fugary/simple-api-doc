@@ -15,7 +15,7 @@ let callback
 const toEditEnvConfigs = (projectInfo) => {
   projectInfoItem.value = projectInfo
   showWindow.value = true
-  infoConfig.value.envConfigs = JSON.parse(projectInfo.envContent)
+  infoConfig.value.envConfigs = JSON.parse(projectInfo.envContent) || []
   return new Promise(resolve => (callback = resolve))
 }
 
@@ -40,6 +40,15 @@ const saveInfoEnvConfigs = ({ form }) => {
 const paramsOptions = computed(() => {
   return infoConfig.value.envConfigs.map((config) => {
     return defineFormOptions([{
+      labelWidth: '30px',
+      prop: 'disabled',
+      type: 'switch',
+      attrs: {
+        activeValue: false,
+        inactiveValue: true
+      },
+      colSpan: 2
+    }, {
       labelWidth: '150px',
       labelKey: 'api.label.environmentName',
       prop: 'name',
@@ -50,7 +59,7 @@ const paramsOptions = computed(() => {
       labelKey: 'api.label.url',
       labelWidth: '130px',
       prop: 'url',
-      colSpan: 13,
+      colSpan: 11,
       required: true,
       pattern: /https?:\/\/.*/,
       disabled: !config.manual
@@ -102,15 +111,6 @@ const paramsOptions = computed(() => {
           class="padding-left2 padding-top1"
         >
           <el-button
-            v-if="index===infoConfig.envConfigs.length-1"
-            type="success"
-            size="small"
-            circle
-            @click="infoConfig.envConfigs.push({manual: true})"
-          >
-            <common-icon icon="Plus" />
-          </el-button>
-          <el-button
             v-if="item.manual"
             type="danger"
             size="small"
@@ -118,6 +118,18 @@ const paramsOptions = computed(() => {
             @click="infoConfig.envConfigs.splice(index, 1)"
           >
             <common-icon icon="Delete" />
+          </el-button>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col>
+          <el-button
+            type="primary"
+            size="small"
+            @click="infoConfig.envConfigs.push({manual: true})"
+          >
+            <common-icon icon="Plus" />
+            {{ $t('common.label.add') }}
           </el-button>
         </el-col>
       </el-row>

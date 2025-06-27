@@ -20,4 +20,5 @@ public class ExportEnvConfigVo implements Serializable {
     private String name;
     private String url;
     private Boolean manual;
+    private Boolean disabled;
 }
