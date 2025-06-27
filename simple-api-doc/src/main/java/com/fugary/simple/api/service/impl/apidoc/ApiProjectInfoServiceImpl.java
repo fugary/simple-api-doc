@@ -59,7 +59,7 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
             if (importExists && (existsProjectInfo = loadByProjectId(projectInfoVo.getProjectId(), projectInfoVo.getFolderId())) != null) {
                 List<ExportEnvConfigVo> mergedEnvConfigs = ApiDocParseUtils.mergeEnvConfigs(existsProjectInfo.getEnvContent(), projectInfoVo.getEnvContent());
                 SimpleModelUtils.copyNoneNullValue(existsProjectInfo, projectInfoVo);
-                existsProjectInfo.setEnvContent(JsonUtils.toJson(mergedEnvConfigs));
+                projectInfoVo.setEnvContent(JsonUtils.toJson(mergedEnvConfigs));
             }
             saveOrUpdate(SimpleModelUtils.addAuditInfo(projectInfoVo));
         }

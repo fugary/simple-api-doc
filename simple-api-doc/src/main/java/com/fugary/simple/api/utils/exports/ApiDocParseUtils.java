@@ -211,6 +211,12 @@ public class ApiDocParseUtils {
     }
 
     public static List<ExportEnvConfigVo> mergeEnvConfigs(List<ExportEnvConfigVo> savedEnvConfigs, List<ExportEnvConfigVo> envConfigs) {
+        for (ExportEnvConfigVo envConfig : envConfigs) {
+            int index = SimpleModelUtils.indexOf(savedEnvConfigs, envConfig, Comparator.comparing(ExportEnvConfigVo::getUrl));
+            if (index > -1) {
+                SimpleModelUtils.copyNoneNullValue(savedEnvConfigs.get(index), envConfig);
+            }
+        }
         savedEnvConfigs.removeIf(savedConfig -> !Boolean.TRUE.equals(savedConfig.getManual()));
         savedEnvConfigs.addAll(0, envConfigs);
         return savedEnvConfigs;
@@ -219,7 +225,7 @@ public class ApiDocParseUtils {
     public static List<ExportEnvConfigVo> mergeEnvConfigs(String savedEnvConfigStr, String envConfigStr) {
         TypeReference<List<ExportEnvConfigVo>> typeReference = new TypeReference<>() {};
         List<ExportEnvConfigVo> savedEnvConfigs = StringUtils.isNotBlank(savedEnvConfigStr)? JsonUtils.fromJson(savedEnvConfigStr, typeReference): new ArrayList<>();
-        List<ExportEnvConfigVo> envConfigs = StringUtils.isNotBlank(savedEnvConfigStr)? JsonUtils.fromJson(envConfigStr, typeReference): new ArrayList<>();
+        List<ExportEnvConfigVo> envConfigs = StringUtils.isNotBlank(envConfigStr)? JsonUtils.fromJson(envConfigStr, typeReference): new ArrayList<>();
         return mergeEnvConfigs(savedEnvConfigs, envConfigs);
     }
 }
