@@ -33,7 +33,7 @@ const projectCode = route.params.projectCode
 const inProject = !!projectCode
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
-const { folderTreeNodes, loadValidFolders } = useFolderTreeNodes()
+const { folderTreeNodes, loadValidFolders, getToFolder } = useFolderTreeNodes()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -262,7 +262,8 @@ const newOrEdit = async (id) => {
   }
   showEditWindow.value = true
 }
-
+const { projectItem: formProjectItem, loadProjectItem: loadFormProjectItem } = useApiProjectItem(null, { autoLoad: false, detail: false })
+const importFolders = computed(() => formProjectItem.value?.infoList?.map(info => info.folderId) || [])
 const editFormOptions = computed(() => {
   let authOptions = AUTH_OPTION_CONFIG[currentModel.value?.authType]?.options || []
   if (isFunction(authOptions)) {
@@ -303,7 +304,8 @@ const editFormOptions = computed(() => {
     children: filteredProjectOptions,
     change: async (projectId) => {
       await loadValidFolders(projectId)
-      currentModel.value.toFolder = folderTreeNodes.value[0]?.id
+      await loadFormProjectItem(filteredProjectOptions.find(option => option.value === projectId)?.projectCode)
+      currentModel.value.toFolder = getToFolder(formProjectItem.value?.infoList?.[0]?.folderId)
     }
   }, {
     labelKey: 'api.label.importData',
@@ -359,7 +361,9 @@ const editFormOptions = computed(() => {
       defaultExpandedKeys: folderTreeNodes.value[0]?.id ? [folderTreeNodes.value[0]?.id] : []
     },
     slots: {
-      default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder"/>
+      default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder">
+        {node.label} {importFolders.value?.includes(node.data?.id) ? <ElText type="success">({$i18nBundle('api.label.importFolder')})</ElText> : ''}
+      </TreeIconLabel>
     }
   }])
 })

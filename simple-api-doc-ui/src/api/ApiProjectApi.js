@@ -122,7 +122,7 @@ export const useSelectProjects = (searchParam) => {
   const loadSelectProjects = (data, config) => {
     return selectProjects(data, config).then(result => {
       projects.value = result || []
-      projectOptions.value = projects.value.map(project => ({ label: project.projectName, value: project.id, groupCode: project.groupCode }))
+      projectOptions.value = projects.value.map(project => ({ label: project.projectName, value: project.id, groupCode: project.groupCode, projectCode: project.projectCode }))
     })
   }
   const loadProjectsAndRefreshOptions = async () => {
