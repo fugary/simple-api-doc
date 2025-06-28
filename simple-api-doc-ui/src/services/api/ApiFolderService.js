@@ -325,7 +325,14 @@ export const useFolderTreeNodes = (projectId) => {
   if (projectId) {
     loadValidFolders(projectId)
   }
-  return { folderTreeNodes, folders, loadValidFolders }
+  const getToFolder = folderId => {
+    let toFolder = folderTreeNodes.value[0]?.id
+    if (folderId) {
+      toFolder = folders.value?.find(folder => folder.id === folderId)?.id || toFolder
+    }
+    return toFolder
+  }
+  return { folderTreeNodes, folders, loadValidFolders, getToFolder }
 }
 
 export const getChildrenSortId = (folder) => {

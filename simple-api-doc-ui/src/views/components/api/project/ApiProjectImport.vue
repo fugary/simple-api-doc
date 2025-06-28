@@ -9,7 +9,7 @@ import {
   IMPORT_TYPES
   , AUTH_TYPE
 } from '@/consts/ApiConstants'
-import { ElButton, ElUpload } from 'element-plus'
+import { ElButton, ElUpload, ElText } from 'element-plus'
 import {
   calcProjectIconUrl,
   importProject, uploadFiles
@@ -62,10 +62,11 @@ const authOptions = computed(() => {
     }
   })
 })
-const { folderTreeNodes, loadValidFolders } = useFolderTreeNodes()
+const { folderTreeNodes, loadValidFolders, getToFolder } = useFolderTreeNodes()
 loadValidFolders(props.project?.id).then(() => {
-  importModel.value.toFolder = folderTreeNodes.value[0]?.id
+  importModel.value.toFolder = getToFolder(props.project?.infoList?.[0]?.folderId)
 })
+const importFolders = computed(() => props.project?.infoList?.map(info => info.folderId) || [])
 
 const importFiles = ref([])
 const formOptions = computed(() => {
@@ -186,7 +187,9 @@ const formOptions = computed(() => {
       defaultExpandedKeys: folderTreeNodes.value[0]?.id ? [folderTreeNodes.value[0]?.id] : []
     },
     slots: {
-      default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder"/>
+      default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder">
+        {node.label} {importFolders.value?.includes(node.data?.id) ? <ElText type="success">({$i18nBundle('api.label.importFolder')})</ElText> : ''}
+      </TreeIconLabel>
     }
   }, {
     enabled: !props.project?.id && !!props.groupOptions.length,
