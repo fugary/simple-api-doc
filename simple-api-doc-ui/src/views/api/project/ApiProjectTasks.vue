@@ -13,6 +13,7 @@ import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
+import CommonIcon from '@/components/common-icon/index.vue'
 import {
   AUTH_TYPE, AUTHORITY_TYPE,
   IMPORT_AUTH_TYPES,
@@ -264,7 +265,7 @@ const newOrEdit = async (id) => {
   showEditWindow.value = true
 }
 const { projectItem: formProjectItem, loadProjectItem: loadFormProjectItem } = useApiProjectItem(null, { autoLoad: false, detail: false })
-const importFolders = computed(() => formProjectItem.value?.infoList?.map(info => info.folderId) || [])
+const importFolders = computed(() => (formProjectItem.value || projectItem.value)?.infoList?.map(info => info.folderId) || [])
 const editFormOptions = computed(() => {
   let authOptions = AUTH_OPTION_CONFIG[currentModel.value?.authType]?.options || []
   if (isFunction(authOptions)) {
@@ -365,6 +366,7 @@ const editFormOptions = computed(() => {
     slots: {
       default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder">
         {node.label} {importFolders.value?.includes(node.data?.id) ? <ElText type="success">({$i18nBundle('api.label.importFolder')})</ElText> : ''}
+        {node.data?.rootFlag ? <CommonIcon icon="Refresh" v-common-tooltip={$i18nBundle('common.label.refresh')} size={14} class="pointer margin-left2" onClick={() => loadValidFolders(currentModel.value?.projectId)}/> : ''}
       </TreeIconLabel>
     },
     tooltip: $i18nKey('common.label.commonAdd', 'api.label.folder'),
@@ -375,9 +377,9 @@ const editFormOptions = computed(() => {
     tooltipFunc (event) {
       const parentFolder = folders.value.find(folder => currentModel.value?.toFolder === folder.id)
       addOrEditFolderWindow(null, currentModel.value?.projectId, parentFolder, {
-        onSavedFolder: () => {
+        onSavedFolder: (data) => {
           loadValidFolders(currentModel.value?.projectId)
-            .then(data => (currentModel.value.toFolder = data.id))
+            .then(() => (currentModel.value.toFolder = data.id))
         }
       })
       event.preventDefault()
@@ -416,9 +418,8 @@ const isWritable = computed(() => {
     </el-page-header>
     <el-tabs
       v-if="inProject"
-      lazy
     >
-      <el-tab-pane>
+      <el-tab-pane lazy>
         <template #label>
           {{ $t('api.label.autoImportData') }}
         </template>
@@ -454,7 +455,10 @@ const isWritable = computed(() => {
           />
         </el-container>
       </el-tab-pane>
-      <el-tab-pane :disabled="!isWritable">
+      <el-tab-pane
+        :disabled="!isWritable"
+        lazy
+      >
         <template #label>
           {{ $t('api.label.manualImportData') }}
         </template>

@@ -190,6 +190,7 @@ const formOptions = computed(() => {
     slots: {
       default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder">
         {node.label} {importFolders.value?.includes(node.data?.id) ? <ElText type="success">({$i18nBundle('api.label.importFolder')})</ElText> : ''}
+        {node.data?.rootFlag ? <CommonIcon icon="Refresh" v-common-tooltip={$i18nBundle('common.label.refresh')} size={14} class="pointer margin-left2" onClick={() => loadValidFolders(importModel.value?.projectId)}/> : ''}
       </TreeIconLabel>
     },
     tooltip: $i18nKey('common.label.commonAdd', 'api.label.folder'),
@@ -200,9 +201,9 @@ const formOptions = computed(() => {
     tooltipFunc (event) {
       const parentFolder = folders.value.find(folder => importModel.value?.toFolder === folder.id)
       addOrEditFolderWindow(null, props.project?.id, parentFolder, {
-        onSavedFolder: () => {
+        onSavedFolder: (data) => {
           loadValidFolders(props.project?.id)
-            .then(data => (importModel.value.toFolder = data.id))
+            .then(() => (importModel.value.toFolder = data.id))
         }
       })
       event.preventDefault()
