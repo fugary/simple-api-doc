@@ -10,7 +10,7 @@ import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { $i18nBundle, $i18nKey } from '@/messages'
+import { $i18nBundle } from '@/messages'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import {
@@ -20,7 +20,6 @@ import {
   calcNodeLeaf,
   calcShowMergeAllOfHandler,
   calcShowDocLabelHandler,
-  getChildrenSortId,
   getDownloadDocsHandlers,
   calcPreferenceId,
   calcShowCleanHandlers,
@@ -30,13 +29,13 @@ import {
   isTreeNodeFirstFolder
 } from '@/services/api/ApiFolderService'
 import { calcProjectIconUrl, loadDetail } from '@/api/ApiProjectApi'
-import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
-import ApiFolderApi, { updateFolderSorts } from '@/api/ApiFolderApi'
+import { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep, debounce } from 'lodash-es'
 import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
+import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
 
 const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
@@ -201,36 +200,9 @@ const refreshProjectItem = (...args) => {
   })
 }
 
-//* *********文件夹编辑****************//
-const currentEditFolder = ref()
-const showEditWindow = ref(false)
-const editFormOptions = [{
-  labelKey: 'api.label.folderName',
-  prop: 'folderName',
-  placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderName'),
-  required: true
-}]
 const addOrEditFolder = async (id, parentFolder) => {
-  if (id) {
-    await ApiFolderApi.getById(id).then(data => {
-      data.resultData && (currentEditFolder.value = data.resultData)
-    })
-  } else {
-    currentEditFolder.value = {
-      status: 1,
-      projectId: projectItem.value?.id,
-      parentId: parentFolder?.id,
-      sortId: getChildrenSortId(parentFolder)
-    }
-  }
-  showEditWindow.value = true
-}
-const saveFolder = () => {
-  return ApiFolderApi.saveOrUpdate({ ...currentEditFolder.value, children: undefined }, { loading: true }).then(data => {
-    if (data.success) {
-      refreshProjectItem()
-      showEditWindow.value = false
-    }
+  addOrEditFolderWindow(id, projectItem.value.id, parentFolder, {
+    onSavedFolder: () => refreshProjectItem()
   })
 }
 
@@ -489,16 +461,6 @@ defineExpose(handlerData)
         </el-tree>
       </el-scrollbar>
     </el-container>
-    <simple-edit-window
-      v-if="editable"
-      v-model="currentEditFolder"
-      v-model:show-edit-window="showEditWindow"
-      width="500px"
-      :form-options="editFormOptions"
-      :name="$t('api.label.folder')"
-      :save-current-item="saveFolder"
-      label-width="130px"
-    />
     <api-doc-export-window
       v-model:tree-select-keys="exportSelectedKeys"
       v-model="showExportWindow"

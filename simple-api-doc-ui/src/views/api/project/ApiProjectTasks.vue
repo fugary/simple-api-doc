@@ -27,13 +27,14 @@ import dayjs from 'dayjs'
 import { ElLink, ElTag, ElText } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { inProjectCheckAccess, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
 const inProject = !!projectCode
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
-const { folderTreeNodes, loadValidFolders, getToFolder } = useFolderTreeNodes()
+const { folderTreeNodes, folders, loadValidFolders, getToFolder } = useFolderTreeNodes()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -352,6 +353,7 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.targetFolder',
     type: 'tree-select',
     prop: 'toFolder',
+    enabled: !!currentModel.value?.projectId,
     attrs: {
       checkStrictly: true,
       filterable: true,
@@ -364,6 +366,21 @@ const editFormOptions = computed(() => {
       default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder">
         {node.label} {importFolders.value?.includes(node.data?.id) ? <ElText type="success">({$i18nBundle('api.label.importFolder')})</ElText> : ''}
       </TreeIconLabel>
+    },
+    tooltip: $i18nKey('common.label.commonAdd', 'api.label.folder'),
+    tooltipIcon: 'CirclePlusFilled',
+    tooltipLinkAttrs: {
+      type: 'primary'
+    },
+    tooltipFunc (event) {
+      const parentFolder = folders.value.find(folder => currentModel.value?.toFolder === folder.id)
+      addOrEditFolderWindow(null, currentModel.value?.projectId, parentFolder, {
+        onSavedFolder: () => {
+          loadValidFolders(currentModel.value?.projectId)
+            .then(data => (currentModel.value.toFolder = data.id))
+        }
+      })
+      event.preventDefault()
     }
   }])
 })

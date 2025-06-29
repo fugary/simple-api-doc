@@ -266,7 +266,8 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         updateById(SimpleModelUtils.addAuditInfo(apiProject));
         apiProjectInfoDetailService.saveApiProjectInfoDetails(apiProject, projectInfo, exportVo.getProjectInfoDetails());
         apiFolderService.saveApiFolders(apiProject, projectInfo, mountFolder, Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), exportVo.getDocs());
-        return SimpleResultUtils.createSimpleResult(apiProject);
+        return SimpleResultUtils.createSimpleResult(apiProject)
+                .add("projectInfo", projectInfo);
     }
 
     @Override

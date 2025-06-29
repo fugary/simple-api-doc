@@ -14,12 +14,13 @@ import {
   calcProjectIconUrl,
   importProject, uploadFiles
 } from '@/api/ApiProjectApi'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
+import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
 
 const props = defineProps({
   project: {
@@ -62,7 +63,7 @@ const authOptions = computed(() => {
     }
   })
 })
-const { folderTreeNodes, loadValidFolders, getToFolder } = useFolderTreeNodes()
+const { folderTreeNodes, folders, loadValidFolders, getToFolder } = useFolderTreeNodes()
 loadValidFolders(props.project?.id).then(() => {
   importModel.value.toFolder = getToFolder(props.project?.infoList?.[0]?.folderId)
 })
@@ -190,6 +191,21 @@ const formOptions = computed(() => {
       default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder">
         {node.label} {importFolders.value?.includes(node.data?.id) ? <ElText type="success">({$i18nBundle('api.label.importFolder')})</ElText> : ''}
       </TreeIconLabel>
+    },
+    tooltip: $i18nKey('common.label.commonAdd', 'api.label.folder'),
+    tooltipIcon: 'CirclePlusFilled',
+    tooltipLinkAttrs: {
+      type: 'primary'
+    },
+    tooltipFunc (event) {
+      const parentFolder = folders.value.find(folder => importModel.value?.toFolder === folder.id)
+      addOrEditFolderWindow(null, props.project?.id, parentFolder, {
+        onSavedFolder: () => {
+          loadValidFolders(props.project?.id)
+            .then(data => (importModel.value.toFolder = data.id))
+        }
+      })
+      event.preventDefault()
     }
   }, {
     enabled: !props.project?.id && !!props.groupOptions.length,

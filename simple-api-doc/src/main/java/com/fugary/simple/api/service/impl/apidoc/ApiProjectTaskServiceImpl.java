@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.mapper.api.ApiProjectTaskMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
@@ -94,6 +95,12 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
             projectTask.setAuthContent(importVo.getAuthContent());
             projectTask.setSourceType(importVo.getSourceType());
             projectTask.setSourceUrl(importVo.getUrl());
+            if (importResult.getAddons() != null) {
+                ApiProjectInfo projectInfo = (ApiProjectInfo) importResult.getAddons().get("projectInfo");
+                if (projectInfo != null) {
+                    projectTask.setToFolder(projectInfo.getFolderId());
+                }
+            }
             save(projectTask);
         }
         return importResult;

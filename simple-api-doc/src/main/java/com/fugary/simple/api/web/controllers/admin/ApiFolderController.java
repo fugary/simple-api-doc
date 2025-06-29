@@ -95,7 +95,7 @@ public class ApiFolderController {
     }
 
     @PostMapping
-    public SimpleResult<Boolean> saveFolder(@RequestBody ApiFolder apiFolder) {
+    public SimpleResult<ApiFolder> saveFolder(@RequestBody ApiFolder apiFolder) {
         if (apiFolder.getParentId() != null) {
             ApiFolder parent = apiFolderService.getById(apiFolder.getParentId());
             if (parent == null || !parent.getProjectId().equals(apiFolder.getProjectId())) {
@@ -108,7 +108,8 @@ public class ApiFolderController {
         if (apiFolderService.existsApiFolder(apiFolder)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
-        return SimpleResultUtils.createSimpleResult(apiFolderService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiFolder)));
+        apiFolderService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiFolder));
+        return SimpleResultUtils.createSimpleResult(apiFolder);
     }
 
     @PostMapping("/updateSorts")

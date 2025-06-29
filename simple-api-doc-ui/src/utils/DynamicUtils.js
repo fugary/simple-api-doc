@@ -1,6 +1,7 @@
 import { isFunction } from 'lodash-es'
 import { DynamicHelper } from '@/components/directives'
 import { h, defineComponent, defineAsyncComponent } from 'vue'
+import ApiFolderEditWindow from '@/views/components/api/doc/comp/ApiFolderEditWindow.vue'
 
 const ApiRequestPreviewWindow = () => import('@/views/components/api/ApiRequestPreviewWindow.vue')
 const ApiEnvContentWindow = () => import('@/views/components/api/project/ApiEnvContentWindow.vue')
@@ -43,6 +44,15 @@ export const toEditEnvConfigs = async (...args) => {
     onClosed: () => dynamicHelper.destroy()
   })
   return vnode.component?.exposed?.toEditEnvConfigs(...args)
+}
+
+export const addOrEditFolderWindow = async (id, projectId, parentFolder, config) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(ApiFolderEditWindow, {
+    onClosed: () => dynamicHelper.destroy(),
+    ...config
+  })
+  return vnode.component?.exposed?.addOrEditFolderWindow(id, projectId, parentFolder)
 }
 
 /**
