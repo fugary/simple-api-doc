@@ -26,4 +26,5 @@ public class ApiProjectInfo extends ModelBase {
     private String version;
     private String oasVersion;
     private String specVersion;
+    private Boolean defaultFlag;
 }

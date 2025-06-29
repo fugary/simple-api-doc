@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
@@ -100,4 +101,13 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @return
      */
     SimpleResult<ApiProject> copyProject(ApiProject project);
+
+    /**
+     * 环境保存
+     *
+     * @param apiProject
+     * @param envConfigs
+     * @return
+     */
+    boolean saveEnvConfigs(ApiProject apiProject, List<ExportEnvConfigVo> envConfigs);
 }

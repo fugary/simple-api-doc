@@ -10,6 +10,7 @@ import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
@@ -235,16 +236,16 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
      * @param openAPI
      */
     protected void processServerItems(ApiProjectDetailVo detailVo, OpenAPI openAPI) {
-        detailVo.getInfoList().stream().filter(info -> StringUtils.isNotBlank(info.getEnvContent())).forEach(info -> {
-            List<ExportEnvConfigVo> envList = SchemaJsonUtils.fromJson(info.getEnvContent(), new TypeReference<>() {
-            }, SchemaJsonUtils.isV31(openAPI));
+        if (StringUtils.isNotBlank(detailVo.getEnvContent())) {
+            List<ExportEnvConfigVo> envList = JsonUtils.fromJson(detailVo.getEnvContent(), new TypeReference<>() {
+            });
             for (ExportEnvConfigVo envVo : envList) {
                 Server server = new Server().url(envVo.getUrl()).description(envVo.getName());
                 if (!openAPI.getServers().contains(server)) {
                     openAPI.addServersItem(server);
                 }
             }
-        });
+        }
     }
 
     /**

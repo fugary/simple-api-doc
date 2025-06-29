@@ -96,7 +96,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
           <el-button
             v-if="projectItem.infoList?.length"
             type="info"
-            @click="toEditEnvConfigs(projectItem.infoList?.[0]).then(() => $reload(route))"
+            @click="toEditEnvConfigs(projectItem).then(() => $reload(route))"
           >
             {{ $t('api.label.environments') }}
           </el-button>

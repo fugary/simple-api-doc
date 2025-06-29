@@ -12,11 +12,14 @@ import com.fugary.simple.api.mapper.api.ApiProjectMapper;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.SimpleTaskManager;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
@@ -247,8 +250,6 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         ApiFolder mountFolder = null;
         boolean importExists = importVo instanceof ApiProjectTaskImportVo;
         if (importExists) {
-            SimpleModelUtils.copyNoneNullValue(exportVo, apiProject);
-            updateById(SimpleModelUtils.addAuditInfo(apiProject));
             ApiProjectTaskImportVo taskImportVo = (ApiProjectTaskImportVo) importVo;
             if (taskImportVo.getToFolder() != null && (mountFolder = apiFolderService.getById(taskImportVo.getToFolder())) != null
                     && !Objects.equals(mountFolder.getProjectId(), apiProject.getId())) { // folder不属于project属于配置错误忽略该配置
@@ -257,6 +258,12 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         }
         mountFolder = apiFolderService.getOrCreateMountFolder(apiProject, mountFolder);
         ApiProjectInfo projectInfo = apiProjectInfoService.saveApiProjectInfo(exportVo.getProjectInfo(), apiProject, mountFolder, importExists);
+        if (Boolean.TRUE.equals(projectInfo.getDefaultFlag())) {
+            List<ExportEnvConfigVo> mergedEnvConfigs = ApiDocParseUtils.mergeEnvConfigs(apiProject.getEnvContent(), exportVo.getEnvContent());
+            SimpleModelUtils.copyNoneNullValue(exportVo, apiProject);
+            apiProject.setEnvContent(JsonUtils.toJson(mergedEnvConfigs));
+        }
+        updateById(SimpleModelUtils.addAuditInfo(apiProject));
         apiProjectInfoDetailService.saveApiProjectInfoDetails(apiProject, projectInfo, exportVo.getProjectInfoDetails());
         apiFolderService.saveApiFolders(apiProject, projectInfo, mountFolder, Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), exportVo.getDocs());
         return SimpleResultUtils.createSimpleResult(apiProject);
@@ -283,5 +290,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             }
         });
         return SimpleResultUtils.createSimpleResult(project);
+    }
+
+    @Override
+    public boolean saveEnvConfigs(ApiProject apiProject, List<ExportEnvConfigVo> envConfigs) {
+        String jsonContent = JsonUtils.toJson(envConfigs);
+        return update(Wrappers.<ApiProject>lambdaUpdate()
+                .set(ApiProject::getEnvContent, jsonContent)
+                .eq(ApiProject::getId, apiProject.getId()));
     }
 }

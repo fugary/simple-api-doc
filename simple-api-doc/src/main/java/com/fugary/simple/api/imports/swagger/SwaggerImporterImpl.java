@@ -117,10 +117,12 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             String name = server.getDescription();
             return new ExportEnvConfigVo(name, url, null, null);
         }).collect(Collectors.toList()))));
+        projectVo.setEnvContent(projectInfo.getEnvContent());
         Info info = openAPI.getInfo();
         if (info != null) {
             projectVo.setProjectName(info.getTitle());
             projectVo.setDescription(StringUtils.defaultIfBlank(info.getTitle(), info.getDescription()));
+            projectVo.setApiVersion(info.getVersion());
             projectInfo.setVersion(info.getVersion());
             if (StringUtils.isNotBlank(info.getTitle()) && StringUtils.isNotBlank(info.getDescription()) && StringUtils.length(info.getDescription()) > 80) { // markdown
                 ExportApiDocVo doc = new ExportApiDocVo();
