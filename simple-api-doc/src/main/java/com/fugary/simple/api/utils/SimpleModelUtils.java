@@ -8,6 +8,7 @@ import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.NameValueObj;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import io.swagger.v3.oas.models.SpecVersion;
@@ -36,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.fugary.simple.api.utils.servlet.HttpRequestUtils.getBodyResource;
@@ -425,10 +427,26 @@ public class SimpleModelUtils {
     public static ApiProjectInfo getDefaultProjectInfo(ApiProject project){
         ApiProjectInfo apiProjectInfo = new ApiProjectInfo();
         apiProjectInfo.setProjectId(project.getId());
-        apiProjectInfo.setOasVersion("3.0.1");
-        apiProjectInfo.setSpecVersion(SpecVersion.V30.name());
-        apiProjectInfo.setVersion("1.0.0");
+        apiProjectInfo.setOasVersion("3.1.0");
+        apiProjectInfo.setSpecVersion(SpecVersion.V31.name());
+        apiProjectInfo.setVersion("v1.0.0");
         return apiProjectInfo;
+    }
+
+    /**
+     * 计算默认的info信息
+     *
+     * @param detailVo
+     * @param infoIds
+     * @return
+     */
+    public static List<ApiProjectInfo> filterApiProjectInfo(ApiProjectDetailVo detailVo, Set<Integer> infoIds) {
+        final Set<Integer> wrapInfoIds = SimpleModelUtils.wrap(infoIds);
+        List<ApiProjectInfo> projectInfos = detailVo.getInfoList().stream().filter(info -> wrapInfoIds.contains(info.getId())).collect(Collectors.toList());
+        if (projectInfos.isEmpty()) {
+            projectInfos.add(SimpleModelUtils.getDefaultProjectInfo(detailVo));
+        }
+        return projectInfos;
     }
 
     /**
@@ -513,6 +531,20 @@ public class SimpleModelUtils {
             return new ArrayList<>();
         }
         return list;
+    }
+
+    /**
+     * 包装list
+     *
+     * @param set
+     * @param <T>
+     * @return
+     */
+    public static <T> Set<T> wrap(Set<T> set) {
+        if (set == null) {
+            return new HashSet<>();
+        }
+        return set;
     }
 
     /**

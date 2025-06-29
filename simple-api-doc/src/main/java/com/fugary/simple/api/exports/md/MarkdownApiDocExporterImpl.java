@@ -81,12 +81,13 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
         // 加载项目schema和security数据
         List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
-        ApiProjectInfo projectInfo = findApiProjectInfo(detailVo, infoIds);
+        List<ApiProjectInfo> projectInfos = SimpleModelUtils.filterApiProjectInfo(detailVo, infoIds);
+        List<ApiProjectInfoDetailVo> projectInfoDetails = projectInfos.stream().map(projectInfo -> apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList)).collect(Collectors.toList());
         // 提取和文档相关的schema和security数据
-        ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList);
+        ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.mergeInfoDetailVo(projectInfoDetails);
         MdViewContext context = new MdViewContext();
         context.setGenerateComponents(false);
-        SpecVersion specVersion = projectInfo != null ? SpecVersion.valueOf(projectInfo.getSpecVersion()) : SpecVersion.V30;
+        SpecVersion specVersion = projectInfoDetailVo != null ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V31;
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
@@ -111,24 +112,6 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
             log.error("模板渲染失败", e);
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * 获取一个ProjectInfo信息对象
-     *
-     * @param detailVo
-     * @param infoIds
-     * @return
-     */
-    protected ApiProjectInfo findApiProjectInfo(ApiProjectDetailVo detailVo, Set<Integer> infoIds) {
-        ApiProjectInfo projectInfo;
-        if (detailVo.getInfoList().isEmpty()) {
-            projectInfo = SimpleModelUtils.getDefaultProjectInfo(detailVo);
-        } else {
-            projectInfo = detailVo.getInfoList().stream().filter(info -> infoIds.contains(info.getId())).findFirst()
-                    .orElseGet(() -> detailVo.getInfoList().get(0));
-        }
-        return projectInfo;
     }
 
 }

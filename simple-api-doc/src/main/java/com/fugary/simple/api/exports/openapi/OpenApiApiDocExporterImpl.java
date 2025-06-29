@@ -82,27 +82,25 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2011);
         }
         Set<Integer> infoIds = docList.stream().map(ApiDoc::getInfoId).filter(Objects::nonNull).collect(Collectors.toSet());
-        if (infoIds.size() > 1) {
-            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2010);
-        }
         // 加载文档详情
         List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
         // 加载项目schema和security数据
         List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
-        ApiProjectInfo projectInfo = findApiProjectInfo(detailVo, infoIds);
+        List<ApiProjectInfo> projectInfos = SimpleModelUtils.filterApiProjectInfo(detailVo, infoIds);
+        List<ApiProjectInfoDetailVo> projectInfoDetails = projectInfos.stream().map(projectInfo -> apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList)).collect(Collectors.toList());
         // 提取和文档相关的schema和security数据
-        ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList);
+        ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.mergeInfoDetailVo(projectInfoDetails);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = apiFolderService.calcFolderMap(detailVo.getFolders());
         // 新建OpenAPI数据
-        OpenAPI openAPI = new OpenAPI(SpecVersion.valueOf(projectInfo.getSpecVersion()))
-                .openapi(projectInfo.getOasVersion())
+        OpenAPI openAPI = new OpenAPI(SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()))
+                .openapi(projectInfoDetailVo.getOasVersion())
                 .components(new Components())
                 .paths(new Paths())
                 .servers(new ArrayList<>())
                 .info(new Info().title(detailVo.getProjectName())
                         .summary(detailVo.getProjectName())
                         .description(detailVo.getDescription())
-                        .version(projectInfo.getVersion()));
+                        .version(projectInfoDetailVo.getVersion()));
         processComponentsAndSecuritySchemas(projectInfoDetailVo, openAPI);
         List<ExtendMarkdownFile> markdownFiles = new ArrayList<>();
         Set<Tag> tags = new LinkedHashSet<>();
@@ -113,9 +111,11 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 String folderPath = getFolderPath(fullFolderPath);
                 if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) { // 接口处理
                     String urlPath = apiDocDetail.getUrl();
-                    openAPI.getPaths().addPathItem(urlPath, calcPathItem(openAPI, folderMapPair, apiFolder, apiDocDetail));
-                    tags.add(new Tag().name(apiFolder.getFolderName())
-                            .description(apiFolder.getDescription())); // 提取文件夹信息作为Tag
+                    if (!openAPI.getPaths().containsKey(urlPath)) {
+                        openAPI.getPaths().addPathItem(urlPath, calcPathItem(openAPI, folderMapPair, apiFolder, apiDocDetail));
+                        tags.add(new Tag().name(apiFolder.getFolderName())
+                                .description(apiFolder.getDescription())); // 提取文件夹信息作为Tag
+                    }
                 } else if (ApiDocConstants.DOC_TYPE_MD.equals(apiDocDetail.getDocType())) { // markdown处理
                     if (StringUtils.equals(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info", apiDocDetail.getDocKey())) {
                         openAPI.getInfo().description(apiDocDetail.getDocContent());
@@ -137,24 +137,6 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         processServerItems(detailVo, openAPI);
         openAPI.setTags(List.copyOf(tags));
         return openAPI;
-    }
-
-    /**
-     * 获取一个ProjectInfo信息对象
-     *
-     * @param detailVo
-     * @param infoIds
-     * @return
-     */
-    protected ApiProjectInfo findApiProjectInfo(ApiProjectDetailVo detailVo, Set<Integer> infoIds) {
-        ApiProjectInfo projectInfo;
-        if (detailVo.getInfoList().isEmpty()) {
-            projectInfo = SimpleModelUtils.getDefaultProjectInfo(detailVo);
-        } else {
-            projectInfo = detailVo.getInfoList().stream().filter(info -> infoIds.contains(info.getId())).findFirst()
-                    .orElseGet(() -> detailVo.getInfoList().get(0));
-        }
-        return projectInfo;
     }
 
     private PathItem calcPathItem(OpenAPI openAPI, Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair, ApiFolder apiFolder, ApiDocDetailVo apiDocDetail) {

@@ -17,7 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -77,6 +80,29 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         ApiProjectInfoDetailVo projectInfoDetailVo = parseInfoDetailVo(apiInfo, apiInfoDetails, List.of(apiDocDetail));
         ApiDocParseUtils.overrideApiDocModifyInfo(projectInfoDetailVo, apiDocDetail);
         return projectInfoDetailVo;
+    }
+
+    @Override
+    public ApiProjectInfoDetailVo mergeInfoDetailVo(List<ApiProjectInfoDetailVo> detailVoList) {
+        ApiProjectInfoDetailVo result = null;
+        for (ApiProjectInfoDetailVo projectInfoDetailVo : detailVoList) {
+            if (result == null) {
+                result = projectInfoDetailVo;
+            } else {
+                mergeInfoDetailVo(result, projectInfoDetailVo);
+            }
+        }
+        return result;
+    }
+
+    protected void mergeInfoDetailVo(ApiProjectInfoDetailVo infoDetailVo, ApiProjectInfoDetailVo appendInfoDetailVo) {
+        Map<String, ApiProjectInfoDetail> componentsMap = infoDetailVo.getComponentSchemas().stream().collect(Collectors.toMap(ApiProjectInfoDetail::getSchemaName, Function.identity()));
+        for (ApiProjectInfoDetail componentSchemaDetail : appendInfoDetailVo.getComponentSchemas()) {
+            if (!componentsMap.containsKey(componentSchemaDetail.getSchemaName())) {
+                componentsMap.put(componentSchemaDetail.getSchemaName(), componentSchemaDetail);
+                infoDetailVo.getComponentSchemas().add(componentSchemaDetail);
+            }
+        }
     }
 
     @Override

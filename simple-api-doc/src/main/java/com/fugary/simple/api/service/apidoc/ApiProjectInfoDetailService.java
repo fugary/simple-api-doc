@@ -74,6 +74,14 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
     ApiProjectInfoDetailVo parseInfoDetailVo(ApiProjectInfo apiInfo, ApiDocDetailVo apiDocDetail);
 
     /**
+     * 合并数据
+     *
+     * @param detailVoList
+     * @return
+     */
+    ApiProjectInfoDetailVo mergeInfoDetailVo(List<ApiProjectInfoDetailVo> detailVoList);
+
+    /**
      * 解析doc详情
      *
      * @param apiInfo
