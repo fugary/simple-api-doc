@@ -175,6 +175,9 @@ const editFormOptions = computed(() => {
     children: editProjectGroupOptions.value,
     disabled: !isWritable
   }, {
+    labelKey: 'common.label.version',
+    prop: 'apiVersion'
+  }, {
     labelKey: 'common.label.description',
     prop: 'description',
     attrs: {
