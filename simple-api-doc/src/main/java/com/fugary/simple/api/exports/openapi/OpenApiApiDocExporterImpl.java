@@ -101,7 +101,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 .info(new Info().title(detailVo.getProjectName())
                         .summary(detailVo.getProjectName())
                         .description(detailVo.getDescription())
-                        .version(projectInfoDetailVo.getVersion()));
+                        .version(StringUtils.defaultIfBlank(detailVo.getApiVersion(), projectInfoDetailVo.getVersion())));
         processComponentsAndSecuritySchemas(projectInfoDetailVo, openAPI);
         List<ExtendMarkdownFile> markdownFiles = new ArrayList<>();
         Set<Tag> tags = new LinkedHashSet<>();

@@ -1,5 +1,6 @@
 package com.fugary.simple.api.exports.md;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
@@ -12,7 +13,9 @@ import com.fugary.simple.api.exports.ApiDocViewGenerator;
 import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
@@ -26,6 +29,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
@@ -103,6 +107,15 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         model.put("apiProject", detailVo);
         model.put("schemasMap", schemasMap);
         model.put("apiDocs", docDetailList);
+        model.put("apiVersion", StringUtils.defaultIfBlank(detailVo.getApiVersion(), projectInfoDetailVo.getVersion()));
+        if (StringUtils.isNotBlank(detailVo.getEnvContent())) {
+            List<ExportEnvConfigVo> envList = JsonUtils.fromJson(detailVo.getEnvContent(), new TypeReference<>() {
+            });
+            envList = envList.stream().filter(env -> !Boolean.TRUE.equals(env.getDisabled()))
+                    .filter(env -> StringUtils.isNotBlank(env.getName()) && StringUtils.isNotBlank(env.getUrl()))
+                    .collect(Collectors.toList());
+            model.put("envList", envList);
+        }
         try {
             // 加载模板
             Template template = freemarkerConfig.getTemplate("ExportApiMdView.md.ftl");

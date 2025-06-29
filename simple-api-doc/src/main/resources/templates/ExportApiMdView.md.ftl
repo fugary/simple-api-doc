@@ -1,7 +1,21 @@
 # ${apiProject.projectName}
 
+<#if utils.isNotBlank(apiProject.apiVersion)>
+${message('api.label.version')}: ${apiProject.apiVersion}
+</#if>
+
 <#if utils.isNotBlank(apiProject.description)>
+## ${message('api.label.apiDescription')}
+
 ${apiProject.description}
+</#if>
+
+<#if envList??>
+## ${message('api.label.apiAddress')}
+
+<#list envList as env>
+${env.name!''}: ${env.url!''}
+</#list>
 </#if>
 
 <#if apiDocs?? && (apiDocs?size > 0)>
