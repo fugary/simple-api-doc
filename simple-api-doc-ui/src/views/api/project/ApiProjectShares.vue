@@ -32,6 +32,7 @@ import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useCustomDocLabel } from '@/services/api/ApiCommonService'
+import { calcEnvConfigs } from '@/api/SimpleShareApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -54,7 +55,7 @@ const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
 const { projectCheckAccess, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
-const infoList = ref([])
+const envConfigs = ref([])
 const editTreeNodes = ref([])
 const showTreeConfigWindow = ref(false)
 
@@ -66,7 +67,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     searchParam.value.groupCode = projectItem.value?.groupCode
     const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
     editTreeNodes.value = docTreeNodes
-    infoList.value = projectItem.value?.infoList
+    envConfigs.value = calcEnvConfigs(projectItem.value?.envContent)
   } else {
     await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
@@ -250,7 +251,7 @@ const newOrEdit = async (id) => {
       currentShare.value.shareDocsArr = currentShare.value.shareDocs ? (JSON.parse(currentShare.value.shareDocs) || []) : []
       if (!inProject && currentShare.value.projectId) {
         loadDetailById(currentShare.value.projectId).then(data => {
-          infoList.value = data?.infoList
+          envConfigs.value = calcEnvConfigs(data.envContent)
           const { docTreeNodes } = calcProjectItem(cloneDeep(data))
           editTreeNodes.value = docTreeNodes
         })
@@ -269,30 +270,11 @@ const newOrEdit = async (id) => {
       shareDocsArr: []
     }
     if (!inProject) {
-      infoList.value = []
+      envConfigs.value = []
     }
   }
   showEditWindow.value = true
 }
-
-const envConfigs = computed(() => {
-  if (infoList.value?.length) {
-    return infoList.value.flatMap(info => {
-      let envs = []
-      if (info.envContent && (envs = JSON.parse(info.envContent))?.length) {
-        return envs
-      }
-      return []
-    }).reduce((results, env) => {
-      const existsIndex = results.findIndex(result => result.url === env.url)
-      if (existsIndex <= -1) {
-        results.push(env)
-      }
-      return results
-    }, [])
-  }
-  return []
-})
 
 const editFormOptions = computed(() => {
   const envOptions = envConfigs.value.filter(env => !env.disabled).map(env => {
@@ -337,7 +319,7 @@ const editFormOptions = computed(() => {
     change (projectId) {
       if (projectId) {
         loadDetailById(projectId).then(data => {
-          infoList.value = data?.infoList
+          envConfigs.value = calcEnvConfigs(data.envContent)
           const { docTreeNodes } = calcProjectItem(cloneDeep(data))
           editTreeNodes.value = docTreeNodes
         })

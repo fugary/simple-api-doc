@@ -35,6 +35,8 @@ export const mergeEnvConfigs = (envContent, projectEnvContent) => {
   return projectConfigs
 }
 
+export const calcEnvConfigs = envContent => (JSON.parse(envContent) || []).filter(item => !item.disabled)
+
 export const loadShare = function ({ shareId, password }, config) {
   config = Object.assign(getShareConfig(shareId), config || {})
   let loadShareUrl = `${SHARE_BASE_URL}/loadShare/${shareId}`

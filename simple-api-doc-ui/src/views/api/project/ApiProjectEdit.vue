@@ -94,7 +94,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
             {{ $t('common.label.back') }}
           </el-button>
           <el-button
-            v-if="projectItem.infoList?.length"
+            v-if="isWritable&&projectItem.infoList?.length"
             type="info"
             @click="toEditEnvConfigs(projectItem).then(() => $reload(route))"
           >
