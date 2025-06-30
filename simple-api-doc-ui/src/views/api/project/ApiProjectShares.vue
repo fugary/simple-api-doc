@@ -15,7 +15,7 @@ import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiP
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectShareApi, { copyProjectShare, getShareUrl } from '@/api/ApiProjectShareApi'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
 import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
@@ -33,6 +33,7 @@ import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useCustomDocLabel } from '@/services/api/ApiCommonService'
 import { calcEnvConfigs } from '@/api/SimpleShareApi'
+import { toEditEnvConfigs } from '@/utils/DynamicUtils'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -55,9 +56,10 @@ const loadProjectShares = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
 const { projectCheckAccess, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
-const envConfigs = ref([])
 const editTreeNodes = ref([])
 const showTreeConfigWindow = ref(false)
+const editShareProject = ref(null)
+const envConfigs = computed(() => calcEnvConfigs(editShareProject.value?.envContent))
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
   if (inProject) {
@@ -67,7 +69,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     searchParam.value.groupCode = projectItem.value?.groupCode
     const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
     editTreeNodes.value = docTreeNodes
-    envConfigs.value = calcEnvConfigs(projectItem.value?.envContent)
+    editShareProject.value = projectItem.value
   } else {
     await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
@@ -155,9 +157,9 @@ const buttons = computed(() => {
     type: 'success',
     click: item => {
       const shareUrl = getShareUrl(item.shareId)
-      let text = `${item.shareName}: \n链接: ${shareUrl}`
+      let text = `${item.shareName}: \n${$i18nBundle('api.label.linkAddress')}: ${shareUrl}`
       if (item.sharePassword) {
-        text += `\n密码: ${item.sharePassword}`
+        text += `\n${$i18nBundle('api.label.accessPassword')}: ${item.sharePassword}`
       }
       $copyText(text)
     }
@@ -235,7 +237,11 @@ const searchFormOptions = computed(() => {
     }
   ]
 })
-
+const loadShareProjectData = projectId => loadDetailById(projectId).then(data => {
+  editShareProject.value = data
+  const { docTreeNodes } = calcProjectItem(cloneDeep(data))
+  editTreeNodes.value = docTreeNodes
+})
 const showEditWindow = ref(false)
 const currentShare = ref()
 const newOrEdit = async (id) => {
@@ -250,11 +256,7 @@ const newOrEdit = async (id) => {
       currentShare.value.showTreeIcon = currentShare.value.showTreeIcon ?? true
       currentShare.value.shareDocsArr = currentShare.value.shareDocs ? (JSON.parse(currentShare.value.shareDocs) || []) : []
       if (!inProject && currentShare.value.projectId) {
-        loadDetailById(currentShare.value.projectId).then(data => {
-          envConfigs.value = calcEnvConfigs(data.envContent)
-          const { docTreeNodes } = calcProjectItem(cloneDeep(data))
-          editTreeNodes.value = docTreeNodes
-        })
+        loadShareProjectData(currentShare.value.projectId)
       }
     })
   } else {
@@ -270,14 +272,14 @@ const newOrEdit = async (id) => {
       shareDocsArr: []
     }
     if (!inProject) {
-      envConfigs.value = []
+      editShareProject.value = null
     }
   }
   showEditWindow.value = true
 }
 
 const editFormOptions = computed(() => {
-  const envOptions = envConfigs.value.filter(env => !env.disabled).map(env => {
+  const envOptions = envConfigs.value.map(env => {
     return {
       value: env.url,
       label: env.name || $i18nBundle('api.label.defaultAddress')
@@ -318,11 +320,7 @@ const editFormOptions = computed(() => {
     children: filteredProjectOptions,
     change (projectId) {
       if (projectId) {
-        loadDetailById(projectId).then(data => {
-          envConfigs.value = calcEnvConfigs(data.envContent)
-          const { docTreeNodes } = calcProjectItem(cloneDeep(data))
-          editTreeNodes.value = docTreeNodes
-        })
+        loadShareProjectData(projectId)
       }
       currentShare.value.shareDocsArr = []
       currentShare.value.shareEnvs = []
@@ -384,7 +382,17 @@ const editFormOptions = computed(() => {
       clearable: false,
       multiple: true
     },
-    children: envOptions
+    children: envOptions,
+    enabled: !!editShareProject.value,
+    tooltip: $i18nKey('common.label.commonEdit', 'api.label.environments'),
+    tooltipIcon: 'EditPen',
+    tooltipLinkAttrs: {
+      type: 'primary'
+    },
+    tooltipFunc () {
+      toEditEnvConfigs(editShareProject.value)
+        .then(project => loadShareProjectData(project.id))
+    }
   }, {
     labelKey: 'api.label.copyRight',
     prop: 'copyRight',

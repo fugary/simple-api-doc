@@ -27,15 +27,29 @@ export const getEnvConfigs = (apiDocDetail) => {
 }
 
 export const mergeEnvConfigs = (envContent, projectEnvContent) => {
-  const projectConfigs = (JSON.parse(projectEnvContent) || []).filter(item => !item.disabled)
+  const projectConfigs = calcEnvConfigs(projectEnvContent)
   if (envContent) {
-    const sharedUrls = (JSON.parse(envContent) || []).map(item => item.url)
+    const sharedUrls = calcEnvConfigs(envContent).map(item => item.url)
     return projectConfigs.filter(item => !sharedUrls.includes(item.url))
   }
   return projectConfigs
 }
 
-export const calcEnvConfigs = envContent => (JSON.parse(envContent) || []).filter(item => !item.disabled)
+export const calcEnvConfigs = envContent => {
+  const results = []
+  const envs = (JSON.parse(envContent || '[]')) || []
+  envs.filter(item => !item.disabled).forEach(item => {
+    if (item.url) {
+      const dupIndex = results.findIndex(resultItem => resultItem.url === item.url)
+      if (dupIndex > -1) {
+        results[dupIndex] = item
+      } else {
+        results.push(item)
+      }
+    }
+  })
+  return results
+}
 
 export const loadShare = function ({ shareId, password }, config) {
   config = Object.assign(getShareConfig(shareId), config || {})
