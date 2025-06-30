@@ -96,6 +96,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
                 context.setApiDocDetail(apiDocDetail);
+                apiDocDetail.setProject(detailVo);
                 apiDocDetail.setProjectInfoDetail(projectInfoDetailVo);
                 SimpleModelUtils.processComponents(apiDocDetail, specVersion, schemasMap);
                 String apiMarkdown = apiDocViewGenerator.generate(context);

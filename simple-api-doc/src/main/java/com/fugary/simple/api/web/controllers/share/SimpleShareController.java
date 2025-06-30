@@ -169,6 +169,7 @@ public class SimpleShareController {
         ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
         ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
         apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
+        apiDocVo.setProject(apiProject);
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         apiDocVo.setApiShare(SimpleModelUtils.toShareVo(apiShare));
         if (Boolean.TRUE.equals(markdown)) {

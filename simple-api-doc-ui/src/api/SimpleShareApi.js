@@ -22,8 +22,8 @@ const getShareConfig = (shareId) => {
  */
 export const getEnvConfigs = (apiDocDetail) => {
   const apiShare = apiDocDetail?.apiShare
-  const projectInfoDetail = apiDocDetail?.projectInfoDetail
-  return mergeEnvConfigs(apiShare?.envContent, projectInfoDetail?.envContent)
+  const project = apiDocDetail?.project || apiDocDetail?.projectInfoDetail
+  return mergeEnvConfigs(apiShare?.envContent, project?.envContent)
 }
 
 export const mergeEnvConfigs = (envContent, projectEnvContent) => {
