@@ -4,9 +4,9 @@ import ApiRequestFormRes from '@/views/components/api/form/ApiRequestFormRes.vue
 import ApiRequestFormReq from '@/views/components/api/form/ApiRequestFormReq.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { $copyText, joinPath, addParamsToURL } from '@/utils'
-import { $i18nBundle } from '@/messages'
 import { addRequestParamsToResult } from '@/services/api/ApiDocPreviewService'
 import { processEvnParams } from '@/services/api/ApiCommonService'
+import { getEnvOptions } from '@/api/SimpleShareApi'
 
 const props = defineProps({
   envConfigs: {
@@ -71,12 +71,7 @@ const docFormOption = computed(() => {
     showLabel: false,
     type: 'select',
     prop: 'targetUrl',
-    children: props.envConfigs?.map(env => {
-      return {
-        value: env.url,
-        label: env.name || $i18nBundle('api.label.defaultAddress')
-      }
-    }),
+    children: getEnvOptions(props.envConfigs),
     attrs: {
       clearable: false,
       style: 'width: 150px'

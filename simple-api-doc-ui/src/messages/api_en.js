@@ -164,6 +164,7 @@ api.label.required = 'Required'
 api.label.paramIn = 'In'
 api.label.apiModel = 'API Model'
 api.label.owner = 'Owner'
+api.label.imported = 'Imported Data'
 
 api.msg.noExportData = 'No data to export'
 api.msg.exportConfirm = 'Confirm to export API docs?'

@@ -162,6 +162,7 @@ api.label.required = '是否必填'
 api.label.paramIn = '参数位置'
 api.label.apiModel = '数据模型'
 api.label.owner = '所属用户'
+api.label.imported = '导入数据'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出API文档数据？'

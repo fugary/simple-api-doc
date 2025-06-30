@@ -3,7 +3,7 @@
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { computed } from 'vue'
 import { $copyText, joinPath } from '@/utils'
-import { $i18nBundle } from '@/messages'
+import { getEnvOptions } from '@/api/SimpleShareApi'
 
 const props = defineProps({
   envConfigs: {
@@ -42,12 +42,7 @@ const docFormOption = computed(() => {
     showLabel: false,
     type: 'select',
     prop: 'targetUrl',
-    children: props.envConfigs.map(env => {
-      return {
-        value: env.url,
-        label: env.name || $i18nBundle('api.label.defaultAddress')
-      }
-    }),
+    children: getEnvOptions(props.envConfigs),
     attrs: {
       clearable: false,
       style: {

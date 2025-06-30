@@ -2,6 +2,7 @@ import { $httpGet, $httpPost } from '@/vendors/axios'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { $downloadWithLinkClick } from '@/utils'
 import { BASE_URL } from '@/config'
+import { $i18nBundle } from '@/messages'
 
 const SHARE_BASE_URL = '/shares'
 
@@ -49,6 +50,19 @@ export const calcEnvConfigs = envContent => {
     }
   })
   return results
+}
+
+export const getEnvOptions = envConfigs => {
+  return (envConfigs || []).map(env => {
+    const label = env.name || $i18nBundle('api.label.defaultAddress')
+    return {
+      value: env.url,
+      label,
+      slots: {
+        default: () => `${label} - ${env.url}`
+      }
+    }
+  })
 }
 
 export const loadShare = function ({ shareId, password }, config) {

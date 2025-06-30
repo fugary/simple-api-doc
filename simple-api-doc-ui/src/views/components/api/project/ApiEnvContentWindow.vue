@@ -54,7 +54,18 @@ const paramsOptions = computed(() => {
       prop: 'name',
       colSpan: 8,
       required: true,
-      disabled: !config.manual
+      disabled: !config.manual,
+      dynamicOption: () => {
+        if (!config.manual) {
+          return {
+            tooltip: $i18nBundle('api.label.imported'),
+            tooltipIcon: 'LockFilled',
+            tooltipLinkAttrs: {
+              type: 'warning'
+            }
+          }
+        }
+      }
     }, {
       labelKey: 'api.label.url',
       labelWidth: '130px',

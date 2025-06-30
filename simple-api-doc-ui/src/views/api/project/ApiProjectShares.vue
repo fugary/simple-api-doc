@@ -32,7 +32,7 @@ import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useCustomDocLabel } from '@/services/api/ApiCommonService'
-import { calcEnvConfigs } from '@/api/SimpleShareApi'
+import { calcEnvConfigs, getEnvOptions } from '@/api/SimpleShareApi'
 import { toEditEnvConfigs } from '@/utils/DynamicUtils'
 
 const route = useRoute()
@@ -279,12 +279,7 @@ const newOrEdit = async (id) => {
 }
 
 const editFormOptions = computed(() => {
-  const envOptions = envConfigs.value.map(env => {
-    return {
-      value: env.url,
-      label: env.name || $i18nBundle('api.label.defaultAddress')
-    }
-  })
+  const envOptions = getEnvOptions(envConfigs.value)
   const isCopyData = currentShare.value?.shareName?.endsWith('-copy')
   const filteredProjectOptions = projectOptions.value.map((project) => {
     project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
