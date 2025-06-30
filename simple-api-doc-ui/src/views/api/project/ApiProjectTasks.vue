@@ -243,7 +243,7 @@ const newOrEdit = async (id) => {
           currentModel.value.authContentModel = JSON.parse(currentModel.value.authContent)
         }
         if (!inProject) {
-          loadValidFolders(currentModel.value.projectId)
+          changeProjectLoader(currentModel.value.projectId)
         }
       }
     })
@@ -266,6 +266,16 @@ const newOrEdit = async (id) => {
 }
 const { projectItem: formProjectItem, loadProjectItem: loadFormProjectItem } = useApiProjectItem(null, { autoLoad: false, detail: false })
 const importFolders = computed(() => (formProjectItem.value || projectItem.value)?.infoList?.map(info => info.folderId) || [])
+const filteredProjectOptions = computed(() => projectOptions.value.map((project) => {
+  project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
+  project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
+  return project
+}).filter(project => project.isWritable))
+const changeProjectLoader = async (projectId) => {
+  await loadValidFolders(projectId)
+  await loadFormProjectItem(filteredProjectOptions.value.find(option => option.value === projectId)?.projectCode)
+  currentModel.value.toFolder = getToFolder(formProjectItem.value?.infoList?.[0]?.folderId)
+}
 const editFormOptions = computed(() => {
   let authOptions = AUTH_OPTION_CONFIG[currentModel.value?.authType]?.options || []
   if (isFunction(authOptions)) {
@@ -277,11 +287,6 @@ const editFormOptions = computed(() => {
       prop: `authContentModel.${option.prop}`
     }
   })
-  const filteredProjectOptions = projectOptions.value.map((project) => {
-    project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
-    project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
-    return project
-  }).filter(project => project.isWritable)
   return defineFormOptions([{
     labelKey: 'api.label.taskName',
     prop: 'taskName',
@@ -303,12 +308,8 @@ const editFormOptions = computed(() => {
     type: 'select',
     enabled: !inProject,
     disabled: !!currentModel.value?.id && !currentModel.value?.taskName?.endsWith('-copy'),
-    children: filteredProjectOptions,
-    change: async (projectId) => {
-      await loadValidFolders(projectId)
-      await loadFormProjectItem(filteredProjectOptions.find(option => option.value === projectId)?.projectCode)
-      currentModel.value.toFolder = getToFolder(formProjectItem.value?.infoList?.[0]?.folderId)
-    }
+    children: filteredProjectOptions.value,
+    change: changeProjectLoader
   }, {
     labelKey: 'api.label.importData',
     prop: 'taskType',
