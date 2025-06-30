@@ -1,19 +1,19 @@
-UPDATE T_API_PROJECT p
-SET
+update t_api_project p
+set
     p.api_version = (
-        SELECT t.version
-        FROM T_API_PROJECT_INFO t
-        WHERE t.project_id = p.id
-        ORDER BY t.id ASC
-        LIMIT 1
+        select t.version
+        from t_api_project_info t
+        where t.project_id = p.id
+        order by t.id asc
+        limit 1
     ),
     p.env_content = (
-        SELECT t.env_content
-        FROM T_API_PROJECT_INFO t
-        WHERE t.project_id = p.id
-        ORDER BY t.id ASC
-        LIMIT 1
+        select t.env_content
+        from t_api_project_info t
+        where t.project_id = p.id
+        order by t.id asc
+        limit 1
     )
-WHERE EXISTS (
-    SELECT 1 FROM T_API_PROJECT_INFO t WHERE t.project_id = p.id
+where exists (
+    select 1 from t_api_project_info t where t.project_id = p.id
     );
