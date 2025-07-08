@@ -19,7 +19,7 @@ export default [{
     meta: {
       replaceTabHistory: 'ApiProjects',
       labelKey: 'api.label.apiProjectDetails',
-      icon: 'List',
+      icon: 'Edit',
       hideCopyRight: true
     }
   }, {
@@ -29,7 +29,7 @@ export default [{
     meta: {
       replaceTabHistory: 'ApiProjects',
       labelKey: 'api.label.shareDocs',
-      icon: 'List'
+      icon: 'Share'
     }
   }, {
     path: 'tasks/:projectCode',
@@ -38,7 +38,16 @@ export default [{
     meta: {
       replaceTabHistory: 'ApiProjects',
       labelKey: 'api.label.importData',
-      icon: 'List'
+      icon: 'InputFilled'
+    }
+  }, {
+    path: 'components/:projectCode',
+    name: 'ApiProjectComponents',
+    component: () => import('@/views/api/project/ApiProjectComponents.vue'),
+    meta: {
+      replaceTabHistory: 'ApiProjects',
+      labelKey: 'api.label.dataModel',
+      icon: 'SettingsInputComponentOutlined'
     }
   }]
 }]

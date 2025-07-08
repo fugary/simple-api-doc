@@ -128,6 +128,11 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                     apiProjectVo.getFolders().forEach(SimpleModelUtils::removeAuditInfo);
                     apiProjectVo.getDocs().forEach(SimpleModelUtils::removeAuditInfo);
                 }
+            } else if (CollectionUtils.isNotEmpty(infoList)) {
+                List<Integer> folderIds = infoList.stream().map(ApiProjectInfo::getFolderId).filter(Objects::nonNull)
+                        .distinct().collect(Collectors.toList());
+                List<ApiFolder> folders = apiFolderService.listByIds(folderIds);
+                apiProjectVo.setFolders(folders);
             }
             if (queryVo.isIncludesShares()) {
                 List<ApiProjectShare> shares = apiProjectShareService.list(Wrappers.<ApiProjectShare>query()

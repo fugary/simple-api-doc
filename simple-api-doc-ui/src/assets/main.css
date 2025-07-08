@@ -441,6 +441,19 @@ html, body, #app, .index-container {
     float: right;
 }
 
+.request-table {
+    overflow: auto;
+}
+.request-table .el-table__row {
+    cursor: pointer;
+}
+.request-table .current-row td:first-child{
+    border-left: 4px solid var(--el-color-primary);
+}
+.request-table td{
+    border-left: 4px solid transparent;
+}
+
 .common-split {
     display: flex;
     flex-direction: row;

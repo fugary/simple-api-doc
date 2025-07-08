@@ -100,6 +100,17 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
           >
             {{ $t('api.label.environments') }}
           </el-button>
+          <el-button
+            class="margin-left2"
+            type="warning"
+            @click="$goto(`/api/projects/components/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
+          >
+            <common-icon
+              icon="SettingsInputComponentOutlined"
+              class="margin-right1"
+            />
+            {{ $t('api.label.dataModel') }}
+          </el-button>
           <el-badge
             v-if="isWritable"
             :value="projectItem.shares?.filter(share=>share.status).length"
