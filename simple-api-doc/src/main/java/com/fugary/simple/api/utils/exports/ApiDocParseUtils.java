@@ -173,6 +173,7 @@ public class ApiDocParseUtils {
                     String mergedSchemaContent = ApiSchemaContentUtils.mergeComponentSchemaContent(existsInfoDetail.getSchemaContent(),
                             projectInfoDetailVo.getSchemaContent(), isV31);
                     projectInfoDetailVo.setSchemaContent(mergedSchemaContent);
+                    projectInfoDetailVo.setContentType(existsInfoDetail.getContentType());
                 }
             }
             if (isChanged) {
