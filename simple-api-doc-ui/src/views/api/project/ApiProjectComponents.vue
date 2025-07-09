@@ -19,6 +19,7 @@ const componentsTableRef = useTemplateRef('componentsTableRef')
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
 const currentInfoDetail = ref(null)
+const componentSchemas = ref([])
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage(15), bodyType: 'component' },
@@ -41,6 +42,7 @@ const newOrEdit = (id) => {
   if (id) {
     ApiProjectInfoDetailApi.getById(id).then(data => {
       currentInfoDetail.value = data.resultData
+      componentSchemas.value = data.addons?.components || []
     })
   } else {
     console.log('=========================new', id)
@@ -198,6 +200,7 @@ const deleteComponent = (data) => {
               :project-infos="projectInfos"
               :writable="isWritable"
               :deletable="isDeletable"
+              :component-schemas="componentSchemas"
               @save-component="saveComponent"
               @delete-component="deleteComponent"
             />

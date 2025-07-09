@@ -152,6 +152,10 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
             docDetailVo.getRequestsSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
             docDetailVo.getResponsesSchemas().forEach(schema -> calcRelatedSchemas(schemaKeys, schema.getSchemaContent(), schemaKeyMap));
         }
+        return filterBySchemaKeys(projectInfoDetails, schemaKeys);
+    }
+
+    protected List<ApiProjectInfoDetail> filterBySchemaKeys(List<ApiProjectInfoDetail> projectInfoDetails, Set<String> schemaKeys) {
         projectInfoDetails = projectInfoDetails.stream().filter(detail -> {
             if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(detail.getBodyType())) {
                 return StringUtils.isNotBlank(detail.getSchemaKey()) && schemaKeys.contains(detail.getSchemaKey());
@@ -159,6 +163,21 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
             return true;
         }).collect(Collectors.toList());
         return projectInfoDetails;
+    }
+
+    @Override
+    public List<ApiProjectInfoDetail> filterByInfoDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, ApiProjectInfoDetail infoDetail) {
+        Set<String> schemaKeys = new HashSet<>();
+        calcRelatedSchemas(schemaKeys, infoDetail.getSchemaContent(), schemaKeyMap);
+        return filterBySchemaKeys(projectInfoDetails, schemaKeys);
+    }
+
+    @Override
+    public List<ApiProjectInfoDetail> findRelatedInfoDetails(ApiProjectInfoDetail infoDetail) {
+        List<ApiProjectInfoDetail> infoDetails = loadByProjectAndInfo(infoDetail.getProjectId(), infoDetail.getInfoId(),
+                Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT));
+        Map<String, ApiProjectInfoDetail> schemaKeyMap = toSchemaKeyMap(infoDetails);
+        return filterByInfoDetail(infoDetails, schemaKeyMap, infoDetail);
     }
 
     /**

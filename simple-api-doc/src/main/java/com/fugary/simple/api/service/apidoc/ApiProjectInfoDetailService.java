@@ -108,4 +108,22 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      * @return
      */
     List<ApiProjectInfoDetail> filterByDocDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, List<ApiDocDetailVo> docDetailList);
+
+    /**
+     * 过滤Component对应有关系的数据
+     *
+     * @param projectInfoDetails
+     * @param infoDetail
+     * @return
+     */
+    List<ApiProjectInfoDetail> filterByInfoDetail(List<ApiProjectInfoDetail> projectInfoDetails, Map<String, ApiProjectInfoDetail> schemaKeyMap, ApiProjectInfoDetail infoDetail);
+
+    /**
+     * 查询关联数据
+     *
+     * @param infoDetail
+     * @return
+     */
+    List<ApiProjectInfoDetail> findRelatedInfoDetails(ApiProjectInfoDetail infoDetail);
+
 }

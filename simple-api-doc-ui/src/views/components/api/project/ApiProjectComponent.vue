@@ -1,15 +1,20 @@
 <script setup lang="jsx">
 import { $i18nBundle, $i18nKey } from '@/messages'
-import { ref, watch, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElText } from 'element-plus'
 import { $coreConfirm } from '@/utils'
+import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
 
 const props = defineProps({
   projectInfos: {
     type: Array,
     default: () => []
+  },
+  componentSchemas: {
+    type: Array,
+    default: () => ([])
   },
   writable: {
     type: Boolean,
@@ -33,9 +38,8 @@ const componentEditOptions = computed(() => {
     required: true,
     attrs: {
       style: {
-        minWidth: '30vw'
-      },
-      size: 'large'
+        minWidth: '350px'
+      }
     }
   }, {
     enabled: props.projectInfos?.length > 1,
@@ -58,7 +62,9 @@ const componentEditOptions = computed(() => {
     })),
     attrs: {
       clearable: false,
-      size: 'large'
+      style: {
+        minWidth: '100px'
+      }
     }
   }]
 })
@@ -68,8 +74,7 @@ const descriptionEditOption = computed(() => {
     placeholder: $i18nKey('common.msg.commonInput', 'common.label.description'),
     prop: 'description',
     attrs: {
-      type: 'textarea',
-      rows: 3
+      type: 'textarea'
     }
   }
 })
@@ -90,13 +95,16 @@ const deleteComponent = () => {
 }
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, languageSelectOption, formatDocument } = useMonacoEditorOptions({ readOnly: false })
 languageRef.value = 'json'
-const jsonMode = ref(true)
 const schemaContentObj = ref({})
 watch(() => currentComponentModel.value?.schemaContent, (schemaContent) => {
   schemaContentObj.value = JSON.parse(schemaContent || '{}')
   contentRef.value = schemaContent
 }, { immediate: true })
 const codeHeight = '400px'
+
+const currentProjectInfo = computed(() => {
+  return props.projectInfos.find(info => info.id === currentComponentModel.value.infoId)
+})
 </script>
 
 <template>
@@ -125,52 +133,73 @@ const codeHeight = '400px'
           :model="currentComponentModel"
           :option="descriptionEditOption"
         />
-        <template v-if="jsonMode">
-          <common-form-control
-            class="form-edit-width-90"
-            :model="languageModel"
-            :option="languageSelectOption"
+        <el-tabs>
+          <el-tab-pane
+            :label="$t('api.label.dataModel')"
+            lazy
           >
-            <template #childAfter>
-              <url-copy-link
-                :content="currentComponentModel.schemaContent"
-                :tooltip="$i18nKey('common.label.commonCopy', 'common.label.code')"
+            <el-container
+              class="flex-column"
+            >
+              <api-component-schema-edit-tree
+                :root-name="currentComponentModel.schemaName"
+                :model-value="schemaContentObj"
+                :spec-version="currentProjectInfo.specVersion"
+                :component-schemas="componentSchemas"
+                :show-merge-all-of="false"
               />
-              <el-link
-                v-common-tooltip="$i18nKey('common.label.commonFormat', 'common.label.code')"
-                type="primary"
-                underline="never"
-                class="margin-left3"
-                @click="formatDocument"
-              >
-                <common-icon
-                  :size="18"
-                  icon="FormatIndentIncreaseFilled"
+            </el-container>
+          </el-tab-pane>
+          <el-tab-pane
+            label="JSON Schema"
+            lazy
+          >
+            <common-form-control
+              class="form-edit-width-90"
+              :model="languageModel"
+              :option="languageSelectOption"
+            >
+              <template #childAfter>
+                <url-copy-link
+                  :content="currentComponentModel.schemaContent"
+                  :tooltip="$i18nKey('common.label.commonCopy', 'common.label.code')"
                 />
-              </el-link>
-              <el-link
-                v-common-tooltip="$t('api.msg.showRawData')"
-                type="primary"
-                underline="never"
-                class="margin-left2"
-                @click="contentRef=currentComponentModel.schemaContent"
-              >
-                <common-icon
-                  :size="40"
-                  icon="RawOnFilled"
-                />
-              </el-link>
-            </template>
-          </common-form-control>
-          <vue-monaco-editor
-            v-model:value="contentRef"
-            :language="languageRef"
-            :height="codeHeight"
-            :options="monacoEditorOptions"
-            class="common-resize-vertical"
-            @mount="editorRef=$event"
-          />
-        </template>
+                <el-link
+                  v-common-tooltip="$i18nKey('common.label.commonFormat', 'common.label.code')"
+                  type="primary"
+                  underline="never"
+                  class="margin-left3"
+                  @click="formatDocument"
+                >
+                  <common-icon
+                    :size="18"
+                    icon="FormatIndentIncreaseFilled"
+                  />
+                </el-link>
+                <el-link
+                  v-common-tooltip="$t('api.msg.showRawData')"
+                  type="primary"
+                  underline="never"
+                  class="margin-left2"
+                  @click="contentRef=currentComponentModel.schemaContent"
+                >
+                  <common-icon
+                    :size="40"
+                    icon="RawOnFilled"
+                  />
+                </el-link>
+              </template>
+            </common-form-control>
+            <vue-monaco-editor
+              v-model:value="contentRef"
+              :language="languageRef"
+              :height="codeHeight"
+              :options="monacoEditorOptions"
+              class="common-resize-vertical"
+              @mount="editorRef=$event"
+            />
+          </el-tab-pane>
+        </el-tabs>
       </template>
     </common-form>
   </el-container>

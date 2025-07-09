@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -65,7 +66,13 @@ public class ApiProjectInfoDetailController {
 
     @GetMapping("/{id}")
     public SimpleResult<ApiProjectInfoDetail> get(@PathVariable("id") Integer id) {
-        return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.getById(id));
+        ApiProjectInfoDetail infoDetail = apiProjectInfoDetailService.getById(id);
+        if (infoDetail == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.findRelatedInfoDetails(infoDetail);
+        return SimpleResultUtils.createSimpleResult(infoDetail)
+                .add("components", (Serializable) infoDetails);
     }
 
     @DeleteMapping("/{id}")
