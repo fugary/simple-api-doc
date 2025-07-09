@@ -18,7 +18,9 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpHeaders;
@@ -136,6 +138,21 @@ public class SimpleModelUtils {
         target.setId(null);
         removeAuditInfo(target);
         addAuditInfo(target);
+    }
+
+    /**
+     * 是否没有改变
+     *
+     * @param oldData
+     * @param newData
+     * @param ignoreFields
+     * @return
+     */
+    public static boolean isSameData(ModelBase oldData, ModelBase newData, String... ignoreFields) {
+        String[] defaultIgnoreFields = new String[]{"version", "modifyFrom",
+                ApiDocConstants.CREATOR_KEY, ApiDocConstants.CREATE_DATE_KEY,
+                ApiDocConstants.MODIFIER_KEY, ApiDocConstants.MODIFY_DATE_KEY};
+        return EqualsBuilder.reflectionEquals(oldData, newData, ArrayUtils.addAll(defaultIgnoreFields, ignoreFields));
     }
 
     /**

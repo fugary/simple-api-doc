@@ -6,12 +6,16 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
+import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.exports.ApiSchemaContentUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.ProjectComponentQueryVo;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +37,9 @@ import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
 @RestController
 @RequestMapping("/admin/info/detail")
 public class ApiProjectInfoDetailController {
+
+    @Autowired
+    private ApiProjectInfoService apiProjectInfoService;
 
     @Autowired
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
@@ -92,11 +99,17 @@ public class ApiProjectInfoDetailController {
         if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.lambdaQuery()
-                .eq(ApiProjectInfoDetail::getSchemaName, infoDetail.getSchemaName()).list();
-        for (ApiProjectInfoDetail detail : infoDetails) {
-            detail.setSchemaContent(infoDetail.getSchemaContent());
-            detail.setDescription(infoDetail.getDescription());
+        boolean isV31 = false;
+        ApiProjectInfo projectInfo = null;
+        if (infoDetail.getInfoId() != null && (projectInfo = apiProjectInfoService.getById(infoDetail.getInfoId())) != null) {
+            isV31 = SchemaJsonUtils.isV31(projectInfo.getSpecVersion());
+        }
+        if (infoDetail.getId() != null) {
+            ApiProjectInfoDetail oldInfoDetail = apiProjectInfoDetailService.getById(infoDetail.getId());
+            if (oldInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, oldInfoDetail, "schemaContent")
+                    && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), oldInfoDetail.getSchemaContent(), isV31)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
+            }
         }
         apiProjectInfoDetailService.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
         return SimpleResultUtils.createSimpleResult(infoDetail);

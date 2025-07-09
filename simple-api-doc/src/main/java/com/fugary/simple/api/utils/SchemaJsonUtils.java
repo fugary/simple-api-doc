@@ -108,6 +108,11 @@ public class SchemaJsonUtils {
         return SpecVersion.V31.equals(specVersion);
     }
 
+    public static boolean isV31(String specVersionStr) {
+        SpecVersion specVersion = SpecVersion.valueOf(specVersionStr);
+        return isV31(specVersion);
+    }
+
     public static void processXxxOf(List<Schema> xxxOf, Map<String, Schema<?>> schemasMap) {
         xxxOf = SimpleModelUtils.wrap(xxxOf);
         for (int i = 0; i < xxxOf.size(); i++) {
