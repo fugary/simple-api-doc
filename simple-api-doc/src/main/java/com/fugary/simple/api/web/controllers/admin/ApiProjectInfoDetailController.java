@@ -3,6 +3,7 @@ package com.fugary.simple.api.web.controllers.admin;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
@@ -111,6 +112,7 @@ public class ApiProjectInfoDetailController {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
             }
         }
+        infoDetail.setContentType(ApiDocConstants.PROJECT_TASK_TYPE_MANUAL); // 手动修改过
         apiProjectInfoDetailService.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
         return SimpleResultUtils.createSimpleResult(infoDetail);
     }

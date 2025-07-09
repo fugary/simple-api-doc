@@ -8,6 +8,7 @@ import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.mapper.api.ApiProjectInfoDetailMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
@@ -69,7 +70,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         projectInfoDetails.forEach(projectInfoDetailVo -> {
             projectInfoDetailVo.setProjectId(apiProject.getId());
             projectInfoDetailVo.setInfoId(apiProjectInfo.getId());
-            ApiDocParseUtils.processProjectInfoDetail(detailsMap, projectInfoDetailVo);
+            ApiDocParseUtils.processProjectInfoDetail(detailsMap, projectInfoDetailVo, SchemaJsonUtils.isV31(apiProjectInfo.getSpecVersion()));
             save(SimpleModelUtils.addAuditInfo(projectInfoDetailVo));
         });
     }

@@ -46,7 +46,13 @@ public class ApiSchemaContentUtils {
         return SchemaJsonUtils.toJson(savedSchema, isV31);
     }
 
-    private static void mergeSchema(Schema<?> savedSchema, Schema<?> newSchema) {
+    /**
+     * 合并schema，优先长度长的数据
+     *
+     * @param savedSchema
+     * @param newSchema
+     */
+    public static void mergeSchema(Schema<?> savedSchema, Schema<?> newSchema) {
         // properties
         if (savedSchema.getProperties() == null) {
             savedSchema.setProperties(newSchema.getProperties());

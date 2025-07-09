@@ -163,11 +163,19 @@ public class ApiDocParseUtils {
     }
 
     public static void processProjectInfoDetail(Map<String, ApiProjectInfoDetail> detailsMap,
-                                                ExportApiProjectInfoDetailVo projectInfoDetailVo) {
+                                                ExportApiProjectInfoDetailVo projectInfoDetailVo, boolean isV31) {
         ApiProjectInfoDetail existsInfoDetail = detailsMap.get(ApiDocParseUtils.getProjectInfoDetailKey(projectInfoDetailVo));
         if (existsInfoDetail != null) {
-            if (!StringUtils.equals(existsInfoDetail.getSchemaContent(), projectInfoDetailVo.getSchemaContent())
-                    || !StringUtils.equals(existsInfoDetail.getDescription(), projectInfoDetailVo.getDescription())) {
+            boolean isChanged = !StringUtils.equals(existsInfoDetail.getSchemaContent(), projectInfoDetailVo.getSchemaContent())
+                    || !StringUtils.equals(existsInfoDetail.getDescription(), projectInfoDetailVo.getDescription());
+            if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(existsInfoDetail.getBodyType())) {
+                if (ApiDocConstants.PROJECT_TASK_TYPE_MANUAL.equals(existsInfoDetail.getContentType())) {
+                    String mergedSchemaContent = ApiSchemaContentUtils.mergeComponentSchemaContent(existsInfoDetail.getSchemaContent(),
+                            projectInfoDetailVo.getSchemaContent(), isV31);
+                    projectInfoDetailVo.setSchemaContent(mergedSchemaContent);
+                }
+            }
+            if (isChanged) {
                 SimpleModelUtils.mergeAuditInfo(projectInfoDetailVo, existsInfoDetail);
             } else {
                 SimpleModelUtils.mergeCreateInfo(projectInfoDetailVo, existsInfoDetail);
