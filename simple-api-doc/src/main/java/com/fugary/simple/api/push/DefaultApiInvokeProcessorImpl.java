@@ -86,7 +86,7 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
             if (location != null) {
                 URI targetUri = UriComponentsBuilder.fromUri(location)
                         .queryParams(getQueryParams(mockParams))
-                        .build(true).toUri();
+                        .build().toUri();
                 responseEntity = restTemplate.exchange(targetUri,
                         Optional.ofNullable(HttpMethod.resolve(mockParams.getMethod())).orElse(HttpMethod.GET),
                         entity, byte[].class);
@@ -123,7 +123,7 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
         requestUrl = UriComponentsBuilder.fromUriString(baseUrl)
                 .path(requestUrl)
                 .queryParams(getQueryParams(mockParams))
-                .build(true).toUriString();
+                .build().toUriString();
         for (NameValue nv : mockParams.getPathParams()) {
             requestUrl = requestUrl.replace("{" + nv.getName() + "}", nv.getValue());
         }
