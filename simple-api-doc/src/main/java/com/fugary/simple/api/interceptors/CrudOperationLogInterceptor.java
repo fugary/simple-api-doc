@@ -89,7 +89,7 @@ public class CrudOperationLogInterceptor implements ApplicationContextAware {
                 logBuilder = ApiLog.builder()
                         .ipAddress(HttpRequestUtils.getIp(request))
                         .logType(request.getMethod())
-                        .headers(JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request)))
+                        .headers(JsonUtils.toJson(HttpRequestUtils.getRequestHeadersMap(request, true)))
                         .requestUrl(HttpRequestUtils.getRequestUrl(request));
             }
         }

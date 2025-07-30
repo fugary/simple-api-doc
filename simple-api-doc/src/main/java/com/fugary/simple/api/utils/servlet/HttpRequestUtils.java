@@ -3,6 +3,7 @@
  */
 package com.fugary.simple.api.utils.servlet;
 
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.XmlUtils;
 import com.fugary.simple.api.web.vo.NameValue;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -30,6 +32,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * @author gary.fu
@@ -238,12 +241,18 @@ public class HttpRequestUtils {
 	 * 请求头获取
 	 * @param request
 	 */
-	public static Map<String, String> getRequestHeadersMap(HttpServletRequest request){
+	public static Map<String, String> getRequestHeadersMap(HttpServletRequest request, boolean confusion){
 		Enumeration<String> reqHeaders = request.getHeaderNames();
 		Map<String, String> requestHeaders = new HashMap<>();
 		while (reqHeaders.hasMoreElements()) {
 			String key = reqHeaders.nextElement();
 			requestHeaders.put(key, request.getHeader(key));
+            if (confusion) {
+                if (Stream.of(HttpHeaders.AUTHORIZATION, "token")
+						.anyMatch(header -> StringUtils.containsAnyIgnoreCase(key, header))) {
+					requestHeaders.put(key, ApiDocConstants.SECURITY_CONFUSION_VALUE);
+                }
+            }
 		}
 		return requestHeaders;
 	}
