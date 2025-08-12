@@ -31,7 +31,7 @@ export const mergeEnvConfigs = (envContent, projectEnvContent) => {
   const projectConfigs = calcEnvConfigs(projectEnvContent)
   if (envContent) {
     const sharedUrls = calcEnvConfigs(envContent).map(item => item.url)
-    return projectConfigs.filter(item => !sharedUrls.includes(item.url))
+    return projectConfigs.filter(item => sharedUrls.includes(item.url))
   }
   return projectConfigs
 }
