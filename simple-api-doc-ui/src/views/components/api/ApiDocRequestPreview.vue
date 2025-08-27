@@ -21,7 +21,7 @@ import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import emitter from '@/vendors/emitter'
 import { getEnvConfigs } from '@/api/SimpleShareApi'
-import { isFunction, lowerCase } from 'lodash-es'
+import { isFunction, lowerCase, isString } from 'lodash-es'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 
 const projectInfoDetail = ref()
@@ -103,6 +103,9 @@ const doDataPreview = async () => {
     paramsSerializer: toGetParams,
     data,
     headers
+  }
+  if (hasBody && isString(data)) { // 字符串不让axios处理，防止调试请求和postman有差异
+    config.transformRequest = req => req
   }
   calcPreviewHeaders(config)
   let authContent = paramTarget.value.authContent
