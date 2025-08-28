@@ -24,7 +24,6 @@ import {
   calcPreferenceId,
   calcShowCleanHandlers,
   checkHasApiDoc,
-  calcDebugInWindowHandler,
   calcTreeNodeChildNodes,
   isTreeNodeFirstFolder
 } from '@/services/api/ApiFolderService'
@@ -138,7 +137,7 @@ const shareTopHandlers = computed(() => {
   if (rootFolder.value && hasApiDoc.value) {
     return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
       calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
-      calcDebugInWindowHandler(rootFolder.value, sharePreference),
+      // calcDebugInWindowHandler(rootFolder.value, sharePreference),
       ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
   }
   return []

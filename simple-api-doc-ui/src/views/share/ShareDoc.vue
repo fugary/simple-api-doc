@@ -105,7 +105,7 @@ watch(currentDoc, (newDoc, oldDoc) => {
     hideDebugSplit()
   }
 })
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig()
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
 const splitRef = ref()
 </script>
 
@@ -205,6 +205,18 @@ const splitRef = ref()
               >
                 <template #content>
                   <span>{{ currentDoc?.docName || currentDoc?.url }} </span>
+                  <el-link
+                    v-common-tooltip="$t('api.label.debugInModalWindow')"
+                    type="primary"
+                    underline="never"
+                    class="margin-left1"
+                    @click="changeForceShowWindow"
+                  >
+                    <common-icon
+                      size="18"
+                      icon="OpenInNewFilled"
+                    />
+                  </el-link>
                 </template>
               </el-page-header>
               <api-doc-request-preview

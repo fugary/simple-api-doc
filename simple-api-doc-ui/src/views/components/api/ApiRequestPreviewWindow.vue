@@ -6,10 +6,17 @@ import emitter from '@/vendors/emitter'
 const showWindow = ref(false)
 const loading = ref(true)
 const mockPreviewRef = ref()
-const toPreviewRequest = async (...args) => {
+const currentDoc = ref()
+const changeForceShowWindow = ref()
+const toPreviewRequest = async (projectInfo, apiDoc, changeForceShowWindowFunc, ...args) => {
+  currentDoc.value = apiDoc
+  changeForceShowWindow.value = () => {
+    changeForceShowWindowFunc?.()
+    showWindow.value = false
+  }
   showWindow.value = true
   nextTick(() => {
-    mockPreviewRef.value?.toPreviewRequest(...args)
+    mockPreviewRef.value?.toPreviewRequest(projectInfo, apiDoc, ...args)
       .finally(() => { loading.value = false })
   })
 }
@@ -39,7 +46,19 @@ defineExpose({
   >
     <template #header>
       <span class="el-dialog__title">
-        {{ $t('api.msg.requestTest') }}
+        {{ currentDoc?.docName || currentDoc?.url }}
+        <el-link
+          v-common-tooltip="$t('api.label.debugInFitScreen')"
+          type="primary"
+          underline="never"
+          class="margin-left1"
+          @click="changeForceShowWindow"
+        >
+          <common-icon
+            size="18"
+            icon="OpenInNewOffFilled"
+          />
+        </el-link>
       </span>
     </template>
     <api-doc-request-preview

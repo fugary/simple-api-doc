@@ -44,7 +44,7 @@ watch(() => currentDoc.value?.editing, (newEditing, oldEditing) => {
     currentDoc.value = lastDocInfo.value
   }
 })
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi } = useApiDocDebugConfig(true)
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig(true)
 const folderContainerHeight = computed(() => {
   const offset = calcAffixOffset()
   return `calc(100vh - ${170 + offset}px)`
@@ -208,7 +208,19 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
                 @back="hideDebugSplit"
               >
                 <template #content>
-                  <span>{{ currentDoc?.docName }} </span>
+                  <span>{{ currentDoc?.docName || currentDoc?.url }} </span>
+                  <el-link
+                    v-common-tooltip="$t('api.label.debugInModalWindow')"
+                    type="primary"
+                    underline="never"
+                    class="margin-left1"
+                    @click="changeForceShowWindow"
+                  >
+                    <common-icon
+                      size="18"
+                      icon="OpenInNewFilled"
+                    />
+                  </el-link>
                 </template>
               </el-page-header>
               <api-doc-request-preview

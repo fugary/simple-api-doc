@@ -610,6 +610,8 @@ export const useApiDocDebugConfig = (editable = false) => {
       splitSizes.value = [20, 80]
     }
   }
+  const forceShowWindow = ref()
+  const changeForceShowWindow = ref()
   const toDebugApi = (projectInfo, apiDoc, ...args) => {
     let showDebugWindow = editable ? isMediumScreen.value : isSmallScreen.value
     const preferenceId = calcDetailPreferenceId(apiDoc)
@@ -617,9 +619,18 @@ export const useApiDocDebugConfig = (editable = false) => {
     if (shareConfigStore?.sharePreferenceView?.[preferenceId]?.debugInWindow) {
       showDebugWindow = true
     }
+    showDebugWindow = forceShowWindow.value ?? showDebugWindow
+    const calcForceShowWindowFunc = (val) => () => {
+      forceShowWindow.value = val
+      if (shareConfigStore?.sharePreferenceView?.[preferenceId]) {
+        shareConfigStore.sharePreferenceView[preferenceId].debugInWindow = val
+      }
+      toDebugApi(projectInfo, apiDoc, ...args)
+    }
     if (showDebugWindow) {
       hideDebugSplit()
-      previewApiRequest(projectInfo, apiDoc, ...args)
+      changeForceShowWindow.value = calcForceShowWindowFunc(false)
+      previewApiRequest(projectInfo, apiDoc, changeForceShowWindow.value, ...args)
     } else {
       if (!isShowDebug.value) {
         splitSizes.value = isLargeScreen.value ? [20, 40, 40] : [0, 50, 50]
@@ -627,6 +638,7 @@ export const useApiDocDebugConfig = (editable = false) => {
         nextTick(() => { // 延迟才能获取到Ref实例
           apiDocPreviewRef.value?.toPreviewRequest(projectInfo, apiDoc, ...args)
             .finally(() => { previewLoading.value = false })
+          changeForceShowWindow.value = calcForceShowWindowFunc(true)
         })
       } else {
         hideDebugSplit()
@@ -645,6 +657,7 @@ export const useApiDocDebugConfig = (editable = false) => {
     defaultMaxSizes,
     isShowDebug,
     previewLoading,
+    changeForceShowWindow,
     hideDebugSplit,
     toDebugApi
   }
