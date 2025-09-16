@@ -17,14 +17,15 @@ import { GlobalLayoutMode, LoadSaveParamMode } from '@/consts/GlobalConstants'
 /**
  * 地址信息
  * @param path
- * @return {`${string}${string}`}
+ * @param [server] 服务端路径
+ * @return {string}
  */
-export const getPathUrl = (path) => {
+export const getPathUrl = (path, server) => {
   if (/^https?:\/\//.test(path)) {
     return path
   }
   const baseUrl = location.origin + location.pathname
-  return `${baseUrl}#${path}`
+  return server ? joinPath(baseUrl, path) : `${baseUrl}#${path}`
 }
 
 export const isAdminUser = () => {

@@ -2,9 +2,9 @@ import { BASE_URL } from '@/config'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { ref } from 'vue'
 import { $i18nBundle } from '@/messages'
-import { getPathUrl, isAdminUser } from '@/utils'
+import { getPathUrl, isAdminUser, joinPath } from '@/utils'
 
-const dbUrl = getPathUrl(`${BASE_URL}${BASE_URL.endsWith('/') ? '' : '/'}h2-console`)
+const dbUrl = getPathUrl(joinPath(BASE_URL, '/h2-console'), true)
 const editorContent = ref('')
 export const ALL_MENUS = [
   {
