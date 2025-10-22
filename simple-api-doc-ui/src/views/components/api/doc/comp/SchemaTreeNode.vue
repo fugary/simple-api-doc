@@ -9,6 +9,10 @@ const props = defineProps({
   data: {
     type: Object,
     default: () => ({})
+  },
+  showMergeAllOf: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -93,7 +97,7 @@ const typeStr = computed(() => {
       </strong>
     </el-tag>
     <el-tag
-      v-if="schemaXxxOf"
+      v-if="schemaXxxOf && (!showMergeAllOf || schemaXxxOfLength>1)"
       type="success"
       size="small"
       class="margin-right2"

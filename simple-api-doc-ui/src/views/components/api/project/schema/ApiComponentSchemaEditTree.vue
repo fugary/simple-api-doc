@@ -80,7 +80,10 @@ const treeProps = {
         </div>
       </template>
       <template #default="{data}">
-        <schema-tree-node :data="data" />
+        <schema-tree-node
+          :data="data"
+          :show-merge-all-of="showMergeAllOf"
+        />
       </template>
     </el-tree>
   </el-container>
