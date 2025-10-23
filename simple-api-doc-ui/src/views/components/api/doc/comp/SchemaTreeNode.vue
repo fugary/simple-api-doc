@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import markdownit from 'markdown-it'
 import { hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { $copyText } from '@/utils'
-import { isString, isNil, isArray } from 'lodash-es'
+import { isString, isNil, isArray, isObject } from 'lodash-es'
 
 const props = defineProps({
   data: {
@@ -47,6 +47,14 @@ const exampleStr = computed(() => {
     exampleStr = isString(example) ? example : JSON.stringify(example)
   }
   return exampleStr
+})
+
+const dataExamples = computed(() => {
+  const examples = props.data?.examples
+  if (isObject(examples)) {
+    return (Object.values(examples) || []).filter(item => !isNil(item.value))
+  }
+  return null
 })
 
 const otherParams = computed(() => {
@@ -143,7 +151,7 @@ const typeStr = computed(() => {
         v-for="enumVal in data.schema?.enum"
         :key="enumVal"
         class="margin-left1"
-        type="info"
+        type="primary"
         @click="$copyText(enumVal)"
       >
         {{ enumVal }}
@@ -184,13 +192,43 @@ const typeStr = computed(() => {
       class="padding-left2"
     >
       {{ $t('common.label.example') }}:
-      <el-text
+      <el-tag
         type="primary"
         size="small"
         @click="$copyText(exampleStr)"
       >
         {{ exampleStr }}
-      </el-text>
+      </el-tag>
+    </el-text>
+    <el-text
+      v-if="dataExamples?.length"
+      size="small"
+      type="info"
+      class="padding-left2"
+    >
+      {{ $t('common.label.example') }}:
+      <template
+        v-for="(example, idx) in dataExamples"
+        :key="idx"
+      >
+        <template v-if="example.value">
+          <el-tag
+            type="primary"
+            size="small"
+            class="margin-left2"
+            @click="$copyText(example.value)"
+          >
+            {{ example.value }}
+          </el-tag>
+          <el-text
+            type="info"
+            size="small"
+            class="margin-left1"
+          >
+            {{ example.description }}
+          </el-text>
+        </template>
+      </template>
     </el-text>
   </div>
 </template>
