@@ -212,7 +212,7 @@ export const calcSchemaParameters = (parametersSchema, componentMap, filter = it
           slots = {
             default: (data) => {
               const item = data.item
-              return isObject(item) ? `${item.value} - ${item.description}` : item
+              return isObject(item) ? `${item.value ?? ''} - ${item.description}` : item
             }
           }
         }
