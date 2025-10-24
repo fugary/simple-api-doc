@@ -21,11 +21,15 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   searchMethod: loadHistoryList,
   saveParam: false
 })
+const emit = defineEmits(['updateHistoryCount'])
 const searchHistories = async (...args) => {
   const data = await searchMethod(...args)
   if (data.success) {
     showHistoryWindow.value = true
     currentDoc.value = data.addons?.current
+    if (data.page?.totalCount) {
+      emit('updateHistoryCount', data.page.totalCount)
+    }
   }
 }
 const showHistoryList = (docId) => {

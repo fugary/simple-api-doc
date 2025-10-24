@@ -35,6 +35,7 @@ public class ApiDocHistoryServiceImpl extends ServiceImpl<ApiDocHistoryMapper, A
         SimpleModelUtils.copy(apiDocHistory, resultDoc);
         resultDoc.setId(apiDoc.getId()); // 还原不能修改的属性
         resultDoc.setDocVersion(apiDoc.getDocVersion());
+        SimpleModelUtils.addAuditInfo(resultDoc);
         return resultDoc;
     }
 }

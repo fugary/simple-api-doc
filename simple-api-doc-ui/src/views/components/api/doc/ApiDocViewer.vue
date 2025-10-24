@@ -173,9 +173,9 @@ const { isSmallContainer, containerRef } = useContainerCheck()
   >
     <api-doc-view-header
       v-model="apiDoc"
+      v-model:history-count="historyCount"
       :current-doc-detail="apiDocDetail"
       :editable="editable"
-      :history-count="historyCount"
     />
     <api-doc-path-header
       v-model="apiDocDetail"
