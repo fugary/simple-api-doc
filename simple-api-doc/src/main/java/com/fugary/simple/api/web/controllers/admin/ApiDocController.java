@@ -181,8 +181,14 @@ public class ApiDocController {
     public SimpleResult<List<ApiDocHistory>> loadHistoryList(@RequestBody ApiDocQueryVo queryVo) {
         Integer docId = queryVo.getDocId();
         Page<ApiDocHistory> page = SimpleResultUtils.toPage(queryVo);
-        return SimpleResultUtils.createSimpleResult(apiDocHistoryService.page(page, Wrappers.<ApiDocHistory>query().eq("doc_id", docId)
-                .orderByDesc("create_date")));
+        ApiDoc currentDoc = apiDocService.getById(docId);
+        if (currentDoc == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(apiDocHistoryService.page(page, Wrappers.<ApiDocHistory>query()
+                        .eq("doc_id", docId)
+                        .orderByDesc("doc_version")))
+                .add("current", currentDoc);
     }
 
     /**
@@ -210,6 +216,21 @@ public class ApiDocController {
             }
             return SimpleResultUtils.createSimpleResult(map);
         }
+    }
+
+    @PostMapping("/recoverFromHistory")
+    public SimpleResult<ApiDoc> recoverFromHistory(@RequestBody ApiDocHistoryQueryVo historyVo) {
+        ApiDocHistory history = apiDocHistoryService.getById(historyVo.getDocId()); // 加载历史
+        ApiDoc target = null;
+        if (history != null && history.getDocId() != null) {
+            target = apiDocService.getById(history.getDocId());
+        }
+        if (history == null || target == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        ApiDoc apiDoc = apiDocHistoryService.copyFromHistory(history, target);
+        apiDocService.saveApiDoc(apiDoc, target); // 更新
+        return SimpleResultUtils.createSimpleResult(apiDoc);
     }
 
     @PostMapping("/copyApiDoc/{docId}")

@@ -28,4 +28,13 @@ public class ApiDocHistoryServiceImpl extends ServiceImpl<ApiDocHistoryMapper, A
         }
         return true;
     }
+
+    @Override
+    public ApiDoc copyFromHistory(ApiDocHistory apiDocHistory, ApiDoc apiDoc) {
+        ApiDoc resultDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
+        SimpleModelUtils.copy(apiDocHistory, resultDoc);
+        resultDoc.setId(apiDoc.getId()); // 还原不能修改的属性
+        resultDoc.setDocVersion(apiDoc.getDocVersion());
+        return resultDoc;
+    }
 }

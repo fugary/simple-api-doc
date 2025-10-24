@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { ref, computed } from 'vue'
-import ApiDocApi, { loadHistoryDiff, loadHistoryList } from '@/api/ApiDocApi'
+import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiDocApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import { ElText, ElTag } from 'element-plus'
@@ -8,7 +8,7 @@ import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import ApiDocHistoryDiffViewer from '@/views/components/api/doc/comp/ApiDocHistoryDiffViewer.vue'
 import { $i18nBundle } from '@/messages'
-import { $copyText } from '@/utils'
+import { $copyText, $coreConfirm } from '@/utils'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -21,14 +21,16 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   searchMethod: loadHistoryList,
   saveParam: false
 })
-const showHistoryList = async (docId) => {
-  const data = await ApiDocApi.getById(docId)
+const searchHistories = async (...args) => {
+  const data = await searchMethod(...args)
   if (data.success) {
-    currentDoc.value = data.resultData
     showHistoryWindow.value = true
-    searchParam.value.docId = docId
-    searchMethod(1)
+    currentDoc.value = data.addons?.current
   }
+}
+const showHistoryList = (docId) => {
+  searchParam.value.docId = docId
+  return searchHistories(1)
 }
 const limit = 300
 /**
@@ -107,6 +109,13 @@ const buttons = computed(() => {
     buttonIf: item => !item.isCurrent,
     click: item => showApiDocDiff(item)
   }, {
+    labelKey: 'api.label.recover',
+    type: 'warning',
+    buttonIf: item => !item.isCurrent,
+    click: item => $coreConfirm($i18nBundle('api.msg.recoverFromHistory'))
+      .then(() => recoverFromHistory({ docId: item.id }))
+      .then(() => searchHistories())
+  }, {
     labelKey: 'api.label.viewDiff',
     type: 'success',
     click: item => showApiDocDiff(item, true)
@@ -174,7 +183,7 @@ defineExpose({
   <common-window
     v-model="showHistoryWindow"
     :title="$t('api.label.historyVersions')"
-    width="1000px"
+    width="1100px"
     show-fullscreen
     :show-cancel="false"
     :ok-label="$t('common.label.close')"
@@ -186,10 +195,10 @@ defineExpose({
       :columns="columns"
       :buttons="buttons"
       buttons-slot="buttons"
-      :buttons-column-attrs="{width:'200px'}"
+      :buttons-column-attrs="{width:'220px'}"
       :loading="loading"
-      @page-size-change="searchMethod()"
-      @current-page-change="searchMethod()"
+      @page-size-change="searchHistories()"
+      @current-page-change="searchHistories()"
     />
     <api-doc-history-diff-viewer
       v-model="showDiffViewer"

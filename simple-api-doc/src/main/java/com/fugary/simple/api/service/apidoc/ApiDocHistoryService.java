@@ -18,4 +18,12 @@ public interface ApiDocHistoryService extends IService<ApiDocHistory> {
      * @return
      */
     boolean saveByApiDoc(ApiDoc apiDoc);
+
+    /**
+     * 从历史复制数据
+     *
+     * @param apiDocHistory
+     * @param apiDoc
+     */
+    ApiDoc copyFromHistory(ApiDocHistory apiDocHistory, ApiDoc apiDoc);
 }
