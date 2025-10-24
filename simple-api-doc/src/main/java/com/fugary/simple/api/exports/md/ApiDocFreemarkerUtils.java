@@ -10,7 +10,6 @@ import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import io.swagger.v3.core.util.RefUtils;
 import io.swagger.v3.oas.models.examples.Example;
-import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import lombok.Getter;
@@ -77,8 +76,11 @@ public class ApiDocFreemarkerUtils {
     public String propertyType(Schema<?> schema, boolean markdown) {
         if (schema != null) {
             String typeStr = schema.getType();
-            if (schema instanceof ArraySchema) {
-                typeStr = "array<" + propertyType(schema.getItems(), false) + ">";
+            if (StringUtils.isBlank(typeStr) && CollectionUtils.isNotEmpty(schema.getTypes())) {
+                typeStr = StringUtils.join(schema.getTypes(), ",");
+            }
+            if (schema.getItems() != null) {
+                typeStr = typeStr + "<" + propertyType(schema.getItems(), false) + ">";
             }
             List<Schema> xxxOf = getXxxOf(schema).getRight();
             if (CollectionUtils.isNotEmpty(xxxOf)) {
