@@ -13,7 +13,7 @@ import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBo
 import emitter from '@/vendors/emitter'
 import { AUTH_TYPE } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
-import { calcAuthModelBySchemas, calcSecuritySchemas } from '@/services/api/ApiDocPreviewService'
+import { calcAuthModelBySchemas, calcSecuritySchemas, copyParamsDynamicOption } from '@/services/api/ApiDocPreviewService'
 import { useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
@@ -99,6 +99,9 @@ const handlerConfig = {
     const savedTarget = { ...lastParamTarget }
     const notSavedKeys = ['requestBodySchema', 'securityRequirements']// 有些数据不能使用保存数据
     notSavedKeys.forEach(key => delete savedTarget[key])
+    copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
+    copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
+    copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
     return Object.assign(target, lastParamTarget)
   },
   changeHandler: target => {

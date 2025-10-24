@@ -235,6 +235,17 @@ export const calcSchemaParameters = (parametersSchema, componentMap, filter = it
   return []
 }
 
+export const copyParamsDynamicOption = (params, savedParams) => {
+  if (isArray(params) && isArray(savedParams)) {
+    savedParams.forEach(savedParam => {
+      const foundParam = params.find(param => param.name === savedParam.name)
+      if (foundParam) {
+        savedParam.dynamicOption = foundParam.dynamicOption
+      }
+    })
+  }
+}
+
 export const checkParamsFilled = (params) => {
   return !params?.length || params.filter(param => param.enabled).every(param => param.name && param.value)
 }
