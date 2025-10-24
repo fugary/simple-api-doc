@@ -8,6 +8,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  historyCount: {
+    type: Number,
+    default: 0
+  },
   currentDocDetail: {
     type: Object,
     default: undefined
@@ -26,10 +30,7 @@ const folderPaths = computed(() => {
 const apiDocHistoryRef = ref()
 const { isMobile } = useScreenCheck()
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
-const historyCount = defineModel('historyCount', {
-  type: Number,
-  default: 0
-})
+defineEmits(['updateHistory'])
 </script>
 
 <template>
@@ -88,7 +89,7 @@ const historyCount = defineModel('historyCount', {
       <api-doc-history-viewer
         v-if="historyCount"
         ref="apiDocHistoryRef"
-        @update-history-count="historyCount=$event"
+        @update-history="$emit('updateHistory')"
       />
     </h2>
   </el-header>

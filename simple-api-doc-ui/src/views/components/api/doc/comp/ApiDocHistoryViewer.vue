@@ -21,15 +21,12 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
   searchMethod: loadHistoryList,
   saveParam: false
 })
-const emit = defineEmits(['updateHistoryCount'])
+const emit = defineEmits(['updateHistory'])
 const searchHistories = async (...args) => {
   const data = await searchMethod(...args)
   if (data.success) {
     showHistoryWindow.value = true
     currentDoc.value = data.addons?.current
-    if (data.page?.totalCount) {
-      emit('updateHistoryCount', data.page.totalCount)
-    }
   }
 }
 const showHistoryList = (docId) => {
@@ -119,6 +116,7 @@ const buttons = computed(() => {
     click: item => $coreConfirm($i18nBundle('api.msg.recoverFromHistory'))
       .then(() => recoverFromHistory({ docId: item.id }))
       .then(() => searchHistories())
+      .then(() => emit('updateHistory'))
   }, {
     labelKey: 'api.label.viewDiff',
     type: 'success',

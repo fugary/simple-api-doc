@@ -77,8 +77,9 @@ const { isSmallContainer, containerRef } = useContainerCheck()
   >
     <api-doc-view-header
       v-model="currentDoc"
-      v-model:history-count="historyCount"
+      :history-count="historyCount"
       :editable="editable"
+      @update-history="loadCurrentDoc(currentDoc.id)"
     />
     <el-container
       ref="containerRef"
