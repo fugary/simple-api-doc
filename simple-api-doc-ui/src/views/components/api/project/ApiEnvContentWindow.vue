@@ -1,9 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { saveEnvConfigs } from '@/api/ApiProjectApi'
 import { defineFormOptions } from '@/components/utils'
+import { uniqBy } from 'lodash-es'
+import { $coreError } from '@/utils'
 
 const showWindow = ref(false)
 const projectInfoItem = ref()
@@ -26,7 +28,12 @@ defineExpose({
 const saveInfoEnvConfigs = ({ form }) => {
   form.validate(valid => {
     if (valid) {
-      saveEnvConfigs(projectInfoItem.value.id, infoConfig.value.envConfigs, { loading: true })
+      const envConfigs = infoConfig.value.envConfigs
+      if (uniqBy(envConfigs, 'name').length !== envConfigs.length) {
+        $coreError($i18nKey('common.msg.commonDuplicated', 'api.label.environmentName'))
+        return
+      }
+      saveEnvConfigs(projectInfoItem.value.id, envConfigs, { loading: true })
         .then(() => {
           ElMessage.success($i18nBundle('common.msg.saveSuccess'))
           callback?.(projectInfoItem.value)
