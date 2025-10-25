@@ -60,6 +60,10 @@ onActivated(initLoadOnce)
 const isDeletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
 const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
 
+const envConfigs = computed(() => {
+  return JSON.parse(projectItem.value?.envContent || '[]') || []
+})
+
 </script>
 
 <template>
@@ -94,13 +98,6 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
             {{ $t('common.label.back') }}
           </el-button>
           <el-button
-            v-if="isWritable&&projectItem.infoList?.length"
-            type="info"
-            @click="toEditEnvConfigs(projectItem).then(() => $reload(route))"
-          >
-            {{ $t('api.label.environments') }}
-          </el-button>
-          <el-button
             class="margin-left2"
             type="warning"
             @click="$goto(`/api/projects/components/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
@@ -111,6 +108,20 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
             />
             {{ $t('api.label.dataModel') }}
           </el-button>
+          <el-badge
+            v-if="isWritable"
+            :value="envConfigs.length"
+            :show-zero="false"
+            type="primary"
+            class="padding-left2"
+          >
+            <el-button
+              type="info"
+              @click="toEditEnvConfigs(projectItem).then(() => $reload(route))"
+            >
+              {{ $t('api.label.environments') }}
+            </el-button>
+          </el-badge>
           <el-badge
             v-if="isWritable"
             :value="projectItem.shares?.filter(share=>share.status).length"

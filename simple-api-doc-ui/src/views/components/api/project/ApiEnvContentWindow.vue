@@ -15,7 +15,7 @@ let callback
 const toEditEnvConfigs = (projectInfo) => {
   projectInfoItem.value = projectInfo
   showWindow.value = true
-  infoConfig.value.envConfigs = JSON.parse(projectInfo.envContent) || []
+  infoConfig.value.envConfigs = JSON.parse(projectInfo.envContent || '[]') || []
   return new Promise(resolve => (callback = resolve))
 }
 
