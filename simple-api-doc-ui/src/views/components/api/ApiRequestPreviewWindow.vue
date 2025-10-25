@@ -2,6 +2,7 @@
 import { ref, nextTick, onUnmounted } from 'vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import emitter from '@/vendors/emitter'
+import { useMediaQuery } from '@vueuse/core'
 
 const showWindow = ref(false)
 const loading = ref(true)
@@ -31,7 +32,7 @@ onUnmounted(() => {
 defineExpose({
   toPreviewRequest
 })
-
+const verySmallWindow = useMediaQuery('(max-width: 1000px)')
 </script>
 
 <template>
@@ -48,6 +49,7 @@ defineExpose({
       <span class="el-dialog__title">
         {{ currentDoc?.docName || currentDoc?.url }}
         <el-link
+          v-if="!verySmallWindow"
           v-common-tooltip="$t('api.label.debugInFitScreen')"
           type="primary"
           underline="never"
