@@ -58,7 +58,8 @@ const verySmallWindow = useMediaQuery('(max-width: 1000px)')
         >
           <common-icon
             size="18"
-            icon="OpenInNewOffFilled"
+            style="transform: rotate(90deg);"
+            icon="OpenInNewFilled"
           />
         </el-link>
       </span>
