@@ -124,7 +124,7 @@ watch(() => globalConfigStore.currentLocale, loadDocDetail)
 const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
 const { isMobile } = useScreenCheck()
 
-defineEmits(['toDebugApi'])
+defineEmits(['toDebugApi', 'updateHistory'])
 
 const showAuthorizationWindow = ref(false)
 const toEditAuthorization = () => {
@@ -176,6 +176,7 @@ const { isSmallContainer, containerRef } = useContainerCheck()
       :current-doc-detail="apiDocDetail"
       :editable="editable"
       :history-count="historyCount"
+      @update-history="$emit('updateHistory', $event)"
     />
     <api-doc-path-header
       v-model="apiDocDetail"

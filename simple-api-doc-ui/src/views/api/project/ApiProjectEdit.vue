@@ -191,6 +191,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
                 v-model="currentDoc"
                 :editable="isWritable"
                 scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
+                @update-history="savedApiDoc"
               />
               <api-doc-viewer
                 v-if="currentDoc?.docType==='api'"
@@ -198,6 +199,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
                 :project-item="projectItem"
                 :editable="isWritable"
                 @to-debug-api="toDebugApi"
+                @update-history="savedApiDoc"
               />
             </el-container>
           </template>

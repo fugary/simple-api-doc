@@ -116,7 +116,10 @@ const buttons = computed(() => {
     click: item => $coreConfirm($i18nBundle('api.msg.recoverFromHistory'))
       .then(() => recoverFromHistory({ docId: item.id }))
       .then(() => searchHistories())
-      .then(() => emit('updateHistory'))
+      .then(() => {
+        showHistoryWindow.value = false
+        emit('updateHistory', currentDoc.value)
+      })
   }, {
     labelKey: 'api.label.viewDiff',
     type: 'success',

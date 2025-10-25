@@ -67,6 +67,7 @@ const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'ligh
 const copyRight = useCopyRight(props.shareDoc)
 
 const { isSmallContainer, containerRef } = useContainerCheck()
+defineEmits(['updateHistory'])
 </script>
 
 <template>
@@ -77,8 +78,9 @@ const { isSmallContainer, containerRef } = useContainerCheck()
   >
     <api-doc-view-header
       v-model="currentDoc"
-      :editable="editable"
       :history-count="historyCount"
+      :editable="editable"
+      @update-history="$emit('updateHistory', $event)"
     />
     <el-container
       ref="containerRef"
