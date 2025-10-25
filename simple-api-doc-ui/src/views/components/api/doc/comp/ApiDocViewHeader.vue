@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
 import ApiDocHistoryViewer from '@/views/components/api/doc/comp/ApiDocHistoryViewer.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
+import { useRoute } from 'vue-router'
+import { $reload } from '@/utils'
 const props = defineProps({
   editable: {
     type: Boolean,
@@ -30,7 +32,7 @@ const folderPaths = computed(() => {
 const apiDocHistoryRef = ref()
 const { isMobile } = useScreenCheck()
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
-defineEmits(['updateHistory'])
+const route = useRoute()
 </script>
 
 <template>
@@ -89,7 +91,7 @@ defineEmits(['updateHistory'])
       <api-doc-history-viewer
         v-if="historyCount"
         ref="apiDocHistoryRef"
-        @update-history="$emit('updateHistory')"
+        @update-history="$reload(route)"
       />
     </h2>
   </el-header>
