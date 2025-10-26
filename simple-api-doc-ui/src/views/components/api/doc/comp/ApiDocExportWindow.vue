@@ -6,8 +6,9 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-import { $i18nBundle, $i18nConcat } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { $coreAlert, $coreConfirm } from '@/utils'
+import { computed } from 'vue'
 
 const props = defineProps({
   shareDoc: {
@@ -25,6 +26,10 @@ const props = defineProps({
   treeNodes: {
     type: Array,
     default: () => []
+  },
+  exportAllFunc: {
+    type: Function,
+    default: null
   }
 })
 
@@ -38,8 +43,12 @@ const treeSelectKeys = defineModel('treeSelectKeys', {
   default: () => []
 })
 
-const exportSelectedDocs = (data) => {
-  const docIds = data?.filter(id => isNumber(id))
+const exportDocIds = computed(() => {
+  return treeSelectKeys.value.filter(id => isNumber(id)) || []
+})
+
+const exportSelectedDocs = () => {
+  const docIds = exportDocIds.value
   if (docIds.length) {
     $coreConfirm($i18nBundle('api.msg.exportConfirm')).then(() => {
       const param = {
@@ -61,6 +70,8 @@ const exportSelectedDocs = (data) => {
         }
       })
     })
+  } else if (props.exportAllFunc) {
+    props.exportAllFunc()
   } else {
     $coreAlert($i18nBundle('api.msg.noApiSelected'))
   }
@@ -74,7 +85,8 @@ const exportSelectedDocs = (data) => {
     v-model:selected-keys="treeSelectKeys"
     node-key="treeId"
     :tree-nodes="treeNodes"
-    :title="$i18nConcat($t('api.label.exportSelectedApi'), exportType?.toUpperCase())"
+    :title="$i18nKey('common.label.commonExport', `common.label.${exportType}`)"
+    :ok-label="$t((exportDocIds?.length||!exportAllFunc)?'api.label.exportSelected':'api.label.exportAll')"
     @submit-keys="exportSelectedDocs"
   >
     <template #default="{node, data}">

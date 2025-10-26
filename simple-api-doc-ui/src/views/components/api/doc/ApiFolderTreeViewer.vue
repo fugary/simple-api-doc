@@ -221,7 +221,9 @@ const exportSelectedKeys = ref([])
 const exportTreeNodes = ref([])
 const showExportWindow = ref(false)
 const currentExportType = ref('json')
-const toShowTreeConfigWindow = (type) => {
+const exportAllFunc = ref()
+const toShowTreeConfigWindow = (type, exAllFunc) => {
+  exportAllFunc.value = exAllFunc
   const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value), null, {
     defaultShowLabel: sharePreference.defaultShowLabel
   })
@@ -467,6 +469,7 @@ defineExpose(handlerData)
       :share-doc="shareDoc"
       :export-type="currentExportType"
       :project-item="projectItem"
+      :export-all-func="exportAllFunc"
     />
     <api-doc-code-gen-window
       v-model:tree-select-keys="generateSelectedKeys"

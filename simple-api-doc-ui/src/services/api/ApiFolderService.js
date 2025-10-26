@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import ApiFolderApi, { clearFolder, loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
-import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import ApiDocApi, { copyApiDoc, updateApiDoc } from '@/api/ApiDocApi'
 import {
   checkExportDownloadDocs,
@@ -91,35 +91,27 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
         label: $i18nKey('common.label.commonExport', `common.label.${type}`),
         enabled: config.hasApiDoc?.value || type === 'md',
         handler: () => {
-          $coreConfirm($i18nBundle('api.msg.exportConfirm'))
-            .then(() => {
-              const param = { shareId: shareDoc?.shareId, projectCode: projectItem.projectCode, type }
-              const checkDownloadFunc = isShareDoc ? checkExportDownloadDocs : checkExportProjectDocs
-              const downloadExportFunc = isShareDoc ? downloadExportShareDocs : downloadExportProjectDocs
-              checkDownloadFunc(param).then(resData => {
-                if (resData.success && resData.resultData) {
-                  downloadExportFunc({
-                    ...param, uuid: resData.resultData
-                  })
-                }
-              })
-            })
-        }
-      }
-    })
-    results.push(...supportedTypes.map(type => {
-      return {
-        icon: `custom-icon-${type}`,
-        label: $i18nConcat($i18nBundle('api.label.exportSelectedApi'), $i18nBundle(`common.label.${type}`)),
-        enabled: config.hasApiDoc?.value || type === 'md',
-        handler: () => {
           const { toShowTreeConfigWindow } = config
           if (isFunction(toShowTreeConfigWindow)) {
-            toShowTreeConfigWindow(type)
+            toShowTreeConfigWindow(type, () => {
+              $coreConfirm($i18nBundle('api.msg.exportConfirm'))
+                .then(() => {
+                  const param = { shareId: shareDoc?.shareId, projectCode: projectItem.projectCode, type }
+                  const checkDownloadFunc = isShareDoc ? checkExportDownloadDocs : checkExportProjectDocs
+                  const downloadExportFunc = isShareDoc ? downloadExportShareDocs : downloadExportProjectDocs
+                  checkDownloadFunc(param).then(resData => {
+                    if (resData.success && resData.resultData) {
+                      downloadExportFunc({
+                        ...param, uuid: resData.resultData
+                      })
+                    }
+                  })
+                })
+            })
           }
         }
       }
-    }))
+    })
     results.push({
       icon: 'custom-icon-zip',
       label: $i18nBundle('api.label.generateClientCode'),
