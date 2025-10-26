@@ -11,7 +11,9 @@ import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import io.swagger.v3.oas.models.OpenAPI;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -43,6 +45,7 @@ import java.util.function.Function;
 @Component
 public class SimpleResultUtils {
 
+    private static final String OUTPUT_FILE_NAME = "yyyyMMddHHmmss";
     private static MessageSource messageSource;
 
     @Autowired
@@ -237,7 +240,6 @@ public class SimpleResultUtils {
                                                                              String fileName) throws IOException {
         // 构造临时文件的完整路径
         File tempFile = new File(SimpleModelUtils.getFileFullPath(applicationName, fileName));
-        fileName = prefixName + "-" + fileName;
         // 检查文件是否存在
         if (!tempFile.exists()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -246,6 +248,8 @@ public class SimpleResultUtils {
         InputStreamResource resource = new InputStreamResource(new FileInputStream(tempFile));
         Function<HttpServletRequest, Boolean> deleteFileHook = req -> FileUtils.deleteQuietly(tempFile);
         request.setAttribute(ApiDocConstants.SHARE_FILE_DOWNLOAD_HOOK_KEY, deleteFileHook);
+        String extension = FilenameUtils.getExtension(fileName);
+        fileName = prefixName + "-" + DateFormatUtils.format(System.currentTimeMillis(), OUTPUT_FILE_NAME) + "." + extension;
         // 设置响应头，准备文件下载
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
