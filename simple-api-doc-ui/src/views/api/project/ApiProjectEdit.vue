@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
-import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl, $reload } from '@/utils'
+import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl } from '@/utils'
 import { ref, watch, computed, onActivated, onMounted } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
@@ -117,7 +117,7 @@ const envConfigs = computed(() => {
           >
             <el-button
               type="info"
-              @click="toEditEnvConfigs(projectItem).then(() => $reload(route))"
+              @click="toEditEnvConfigs(projectItem).then(() => savedApiDoc(currentDoc))"
             >
               {{ $t('api.label.environments') }}
             </el-button>
