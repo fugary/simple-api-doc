@@ -2,8 +2,9 @@ import axios from 'axios'
 import { SIMPLE_API_ACCESS_TOKEN_HEADER, SIMPLE_API_TARGET_URL_HEADER } from '@/consts/ApiConstants'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
-import { $httpPost } from '@/vendors/axios'
+import { $httpGet, $httpPost } from '@/vendors/axios'
 import { $downloadWithLinkClick } from '@/utils'
+import { getShareConfig } from '@/api/SimpleShareApi'
 
 const GEN_BASE_URL = import.meta.env.VITE_APP_SWAGGER_GENERATOR_URL
 
@@ -15,34 +16,40 @@ const $http = axios.create({
 export const GEN_CLIENTS_URL = '/gen/clients'
 /**
  * 加载支持的语言
+ * @param [param] {{useProxy:Boolean, shareDoc: {shareId: String}}} 参数
  * @param config
  * @returns {Promise<*>}
  */
-export const loadClientLanguages = (config = {}) => {
+export const loadClientLanguages = (param, config = {}) => {
+  if (!param?.useProxy) {
+    let url = `/admin${GEN_CLIENTS_URL}`
+    if (param?.shareDoc) {
+      config = Object.assign(getShareConfig(param.shareDoc.shareId), config || {})
+      url = `/shares${GEN_CLIENTS_URL}`
+    }
+    return $httpGet(url, config)
+  }
   return $http({ url: GEN_CLIENTS_URL, method: 'get' }, config)
     .then(response => response.data)
 }
 /**
  * 加载配置信息
  * @param language
+ * @param [param] {{useProxy:Boolean, shareDoc: {shareId: String}}} 参数
  * @param config
  * @returns {Promise<axios.AxiosResponse<any>>}
  */
-export const loadLanguageConfig = (language, config = {}) => {
+export const loadLanguageConfig = (language, param, config = {}) => {
+  if (!param?.useProxy) {
+    let url = `/admin${GEN_CLIENTS_URL}/${language}`
+    if (param?.shareDoc) {
+      config = Object.assign(getShareConfig(param.shareDoc.shareId), config || {})
+      url = `/shares${GEN_CLIENTS_URL}/${language}`
+    }
+    return $httpGet(url, config)
+  }
   return $http({ url: `${GEN_CLIENTS_URL}/${language}`, method: 'get' }, config)
     .then(response => response.data)
-}
-/**
- * 生成代码
- * @param language
- * @param data
- * @param config
- * @returns {Promise<axios.AxiosResponse<any>>}
- */
-export const generateCode = (language, data, config = {}) => {
-  return $http({
-    url: `${GEN_CLIENTS_URL}/${language}`, data, method: 'post'
-  }, config).then(response => response.data)
 }
 
 export const newGenerateCode = (param, config) => {
@@ -63,7 +70,7 @@ export const newGenerateCode = (param, config) => {
   return $httpPost(targetUrl, param.data, Object.assign({ headers }, config))
 }
 
-export const downloadGeneratedUrl = (url, useProxy, shareDoc) => {
+export const downloadGeneratedUrl = (url, { useProxy, shareDoc }) => {
   if (!useProxy) {
     let accessToken = useLoginConfigStore().accessToken
     if (shareDoc && shareDoc.shareId) {

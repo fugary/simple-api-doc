@@ -4,10 +4,14 @@ import { computed, ref, watch } from 'vue'
 import { defineFormOptions } from '@/components/utils'
 import { getSingleSelectOptions } from '@/utils'
 
-defineProps({
+const props = defineProps({
   spec: {
     type: Object,
     default: undefined
+  },
+  generatorParam: {
+    type: Object,
+    default: null
   }
 })
 
@@ -18,7 +22,7 @@ const vModel = defineModel('modelValue', {
 
 const loading = ref(false)
 const languages = ref([])
-loadClientLanguages().then(data => {
+loadClientLanguages(props.generatorParam).then(data => {
   languages.value = data
 })
 
@@ -27,7 +31,7 @@ const languageConfig = ref({})
 watch(() => vModel.value?._language, (language) => {
   if (language) {
     loading.value = true
-    loadLanguageConfig(language, { loading: true }).then(data => {
+    loadLanguageConfig(language, props.generatorParam, { loading: true }).then(data => {
       languageConfig.value = data
       const { _language } = vModel.value
       vModel.value = { _language }

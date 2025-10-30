@@ -63,6 +63,10 @@ const okButtonLabel = computed(() => {
   }
   return $i18nBundle(treeSelectKeys.value?.length ? 'common.label.generateSelected' : 'common.label.generateAll')
 })
+const generatorParam = computed(() => ({
+  useProxy: props.useProxy,
+  shareDoc: props.shareDoc
+}))
 
 const okButtonClick = () => {
   if (currentTab.value === TABS.CONFIG) {
@@ -76,8 +80,7 @@ const okButtonClick = () => {
       $coreShowLoading()
       generateSelectedDocs(treeSelectKeys.value).then(data => {
         return newGenerateCode({
-          useProxy: props.useProxy,
-          shareDoc: props.shareDoc,
+          ...generatorParam.value,
           language: paramModel._language,
           data: {
             spec: JSON.parse(data),
@@ -89,7 +92,7 @@ const okButtonClick = () => {
             if (location.href.startsWith('https://')) {
               link = data.link.replace('http://', 'https://')
             }
-            downloadGeneratedUrl(link, props.useProxy, props.shareDoc)
+            downloadGeneratedUrl(link, generatorParam.value)
           }
         })
       }).finally(() => $coreHideLoading())
@@ -182,7 +185,10 @@ const generateSelectedDocs = (data) => {
             class="form-edit-width-100"
             style="height:400px;"
           >
-            <swagger-code-gen v-model="codeGenParamModel" />
+            <swagger-code-gen
+              v-model="codeGenParamModel"
+              :generator-param="generatorParam"
+            />
           </el-scrollbar>
         </el-container>
       </el-tab-pane>

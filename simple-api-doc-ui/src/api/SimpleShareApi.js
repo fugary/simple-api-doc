@@ -6,7 +6,7 @@ import { $i18nBundle } from '@/messages'
 
 const SHARE_BASE_URL = '/shares'
 
-const getShareConfig = (shareId) => {
+export const getShareConfig = (shareId) => {
   const shareConfigStore = useShareConfigStore()
   return {
     addToken: false,
