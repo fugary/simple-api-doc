@@ -12,11 +12,19 @@ import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -27,8 +35,30 @@ import java.util.stream.Stream;
  *
  * @author gary.fu
  */
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ApiDocParseUtils {
+
+    // 注册 shutdown hook
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                Path tempPath = getApiTempDir().toPath();
+                if (Files.exists(tempPath)) {
+                    Files.walk(tempPath).sorted(Comparator.reverseOrder()).forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            log.error("删除临时文件失败", e);
+                        }
+                    });
+                }
+            } catch (IOException e) {
+                log.error("删除临时文件失败", e);
+            }
+        }));
+    }
+
     /**
      * 以已存在文件夹为基准计算文件夹层级
      *
@@ -236,5 +266,29 @@ public class ApiDocParseUtils {
         List<ExportEnvConfigVo> savedEnvConfigs = StringUtils.isNotBlank(savedEnvConfigStr)? JsonUtils.fromJson(savedEnvConfigStr, typeReference): new ArrayList<>();
         List<ExportEnvConfigVo> envConfigs = StringUtils.isNotBlank(envConfigStr)? JsonUtils.fromJson(envConfigStr, typeReference): new ArrayList<>();
         return mergeEnvConfigs(savedEnvConfigs, envConfigs);
+    }
+
+    /**
+     * 临时文件夹
+     *
+     * @return
+     */
+    public static File getApiTempDir() {
+        return new File(FileUtils.getTempDirectoryPath(), "gen-openapi-output");
+    }
+
+    /**
+     * 计算当前服务器全路径
+     *
+     * @param request
+     * @param path
+     * @return
+     */
+    public static String getCurrentUrlPath(HttpServletRequest request, String path) {
+        String baseUrl = ServletUriComponentsBuilder.fromRequestUri(request)
+                .replacePath(null)
+                .build()
+                .toUriString();
+        return baseUrl + path;
     }
 }

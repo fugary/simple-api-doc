@@ -26,7 +26,8 @@
         <mysql.version>8.0.33</mysql.version>
         <commons-beanutils.version>1.9.4</commons-beanutils.version>
         <commons-fileupload.version>1.5</commons-fileupload.version>
-        <swagger-parser.version>2.1.22</swagger-parser.version>
+        <swagger-parser.version>2.1.35</swagger-parser.version>
+        <openapi-generator.version>7.16.0</openapi-generator.version>
         <springdoc.version>1.8.0</springdoc.version>
         <flexmark.version>0.64.8</flexmark.version>
     </properties>
@@ -62,6 +63,11 @@
                 <groupId>io.swagger.parser.v3</groupId>
                 <artifactId>swagger-parser</artifactId>
                 <version>${swagger-parser.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator</artifactId>
+                <version>${openapi-generator.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springdoc</groupId>

@@ -6,8 +6,8 @@ import { $i18nBundle } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { calcNodeLeaf, calcPreferenceId } from '@/services/api/ApiFolderService'
 import { cloneDeep, isNumber } from 'lodash-es'
-import { newGenerateCode } from '@/api/SwaggerGeneratorApi'
-import { $coreConfirm, $coreHideLoading, $coreShowLoading, $downloadWithLinkClick } from '@/utils'
+import { downloadGeneratedUrl, newGenerateCode } from '@/api/SwaggerGeneratorApi'
+import { $coreConfirm, $coreHideLoading, $coreShowLoading } from '@/utils'
 import { checkExportDownloadDocs } from '@/api/SimpleShareApi'
 import { checkExportProjectDocs } from '@/api/ApiProjectApi'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
@@ -30,6 +30,10 @@ const props = defineProps({
   treeNodes: {
     type: Array,
     default: () => []
+  },
+  useProxy: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -72,16 +76,20 @@ const okButtonClick = () => {
       $coreShowLoading()
       generateSelectedDocs(treeSelectKeys.value).then(data => {
         return newGenerateCode({
+          useProxy: props.useProxy,
           shareDoc: props.shareDoc,
           language: paramModel._language,
           data: {
             spec: JSON.parse(data),
             options: { ...paramModel, _language: undefined }
           }
-        }, { loading: true, addToken: false }).then(data => {
+        }, { loading: true, addToken: false, timeout: 180000 }).then(data => {
           if (data.link) {
-            const link = data.link.replace('http://', 'https://')
-            $downloadWithLinkClick(link)
+            let link = data.link
+            if (location.href.startsWith('https://')) {
+              link = data.link.replace('http://', 'https://')
+            }
+            downloadGeneratedUrl(link, props.useProxy, props.shareDoc)
           }
         })
       }).finally(() => $coreHideLoading())
