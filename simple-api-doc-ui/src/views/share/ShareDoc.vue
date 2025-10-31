@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
@@ -12,6 +12,8 @@ import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vu
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 import { ElMessage } from 'element-plus'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import { SHARE_WATERMARK } from '@/config'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -107,155 +109,165 @@ watch(currentDoc, (newDoc, oldDoc) => {
 })
 const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
 const splitRef = ref()
+const waterMarkFont = computed(() => ({
+  color: useGlobalConfigStore().isDarkTheme ? 'rgba(255, 255, 255, .15)' : 'rgba(0, 0, 0, .15)'
+}))
+const waterMarkContent = SHARE_WATERMARK || ''
 </script>
 
 <template>
-  <el-container
-    :key="$route.fullPath"
-    class="flex-column height100"
+  <el-watermark
+    :font="waterMarkFont"
+    :content="waterMarkContent"
+    class="height100"
   >
-    <el-affix
-      v-if="isMobile||splitRef?.elementSizes?.[0]<50"
-      :offset="20"
-      style="position: absolute;width: 70px;"
-    >
-      <el-button
-        type="info"
-        class="margin-left3"
-        @click="showDrawerMenu=!showDrawerMenu"
-      >
-        <common-icon
-          icon="MenuFilled"
-          :size="20"
-        />
-      </el-button>
-    </el-affix>
     <el-container
-      v-loading="loading"
-      class="height100"
+      :key="$route.fullPath"
+      class="flex-column height100"
     >
-      <div
-        v-if="!showPassWindow && errorMessage"
-        class="form-edit-width-100"
+      <el-affix
+        v-if="isMobile||splitRef?.elementSizes?.[0]<50"
+        :offset="20"
+        style="position: absolute;width: 70px;"
       >
-        <el-empty :description="errorMessage" />
-      </div>
-      <common-window
-        v-model="showPassWindow"
-        width="500px"
-        :show-close="false"
-        :show-cancel="false"
-        :title="projectShare?.shareName"
-        :ok-label="$t('api.label.accessDocs')"
-        :ok-click="toAccessDocs"
-        :close-on-click-modal="false"
-      >
-        <el-container class="flex-column">
-          <el-alert
-            show-icon
-            :description="$t('api.msg.docNeedPassword')"
-            type="warning"
-            :closable="false"
-            class="margin-bottom3"
-          />
-          <common-form
-            :options="passwordOptions"
-            :model="shareParam"
-            :show-submit="false"
-            :show-buttons="false"
-            @submit-form="submitForm"
-          />
-        </el-container>
-      </common-window>
-      <el-container
-        v-if="projectItem"
-        class="form-edit-width-100 flex-column padding-left3 padding-right3 height100"
-      >
-        <common-split
-          v-if="!isMobile"
-          ref="splitRef"
-          :sizes="splitSizes"
-          :min-size="defaultMinSizes"
-          :max-size="defaultMaxSizes"
-          class="height100"
+        <el-button
+          type="info"
+          class="margin-left3"
+          @click="showDrawerMenu=!showDrawerMenu"
         >
-          <template #split-0>
-            <api-folder-tree-viewer
-              v-model="projectItem"
-              v-model:current-doc="currentDoc"
-              :share-doc="projectShare"
-              class="padding-top3"
+          <common-icon
+            icon="MenuFilled"
+            :size="20"
+          />
+        </el-button>
+      </el-affix>
+      <el-container
+        v-loading="loading"
+        class="height100"
+      >
+        <div
+          v-if="!showPassWindow && errorMessage"
+          class="form-edit-width-100"
+        >
+          <el-empty :description="errorMessage" />
+        </div>
+        <common-window
+          v-model="showPassWindow"
+          width="500px"
+          :show-close="false"
+          :show-cancel="false"
+          :title="projectShare?.shareName"
+          :ok-label="$t('api.label.accessDocs')"
+          :ok-click="toAccessDocs"
+          :close-on-click-modal="false"
+        >
+          <el-container class="flex-column">
+            <el-alert
+              show-icon
+              :description="$t('api.msg.docNeedPassword')"
+              type="warning"
+              :closable="false"
+              class="margin-bottom3"
             />
-          </template>
-          <template #split-1>
+            <common-form
+              :options="passwordOptions"
+              :model="shareParam"
+              :show-submit="false"
+              :show-buttons="false"
+              @submit-form="submitForm"
+            />
+          </el-container>
+        </common-window>
+        <el-container
+          v-if="projectItem"
+          class="form-edit-width-100 flex-column padding-left3 padding-right3 height100"
+        >
+          <common-split
+            v-if="!isMobile"
+            ref="splitRef"
+            :sizes="splitSizes"
+            :min-size="defaultMinSizes"
+            :max-size="defaultMaxSizes"
+            class="height100"
+          >
+            <template #split-0>
+              <api-folder-tree-viewer
+                v-model="projectItem"
+                v-model:current-doc="currentDoc"
+                :share-doc="projectShare"
+                class="padding-top3"
+              />
+            </template>
+            <template #split-1>
+              <share-doc-right-viewer
+                v-model="currentDoc"
+                :project-share="projectShare"
+                :project-item="projectItem"
+                @to-debug-api="toDebugApi"
+              />
+            </template>
+            <template #split-2>
+              <el-container
+                class="flex-column padding-left2 height100"
+              >
+                <el-page-header
+                  class="padding-bottom2 padding-top2"
+                  @back="hideDebugSplit"
+                >
+                  <template #content>
+                    <span>{{ currentDoc?.docName || currentDoc?.url }} </span>
+                    <el-link
+                      v-common-tooltip="$t('api.label.debugInModalWindow')"
+                      type="primary"
+                      underline="never"
+                      class="margin-left1"
+                      @click="changeForceShowWindow"
+                    >
+                      <common-icon
+                        size="18"
+                        icon="OpenInNewFilled"
+                      />
+                    </el-link>
+                  </template>
+                </el-page-header>
+                <api-doc-request-preview
+                  ref="apiDocPreviewRef"
+                  v-loading="previewLoading"
+                  style="min-height:200px;"
+                  form-height="calc(100vh - 120px)"
+                />
+              </el-container>
+            </template>
+          </common-split>
+          <el-container
+            v-else
+            class="flex-column min-width-container"
+          >
             <share-doc-right-viewer
               v-model="currentDoc"
               :project-share="projectShare"
               :project-item="projectItem"
-              @to-debug-api="toDebugApi"
             />
-          </template>
-          <template #split-2>
-            <el-container
-              class="flex-column padding-left2 height100"
-            >
-              <el-page-header
-                class="padding-bottom2 padding-top2"
-                @back="hideDebugSplit"
-              >
-                <template #content>
-                  <span>{{ currentDoc?.docName || currentDoc?.url }} </span>
-                  <el-link
-                    v-common-tooltip="$t('api.label.debugInModalWindow')"
-                    type="primary"
-                    underline="never"
-                    class="margin-left1"
-                    @click="changeForceShowWindow"
-                  >
-                    <common-icon
-                      size="18"
-                      icon="OpenInNewFilled"
-                    />
-                  </el-link>
-                </template>
-              </el-page-header>
-              <api-doc-request-preview
-                ref="apiDocPreviewRef"
-                v-loading="previewLoading"
-                style="min-height:200px;"
-                form-height="calc(100vh - 120px)"
-              />
-            </el-container>
-          </template>
-        </common-split>
-        <el-container
-          v-else
-          class="flex-column min-width-container"
-        >
-          <share-doc-right-viewer
-            v-model="currentDoc"
-            :project-share="projectShare"
-            :project-item="projectItem"
-          />
+          </el-container>
+          <el-drawer
+            v-model="showDrawerMenu"
+            style="min-width: 320px;"
+            :with-header="false"
+            direction="ltr"
+            append-to-body
+          >
+            <api-folder-tree-viewer
+              v-model="projectItem"
+              v-model:current-doc="currentDoc"
+              :share-doc="projectShare"
+              :show-close="true"
+              @close-left="showDrawerMenu=false"
+            />
+          </el-drawer>
         </el-container>
-        <el-drawer
-          v-model="showDrawerMenu"
-          style="min-width: 320px;"
-          :with-header="false"
-          direction="ltr"
-          append-to-body
-        >
-          <api-folder-tree-viewer
-            v-model="projectItem"
-            v-model:current-doc="currentDoc"
-            :share-doc="projectShare"
-            :show-close="true"
-            @close-left="showDrawerMenu=false"
-          />
-        </el-drawer>
       </el-container>
     </el-container>
-  </el-container>
+  </el-watermark>
 </template>
 
 <style scoped>

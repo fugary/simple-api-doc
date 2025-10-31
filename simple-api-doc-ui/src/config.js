@@ -98,6 +98,8 @@ export const BASE_URL = import.meta.env.VITE_APP_API_BASE_URL
 
 export const SYSTEM_KEY = import.meta.env.VITE_APP_SYSTEM_KEY
 
+export const SHARE_WATERMARK = import.meta.env.VITE_APP_SHARE_WATERMARK
+
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION
 
 export const GITHUB_ADDRESS = import.meta.env.VITE_APP_GITHUB_ADDRESS
