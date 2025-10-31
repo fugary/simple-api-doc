@@ -112,7 +112,13 @@ const splitRef = ref()
 const waterMarkFont = computed(() => ({
   color: useGlobalConfigStore().isDarkTheme ? 'rgba(255, 255, 255, .15)' : 'rgba(0, 0, 0, .15)'
 }))
-const waterMarkContent = SHARE_WATERMARK || ''
+const waterMarkContent = computed(() => {
+  const waterMark = projectShare.value?.waterMark || SHARE_WATERMARK
+  if (waterMark && waterMark?.toLowerCase() !== 'none') {
+    return waterMark
+  }
+  return ''
+})
 </script>
 
 <template>

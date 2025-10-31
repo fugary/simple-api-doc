@@ -13,7 +13,7 @@ import {
 } from '@/utils'
 import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
-import { useDefaultPage } from '@/config'
+import { SHARE_WATERMARK, useDefaultPage } from '@/config'
 import ApiProjectShareApi, { copyProjectShare, getShareUrl } from '@/api/ApiProjectShareApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
@@ -391,6 +391,13 @@ const editFormOptions = computed(() => {
   }, {
     labelKey: 'api.label.copyRight',
     prop: 'copyRight',
+    attrs: {
+      type: 'textarea'
+    }
+  }, {
+    labelKey: 'api.label.waterMark',
+    prop: 'waterMark',
+    placeholder: SHARE_WATERMARK,
     attrs: {
       type: 'textarea'
     }

@@ -19,6 +19,7 @@ public class ApiProjectShareVo implements Serializable {
     private Boolean showChildrenLength;
     private Boolean showTreeIcon;
     private String copyRight;
+    private String waterMark;
     private String defaultTheme;
     private String defaultShowLabel;
     private String envContent;
