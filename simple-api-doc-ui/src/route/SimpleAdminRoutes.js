@@ -19,6 +19,14 @@ export default [{
     labelKey: 'api.label.logManagement'
   }
 }, {
+  path: `${BASE_PATH}/dbs`,
+  name: 'SimpleDbs',
+  component: () => import('@/views/admin/dbs/SimpleDbs.vue'),
+  meta: {
+    icon: 'Coin',
+    labelKey: 'api.label.dbPool'
+  }
+}, {
   path: `${BASE_PATH}/shares`,
   name: 'AdminProjectShares',
   component: createNewComponent('AdminProjectShares', () => import('@/views/api/project/ApiProjectShares.vue')),
