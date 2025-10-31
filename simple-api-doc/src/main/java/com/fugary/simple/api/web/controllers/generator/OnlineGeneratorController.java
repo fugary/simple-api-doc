@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.openapitools.codegen.*;
 import org.openapitools.codegen.config.CodegenConfigurator;
+import org.openapitools.codegen.languages.AbstractJavaCodegen;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -52,7 +53,7 @@ public class OnlineGeneratorController {
 
     // 获取所有 client generator
     @GetMapping("/clients/{language}")
-    public Map<String, Object> getClientConfig(@PathVariable("language") String language) {
+    public Map<String, CliOption> getClientConfig(@PathVariable("language") String language) {
         return getGeneratorConfig(language);
     }
 
@@ -73,7 +74,7 @@ public class OnlineGeneratorController {
     }
 
     @GetMapping("/servers/{framework}")
-    public Map<String, Object> getServerConfig(@PathVariable("framework") String framework) {
+    public Map<String, CliOption> getServerConfig(@PathVariable("framework") String framework) {
         return getGeneratorConfig(framework);
     }
 
@@ -141,6 +142,11 @@ public class OnlineGeneratorController {
         configurator.setInputSpec(tempSpecFile.toAbsolutePath().toString());
         configurator.setGeneratorName(language);
         configurator.setOutputDir(tempDir.toAbsolutePath().toString());
+        Object output = request.getOptions().get(AbstractJavaCodegen.TEST_OUTPUT);
+        if (output instanceof CharSequence && StringUtils.contains((CharSequence) output, "${project.build.directory}")) {
+            output = StringUtils.replace((String) output, "${project.build.directory}", tempDir.toAbsolutePath().toString());
+            request.getOptions().put(AbstractJavaCodegen.TEST_OUTPUT, output);
+        }
         configurator.setAdditionalProperties(request.getOptions());
         generator.opts(configurator.toClientOptInput()).generate();
         // 打包为 zip
@@ -168,12 +174,12 @@ public class OnlineGeneratorController {
         return zipPath;
     }
 
-    private Map<String, Object> getGeneratorConfig(String language) {
+    private Map<String, CliOption> getGeneratorConfig(String language) {
         CodegenConfig config = CodegenConfigLoader.forName(language);
         if (config == null) {
             throw new IllegalArgumentException("Unknown generator: " + language);
         }
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, CliOption> result = new LinkedHashMap<>();
         for (CliOption opt : config.cliOptions()) {
             result.put(opt.getOpt(), opt);
         }
