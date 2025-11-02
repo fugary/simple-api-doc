@@ -33,6 +33,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Create date 2024/9/29<br>
@@ -134,8 +135,11 @@ public class SimpleShareController {
         if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
         }
+        Set<Integer> shareDocIds = SimpleModelUtils.getShareDocIds(apiShare.getShareDocs());
         if (CollectionUtils.isEmpty(downloadVo.getDocIds())) {
-            downloadVo.setDocIds(new ArrayList<>(SimpleModelUtils.getShareDocIds(apiShare.getShareDocs())));
+            downloadVo.setDocIds(new ArrayList<>(shareDocIds));
+        } else {
+            downloadVo.setDocIds(downloadVo.getDocIds().stream().filter(shareDocIds::contains).collect(Collectors.toList()));
         }
         String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, downloadVo, applicationName, apiShare.getProjectId());
         return SimpleResultUtils.createSimpleResult(uuid);
