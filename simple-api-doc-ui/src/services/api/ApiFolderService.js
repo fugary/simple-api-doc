@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, inject, provide, ref } from 'vue'
 import ApiFolderApi, { clearFolder, loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -8,9 +8,11 @@ import {
   downloadExportShareDocs
 } from '@/api/SimpleShareApi'
 import { isFunction } from 'lodash-es'
-import { DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
+import { CURRENT_SHARE_THEME_KEY, DEFAULT_PREFERENCE_ID_KEY } from '@/consts/ApiConstants'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { checkExportProjectDocs, downloadExportProjectDocs } from '@/api/ApiProjectApi'
+import { useDark } from '@vueuse/core'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 
 /**
  * 判断是否有API文档
@@ -367,6 +369,11 @@ export const calcPreferenceId = (projectItem, apiShare) => {
   return apiShare?.shareId || projectItem?.projectCode || DEFAULT_PREFERENCE_ID_KEY
 }
 
+export const calcSharePreference = (projectItem, apiShare) => {
+  const preferenceId = calcPreferenceId(projectItem, apiShare)
+  return useShareConfigStore().sharePreferenceView[preferenceId]
+}
+
 export const calcShowMergeAllOf = (apiDocDetail) => {
   const preferenceId = calcDetailPreferenceId(apiDocDetail)
   const preference = useShareConfigStore().sharePreferenceView?.[preferenceId]
@@ -393,4 +400,39 @@ export const calcTreeNodeChildNodes = (treeNode, draggingNode, type) => {
 
 export const isTreeNodeFirstFolder = (treeNode) => {
   return treeNode.parent.childNodes.find(node => !node.isDoc) === treeNode
+}
+
+export const useInitShareDocTheme = (shareId) => {
+  const shareDarkTheme = useDark({
+    storageKey: `__${shareId}__vueuse-color-scheme_share`,
+    selector: `html:has(.share-${shareId})`
+  })
+  provide(CURRENT_SHARE_THEME_KEY, shareDarkTheme)
+  const checkDarkTheme = (shareDoc) => {
+    const themeName = useShareConfigStore().sharePreferenceView[shareDoc?.shareId]?.defaultTheme ||
+        shareDoc?.defaultTheme || 'dark'
+    shareDarkTheme.value = themeName === 'dark'
+  }
+  checkDarkTheme()
+  return {
+    shareDarkTheme,
+    checkDarkTheme
+  }
+}
+
+export const useShareDocTheme = (sharePreference) => {
+  const shareDarkTheme = inject(CURRENT_SHARE_THEME_KEY)
+  const isDarkTheme = computed(() => sharePreference && shareDarkTheme ? shareDarkTheme.value : useGlobalConfigStore().isDarkTheme)
+  return {
+    isDarkTheme,
+    toggleTheme: () => {
+      if (shareDarkTheme) {
+        console.log('====================shareDarkTheme', sharePreference, shareDarkTheme?.value)
+        shareDarkTheme.value = !shareDarkTheme.value
+        if (sharePreference) {
+          sharePreference.defaultTheme = shareDarkTheme.value ? 'dark' : 'light'
+        }
+      }
+    }
+  }
 }

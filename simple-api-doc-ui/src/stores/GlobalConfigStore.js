@@ -11,7 +11,8 @@ export const useGlobalConfigStore = defineStore('globalConfig', () => {
   const systemKey = useSystemKey()
   const isDarkTheme = THEME_ENABLED
     ? useDark({
-      storageKey: `__${systemKey}__vueuse-color-scheme`
+      storageKey: `__${systemKey}__vueuse-color-scheme`,
+      selector: CSS.supports('selector(:has(*))') ? 'html:not(:has(.share-doc-page))' : 'html'
     })
     : ref(false)
   const isCollapseLeft = ref(false)

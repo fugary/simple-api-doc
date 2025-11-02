@@ -28,6 +28,7 @@ defineEmits(['toDebugApi'])
       v-if="currentDoc?.docType==='md'"
       v-model="currentDoc"
       :share-doc="projectShare"
+      :project-item="projectItem"
       scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
     />
     <api-doc-viewer

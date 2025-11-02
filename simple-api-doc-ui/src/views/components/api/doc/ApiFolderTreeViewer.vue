@@ -11,7 +11,6 @@ import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { $i18nBundle } from '@/messages'
-import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import {
   useFolderDropdown,
@@ -25,6 +24,7 @@ import {
   calcShowCleanHandlers,
   checkHasApiDoc,
   calcTreeNodeChildNodes,
+  useShareDocTheme,
   isTreeNodeFirstFolder
 } from '@/services/api/ApiFolderService'
 import { calcProjectIconUrl, loadDetail } from '@/api/ApiProjectApi'
@@ -36,7 +36,6 @@ import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload } from 
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
 
-const globalConfigStore = useGlobalConfigStore()
 const shareConfigStore = useShareConfigStore()
 
 const props = defineProps({
@@ -205,14 +204,7 @@ const addOrEditFolder = async (id, parentFolder) => {
   })
 }
 
-if (sharePreference.defaultTheme && props.shareDoc) {
-  globalConfigStore.changeTheme(sharePreference.defaultTheme === 'dark')
-}
-
-const toggleTheme = () => {
-  globalConfigStore.toggleTheme()
-  sharePreference.defaultTheme = globalConfigStore.isDarkTheme ? 'dark' : 'light'
-}
+const { isDarkTheme, toggleTheme } = useShareDocTheme(sharePreference)
 
 const currentRef = ref()
 const { width } = useElementSize(currentRef)
@@ -323,7 +315,7 @@ defineExpose(handlerData)
           class="margin-right2"
         >
           <common-icon
-            :icon="globalConfigStore.isDarkTheme ? 'sunny' : 'moon'"
+            :icon="isDarkTheme ? 'sunny' : 'moon'"
             :size="20"
             @click="toggleTheme()"
           />

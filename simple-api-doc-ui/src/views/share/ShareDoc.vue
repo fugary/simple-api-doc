@@ -12,8 +12,8 @@ import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vu
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 import { ElMessage } from 'element-plus'
-import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { SHARE_WATERMARK } from '@/config'
+import { useInitShareDocTheme } from '@/services/api/ApiFolderService'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -27,7 +27,7 @@ const loading = ref(false)
 const projectShare = ref()
 const errorMessage = ref()
 const showPassWindow = ref(false)
-
+const { shareDarkTheme, checkDarkTheme } = useInitShareDocTheme(shareId)
 //= ====================项目数据=====================
 const projectItem = ref()
 const currentDoc = ref(null)
@@ -63,6 +63,7 @@ const loadShareData = async (input) => {
     return error.data?.resultData
   }).finally(() => (loading.value = false))
   useTitle(projectShare.value?.shareName)
+  checkDarkTheme(projectShare.value)
   console.log('=====================projectShare', projectShare.value)
   if (projectShare.value?.shareToken) { // 验证成功
     showPassWindow.value = false
@@ -110,7 +111,7 @@ watch(currentDoc, (newDoc, oldDoc) => {
 const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
 const splitRef = ref()
 const waterMarkFont = computed(() => ({
-  color: useGlobalConfigStore().isDarkTheme ? 'rgba(255, 255, 255, .15)' : 'rgba(0, 0, 0, .15)'
+  color: shareDarkTheme.value ? 'rgba(255, 255, 255, .15)' : 'rgba(0, 0, 0, .15)'
 }))
 const waterMarkContent = computed(() => {
   const waterMark = projectShare.value?.waterMark || SHARE_WATERMARK
@@ -129,7 +130,8 @@ const waterMarkContent = computed(() => {
   >
     <el-container
       :key="$route.fullPath"
-      class="flex-column height100"
+      class="flex-column height100 share-doc-page"
+      :class="`share-${shareId}`"
     >
       <el-affix
         v-if="isMobile||splitRef?.elementSizes?.[0]<50"

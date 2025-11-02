@@ -15,7 +15,7 @@ import { AUTH_TYPE } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { calcAuthModelBySchemas, calcSecuritySchemas, copyParamsDynamicOption } from '@/services/api/ApiDocPreviewService'
 import { useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
-import { calcPreferenceId } from '@/services/api/ApiFolderService'
+import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
@@ -121,7 +121,8 @@ watch(apiDoc, loadDocDetail, {
   immediate: true
 })
 watch(() => globalConfigStore.currentLocale, loadDocDetail)
-const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
+const { isDarkTheme } = useShareDocTheme(sharePreference)
+const theme = computed(() => isDarkTheme.value ? 'dark' : 'light')
 const { isMobile } = useScreenCheck()
 
 defineEmits(['toDebugApi', 'updateHistory'])
@@ -214,10 +215,12 @@ const { isSmallContainer, containerRef } = useContainerCheck()
         <api-doc-request-body
           v-if="apiDocDetail?.requestsSchemas?.length"
           v-model="apiDocDetail"
+          :theme="theme"
         />
         <api-doc-response-body
           v-if="apiDocDetail?.responsesSchemas?.length"
           v-model="apiDocDetail"
+          :theme="theme"
         />
       </el-scrollbar>
       <el-container

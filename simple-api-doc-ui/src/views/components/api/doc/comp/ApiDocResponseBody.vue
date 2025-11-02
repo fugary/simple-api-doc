@@ -5,8 +5,13 @@ import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
 import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { MdPreview } from 'md-editor-v3'
-import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 
+defineProps({
+  theme: {
+    type: String,
+    default: 'dark'
+  }
+})
 const apiDocDetail = defineModel({
   type: Object,
   default: () => ({})
@@ -24,7 +29,6 @@ const responsesSchemas = computed(() => {
   })
 })
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
-const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 </script>
 
 <template>

@@ -200,6 +200,7 @@ const envConfigs = computed(() => {
               <markdown-doc-viewer
                 v-if="currentDoc?.docType==='md'"
                 v-model="currentDoc"
+                :project-item="projectItem"
                 :editable="isWritable"
                 scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
                 @update-history="savedApiDoc"

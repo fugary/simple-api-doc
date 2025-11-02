@@ -2,13 +2,13 @@
 import { computed, watch, ref } from 'vue'
 import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
-import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import { useCopyRight, useContainerCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
+import { calcSharePreference, useShareDocTheme } from '@/services/api/ApiFolderService'
 
 const props = defineProps({
   scrollElement: {
@@ -22,6 +22,10 @@ const props = defineProps({
   editable: {
     type: Boolean,
     default: false
+  },
+  projectItem: {
+    type: Object,
+    default: undefined
   },
   shareDoc: {
     type: Object,
@@ -63,7 +67,8 @@ watch(currentDoc, (newDoc, oldDoc) => {
   }
 }, { immediate: true })
 
-const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
+const { isDarkTheme } = useShareDocTheme(calcSharePreference(props.projectItem, props.shareDoc))
+const theme = computed(() => isDarkTheme.value ? 'dark' : 'light')
 const copyRight = useCopyRight(props.shareDoc)
 
 const { isSmallContainer, containerRef } = useContainerCheck()
