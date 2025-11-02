@@ -20,6 +20,7 @@ import com.fugary.simple.api.web.vo.project.ApiProjectShareVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import io.swagger.v3.oas.models.OpenAPI;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Set;
 
 /**
@@ -131,6 +133,9 @@ public class SimpleShareController {
         }
         if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
+        }
+        if (CollectionUtils.isEmpty(downloadVo.getDocIds())) {
+            downloadVo.setDocIds(new ArrayList<>(SimpleModelUtils.getShareDocIds(apiShare.getShareDocs())));
         }
         String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, downloadVo, applicationName, apiShare.getProjectId());
         return SimpleResultUtils.createSimpleResult(uuid);
