@@ -103,6 +103,9 @@ common.label.selectAll = '全选'
 common.label.sortId = '排序号'
 common.label.version = '版本号'
 common.label.selection = '选中'
+common.label.name = '名称'
+common.label.value = '值'
+common.label.files = '文件'
 
 //= ============通用============
 common.label.commonCode = '{0}代码'

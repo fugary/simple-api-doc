@@ -103,6 +103,9 @@ common.label.selectAll = 'Select All'
 common.label.sortId = 'Sort ID'
 common.label.version = 'Version'
 common.label.selection = 'Selection'
+common.label.name = 'Name'
+common.label.value = 'Value'
+common.label.files = 'Files'
 
 //= ============通用============
 common.label.commonConfig = 'Config {0}'
