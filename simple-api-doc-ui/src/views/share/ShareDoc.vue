@@ -5,7 +5,7 @@ import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import { $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { useTitle } from '@vueuse/core'
+import { useFavicon, useTitle } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
 import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
@@ -14,6 +14,7 @@ import { useScreenCheck } from '@/services/api/ApiCommonService'
 import { ElMessage } from 'element-plus'
 import { SHARE_WATERMARK } from '@/config'
 import { useInitShareDocTheme } from '@/services/api/ApiFolderService'
+import { calcProjectIconUrl } from '@/api/ApiProjectApi'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
@@ -44,7 +45,7 @@ onUnmounted(() => {
   emitter.off('preview-401-error', errorHandler)
   emitter.off('share-doc-error', errorHandler)
 })
-
+const favorIcon = useFavicon()
 const loadShareData = async (input) => {
   loading.value = true
   errorMessage.value = ''
@@ -71,6 +72,9 @@ const loadShareData = async (input) => {
     loadProject(shareId, { loading: true }).then(data => {
       projectItem.value = data.resultData
       console.log('=========================projectItem.value', projectItem.value)
+      if (projectItem.value && projectItem.value?.iconUrl) {
+        favorIcon.value = calcProjectIconUrl(projectItem.value.iconUrl)
+      }
     }).catch(err => {
       errorMessage.value = err.data?.message
       emitter.emit('share-doc-error', err)
