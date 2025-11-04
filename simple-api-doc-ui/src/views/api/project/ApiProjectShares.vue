@@ -300,6 +300,7 @@ const editFormOptions = computed(() => {
     prop: 'groupCode',
     type: 'select',
     enabled: !inProject && !!projectGroupOptions.value?.length,
+    disabled: !!currentShare.value?.id && !isCopyData,
     children: projectGroupOptions.value,
     change (groupCode) {
       currentShare.value.projectId = null
