@@ -287,6 +287,7 @@ const editFormOptions = computed(() => {
       prop: `authContentModel.${option.prop}`
     }
   })
+  const isCopyData = currentModel.value?.taskName?.endsWith('-copy')
   return defineFormOptions([{
     labelKey: 'api.label.taskName',
     prop: 'taskName',
@@ -296,6 +297,7 @@ const editFormOptions = computed(() => {
     prop: 'groupCode',
     type: 'select',
     enabled: !inProject && !!projectGroupOptions.value?.length,
+    disabled: !!currentModel.value?.id && !isCopyData,
     children: projectGroupOptions.value,
     change (groupCode) {
       currentModel.value.projectId = null
@@ -307,7 +309,7 @@ const editFormOptions = computed(() => {
     required: true,
     type: 'select',
     enabled: !inProject,
-    disabled: !!currentModel.value?.id && !currentModel.value?.taskName?.endsWith('-copy'),
+    disabled: !!currentModel.value?.id && !isCopyData,
     children: filteredProjectOptions.value,
     change: changeProjectLoader
   }, {
