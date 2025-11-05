@@ -80,6 +80,7 @@ const paramsSendAsOption = computed(() => {
     labelKey: 'api.label.paramsSendAs',
     type: 'radio-group',
     prop: 'paramsSendAs',
+    enabled: false,
     children: [{
       value: 'urlParams',
       label: 'query-params'
@@ -147,7 +148,7 @@ const initParamTarget = () => {
   if (hasInheritAuth.value && !authContentModel.value.force) {
     authContentModel.value.authType = AUTH_TYPE.INHERIT
   }
-  if (paramTarget.value && !paramTarget.value?.paramsSendAs) {
+  if (paramsSendAsOption.value.enabled && paramTarget.value && !paramTarget.value?.paramsSendAs) {
     paramTarget.value.paramsSendAs = !isGetMethod(paramTarget.value?.method) ? 'formUrlencoded' : 'urlParams'
   }
 }
