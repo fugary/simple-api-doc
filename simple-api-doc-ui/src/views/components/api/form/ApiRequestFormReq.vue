@@ -82,7 +82,7 @@ const paramsSendAsOption = computed(() => {
     prop: 'paramsSendAs',
     children: [{
       value: 'urlParams',
-      label: 'url params'
+      label: 'search-params'
     }, ...postSendContentOptions]
   }
 })
@@ -128,7 +128,8 @@ const initParamTarget = () => {
   contentRef.value = paramTarget.value?.requestBody
   languageRef.value = paramTarget.value?.requestFormat || languageRef.value
   authContentModel.value = {
-    authType: AUTH_TYPE.NONE
+    authType: AUTH_TYPE.NONE,
+    force: false
   }
   currentTabName.value = !isGetMethod(paramTarget.value.method) ? 'requestBodyTab' : 'requestParamsTab'
   for (const key of paramList) {
@@ -141,10 +142,10 @@ const initParamTarget = () => {
   if (paramTarget.value.authContent) {
     authContentModel.value = paramTarget.value.authContent
   } else {
-    if (hasInheritAuth.value) {
-      authContentModel.value.authType = AUTH_TYPE.INHERIT
-    }
     paramTarget.value.authContent = authContentModel.value
+  }
+  if (hasInheritAuth.value && !authContentModel.value.force) {
+    authContentModel.value.authType = AUTH_TYPE.INHERIT
   }
   if (paramTarget.value && !paramTarget.value?.paramsSendAs) {
     paramTarget.value.paramsSendAs = !isGetMethod(paramTarget.value?.method) ? 'formUrlencoded' : 'urlParams'

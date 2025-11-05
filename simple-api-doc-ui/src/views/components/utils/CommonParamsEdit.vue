@@ -162,7 +162,10 @@ const paramsOptions = computed(() => {
       value: 'text',
       children: getSingleSelectOptions('text', 'file'),
       attrs: {
-        clearable: false
+        clearable: false,
+        style: {
+          paddingTop: '2px'
+        }
       },
       enabled: props.fileFlag,
       colSpan: 3,

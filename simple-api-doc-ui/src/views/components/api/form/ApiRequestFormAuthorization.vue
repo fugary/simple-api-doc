@@ -53,6 +53,11 @@ const authTypeSelectOption = computed(() => {
       }
       return returnOpt
     }),
+    change (value) {
+      if (props.inheritEnabled && value !== AUTH_TYPE.INHERIT) { // 手动选择非继承配置
+        vModel.value.force = true
+      }
+    },
     attrs: {
       clearable: false
     }
