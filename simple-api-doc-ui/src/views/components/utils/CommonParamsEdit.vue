@@ -132,6 +132,7 @@ const inputTextOption = {
       const calcParams = calcPasteParams(value)
       params.value = [...calcParams]
       inputTextModel.value.text = ''
+      showTextModel.value = false
     }
   }
 }
@@ -156,7 +157,7 @@ const paramsOptions = computed(() => {
     }, {
       labelKey: 'common.label.name',
       prop: props.nameKey,
-      required: props.nameReadOnly || props.nameRequired,
+      required: props.nameReadOnly || props.nameRequired || param.nameRequired || param.valueRequired,
       disabled: props.nameReadOnly,
       colSpan: nvSpan,
       type: nameSuggestions ? 'autocomplete' : 'input',
@@ -190,7 +191,7 @@ const paramsOptions = computed(() => {
     }, {
       labelKey: 'common.label.value',
       prop: props.valueKey,
-      required: props.nameReadOnly || props.valueRequired,
+      required: props.nameReadOnly || props.valueRequired || param.valueRequired,
       colSpan: nvSpan,
       enabled: param.type !== 'file',
       type: paramValueSuggestions ? 'autocomplete' : 'input',
