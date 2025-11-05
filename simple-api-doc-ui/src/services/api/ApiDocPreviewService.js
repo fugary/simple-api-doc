@@ -163,7 +163,7 @@ export const calcRequestBody = (paramTarget) => {
     })
   } else {
     checkResult.params = requestParams.reduce((results, item) => {
-      addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value))
+      addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value, true))
       return results
     }, {})
   }

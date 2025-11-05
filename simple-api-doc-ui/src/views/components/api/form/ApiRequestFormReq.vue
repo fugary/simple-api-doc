@@ -82,7 +82,7 @@ const paramsSendAsOption = computed(() => {
     prop: 'paramsSendAs',
     children: [{
       value: 'urlParams',
-      label: 'search-params'
+      label: 'query-params'
     }, ...postSendContentOptions]
   }
 })

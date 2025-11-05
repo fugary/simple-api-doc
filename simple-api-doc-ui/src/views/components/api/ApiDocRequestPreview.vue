@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import {
-  addRequestParamsToResult,
   calcParamTarget,
   calcRequestBody,
   preProcessParams,
@@ -71,17 +70,13 @@ const doDataPreview = async () => {
   const serverSend = paramTarget.value?.sendType === 'server'
   let processedPath = requestPath.value
   paramTarget.value?.pathParams?.forEach(pathParam => {
-    const pathValue = processEvnParams(paramTarget.value.groupConfig, pathParam.value)
+    const pathValue = processEvnParams(paramTarget.value.groupConfig, pathParam.value, true)
     if (pathValue) {
       processedPath = processedPath.replace(new RegExp(`:${pathParam.name}`, 'g'), pathValue)
         .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), pathValue)
     }
   })
-  const requestParams = preProcessParams(paramTarget.value?.requestParams).reduce((results, item) => {
-    addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value))
-    return results
-  }, {})
-  const { data, hasBody, params, contentType } = calcRequestBody(paramTarget, requestParams)
+  const { data, hasBody, params, contentType } = calcRequestBody(paramTarget)
   const headers = Object.assign(hasBody ? { 'content-type': contentType } : {},
     preProcessParams(paramTarget.value?.headerParams).reduce((results, item) => {
       results[item.name] = processEvnParams(paramTarget.value.groupConfig, item.value)

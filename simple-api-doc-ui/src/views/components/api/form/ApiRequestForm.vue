@@ -35,11 +35,11 @@ const requestUrl = computed(() => {
   let reqUrl = props.requestPath
   paramTarget.value?.pathParams?.forEach(pathParam => {
     reqUrl = reqUrl.replace(new RegExp(`:${pathParam.name}`, 'g'), pathParam.value)
-      .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), processEvnParams(paramTarget.value.groupConfig, pathParam.value))
+      .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), processEvnParams(paramTarget.value.groupConfig, pathParam.value, true))
   })
   if (paramTarget.value?.method?.toLowerCase() === 'get') {
     const calcReqParams = paramTarget.value?.requestParams?.filter(requestParam => !!requestParam.name && requestParam.enabled).reduce((results, item) => {
-      return addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value))
+      return addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value, true))
     }, {})
     reqUrl = addParamsToURL(reqUrl, calcReqParams)
   }

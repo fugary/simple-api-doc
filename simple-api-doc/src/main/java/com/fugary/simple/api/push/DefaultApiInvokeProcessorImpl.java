@@ -63,7 +63,7 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
         }
         try {
             SimpleLogUtils.addRequestData(mockParams);
-            ResponseEntity<byte[]> responseEntity = restTemplate.exchange(requestUrl,
+            ResponseEntity<byte[]> responseEntity = restTemplate.exchange(URI.create(requestUrl),
                     Optional.ofNullable(HttpMethod.resolve(mockParams.getMethod())).orElse(HttpMethod.GET),
                     entity, byte[].class);
             responseEntity = processRedirect(responseEntity, mockParams, entity);
@@ -87,6 +87,7 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
             if (location != null) {
                 URI targetUri = UriComponentsBuilder.fromUri(location)
                         .queryParams(getQueryParams(mockParams))
+                        .encode()
                         .build().toUri();
                 responseEntity = restTemplate.exchange(targetUri,
                         Optional.ofNullable(HttpMethod.resolve(mockParams.getMethod())).orElse(HttpMethod.GET),
@@ -129,6 +130,7 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
         requestUrl = UriComponentsBuilder.fromUriString(baseUrl)
                 .path(requestUrl)
                 .queryParams(getQueryParams(mockParams))
+                .encode()
                 .build().toUriString();
         return requestUrl;
     }
