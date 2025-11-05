@@ -2,7 +2,12 @@
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
 import { computed, ref, watch } from 'vue'
-import { checkParamsFilled, generateSampleCheckResults, isGetMethod } from '@/services/api/ApiDocPreviewService'
+import {
+  checkParamsFilled,
+  checkRequestBody,
+  generateSampleCheckResults,
+  isGetMethod
+} from '@/services/api/ApiDocPreviewService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import {
   AUTH_TYPE,
@@ -88,7 +93,11 @@ const customLanguageSelectOption = computed(() => {
     children: [...getSingleSelectOptions(NONE), ...normalLanguageSelectOption.value.children, ...postSendContentOptions]
   }
 })
-
+const showParamsSendAs = computed(() => {
+  const { hasBody } = checkRequestBody(paramTarget.value.requestContentType || NONE,
+    paramTarget.value, paramTarget.value.requestBody)
+  return showRequestBody.value && !hasBody && paramTarget.value.requestParams?.length
+})
 const isSpecialLang = computed(() => SPECIAL_LANGS.includes(languageRef.value))
 const isNone = computed(() => !languageRef.value || NONE === languageRef.value)
 const isFormData = computed(() => FORM_DATA === languageRef.value)
@@ -259,7 +268,7 @@ const resetRequestForm = () => {
         </el-badge>
       </template>
       <common-form-control
-        v-if="showRequestBody && isNone && paramTarget.requestParams?.length"
+        v-if="showParamsSendAs"
         :option="paramsSendAsOption"
         :model="paramTarget"
       />
