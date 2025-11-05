@@ -138,6 +138,11 @@ export const addRequestParamsToResult = (results, name, value) => {
   return results
 }
 
+export const isGetMethod = method => {
+  method = (method || 'GET').toUpperCase()
+  return method === 'GET'
+}
+
 /**
  * 各种类型的body解析
  *
@@ -145,15 +150,30 @@ export const addRequestParamsToResult = (results, name, value) => {
  * @return {{data: (string|*), hasBody: boolean}}
  */
 export const calcRequestBody = (paramTarget) => {
-  const contentType = paramTarget.value.requestContentType
+  let contentType = paramTarget.value.requestContentType || NONE
   let data = paramTarget.value.requestBody
-  let hasBody = true
+  const requestParams = preProcessParams(paramTarget.value?.requestParams)
+  const paramsSendAs = paramTarget.value.paramsSendAs || 'urlParams'
+  let dataConfig = paramTarget.value
+  let params = null
+  let hasBody = !isGetMethod(paramTarget.value?.method)
+  if (hasBody && contentType === NONE && paramsSendAs !== 'urlParams' && requestParams?.length) {
+    contentType = LANG_TO_CONTENT_TYPES[paramsSendAs]
+    dataConfig = {
+      [paramsSendAs]: requestParams
+    }
+  } else {
+    params = requestParams.reduce((results, item) => {
+      addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value))
+      return results
+    }, {})
+  }
   if (contentType === NONE) {
     data = undefined
     hasBody = false
   } else if (contentType === LANG_TO_CONTENT_TYPES[FORM_DATA]) {
     data = new FormData()
-    preProcessParams(paramTarget.value[FORM_DATA]).forEach(item => {
+    preProcessParams(dataConfig[FORM_DATA]).forEach(item => {
       if (isArray(item.value)) {
         item.value.filter(file => !!file?.raw).forEach(file => data.append(item.name, file.raw))
       } else {
@@ -161,7 +181,7 @@ export const calcRequestBody = (paramTarget) => {
       }
     })
   } else if (contentType === LANG_TO_CONTENT_TYPES[FORM_URL_ENCODED]) {
-    const params = preProcessParams(paramTarget.value[FORM_URL_ENCODED])
+    const params = preProcessParams(dataConfig[FORM_URL_ENCODED])
     data = Object.fromEntries(params.map(item => [item.name, processEvnParams(paramTarget.value.groupConfig, item.value)]))
   }
   if (isString(data)) {
@@ -169,6 +189,8 @@ export const calcRequestBody = (paramTarget) => {
     data = data || undefined
   }
   return {
+    contentType,
+    params,
     hasBody,
     data
   }

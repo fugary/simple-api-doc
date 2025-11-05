@@ -77,12 +77,12 @@ const doDataPreview = async () => {
         .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), pathValue)
     }
   })
-  const params = preProcessParams(paramTarget.value?.requestParams).reduce((results, item) => {
+  const requestParams = preProcessParams(paramTarget.value?.requestParams).reduce((results, item) => {
     addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value))
     return results
   }, {})
-  const { data, hasBody } = calcRequestBody(paramTarget)
-  const headers = Object.assign(hasBody ? { 'content-type': paramTarget.value?.requestContentType } : {},
+  const { data, hasBody, params, contentType } = calcRequestBody(paramTarget, requestParams)
+  const headers = Object.assign(hasBody ? { 'content-type': contentType } : {},
     preProcessParams(paramTarget.value?.headerParams).reduce((results, item) => {
       results[item.name] = processEvnParams(paramTarget.value.groupConfig, item.value)
       return results

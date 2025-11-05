@@ -2,7 +2,7 @@
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
 import { computed, ref, watch } from 'vue'
-import { checkParamsFilled, generateSampleCheckResults } from '@/services/api/ApiDocPreviewService'
+import { checkParamsFilled, generateSampleCheckResults, isGetMethod } from '@/services/api/ApiDocPreviewService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import {
   AUTH_TYPE,
@@ -18,7 +18,11 @@ import { $i18nBundle, $i18nKey } from '@/messages'
 import { getSingleSelectOptions } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString, isArray } from 'lodash-es'
-import { calcEnvSuggestions, generateFormSample, generateSchemaSample } from '@/services/api/ApiCommonService'
+import {
+  calcEnvSuggestions,
+  generateFormSample,
+  generateSchemaSample
+} from '@/services/api/ApiCommonService'
 import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
@@ -58,21 +62,35 @@ const paramTarget = defineModel('modelValue', {
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, normalLanguageSelectOption, formatDocument, checkEditorLang } = useMonacoEditorOptions({ readOnly: false })
 const codeHeight = '300px'
 
+const postSendContentOptions = [{
+  value: FORM_DATA,
+  label: 'form-data'
+}, {
+  value: FORM_URL_ENCODED,
+  label: 'form-urlencoded'
+}]
+
+const paramsSendAsOption = computed(() => {
+  return {
+    labelKey: 'api.label.paramsSendAs',
+    type: 'radio-group',
+    prop: 'paramsSendAs',
+    children: [{
+      value: 'urlParams',
+      label: 'url params'
+    }, ...postSendContentOptions]
+  }
+})
+
 const customLanguageSelectOption = computed(() => {
   return {
     ...normalLanguageSelectOption.value,
-    children: [...getSingleSelectOptions(NONE), ...normalLanguageSelectOption.value.children, {
-      value: FORM_DATA,
-      label: 'form-data'
-    }, {
-      value: FORM_URL_ENCODED,
-      label: 'form-urlencoded'
-    }]
+    children: [...getSingleSelectOptions(NONE), ...normalLanguageSelectOption.value.children, ...postSendContentOptions]
   }
 })
 
 const isSpecialLang = computed(() => SPECIAL_LANGS.includes(languageRef.value))
-const isNone = computed(() => NONE === languageRef.value)
+const isNone = computed(() => !languageRef.value || NONE === languageRef.value)
 const isFormData = computed(() => FORM_DATA === languageRef.value)
 const isFormUrlEncoded = computed(() => FORM_URL_ENCODED === languageRef.value)
 
@@ -81,7 +99,7 @@ const requestHeaderLength = computed(() => {
 })
 
 const showRequestBody = computed(() => {
-  return paramTarget.value?.method !== 'GET'
+  return !isGetMethod(paramTarget.value?.method)
 })
 
 watch(languageRef, lang => {
@@ -103,7 +121,7 @@ const initParamTarget = () => {
   authContentModel.value = {
     authType: AUTH_TYPE.NONE
   }
-  currentTabName.value = paramTarget.value.method !== 'GET' ? 'requestBodyTab' : 'requestParamsTab'
+  currentTabName.value = !isGetMethod(paramTarget.value.method) ? 'requestBodyTab' : 'requestParamsTab'
   for (const key of paramList) {
     if (paramTarget.value[key]?.length) {
       currentTabName.value = `${key}Tab`
@@ -118,6 +136,9 @@ const initParamTarget = () => {
       authContentModel.value.authType = AUTH_TYPE.INHERIT
     }
     paramTarget.value.authContent = authContentModel.value
+  }
+  if (paramTarget.value && !paramTarget.value?.paramsSendAs) {
+    paramTarget.value.paramsSendAs = !isGetMethod(paramTarget.value?.method) ? 'formUrlencoded' : 'urlParams'
   }
 }
 initParamTarget()
@@ -237,9 +258,15 @@ const resetRequestForm = () => {
           {{ $t('api.label.queryParams') }}
         </el-badge>
       </template>
+      <common-form-control
+        v-if="showRequestBody && isNone && paramTarget.requestParams?.length"
+        :option="paramsSendAsOption"
+        :model="paramTarget"
+      />
       <common-params-edit
         v-model="paramTarget.requestParams"
         form-prop="requestParams"
+        :file-flag="paramTarget.paramsSendAs==='formData'"
         :value-suggestions="envSuggestions"
       />
     </el-tab-pane>
