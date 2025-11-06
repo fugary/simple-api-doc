@@ -1,6 +1,5 @@
 package com.fugary.simple.api.exports.md;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
@@ -10,11 +9,12 @@ import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.exports.ApiDocViewGenerator;
+import com.fugary.simple.api.exports.ApiExportFilter;
 import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
-import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
@@ -57,7 +57,8 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
     private Configuration freemarkerConfig; // FreeMarker 自动配置的 Configuration
 
     @Override
-    public String export(Integer projectId, List<Integer> docIds) {
+    public String export(Integer projectId, ApiExportFilter exportFilter) {
+        List<Integer> docIds = exportFilter.getDocIds();
         ProjectDetailQueryVo queryVo = ProjectDetailQueryVo.builder()
                 .projectId(projectId)
                 .includeDocs(true)
@@ -110,11 +111,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         model.put("apiDocs", docDetailList);
         model.put("apiVersion", StringUtils.defaultIfBlank(detailVo.getApiVersion(), projectInfoDetailVo.getVersion()));
         if (StringUtils.isNotBlank(detailVo.getEnvContent())) {
-            List<ExportEnvConfigVo> envList = JsonUtils.fromJson(detailVo.getEnvContent(), new TypeReference<>() {
-            });
-            envList = envList.stream().filter(env -> !Boolean.TRUE.equals(env.getDisabled()))
-                    .filter(env -> StringUtils.isNotBlank(env.getName()) && StringUtils.isNotBlank(env.getUrl()))
-                    .collect(Collectors.toList());
+            List<ExportEnvConfigVo> envList = ApiDocParseUtils.getFilteredEnvConfigs(detailVo.getEnvContent(), exportFilter.getEnvContent());
             model.put("envList", envList);
         }
         try {

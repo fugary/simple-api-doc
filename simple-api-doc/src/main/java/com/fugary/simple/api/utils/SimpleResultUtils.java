@@ -202,13 +202,13 @@ public class SimpleResultUtils {
         String type = StringUtils.defaultIfBlank(downloadVo.getType(), "json");
         String content;
         if (StringUtils.equals(type, "json")) {
-            OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo.getDocIds());
+            OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo);
             content = SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
         } else if(StringUtils.equals(type, "yaml")) {
-            OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo.getDocIds());
+            OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo);
             content = SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
         } else {
-            content = apiApiDocMdExporter.export(projectId, downloadVo.getDocIds());
+            content = apiApiDocMdExporter.export(projectId, downloadVo);
         }
         if (downloadVo.isReturnContent()) {
             return content;

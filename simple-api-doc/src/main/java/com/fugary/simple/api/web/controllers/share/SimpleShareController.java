@@ -141,6 +141,7 @@ public class SimpleShareController {
         } else {
             downloadVo.setDocIds(downloadVo.getDocIds().stream().filter(shareDocIds::contains).collect(Collectors.toList()));
         }
+        downloadVo.setEnvContent(apiShare.getEnvContent());
         String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, downloadVo, applicationName, apiShare.getProjectId());
         return SimpleResultUtils.createSimpleResult(uuid);
     }

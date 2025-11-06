@@ -1,7 +1,5 @@
 package com.fugary.simple.api.exports;
 
-import java.util.List;
-
 /**
  * Create date 2024/10/23<br>
  *
@@ -13,8 +11,8 @@ public interface ApiDocExporter<T> {
      * 数据导出
      *
      * @param projectId
-     * @param docIds
+     * @param exportFilter
      * @return
      */
-    T export(Integer projectId, List<Integer> docIds);
+    T export(Integer projectId, ApiExportFilter exportFilter);
 }

@@ -268,6 +268,29 @@ public class ApiDocParseUtils {
         return mergeEnvConfigs(savedEnvConfigs, envConfigs);
     }
 
+    public static List<ExportEnvConfigVo> getFilteredEnvConfigs(String totalContent, String filterContent) {
+        if (StringUtils.isNotBlank(totalContent)) {
+            List<ExportEnvConfigVo> envList = JsonUtils.fromJson(totalContent, new TypeReference<>() {
+            });
+            envList = getEnabledEnvConfigs(envList);
+            if (StringUtils.isNotBlank(filterContent)) {
+                List<ExportEnvConfigVo> filterList = JsonUtils.fromJson(filterContent, new TypeReference<>() {
+                });
+                Set<String> enabledUrls = envList.stream().map(ExportEnvConfigVo::getUrl).collect(Collectors.toSet());
+                envList = getEnabledEnvConfigs(filterList).stream().filter(env -> enabledUrls.contains(env.getUrl()))
+                        .collect(Collectors.toList());
+            }
+            return envList;
+        }
+        return new ArrayList<>();
+    }
+
+    public static List<ExportEnvConfigVo> getEnabledEnvConfigs(List<ExportEnvConfigVo> envList) {
+        return envList.stream().filter(env -> !Boolean.TRUE.equals(env.getDisabled()))
+                .filter(env -> StringUtils.isNotBlank(env.getName()) && StringUtils.isNotBlank(env.getUrl()))
+                .collect(Collectors.toList());
+    }
+
     /**
      * 临时文件夹
      *

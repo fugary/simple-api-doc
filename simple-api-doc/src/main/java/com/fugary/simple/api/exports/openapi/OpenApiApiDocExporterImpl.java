@@ -6,13 +6,14 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.exports.ApiDocExporter;
+import com.fugary.simple.api.exports.ApiExportFilter;
 import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
-import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.exports.ExtendMarkdownFile;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
@@ -62,7 +63,8 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
     private ApiFolderService apiFolderService;
 
     @Override
-    public OpenAPI export(Integer projectId, List<Integer> docIds) {
+    public OpenAPI export(Integer projectId, ApiExportFilter exportFilter) {
+        List<Integer> docIds = exportFilter.getDocIds();
         ProjectDetailQueryVo queryVo = ProjectDetailQueryVo.builder()
                 .projectId(projectId)
                 .includeDocs(true)
@@ -135,7 +137,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         if (!markdownFiles.isEmpty()) {
             openAPI.addExtension(ApiDocConstants.X_SIMPLE_MARKDOWN_FILES, markdownFiles);
         }
-        processServerItems(detailVo, openAPI);
+        processServerItems(detailVo, openAPI, exportFilter.getEnvContent());
         openAPI.setTags(List.copyOf(tags));
         return openAPI;
     }
@@ -234,11 +236,11 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
      *
      * @param detailVo
      * @param openAPI
+     * @param sharedEnvContent
      */
-    protected void processServerItems(ApiProjectDetailVo detailVo, OpenAPI openAPI) {
+    protected void processServerItems(ApiProjectDetailVo detailVo, OpenAPI openAPI, String sharedEnvContent) {
         if (StringUtils.isNotBlank(detailVo.getEnvContent())) {
-            List<ExportEnvConfigVo> envList = JsonUtils.fromJson(detailVo.getEnvContent(), new TypeReference<>() {
-            });
+            List<ExportEnvConfigVo> envList = ApiDocParseUtils.getFilteredEnvConfigs(detailVo.getEnvContent(), sharedEnvContent);
             for (ExportEnvConfigVo envVo : envList) {
                 Server server = new Server().url(envVo.getUrl()).description(envVo.getName());
                 if (!openAPI.getServers().contains(server)) {
