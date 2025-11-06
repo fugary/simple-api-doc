@@ -119,6 +119,9 @@ public class ApiProjectInfoDetailController {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
             }
         }
+        if (apiProjectInfoDetailService.existsInfoDetail(infoDetail)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
+        }
         infoDetail.setContentType(ApiDocConstants.PROJECT_TASK_TYPE_MANUAL); // 手动修改过
         apiProjectInfoDetailService.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
         return SimpleResultUtils.createSimpleResult(infoDetail);

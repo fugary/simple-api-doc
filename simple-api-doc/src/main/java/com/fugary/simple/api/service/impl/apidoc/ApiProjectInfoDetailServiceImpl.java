@@ -180,6 +180,13 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         return filterByInfoDetail(infoDetails, schemaKeyMap, infoDetail);
     }
 
+    @Override
+    public boolean existsInfoDetail(ApiProjectInfoDetail infoDetail) {
+        List<ApiProjectInfoDetail> existProjects = list(Wrappers.<ApiProjectInfoDetail>query().eq("schema_name", infoDetail.getSchemaName())
+                .eq("body_type", infoDetail.getBodyType()).eq("info_id", infoDetail.getInfoId()));
+        return existProjects.stream().anyMatch(existProject -> !existProject.getId().equals(infoDetail.getId()));
+    }
+
     /**
      * 计算Schema列表数据
      *

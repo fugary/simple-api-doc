@@ -126,4 +126,11 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      */
     List<ApiProjectInfoDetail> findRelatedInfoDetails(ApiProjectInfoDetail infoDetail);
 
+    /**
+     * 检查是否有重复
+     *
+     * @param infoDetail
+     * @return
+     */
+    boolean existsInfoDetail(ApiProjectInfoDetail infoDetail);
 }
