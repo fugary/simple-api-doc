@@ -42,6 +42,15 @@ const componentEditOptions = computed(() => {
       }
     }
   }, {
+    labelKey: 'api.label.apiDocLock',
+    type: 'switch',
+    prop: 'contentType',
+    tooltip: $i18nBundle('api.msg.apiDocLocked'),
+    attrs: {
+      activeValue: 'manual',
+      inactiveValue: 'auto'
+    }
+  }, {
     enabled: props.projectInfos?.length > 1,
     showLabel: false,
     prop: 'infoId',
