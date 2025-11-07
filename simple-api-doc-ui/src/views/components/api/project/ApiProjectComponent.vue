@@ -106,8 +106,12 @@ const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, 
 languageRef.value = 'json'
 const schemaContentObj = ref({})
 watch(() => currentComponentModel.value?.schemaContent, (schemaContent) => {
-  schemaContentObj.value = JSON.parse(schemaContent || '{}')
   contentRef.value = schemaContent
+  try {
+    schemaContentObj.value = JSON.parse(schemaContent || '{}')
+  } catch (e) { // 忽略错误保证能正常显示
+    console.error(e)
+  }
 }, { immediate: true })
 const codeHeight = '400px'
 

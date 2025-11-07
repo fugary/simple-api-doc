@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { ref, onMounted, onActivated, computed, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
-import { useBackUrl } from '@/utils'
+import { $coreError, useBackUrl } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -40,6 +40,8 @@ const loadProjectComponents = (pageNumber) => searchMethod(pageNumber).then(data
 
 const newOrEdit = (id) => {
   if (id) {
+    currentInfoDetail.value = null
+    componentSchemas.value = []
     ApiProjectInfoDetailApi.getById(id).then(data => {
       currentInfoDetail.value = data.resultData
       componentSchemas.value = data.addons?.components || []
@@ -48,7 +50,7 @@ const newOrEdit = (id) => {
     console.log('=========================new', id)
     currentInfoDetail.value = {
       bodyType: 'component',
-      schemaContent: '{}',
+      schemaContent: '{"type":"object","properties":{}}',
       projectId: projectItem.value?.id,
       infoId: projectItem.value?.infoList?.[0]?.id
     }
@@ -102,14 +104,25 @@ const projectInfos = computed(() => {
   return []
 })
 const saveComponent = (data) => {
-  ApiProjectInfoDetailApi.saveOrUpdate(data)
-    .then((data) => {
-      if (data.success) {
-        ElMessage.success($i18nBundle('common.msg.saveSuccess'))
-        currentInfoDetail.value = data.resultData
-      }
-      loadProjectComponents()
-    })
+  console.log('===========================data', data)
+  if (data.schemaContent) {
+    try {
+      JSON.parse(data.schemaContent)
+    } catch (e) {
+      $coreError($i18nBundle('common.msg.jsonError'))
+      return
+    }
+    ApiProjectInfoDetailApi.saveOrUpdate(data)
+      .then((data) => {
+        if (data.success) {
+          ElMessage.success($i18nBundle('common.msg.saveSuccess'))
+          currentInfoDetail.value = data.resultData
+        }
+        loadProjectComponents()
+      })
+  } else {
+    $coreError($i18nBundle('common.msg.nonNull', ['JSON Schema']))
+  }
 }
 const deleteComponent = (data) => {
   ApiProjectInfoDetailApi.deleteById(data.id)

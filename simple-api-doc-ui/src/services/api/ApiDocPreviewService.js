@@ -476,6 +476,7 @@ export const processSchemaRef = (schema, componentsMap) => {
       console.log('==============================$ref-null', schema.$ref, apiSchema)
     }
     apiSchema.name = $ref2Schema(schema.$ref)
+    apiSchema.schema$ref = schema.$ref
     refCache[schema.$ref] = apiSchema
     Object.assign(schema, apiSchema)
     delete schema.$ref
