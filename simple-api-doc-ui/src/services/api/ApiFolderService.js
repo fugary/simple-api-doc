@@ -421,7 +421,7 @@ export const useInitShareDocTheme = (shareId) => {
 }
 
 export const useShareDocTheme = (sharePreference) => {
-  const shareDarkTheme = inject(CURRENT_SHARE_THEME_KEY)
+  const shareDarkTheme = inject(CURRENT_SHARE_THEME_KEY, null)
   const isDarkTheme = computed(() => sharePreference && shareDarkTheme ? shareDarkTheme.value : useGlobalConfigStore().isDarkTheme)
   return {
     isDarkTheme,
