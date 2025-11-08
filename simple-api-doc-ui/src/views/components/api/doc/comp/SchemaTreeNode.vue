@@ -99,7 +99,7 @@ const typeStr = computed(() => {
           {{ data.name }}
         </el-text>
         <span
-          v-if="data.required || data.schema?.isRequired"
+          v-if="data.required"
           class="doc-schema-required"
         >*</span>
       </strong>

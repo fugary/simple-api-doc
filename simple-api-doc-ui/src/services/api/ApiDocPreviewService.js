@@ -397,11 +397,9 @@ export const processProperties = schema => {
         value.name = value.items.type
       }
     }
-    if (schemaParent.required?.length) {
-      value.isRequired = schemaParent.required.includes(key)
-    }
     return {
       name: key,
+      required: schemaParent.required?.includes(key),
       schema: value,
       isLeaf: checkLeaf(value)
     }

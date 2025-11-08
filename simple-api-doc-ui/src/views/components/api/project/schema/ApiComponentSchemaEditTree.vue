@@ -3,6 +3,10 @@ import { computed, watch, ref, nextTick } from 'vue'
 import { processSchema, processSchemaChildren, calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import SchemaTreeNode from '@/views/components/api/doc/comp/SchemaTreeNode.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
+import { toEditJsonSchema } from '@/utils/DynamicUtils'
+import { $coreConfirm } from '@/utils'
+import { pull, unset } from 'lodash-es'
+import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
   rootName: {
@@ -28,13 +32,23 @@ const schemaModel = defineModel({
   default: () => ({})
 })
 
+const defaultExpandedKeys = ref(['_root'])
+const toggleExpandKey = (data, expand) => {
+  console.log('============expand', data, expand)
+  if (expand) {
+    defaultExpandedKeys.value.push(data.id)
+  } else {
+    pull(defaultExpandedKeys.value, data.id)
+  }
+}
+
 const showTree = ref(false)
 watch([schemaModel, () => props.rootName], () => {
   showTree.value = false
   nextTick(() => {
     showTree.value = true
   })
-}, { immediate: true })
+}, { immediate: true, deep: true })
 
 const componentsMap = computed(() => calcComponentMap(props.componentSchemas))
 
@@ -53,7 +67,15 @@ const loadTreeNode = (node, resolve) => {
   } else {
     // 下级node
     const children = processSchemaChildren(processSchema(node.data, componentsMap.value)?.schema, props.showMergeAllOf)
-    console.log('========================children', children)
+    console.log('========================children', node, children)
+    children.forEach(child => {
+      child.path = `properties.${child.name}`
+      if (node.data?.path) {
+        child.parentPath = node.data?.path
+        child.path = `${node.data?.path}.${child.path}`
+      }
+      child.id = child.path
+    })
     resolve(children)
   }
 }
@@ -67,8 +89,16 @@ const showEditButtons = (data, node) => {
   return currentTreeData.value === data && !data?.schema?.schema$ref && !node?.parent?.data?.schema?.schema$ref
 }
 
-const deleteProperty = (data, parent, $event) => {
-  console.log('=======================deleteProperty', data)
+const deleteProperty = (data, $event) => {
+  if (data.path) {
+    $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
+      unset(schemaModel.value, data.path)
+      const parent = data.parentPath ? schemaModel.value[data.parentPath] : schemaModel.value
+      if (parent.required?.length) {
+        pull(parent.required, data.name)
+      }
+    })
+  }
   $event.stopPropagation()
 }
 
@@ -76,6 +106,7 @@ const currentEdit = ref()
 const newOrEdit = (data, parent, $event) => {
   console.log('=======================newOrEdit', data, parent, $event)
   currentEdit.value = data || {}
+  toEditJsonSchema(data)
   $event.stopPropagation()
 }
 
@@ -87,10 +118,12 @@ const newOrEdit = (data, parent, $event) => {
       v-if="showTree"
       :props="treeProps"
       class="doc-schema-tree"
-      :default-expanded-keys="['_root']"
+      :default-expanded-keys="defaultExpandedKeys"
       node-key="id"
       lazy
       :load="loadTreeNode"
+      @node-expand="toggleExpandKey($event, true)"
+      @node-collapse="toggleExpandKey($event, false)"
     >
       <template #empty>
         <div class="text-left padding-10">
@@ -115,7 +148,7 @@ const newOrEdit = (data, parent, $event) => {
             style="position: absolute; top:calc(50% - 11px);right:50px"
           >
             <el-button
-              v-if="data.schema.type==='object'"
+              v-if="data.schema?.type==='object'||data.schema?.properties"
               v-common-tooltip="$t('common.label.add')"
               type="primary"
               size="small"
@@ -125,7 +158,7 @@ const newOrEdit = (data, parent, $event) => {
               <common-icon icon="Plus" />
             </el-button>
             <el-button
-              v-if="node.parent"
+              v-if="node.parent&&node.level>1"
               v-common-tooltip="$t('common.label.edit')"
               type="primary"
               size="small"
@@ -135,12 +168,12 @@ const newOrEdit = (data, parent, $event) => {
               <common-icon icon="Edit" />
             </el-button>
             <el-button
-              v-if="node.parent"
+              v-if="node.parent&&node.level>1"
               v-common-tooltip="$t('common.label.delete')"
               type="danger"
               size="small"
               round
-              @click="deleteProperty(data, data.name, $event)"
+              @click="deleteProperty(data, $event)"
             >
               <common-icon icon="DeleteFilled" />
             </el-button>

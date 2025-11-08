@@ -7,6 +7,7 @@ const ApiRequestPreviewWindow = () => import('@/views/components/api/ApiRequestP
 const ApiEnvContentWindow = () => import('@/views/components/api/project/ApiEnvContentWindow.vue')
 const ApiEnvParams = () => import('@/views/components/api/ApiEnvParams.vue')
 const ShowUserInfo = () => import('@/views/components/user/ShowUserInfo.vue')
+const JsonSchemaEdit = () => import('@/views/components/api/project/schema/JsonSchemaEdit.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
 
 export const closeAllOnRouteChange = () => {
@@ -53,6 +54,14 @@ export const addOrEditFolderWindow = async (id, projectId, parentFolder, config)
     ...config
   })
   return vnode.component?.exposed?.addOrEditFolderWindow(id, projectId, parentFolder)
+}
+
+export const toEditJsonSchema = async (...args) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(JsonSchemaEdit, {
+    onClosed: () => dynamicHelper.destroy()
+  })
+  return vnode.component?.exposed?.toEditJsonSchema(...args)
 }
 
 /**

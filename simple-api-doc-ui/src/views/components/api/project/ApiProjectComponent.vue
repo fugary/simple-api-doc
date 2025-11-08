@@ -113,6 +113,11 @@ watch(() => currentComponentModel.value?.schemaContent, (schemaContent) => {
     console.error(e)
   }
 }, { immediate: true })
+watch(schemaContentObj, () => {
+  if (currentComponentModel.value) {
+    currentComponentModel.value.schemaContent = JSON.stringify(schemaContentObj.value)
+  }
+}, { deep: true })
 const codeHeight = '400px'
 
 const currentProjectInfo = computed(() => {
