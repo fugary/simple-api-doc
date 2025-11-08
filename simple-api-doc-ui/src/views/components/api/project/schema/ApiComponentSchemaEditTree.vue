@@ -1,6 +1,6 @@
 <script setup>
 import { computed, watch, ref, nextTick } from 'vue'
-import { processSchema, processSchemaChildren, calcComponentMap } from '@/services/api/ApiDocPreviewService'
+import { processSchema, processSchemaChildren, calcComponentMap, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import SchemaTreeNode from '@/views/components/api/doc/comp/SchemaTreeNode.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { toEditJsonSchema } from '@/utils/DynamicUtils'
@@ -68,8 +68,13 @@ const loadTreeNode = (node, resolve) => {
     // 下级node
     const children = processSchemaChildren(processSchema(node.data, componentsMap.value)?.schema, props.showMergeAllOf)
     console.log('========================children', node, children)
-    children.forEach(child => {
+    children.forEach((child, index) => {
       child.path = `properties.${child.name}`
+      const xxxOf = hasXxxOf(node.data?.schema)
+      if (xxxOf) { // xxxOf支持
+        child.path = `${xxxOf}.${index}`
+        child.xxxOf = xxxOf
+      }
       if (node.data?.path) {
         child.parentPath = node.data?.path
         child.path = `${node.data?.path}.${child.path}`
@@ -86,14 +91,18 @@ const treeProps = {
 
 const currentTreeData = ref()
 const showEditButtons = (data, node) => {
-  return currentTreeData.value === data && !data?.schema?.schema$ref && !node?.parent?.data?.schema?.schema$ref
+  return currentTreeData.value === data && !node?.parent?.data?.schema?.schema$ref
 }
 
 const deleteProperty = (data, $event) => {
   if (data.path) {
     $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
       unset(schemaModel.value, data.path)
+      console.log('============delete', data.path, schemaModel.value)
       const parent = data.parentPath ? schemaModel.value[data.parentPath] : schemaModel.value
+      if (data.xxxOf && parent[data.xxxOf]) {
+        parent[data.xxxOf] = parent[data.xxxOf].filter(item => !!item)
+      }
       if (parent.required?.length) {
         pull(parent.required, data.name)
       }
