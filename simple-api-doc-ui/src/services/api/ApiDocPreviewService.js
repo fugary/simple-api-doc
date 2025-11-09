@@ -315,6 +315,9 @@ export const calcComponentOptions = (componentSchemas) => {
 }
 
 export const calcSchemaPath = (child, parent, index) => {
+  if (!parent.id) { // 根目录
+    return child
+  }
   const parentXxxOf = parent?.xxxOf
   child.id = child.path = parentXxxOf ? `${parentXxxOf}.${index}` : `properties.${child.name}`
   if (parent?.path) {

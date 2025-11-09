@@ -142,7 +142,11 @@ const newOrEdit = (data, parent, $event) => {
         console.log('==============parentPropPath', parentPropPath, properties, newProperties)
         set(schemaModel.value, parentPropPath, newProperties)
       } else {
-        set(schemaModel.value, newData.path, newData.schema)
+        if (newData.path) {
+          set(schemaModel.value, newData.path, newData.schema)
+        } else {
+          schemaModel.value = newData.schema
+        }
       }
     },
     onEditComponentSchemas (componentSchemas) {
@@ -166,7 +170,7 @@ const checkRefRelated = node => { // 判断上级是否是ref
 
 const checkAddProperty = node => {
   const schema = node.data?.schema
-  return (schema?.type === 'object' || schema?.properties) && !checkRefRelated(node) // 当前以及上级都没有ref
+  return (schema?.type === 'object' || schema?.properties) && !checkRefRelated(node) && !node.data?.xxxOf// 当前以及上级都没有ref
 }
 
 const checkEditProperty = node => !checkRefRelated(node.parent) // 上级中没有ref

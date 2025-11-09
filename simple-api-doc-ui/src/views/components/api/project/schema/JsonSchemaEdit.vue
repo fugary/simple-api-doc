@@ -1,10 +1,11 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { SCHEMA_BASE_TYPES, SCHEMA_SELECT_TYPE, SCHEMA_SELECT_TYPES, SCHEMA_XXX_OF_TYPES } from '@/consts/ApiConstants'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { calcComponentOptions, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
+import { cloneDeep } from 'lodash-es'
 
 const vModel = ref()
 const currentInfoDetail = ref()
@@ -29,26 +30,36 @@ const initJsonSchema = () => {
     vModel.value.type = xxxOf
     vModel.value[xxxOf] = vModel.value?.schema[xxxOf].map(xxxOfSchema => {
       return {
-        dataType: xxxOfSchema?.$ref ? 'ref' : 'object',
-        schema: xxxOfSchema,
-        type: xxxOfSchema?.$ref || 'object'
+        dataType: xxxOfSchema?.$ref ? 'ref' : 'basic',
+        type: xxxOfSchema?.$ref || 'object',
+        schema: xxxOfSchema?.schema
       }
     })
   }
 }
 
-watch(() => vModel.value?.type, (type) => {
+const processBeforeSave = () => {
+  const type = vModel.value.type
   if (type) {
-    ['type', '$ref'].forEach(key => delete vModel.value.schema[key])
+    const toClean = ['type', '$ref', 'allOf', 'oneOf', 'anyOf']
+    toClean.forEach(key => delete vModel.value.schema[key])
     if (vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC) {
       vModel.value.schema.type = type
     } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.REF) {
       vModel.value.schema.$ref = type
     } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
-      console.log('============type', type)
+      console.log('============type', type, vModel.value[type])
+      vModel.value.schema[type] = cloneDeep(vModel.value[type]).map(item => {
+        if (item.dataType === SCHEMA_SELECT_TYPE.REF) {
+          item.$ref = item.type
+        }
+        delete item.dataType
+        delete item.type
+        return item
+      })
     }
   }
-})
+}
 
 const componentSchemas = ref([])
 const loadComponentSchemas = () => {
@@ -111,7 +122,11 @@ const formOptions = computed(() => {
         vModel.value[type] = []
       }
     }
-  }, {
+  }]
+})
+
+const additionalOptions = computed(() => {
+  return [{
     labelKey: 'common.label.description',
     prop: 'schema.description',
     attrs: {
@@ -125,25 +140,52 @@ const saveJsonSchema = ({ form }) => {
   form.validate(valid => {
     if (valid) {
       console.log('====================schemaData', vModel.value)
+      processBeforeSave()
       emit('saveJsonSchema', vModel.value)
+      showWindow.value = false
     }
   })
+  return false
 }
 
 const xxxOfOptions = computed(() => {
-  const typeOptions = [{
-    value: 'object',
-    label: 'Object'
-  }, ...getTypeOptions(SCHEMA_SELECT_TYPE.REF)]
   return [{
-    labelKey: $i18nConcat(vModel.value.type, '类型'),
+    labelKey: $i18nConcat(vModel.value.type, $i18nBundle('api.label.type')),
+    type: 'segmented',
+    prop: 'dataType',
+    attrs: {
+      clearable: false,
+      size: 'small',
+      options: SCHEMA_SELECT_TYPES.filter(item => ['basic', 'ref'].includes(item.value)).map(item => ({
+        value: item.value,
+        label: $i18nBundle(item.labelKey)
+      }))
+    },
+    dynamicOption (model) {
+      return {
+        change (value) {
+          console.log('==============change', value, model)
+          model.type = ''
+        }
+      }
+    }
+  }, {
+    labelWidth: '1px',
+    showLabel: false,
+    labelKey: $i18nConcat(vModel.value.type, $i18nBundle('api.label.type')),
     prop: 'type',
     type: 'select-v2',
     required: true,
-    attrs: {
-      clearable: false,
-      filterable: true,
-      options: typeOptions
+    dynamicOption (model) {
+      const typeOptions = getTypeOptions(model.dataType)
+      return {
+        attrs: {
+          style: { width: '340px' },
+          clearable: false,
+          filterable: true,
+          options: typeOptions
+        }
+      }
     }
   }]
 })
@@ -156,6 +198,7 @@ defineExpose({
 <template>
   <common-window
     v-model="showWindow"
+    width="1000px"
     :title="$i18nKey('common.label.commonEdit','api.label.apiModel')"
     :close-on-click-modal="false"
     destroy-on-close
@@ -164,24 +207,25 @@ defineExpose({
     <el-container class="flex-column">
       <common-form
         class="form-edit-width-90"
+        label-width="150px"
         :show-buttons="false"
         :options="formOptions"
         :model="vModel"
       >
-        <template v-if="vModel.dataType==='xxxOf'">
+        <template v-if="vModel.dataType==='xxxOf' && vModel.type">
           <div
-            v-for="(xxlOf, index) in vModel[vModel.type]"
+            v-for="(xxxOf, index) in vModel[vModel.type]"
             :key="index"
             class="common-subform el-form--inline"
           >
             <common-form-control
               v-for="(option, optIdx) in xxxOfOptions"
               :key="`${index}-${optIdx}`"
-              :model="xxlOf"
+              :model="xxxOf"
               :option="option"
               :prop="`${vModel.type}.${index}.${option.prop}`"
             />
-            <el-form-item>
+            <el-form-item label-width="1px">
               <el-button
                 type="danger"
                 size="small"
@@ -191,9 +235,25 @@ defineExpose({
               </el-button>
             </el-form-item>
           </div>
+          <el-form-item>
+            <el-button
+              type="primary"
+              size="small"
+              @click.prevent="vModel[vModel.type].push({dataType:'ref'})"
+            >
+              {{ $t('common.label.add') }}
+            </el-button>
+          </el-form-item>
         </template>
+        <common-form-control
+          v-for="(option) in additionalOptions"
+          :key="`${option.prop}`"
+          :model="vModel"
+          :option="option"
+          :prop="option.prop"
+        />
       </common-form>
-      <pre>{{ vModel }}</pre>
+      <!--      <pre>{{ vModel }}</pre>-->
     </el-container>
   </common-window>
 </template>
