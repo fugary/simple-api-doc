@@ -1,17 +1,27 @@
 <script setup>
 import { computed, watch, ref, nextTick } from 'vue'
-import { processSchema, processSchemaChildren, calcComponentMap, hasXxxOf } from '@/services/api/ApiDocPreviewService'
+import {
+  processSchema,
+  processSchemaChildren,
+  calcComponentMap,
+  hasXxxOf,
+  calcSchemaPath
+} from '@/services/api/ApiDocPreviewService'
 import SchemaTreeNode from '@/views/components/api/doc/comp/SchemaTreeNode.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { toEditJsonSchema } from '@/utils/DynamicUtils'
 import { $coreConfirm } from '@/utils'
-import { pull, unset } from 'lodash-es'
+import { cloneDeep, pull, unset, get, set } from 'lodash-es'
 import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
   rootName: {
     type: String,
     default: 'root'
+  },
+  currentInfoDetail: {
+    type: Object,
+    required: true
   },
   componentSchemas: {
     type: Array,
@@ -50,15 +60,18 @@ watch([schemaModel, () => props.rootName], () => {
   })
 }, { immediate: true, deep: true })
 
-const componentsMap = computed(() => calcComponentMap(props.componentSchemas))
+const editComponentSchemas = ref()
+const componentsMap = computed(() => calcComponentMap(editComponentSchemas.value || props.componentSchemas))
 
 const loadTreeNode = (node, resolve) => {
   if (!node.parent) { // 第一级
-    let firstArr = [processSchema(schemaModel.value, componentsMap.value)]
+    let firstArr = [processSchema(cloneDeep(schemaModel.value), componentsMap.value)]
     firstArr = firstArr.map(data => {
+      const xxxOf = hasXxxOf(data)
       return {
         id: '_root',
         name: props.rootName,
+        xxxOf,
         schema: data
       }
     })
@@ -67,20 +80,8 @@ const loadTreeNode = (node, resolve) => {
   } else {
     // 下级node
     const children = processSchemaChildren(processSchema(node.data, componentsMap.value)?.schema, props.showMergeAllOf)
-    console.log('========================children', node, children)
-    children.forEach((child, index) => {
-      child.path = `properties.${child.name}`
-      const xxxOf = hasXxxOf(node.data?.schema)
-      if (xxxOf) { // xxxOf支持
-        child.path = `${xxxOf}.${index}`
-        child.xxxOf = xxxOf
-      }
-      if (node.data?.path) {
-        child.parentPath = node.data?.path
-        child.path = `${node.data?.path}.${child.path}`
-      }
-      child.id = child.path
-    })
+    console.log('========================children', children)
+    children.forEach((child, index) => calcSchemaPath(child, node.data, index))
     resolve(children)
   }
 }
@@ -94,17 +95,21 @@ const showEditButtons = (data, node) => {
   return currentTreeData.value === data && !node?.parent?.data?.schema?.schema$ref
 }
 
-const deleteProperty = (data, $event) => {
+const deleteProperty = (data, parent, $event) => {
   if (data.path) {
     $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
       unset(schemaModel.value, data.path)
-      console.log('============delete', data.path, schemaModel.value)
-      const parent = data.parentPath ? schemaModel.value[data.parentPath] : schemaModel.value
-      if (data.xxxOf && parent[data.xxxOf]) {
-        parent[data.xxxOf] = parent[data.xxxOf].filter(item => !!item)
+      console.log('============delete', data, parent, schemaModel.value)
+      const parentModel = data.parentPath ? get(schemaModel.value, data.parentPath) : schemaModel.value
+      const xxxOf = parent?.xxxOf
+      if (xxxOf && parentModel[xxxOf]) {
+        parentModel[xxxOf] = parentModel[xxxOf].filter(item => !!item)
+        if (!parentModel[xxxOf].length) {
+          delete parentModel[xxxOf]
+        }
       }
-      if (parent.required?.length) {
-        pull(parent.required, data.name)
+      if (parentModel.required?.length) {
+        pull(parentModel.required, data.name)
       }
     })
   }
@@ -113,9 +118,39 @@ const deleteProperty = (data, $event) => {
 
 const currentEdit = ref()
 const newOrEdit = (data, parent, $event) => {
-  console.log('=======================newOrEdit', data, parent, $event)
-  currentEdit.value = data || {}
-  toEditJsonSchema(data)
+  console.log('=======================newOrEdit', data?.path, data, parent, $event)
+  if (data) {
+    data = cloneDeep(data)
+    data.schema = cloneDeep(data?.path ? get(schemaModel.value, data.path) : schemaModel.value)
+  } else {
+    data = { schema: { type: 'string' } }
+  }
+  currentEdit.value = data
+  toEditJsonSchema(data, props.currentInfoDetail, {
+    onSaveJsonSchema (toSaveData) {
+      const newData = calcSchemaPath(cloneDeep(toSaveData), parent, 0)
+      console.log('==============toSaveData', toSaveData, newData)
+      if (data.path && newData.path !== data.path) { // 改了属性名称，需要删除原数据
+        const parentPropPath = data.path.substring(0, data.path.lastIndexOf('.'))
+        const properties = get(schemaModel.value, parentPropPath)
+        const newProperties = Object.entries(properties || {}).reduce((res, [key, value]) => {
+          if (data.path === parentPropPath + '.' + key) {
+            res[newData.name] = newData.schema
+          } else {
+            res[key] = value
+          }
+          return res
+        }, {})
+        console.log('==============parentPropPath', parentPropPath, properties, newProperties)
+        set(schemaModel.value, parentPropPath, newProperties)
+      } else {
+        set(schemaModel.value, newData.path, newData.schema)
+      }
+    },
+    onEditComponentSchemas (componentSchemas) {
+      editComponentSchemas.value = componentSchemas
+    }
+  })
   $event.stopPropagation()
 }
 
@@ -157,7 +192,7 @@ const newOrEdit = (data, parent, $event) => {
             style="position: absolute; top:calc(50% - 11px);right:50px"
           >
             <el-button
-              v-if="data.schema?.type==='object'||data.schema?.properties"
+              v-if="(data.schema?.type==='object'||data.schema?.properties)&&!data.schema?.schema$ref"
               v-common-tooltip="$t('common.label.add')"
               type="primary"
               size="small"
@@ -167,12 +202,12 @@ const newOrEdit = (data, parent, $event) => {
               <common-icon icon="Plus" />
             </el-button>
             <el-button
-              v-if="node.parent&&node.level>1"
+              v-if="node.parent"
               v-common-tooltip="$t('common.label.edit')"
               type="primary"
               size="small"
               round
-              @click="newOrEdit(data, node.parent, $event)"
+              @click="newOrEdit(data, node.parent?.data, $event)"
             >
               <common-icon icon="Edit" />
             </el-button>
@@ -182,7 +217,7 @@ const newOrEdit = (data, parent, $event) => {
               type="danger"
               size="small"
               round
-              @click="deleteProperty(data, $event)"
+              @click="deleteProperty(data, node.parent?.data, $event)"
             >
               <common-icon icon="DeleteFilled" />
             </el-button>

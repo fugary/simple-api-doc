@@ -56,12 +56,13 @@ export const addOrEditFolderWindow = async (id, projectId, parentFolder, config)
   return vnode.component?.exposed?.addOrEditFolderWindow(id, projectId, parentFolder)
 }
 
-export const toEditJsonSchema = async (...args) => {
+export const toEditJsonSchema = async (schemaData, currentInfoDetail, config) => {
   const dynamicHelper = new DynamicHelper()
   const vnode = await dynamicHelper.createAndRender(JsonSchemaEdit, {
-    onClosed: () => dynamicHelper.destroy()
+    onClosed: () => dynamicHelper.destroy(),
+    ...config
   })
-  return vnode.component?.exposed?.toEditJsonSchema(...args)
+  return vnode.component?.exposed?.toEditJsonSchema(schemaData, currentInfoDetail)
 }
 
 /**

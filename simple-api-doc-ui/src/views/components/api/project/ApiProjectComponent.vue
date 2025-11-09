@@ -160,6 +160,7 @@ const currentProjectInfo = computed(() => {
               class="flex-column"
             >
               <api-component-schema-edit-tree
+                :current-info-detail="currentComponentModel"
                 :root-name="currentComponentModel.schemaName"
                 :model-value="schemaContentObj"
                 :spec-version="currentProjectInfo.specVersion"

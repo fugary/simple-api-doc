@@ -13,5 +13,6 @@ import static com.fugary.simple.api.contants.ApiDocConstants.PROJECT_SCHEMA_TYPE
 public class ProjectComponentQueryVo extends ProjectQueryVo{
 
     private static final long serialVersionUID = 6764864260446508875L;
+    private Integer infoId;
     private String bodyType = PROJECT_SCHEMA_TYPE_COMPONENT;
 }

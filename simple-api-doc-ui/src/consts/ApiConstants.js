@@ -168,3 +168,24 @@ export const IMPORT_AUTH_TYPES = AUTH_OPTIONS.filter(type => type.value !== AUTH
 export const ALL_STATUS_CODES = [200, 201, 202, 301, 302, 307, 400, 401, 404, 405, 415, 500, 502, 503]
 
 export const ALL_CONTENT_TYPES = ['application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript', 'application/x-www-form-urlencoded']
+
+export const SCHEMA_BASE_TYPES = ['string', 'integer', 'boolean', 'object', 'number', 'array', 'any']
+
+export const SCHEMA_XXX_OF_TYPES = ['allOf', 'oneOf', 'anyOf']
+
+export const SCHEMA_SELECT_TYPE = {
+  BASIC: 'basic',
+  REF: 'ref',
+  XXX_OF: 'xxxOf'
+}
+
+export const SCHEMA_SELECT_TYPES = [{
+  value: SCHEMA_SELECT_TYPE.BASIC,
+  labelKey: 'api.label.typeBasic'
+}, {
+  value: SCHEMA_SELECT_TYPE.REF,
+  labelKey: 'api.label.typeRef'
+}, {
+  value: SCHEMA_SELECT_TYPE.XXX_OF,
+  labelKey: 'api.label.typeXxxOf'
+}]

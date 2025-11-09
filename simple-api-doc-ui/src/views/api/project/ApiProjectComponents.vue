@@ -70,7 +70,12 @@ onActivated(initLoadOnce)
 const searchFormOptions = computed(() => {
   return [{
     labelKey: 'common.label.keywords',
-    prop: 'keyword'
+    prop: 'keyword',
+    attrs: {
+      onInput () {
+        loadProjectComponents()
+      }
+    }
   }]
 })
 const columns = [{

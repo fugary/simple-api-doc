@@ -3,7 +3,6 @@ package com.fugary.simple.api.web.controllers.admin;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
@@ -60,8 +59,18 @@ public class ApiProjectInfoDetailController {
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("schema_name", keyword)
                         .or().like("description", keyword))
                 .eq("project_id", queryVo.getProjectId())
+                .eq(queryVo.getInfoId() != null, "info_id", queryVo.getInfoId())
                 .eq("body_type", queryVo.getBodyType());
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.page(page, queryWrapper));
+    }
+
+    @PostMapping("/loadInfoDetails")
+    public SimpleResult<List<ApiProjectInfoDetail>> loadInfoDetails(@RequestBody ProjectComponentQueryVo queryVo) {
+        QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
+                .eq("project_id", queryVo.getProjectId())
+                .eq(queryVo.getInfoId() != null, "info_id", queryVo.getInfoId())
+                .eq("body_type", queryVo.getBodyType());
+        return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.list(queryWrapper));
     }
 
     @GetMapping("/{id}")

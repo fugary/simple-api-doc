@@ -298,10 +298,33 @@ export const calcComponentMap = (componentSchemas) => {
     if (!apiSchema.schema && apiSchema.schemaContent) {
       apiSchema.schema = JSON.parse(apiSchema.schemaContent) // 从文本解析出来
     }
-    res[apiSchema.schemaKey] = apiSchema
+    res[apiSchema.schemaKey || `#/components/schemas/${apiSchema.schemaName}`] = apiSchema
     return res
   }, {})
 }
+
+export const calcComponentOptions = (componentSchemas) => {
+  return componentSchemas.filter(apiSchema => !!apiSchema.schemaContent).map(apiSchema => {
+    const schema = JSON.parse(apiSchema.schemaContent) // 从文本解析出来
+    return {
+      value: `#/components/schemas/${apiSchema.schemaName}`,
+      label: apiSchema.schemaName,
+      schema
+    }
+  })
+}
+
+export const calcSchemaPath = (child, parent, index) => {
+  const xxxOf = parent?.xxxOf
+  child.path = xxxOf ? `${xxxOf}.${index}` : `properties.${child.name}`
+  if (parent?.path) {
+    child.parentPath = parent?.path
+    child.path = `${parent?.path}.${child.path}`
+  }
+  child.id = child.path
+  return child
+}
+
 /**
  * 判断是否有xxxOf
  *
