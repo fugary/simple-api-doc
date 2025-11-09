@@ -72,6 +72,7 @@ const loadTreeNode = (node, resolve) => {
         id: '_root',
         name: props.rootName,
         xxxOf,
+        schema$ref: data?.schema$ref,
         schema: data
       }
     })
@@ -91,9 +92,6 @@ const treeProps = {
 }
 
 const currentTreeData = ref()
-const showEditButtons = (data, node) => {
-  return currentTreeData.value === data && !node?.parent?.data?.schema?.schema$ref
-}
 
 const deleteProperty = (data, parent, $event) => {
   if (data.path) {
@@ -154,6 +152,27 @@ const newOrEdit = (data, parent, $event) => {
   $event.stopPropagation()
 }
 
+const checkRefRelated = node => { // 判断上级是否是ref
+  let res = false
+  while (node?.level !== 0) { // 不是第一级,循环验证
+    if (node.data?.schema$ref) { // || node.data?.xxxOf
+      res = true
+      break
+    }
+    node = node.parent
+  }
+  return res
+}
+
+const checkAddProperty = node => {
+  const schema = node.data?.schema
+  return (schema?.type === 'object' || schema?.properties) && !checkRefRelated(node) // 当前以及上级都没有ref
+}
+
+const checkEditProperty = node => !checkRefRelated(node.parent) // 上级中没有ref
+
+const checkDeleteProperty = node => node.level > 1 && !checkRefRelated(node.parent)
+
 </script>
 
 <template>
@@ -181,6 +200,7 @@ const newOrEdit = (data, parent, $event) => {
           class="form-edit-width-100"
           style="position: relative;"
           @mouseenter="currentTreeData=data"
+          @mouseleave="currentTreeData=null"
         >
           <schema-tree-node
             class="form-edit-width-100"
@@ -188,11 +208,11 @@ const newOrEdit = (data, parent, $event) => {
             :show-merge-all-of="showMergeAllOf"
           />
           <span
-            v-if="showEditButtons(data, node)"
+            v-if="currentTreeData===data"
             style="position: absolute; top:calc(50% - 11px);right:50px"
           >
             <el-button
-              v-if="(data.schema?.type==='object'||data.schema?.properties)&&!data.schema?.schema$ref"
+              v-if="checkAddProperty(node)"
               v-common-tooltip="$t('common.label.add')"
               type="primary"
               size="small"
@@ -202,7 +222,7 @@ const newOrEdit = (data, parent, $event) => {
               <common-icon icon="Plus" />
             </el-button>
             <el-button
-              v-if="node.parent"
+              v-if="checkEditProperty(node)"
               v-common-tooltip="$t('common.label.edit')"
               type="primary"
               size="small"
@@ -212,7 +232,7 @@ const newOrEdit = (data, parent, $event) => {
               <common-icon icon="Edit" />
             </el-button>
             <el-button
-              v-if="node.parent&&node.level>1"
+              v-if="checkDeleteProperty(node)"
               v-common-tooltip="$t('common.label.delete')"
               type="danger"
               size="small"

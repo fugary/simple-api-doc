@@ -315,13 +315,16 @@ export const calcComponentOptions = (componentSchemas) => {
 }
 
 export const calcSchemaPath = (child, parent, index) => {
-  const xxxOf = parent?.xxxOf
-  child.path = xxxOf ? `${xxxOf}.${index}` : `properties.${child.name}`
+  const parentXxxOf = parent?.xxxOf
+  child.id = child.path = parentXxxOf ? `${parentXxxOf}.${index}` : `properties.${child.name}`
   if (parent?.path) {
     child.parentPath = parent?.path
-    child.path = `${parent?.path}.${child.path}`
+    child.id = child.path = `${parent?.path}.${child.path}`
   }
-  child.id = child.path
+  const xxxOf = hasXxxOf(child.schema)
+  xxxOf && (child.xxxOf = xxxOf)
+  const schema$ref = child.schema?.schema$ref
+  schema$ref && (child.schema$ref = schema$ref)
   return child
 }
 
