@@ -9,6 +9,7 @@ import {
   NONE,
   AUTH_TYPE,
   BEARER_KEY,
+  SCHEMA_SELECT_TYPE,
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
 import axios from 'axios'
@@ -539,6 +540,30 @@ export const removeSchemaDeprecated = schema => {
     })
   }
   return schema
+}
+
+export const fromSchemaToModel = (vModel, from, to) => {
+  let fromList = vModel.value?.schema?.[from]
+  if (!isArray(fromList)) {
+    fromList = [fromList || {}]
+  }
+  vModel.value[to || from] = fromList.map(schema => {
+    return {
+      dataType: schema?.$ref ? SCHEMA_SELECT_TYPE.REF : SCHEMA_SELECT_TYPE.BASIC,
+      type: schema?.$ref || 'object',
+      schema
+    }
+  })
+}
+
+export const fromModelToSchema = item => {
+  if (item.dataType === SCHEMA_SELECT_TYPE.REF) {
+    item.schema = { $ref: item.type } // ref替换掉
+  } else {
+    delete item.schema.$ref
+    item.schema.type = item.type
+  }
+  return item.schema
 }
 
 export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supportedAuthTypes) => {

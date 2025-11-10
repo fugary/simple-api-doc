@@ -292,7 +292,6 @@ export const SCHEMA_BASIC_TYPE_CONFIGS = [
       { name: 'required', type: 'switch' },
       { name: 'nullable', type: 'switch' },
       { name: 'deprecated', type: 'switch' },
-      { name: 'items', type: 'custom' },
       { name: 'minItems', type: 'input-number' },
       { name: 'maxItems', type: 'input-number' },
       { name: 'uniqueItems', type: 'switch' },

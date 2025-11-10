@@ -8,7 +8,7 @@ import {
   SCHEMA_XXX_OF_TYPES
 } from '@/consts/ApiConstants'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import { calcComponentOptions, hasXxxOf } from '@/services/api/ApiDocPreviewService'
+import { calcComponentOptions, fromModelToSchema, fromSchemaToModel, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
 import { cloneDeep } from 'lodash-es'
@@ -34,19 +34,16 @@ const initJsonSchema = () => {
   } else if ((xxxOf = hasXxxOf(vModel.value?.schema))) {
     vModel.value.dataType = SCHEMA_SELECT_TYPE.XXX_OF
     vModel.value.type = xxxOf
-    vModel.value[xxxOf] = vModel.value?.schema[xxxOf].map(xxxOfSchema => {
-      return {
-        dataType: xxxOfSchema?.$ref ? SCHEMA_SELECT_TYPE.REF : SCHEMA_SELECT_TYPE.BASIC,
-        type: xxxOfSchema?.$ref || 'object',
-        schema: xxxOfSchema
-      }
-    })
-  } else {
+    fromSchemaToModel(vModel, xxxOf)
+  } else { // 处理basic基本类型转换
     vModel.value.basicSchema = vModel.value.schema
     vModel.value.enumEnabled = !!vModel.value.schema?.enum?.length
     vModel.value.constEnabled = !!vModel.value.schema?.const
     if (vModel.value.schema?.example) {
       vModel.value.schema.examples = [vModel.value.schema?.example]
+    }
+    if (vModel.value.type === 'array') {
+      fromSchemaToModel(vModel, 'items', vModel.value.type)
     }
   }
 }
@@ -58,19 +55,14 @@ const processBeforeSave = () => {
     toClean.forEach(key => delete vModel.value.schema[key])
     if (vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC) {
       vModel.value.schema.type = type
+      if (type === 'array' && vModel.value[type].length) {
+        vModel.value.schema.items = fromModelToSchema(vModel.value[type][0])
+      }
     } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.REF) {
       vModel.value.schema.$ref = type
     } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
       console.log('============type', type, vModel.value[type])
-      vModel.value.schema[type] = vModel.value[type].map(item => {
-        if (item.dataType === SCHEMA_SELECT_TYPE.REF) {
-          item.schema = { $ref: item.type } // ref替换掉
-        } else {
-          delete item.schema.$ref
-          item.schema.type = item.type
-        }
-        return item.schema
-      })
+      vModel.value.schema[type] = vModel.value[type].map(fromModelToSchema)
     }
   }
 }
@@ -134,6 +126,9 @@ const formOptions = computed(() => {
     change (type) {
       if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
         vModel.value[type] = vModel.value[type] || []
+      }
+      if (vModel.value.type === 'array') {
+        fromSchemaToModel(vModel, 'items', vModel.value.type)
       }
     }
   }]
@@ -286,6 +281,13 @@ const xxxOfOptions = computed(() => {
   }]
 })
 
+const checkShowXxxOfForm = () => {
+  if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
+    return !!vModel.value.type
+  }
+  return vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC && vModel.value.type === 'array'
+}
+
 const addNewXxxOfItem = () => {
   vModel.value[vModel.value.type] = vModel.value[vModel.value.type] || []
   return vModel.value[vModel.value.type].push({ dataType: SCHEMA_SELECT_TYPE.REF, schema: {} })
@@ -313,7 +315,7 @@ defineExpose({
         :options="formOptions"
         :model="vModel"
       >
-        <template v-if="vModel.dataType==='xxxOf' && vModel.type">
+        <template v-if="checkShowXxxOfForm()">
           <div
             v-for="(xxxOf, index) in vModel[vModel.type]"
             :key="index"
@@ -328,6 +330,7 @@ defineExpose({
             />
             <el-form-item label-width="1px">
               <el-button
+                v-if="vModel.type!=='array'"
                 type="danger"
                 size="small"
                 @click.prevent="vModel[vModel.type].splice(index, 1)"
@@ -336,7 +339,7 @@ defineExpose({
               </el-button>
             </el-form-item>
           </div>
-          <el-form-item>
+          <el-form-item v-if="vModel.type!=='array'">
             <el-button
               type="primary"
               size="small"
