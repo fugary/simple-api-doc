@@ -5,7 +5,6 @@ import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { calcComponentOptions, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
-import { cloneDeep } from 'lodash-es'
 
 const vModel = ref()
 const currentInfoDetail = ref()
@@ -30,9 +29,9 @@ const initJsonSchema = () => {
     vModel.value.type = xxxOf
     vModel.value[xxxOf] = vModel.value?.schema[xxxOf].map(xxxOfSchema => {
       return {
-        dataType: xxxOfSchema?.$ref ? 'ref' : 'basic',
+        dataType: xxxOfSchema?.$ref ? SCHEMA_SELECT_TYPE.REF : SCHEMA_SELECT_TYPE.BASIC,
         type: xxxOfSchema?.$ref || 'object',
-        schema: xxxOfSchema?.schema
+        schema: xxxOfSchema
       }
     })
   }
@@ -49,13 +48,14 @@ const processBeforeSave = () => {
       vModel.value.schema.$ref = type
     } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
       console.log('============type', type, vModel.value[type])
-      vModel.value.schema[type] = cloneDeep(vModel.value[type]).map(item => {
+      vModel.value.schema[type] = vModel.value[type].map(item => {
         if (item.dataType === SCHEMA_SELECT_TYPE.REF) {
-          item.$ref = item.type
+          item.schema = { $ref: item.type } // ref替换掉
+        } else {
+          delete item.schema.$ref
+          item.schema.type = item.type
         }
-        delete item.dataType
-        delete item.type
-        return item
+        return item.schema
       })
     }
   }
@@ -119,7 +119,7 @@ const formOptions = computed(() => {
     },
     change (type) {
       if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
-        vModel.value[type] = []
+        vModel.value[type] = vModel.value[type] || []
       }
     }
   }]
@@ -190,6 +190,11 @@ const xxxOfOptions = computed(() => {
   }]
 })
 
+const addNewXxxOfItem = () => {
+  vModel.value[vModel.value.type] = vModel.value[vModel.value.type] || []
+  return vModel.value[vModel.value.type].push({ dataType: SCHEMA_SELECT_TYPE.REF, schema: {} })
+}
+
 defineExpose({
   toEditJsonSchema
 })
@@ -239,7 +244,7 @@ defineExpose({
             <el-button
               type="primary"
               size="small"
-              @click.prevent="vModel[vModel.type].push({dataType:'ref'})"
+              @click="addNewXxxOfItem"
             >
               {{ $t('common.label.add') }}
             </el-button>
