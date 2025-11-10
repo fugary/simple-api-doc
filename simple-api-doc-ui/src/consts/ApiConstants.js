@@ -169,7 +169,149 @@ export const ALL_STATUS_CODES = [200, 201, 202, 301, 302, 307, 400, 401, 404, 40
 
 export const ALL_CONTENT_TYPES = ['application/json', 'application/xml', 'text/html', 'text/css', 'application/javascript', 'application/x-www-form-urlencoded']
 
-export const SCHEMA_BASE_TYPES = ['string', 'integer', 'boolean', 'object', 'number', 'array', 'any']
+export const SCHEMA_BASIC_TYPE_CONFIGS = [
+  {
+    value: 'string',
+    supportedPropConfigs: [
+      { name: 'required', type: 'switch' },
+      { name: 'nullable', type: 'switch' },
+      { name: 'deprecated', type: 'switch' },
+      { name: 'enum', type: 'input-tag' },
+      { name: 'const', type: 'input' },
+      {
+        name: 'format',
+        type: 'select',
+        options: [
+          'date',
+          'date-time',
+          'password',
+          'byte',
+          'binary',
+          'email',
+          'uuid',
+          'uri',
+          'hostname',
+          'ipv4',
+          'ipv6'
+        ]
+      },
+      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input' },
+      { name: 'examples', type: 'input-tag' },
+      { name: 'pattern', type: 'input' },
+      { name: 'minLength', type: 'input-number' },
+      { name: 'maxLength', type: 'input-number' }
+    ]
+  },
+  {
+    value: 'integer',
+    supportedPropConfigs: [
+      { name: 'required', type: 'switch' },
+      { name: 'nullable', type: 'switch' },
+      { name: 'deprecated', type: 'switch' },
+      { name: 'enum', type: 'input-tag' },
+      { name: 'const', type: 'input-number' },
+      {
+        name: 'format',
+        type: 'select',
+        options: [
+          'int32',
+          'int64'
+        ]
+      },
+      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input-number' },
+      { name: 'examples', type: 'input-tag' },
+      { name: 'minimum', type: 'input-number' },
+      { name: 'maximum', type: 'input-number' },
+      { name: 'exclusiveMinimum', type: 'switch' },
+      { name: 'exclusiveMaximum', type: 'switch' },
+      { name: 'multipleOf', type: 'input-number' }
+    ]
+  },
+  {
+    value: 'number',
+    supportedPropConfigs: [
+      { name: 'required', type: 'switch' },
+      { name: 'nullable', type: 'switch' },
+      { name: 'deprecated', type: 'switch' },
+      { name: 'enum', type: 'input-tag' },
+      { name: 'const', type: 'input-number' },
+      {
+        name: 'format',
+        type: 'select',
+        options: [
+          'float',
+          'double'
+        ]
+      },
+      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input-number' },
+      { name: 'examples', type: 'input-tag' },
+      { name: 'minimum', type: 'input-number' },
+      { name: 'maximum', type: 'input-number' },
+      { name: 'exclusiveMinimum', type: 'switch' },
+      { name: 'exclusiveMaximum', type: 'switch' },
+      { name: 'multipleOf', type: 'input-number' }
+    ]
+  },
+  {
+    value: 'boolean',
+    supportedPropConfigs: [
+      { name: 'required', type: 'switch' },
+      { name: 'nullable', type: 'switch' },
+      { name: 'deprecated', type: 'switch' },
+      { name: 'enum', type: 'input-tag' }, // true/false
+      {
+        name: 'const',
+        type: 'select',
+        options: [true, false]
+      },
+      {
+        name: 'default',
+        labelKey: 'api.label.defaultValue',
+        type: 'select',
+        options: [true, false]
+      },
+      { name: 'examples', type: 'input-tag' }
+    ]
+  },
+  {
+    value: 'object',
+    supportedPropConfigs: [
+      { name: 'required', type: 'input-tag' }, // object: required 是属性名数组
+      { name: 'nullable', type: 'switch' },
+      { name: 'deprecated', type: 'switch' },
+      { name: 'properties', type: 'custom' },
+      { name: 'additionalProperties', type: 'switch' },
+      { name: 'minProperties', type: 'input-number' },
+      { name: 'maxProperties', type: 'input-number' },
+      { name: 'examples', type: 'input-tag' }
+    ]
+  },
+  {
+    value: 'array',
+    supportedPropConfigs: [
+      { name: 'required', type: 'switch' },
+      { name: 'nullable', type: 'switch' },
+      { name: 'deprecated', type: 'switch' },
+      { name: 'items', type: 'custom' },
+      { name: 'minItems', type: 'input-number' },
+      { name: 'maxItems', type: 'input-number' },
+      { name: 'uniqueItems', type: 'switch' },
+      { name: 'examples', type: 'input-tag' }
+    ]
+  },
+  {
+    value: 'any',
+    supportedPropConfigs: [
+      { name: 'required', type: 'switch' },
+      { name: 'nullable', type: 'switch' },
+      { name: 'deprecated', type: 'switch' },
+      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input' },
+      { name: 'examples', type: 'input-tag' }
+    ]
+  }
+]
+
+export const SCHEMA_BASE_TYPES = SCHEMA_BASIC_TYPE_CONFIGS.map(type => type.value)
 
 export const SCHEMA_XXX_OF_TYPES = ['allOf', 'oneOf', 'anyOf']
 

@@ -1,16 +1,23 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { SCHEMA_BASE_TYPES, SCHEMA_SELECT_TYPE, SCHEMA_SELECT_TYPES, SCHEMA_XXX_OF_TYPES } from '@/consts/ApiConstants'
+import {
+  SCHEMA_BASE_TYPES,
+  SCHEMA_BASIC_TYPE_CONFIGS,
+  SCHEMA_SELECT_TYPE,
+  SCHEMA_SELECT_TYPES,
+  SCHEMA_XXX_OF_TYPES
+} from '@/consts/ApiConstants'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { calcComponentOptions, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
+import { cloneDeep } from 'lodash-es'
 
 const vModel = ref()
 const currentInfoDetail = ref()
 const showWindow = ref(false)
 const toEditJsonSchema = (data, currentInfo) => {
-  vModel.value = data
+  vModel.value = cloneDeep(data)
   currentInfoDetail.value = currentInfo
   showWindow.value = true
   initJsonSchema()
@@ -34,6 +41,13 @@ const initJsonSchema = () => {
         schema: xxxOfSchema
       }
     })
+  } else {
+    vModel.value.basicSchema = vModel.value.schema
+    vModel.value.enumEnabled = !!vModel.value.schema?.enum?.length
+    vModel.value.constEnabled = !!vModel.value.schema?.const
+    if (vModel.value.schema?.example) {
+      vModel.value.schema.examples = [vModel.value.schema?.example]
+    }
   }
 }
 
@@ -125,14 +139,96 @@ const formOptions = computed(() => {
   }]
 })
 
+const basicConfig = computed(() => {
+  if (vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC) {
+    return SCHEMA_BASIC_TYPE_CONFIGS.find(config => config.value === vModel.value.type)
+  }
+  return undefined
+})
+
+const getPropConfig = (config, key) => {
+  return config?.supportedPropConfigs?.find(propConfig => propConfig.name === key)
+}
+
 const additionalOptions = computed(() => {
-  return [{
+  const basicEnabled = vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC
+  const config = basicConfig.value
+  console.log('=========================config', config)
+  const basicOpts = basicEnabled
+    ? config?.supportedPropConfigs?.filter(propConfig => propConfig.type !== 'switch')
+      .map(propConfig => {
+        const customOption = {}
+        if (['enum', 'const'].includes(propConfig.name)) {
+          customOption.enabled = !!vModel.value[`${propConfig.name}Enabled`]
+        }
+        return {
+          type: propConfig.type,
+          labelKey: propConfig.labelKey || `api.label.${propConfig.name}`,
+          prop: `basicSchema.${propConfig.name}`,
+          children: propConfig.options ? getSingleSelectOptions(...propConfig.options) : undefined,
+          attrs: {
+            filterable: true
+          },
+          ...customOption
+        }
+      }) || []
+    : []
+  return [...basicOpts, {
     labelKey: 'common.label.description',
     prop: 'schema.description',
     attrs: {
       type: 'textarea'
     }
   }]
+})
+
+const basicOptions = computed(() => {
+  const basicEnabled = vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC
+  if (basicEnabled) {
+    return [{
+      labelKey: 'api.label.required',
+      prop: 'required',
+      type: 'switch',
+      enabled: !!getPropConfig(basicConfig.value, 'required')
+    }, {
+      labelKey: 'api.label.nullable',
+      prop: 'basicSchema.nullable',
+      labelWidth: '80px',
+      type: 'switch',
+      enabled: !!getPropConfig(basicConfig.value, 'nullable')
+    }, {
+      labelKey: 'api.label.deprecated',
+      prop: 'basicSchema.deprecated',
+      labelWidth: '80px',
+      type: 'switch',
+      enabled: !!getPropConfig(basicConfig.value, 'deprecated')
+    }, {
+      labelKey: 'api.label.enum',
+      prop: 'enumEnabled',
+      labelWidth: '80px',
+      type: 'switch',
+      change (val) {
+        if (val && vModel.value.constEnabled) {
+          vModel.value.constEnabled = false
+          vModel.value.schema.const = null
+        }
+      },
+      enabled: !!getPropConfig(basicConfig.value, 'enum')
+    }, {
+      labelKey: 'api.label.const',
+      prop: 'constEnabled',
+      labelWidth: '80px',
+      type: 'switch',
+      change (val) {
+        if (val && vModel.value.enumEnabled) {
+          vModel.value.enumEnabled = false
+          vModel.value.schema.enum = null
+        }
+      },
+      enabled: !!getPropConfig(basicConfig.value, 'const')
+    }]
+  }
+  return []
 })
 
 const emit = defineEmits(['saveJsonSchema', 'editComponentSchemas'])
@@ -180,7 +276,7 @@ const xxxOfOptions = computed(() => {
       const typeOptions = getTypeOptions(model.dataType)
       return {
         attrs: {
-          style: { width: '340px' },
+          style: { width: '440px' },
           clearable: false,
           filterable: true,
           options: typeOptions
@@ -246,10 +342,26 @@ defineExpose({
               size="small"
               @click="addNewXxxOfItem"
             >
+              <common-icon
+                icon="Plus"
+                class="margin-right1"
+              />
               {{ $t('common.label.add') }}
             </el-button>
           </el-form-item>
         </template>
+        <div
+          v-if="basicOptions.length"
+          class="common-subform el-form--inline"
+        >
+          <common-form-control
+            v-for="(option, optIdx) in basicOptions"
+            :key="optIdx"
+            :model="vModel"
+            :option="option"
+            :prop="option.prop"
+          />
+        </div>
         <common-form-control
           v-for="(option) in additionalOptions"
           :key="`${option.prop}`"
