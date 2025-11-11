@@ -8,10 +8,16 @@ import {
   SCHEMA_XXX_OF_TYPES
 } from '@/consts/ApiConstants'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import { calcComponentOptions, fromModelToSchema, fromSchemaToModel, hasXxxOf } from '@/services/api/ApiDocPreviewService'
+import {
+  $ref2Schema,
+  calcComponentOptions,
+  fromModelToSchema,
+  fromSchemaToModel,
+  hasXxxOf
+} from '@/services/api/ApiDocPreviewService'
 import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep, isArray } from 'lodash-es'
 import { ElText } from 'element-plus'
 
 const vModel = ref()
@@ -167,7 +173,14 @@ const additionalOptions = computed(() => {
             const propKeys = Object.keys(properties || {})
             return <ElText lineClamp={2} type="info">
               {propKeys.map((prop) => {
-                return <><ElText type="primary">{prop}:</ElText> {properties[prop]?.type}, </>
+                const schema = properties[prop]
+                let type = schema?.type || 'object'
+                if (isArray(type)) {
+                  type = `[${type.join(', ')}]`
+                }
+                let actType = schema?.format || schema?.$ref || schema?.items?.$ref || ''
+                actType = $ref2Schema(actType)
+                return <><ElText type="primary">{prop}:</ElText> {type}{actType ? `<${actType}>` : ''}, </>
               })}
             </ElText>
           }
