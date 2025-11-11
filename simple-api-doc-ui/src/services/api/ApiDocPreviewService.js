@@ -585,7 +585,7 @@ export const fromSchemaToModel = (vModel, from, to) => {
   vModel.value[to || from] = fromList.map(schema => {
     return {
       dataType: schema?.$ref ? SCHEMA_SELECT_TYPE.REF : SCHEMA_SELECT_TYPE.BASIC,
-      type: schema?.$ref || schema?.type || 'object',
+      type: schema?.$ref || schema?.type || '',
       schema
     }
   })

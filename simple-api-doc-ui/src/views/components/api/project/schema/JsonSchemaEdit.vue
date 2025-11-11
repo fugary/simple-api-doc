@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, ref } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import {
   SCHEMA_BASE_TYPES,
   SCHEMA_BASIC_TYPE_CONFIGS,
@@ -29,7 +29,7 @@ const toEditJsonSchema = (data, currentInfo) => {
   showWindow.value = true
   initJsonSchema()
 }
-
+const dataTypeCache = reactive({})
 const initJsonSchema = () => {
   console.log('================model', vModel.value, currentInfoDetail.value)
   vModel.value.dataType = SCHEMA_SELECT_TYPE.BASIC
@@ -57,6 +57,7 @@ const initJsonSchema = () => {
       vModel.value.additionalPropertiesEnabled = true
     }
   }
+  dataTypeCache[vModel.value.dataType] = vModel.value.type
 }
 
 const processBeforeSave = () => {
@@ -127,8 +128,8 @@ const formOptions = computed(() => {
         label: $i18nBundle(item.labelKey)
       }))
     },
-    change () {
-      vModel.value.type = ''
+    change (dataType) {
+      vModel.value.type = dataTypeCache[dataType]
     }
   }, {
     labelKey: SCHEMA_SELECT_TYPES.find(type => type.value === vModel.value.dataType)?.labelKey,
@@ -147,6 +148,7 @@ const formOptions = computed(() => {
       if (vModel.value.type === 'array') {
         fromSchemaToModel(vModel, 'items', vModel.value.type)
       }
+      dataTypeCache[vModel.value.dataType] = type
     }
   }]
 })
@@ -313,11 +315,12 @@ const xxxOfOptions = computed(() => {
         label: $i18nBundle(item.labelKey)
       }))
     },
-    dynamicOption (model) {
+    dynamicOption (model, option, addInfo) {
       return {
         change (value) {
-          console.log('==============change', value, model)
-          model.type = ''
+          console.log('==============changeDataType', value, model, addInfo)
+          const key = `${vModel.value.dataType}-${vModel.value.type}-${model.dataType}-${addInfo.index}`
+          model.type = dataTypeCache[key]
         }
       }
     }
@@ -328,9 +331,14 @@ const xxxOfOptions = computed(() => {
     prop: 'type',
     type: 'select-v2',
     required: true,
-    dynamicOption (model) {
+    dynamicOption (model, option, addInfo) {
       const typeOptions = getTypeOptions(model.dataType)
       return {
+        change (value) {
+          console.log('==============changeType', value, model, addInfo)
+          const key = `${vModel.value.dataType}-${vModel.value.type}-${model.dataType}-${addInfo.index}`
+          dataTypeCache[key] = value
+        },
         attrs: {
           style: { width: '440px' },
           clearable: false,
@@ -390,6 +398,7 @@ defineExpose({
               :key="`${index}-${optIdx}`"
               :model="xxxOf"
               :option="option"
+              :add-info="{index}"
               :prop="`${vModel.type}.${index}.${option.prop}`"
             />
             <el-form-item label-width="1px">
