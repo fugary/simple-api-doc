@@ -70,7 +70,7 @@ const processBeforeSave = () => {
         vModel.value.schema.items = fromModelToSchema(vModel.value[type][0])
       }
       if (type === 'object') {
-        vModel.value.schema.additionalProperties = null
+        delete vModel.value.schema.additionalProperties
         if (additionalPropertiesEnabled.value && vModel.value[type].length) {
           vModel.value.schema.additionalProperties = fromModelToSchema(vModel.value[type][0])
         }
@@ -270,7 +270,12 @@ const basicOptions = computed(() => {
       prop: 'additionalPropertiesEnabled',
       labelWidth: '80px',
       type: 'switch',
-      enabled: !!getPropConfig(basicConfig.value, 'additionalProperties')
+      enabled: !!getPropConfig(basicConfig.value, 'additionalProperties'),
+      change (value) {
+        if (value) {
+          fromSchemaToModel(vModel, 'additionalProperties', vModel.value.type)
+        }
+      }
     }]
   }
   return []

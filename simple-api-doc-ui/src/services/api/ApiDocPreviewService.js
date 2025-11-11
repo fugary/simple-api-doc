@@ -320,7 +320,8 @@ export const calcSchemaPath = (child, parent, index) => {
     return child
   }
   const parentXxxOf = parent?.xxxOf
-  child.id = child.path = parentXxxOf ? `${parentXxxOf}.${index}` : `properties.${child.name}`
+  const childName = child.isAdditional ? 'additionalProperties' : `properties.${child.name}`
+  child.id = child.path = parentXxxOf ? `${parentXxxOf}.${index}` : childName
   if (parent?.path) {
     child.parentPath = parent?.path
     child.id = child.path = `${parent?.path}.${child.path}`
