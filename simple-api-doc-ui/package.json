@@ -1,6 +1,6 @@
 {
   "name": "simple-api-doc-ui",
-  "version": "2.3.3",
+  "version": "2.4.0",
   "private": true,
   "scripts": {
     "dev": "vite --host",
