@@ -456,6 +456,7 @@ export const processProperties = schema => {
       value.name = value.items.name
       if (value.items?.$ref) {
         value.items.name = $ref2Schema(value.items.$ref)
+        value.schema$ref = value.items?.$ref
       } else if (value.items.type !== 'object') {
         value.name = value.items.type
       }

@@ -129,8 +129,8 @@ const typeStr = computed(() => {
       class="margin-right2"
     >
       <strong>{{ typeStr }}&nbsp;</strong>
-      <span v-if="data.schema?.format||data.schema?.name">
-        &lt;{{ data.schema?.format || data.schema?.name }}&gt;
+      <span v-if="data.schema?.format||data.schema?.name||data.schema?.items?.name">
+        &lt;{{ data.schema?.format || data.schema?.name || data.schema?.items?.name }}&gt;
       </span>
     </el-text>
     <el-text
