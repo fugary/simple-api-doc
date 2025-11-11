@@ -52,6 +52,10 @@ const initJsonSchema = () => {
     if (vModel.value.type === 'array') {
       fromSchemaToModel(vModel, 'items', vModel.value.type)
     }
+    if (vModel.value.type === 'object' && vModel.value.schema?.additionalProperties) {
+      fromSchemaToModel(vModel, 'additionalProperties', vModel.value.type)
+      vModel.value.additionalPropertiesEnabled = true
+    }
   }
 }
 
@@ -64,6 +68,12 @@ const processBeforeSave = () => {
       vModel.value.schema.type = type
       if (type === 'array' && vModel.value[type].length) {
         vModel.value.schema.items = fromModelToSchema(vModel.value[type][0])
+      }
+      if (type === 'object') {
+        vModel.value.schema.additionalProperties = null
+        if (additionalPropertiesEnabled.value && vModel.value[type].length) {
+          vModel.value.schema.additionalProperties = fromModelToSchema(vModel.value[type][0])
+        }
       }
     } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.REF) {
       vModel.value.schema.$ref = type
@@ -255,6 +265,12 @@ const basicOptions = computed(() => {
         }
       },
       enabled: !!getPropConfig(basicConfig.value, 'const')
+    }, {
+      labelKey: 'api.label.additionalProperties',
+      prop: 'additionalPropertiesEnabled',
+      labelWidth: '80px',
+      type: 'switch',
+      enabled: !!getPropConfig(basicConfig.value, 'additionalProperties')
     }]
   }
   return []
@@ -273,9 +289,15 @@ const saveJsonSchema = ({ form }) => {
   return false
 }
 
+const additionalPropertiesEnabled = computed(() => vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC &&
+    vModel.value.type === 'object' && vModel.value.additionalPropertiesEnabled)
+
 const xxxOfOptions = computed(() => {
+  const labelKey = additionalPropertiesEnabled.value
+    ? $i18nBundle('api.label.additionalProperties')
+    : $i18nConcat(vModel.value.type, $i18nBundle('api.label.type'))
   return [{
-    labelKey: $i18nConcat(vModel.value.type, $i18nBundle('api.label.type')),
+    labelKey,
     type: 'segmented',
     prop: 'dataType',
     attrs: {
@@ -297,7 +319,7 @@ const xxxOfOptions = computed(() => {
   }, {
     labelWidth: '1px',
     showLabel: false,
-    labelKey: $i18nConcat(vModel.value.type, $i18nBundle('api.label.type')),
+    labelKey,
     prop: 'type',
     type: 'select-v2',
     required: true,
@@ -315,12 +337,15 @@ const xxxOfOptions = computed(() => {
   }]
 })
 
-const checkShowXxxOfForm = () => {
+const checkShowXxxOfForm = computed(() => {
   if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
     return !!vModel.value.type
   }
-  return vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC && vModel.value.type === 'array'
-}
+  if (vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC) {
+    return vModel.value.type === 'array' || (vModel.value.type === 'object' && vModel.value.additionalPropertiesEnabled)
+  }
+  return false
+})
 
 const addNewXxxOfItem = () => {
   vModel.value[vModel.value.type] = vModel.value[vModel.value.type] || []
@@ -349,7 +374,7 @@ defineExpose({
         :options="formOptions"
         :model="vModel"
       >
-        <template v-if="checkShowXxxOfForm()">
+        <template v-if="checkShowXxxOfForm">
           <div
             v-for="(xxxOf, index) in vModel[vModel.type]"
             :key="index"
@@ -364,7 +389,7 @@ defineExpose({
             />
             <el-form-item label-width="1px">
               <el-button
-                v-if="vModel.type!=='array'"
+                v-if="vModel.dataType===SCHEMA_SELECT_TYPE.XXX_OF"
                 type="danger"
                 size="small"
                 @click.prevent="vModel[vModel.type].splice(index, 1)"
@@ -373,7 +398,7 @@ defineExpose({
               </el-button>
             </el-form-item>
           </div>
-          <el-form-item v-if="vModel.type!=='array'">
+          <el-form-item v-if="vModel.dataType===SCHEMA_SELECT_TYPE.XXX_OF">
             <el-button
               type="primary"
               size="small"

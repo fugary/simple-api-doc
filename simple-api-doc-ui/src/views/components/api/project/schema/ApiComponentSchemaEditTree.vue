@@ -160,12 +160,14 @@ const checkRefRelated = node => { // 判断上级是否是ref
 
 const checkNotXxxOf = node => !node?.data?.xxxOf
 
+const checkNotAdditional = node => !node?.data?.isAdditional
+
 const checkAddProperty = node => {
   const schema = node.data?.schema
   return (schema?.type === 'object' || schema?.properties) && !checkRefRelated(node) && checkNotXxxOf(node)// 当前以及上级都没有ref
 }
 
-const checkEditProperty = node => !checkRefRelated(node.parent) && checkNotXxxOf(node.parent) // 上级中没有ref
+const checkEditProperty = node => !checkRefRelated(node.parent) && checkNotXxxOf(node.parent) && checkNotAdditional(node) // 上级中没有ref
 
 const checkDeleteProperty = node => node.level > 1 && !checkRefRelated(node.parent)
 
