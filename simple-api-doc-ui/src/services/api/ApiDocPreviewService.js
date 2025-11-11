@@ -1,5 +1,5 @@
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
-import { cloneDeep, isArray, isObject, isString, lowerCase } from 'lodash-es'
+import { cloneDeep, get, isArray, isObject, isString, lowerCase, pull, set } from 'lodash-es'
 import { hasLoading } from '@/vendors/axios'
 import {
   FORM_DATA,
@@ -330,6 +330,39 @@ export const calcSchemaPath = (child, parent, index) => {
   const schema$ref = child.schema?.schema$ref
   schema$ref && (child.schema$ref = schema$ref)
   return child
+}
+
+export const processSchemaProperties = (data, newData, schemaModel) => {
+  if (newData.path) {
+    const pathSplits = newData.path.split(/\./)
+    const parentPropPath = pathSplits.slice(0, pathSplits.length - 1).join('.')
+    const properties = get(schemaModel.value, parentPropPath)
+    const newProperties = Object.entries(properties || {}).reduce((res, [key, value]) => {
+      if (data.path === parentPropPath + '.' + key) { // 修改的数据替换，保持原始位置
+        key = newData.name
+        value = newData.schema
+      }
+      res[key] = value
+      return res
+    }, {})
+    console.log('==============parentPropPath', parentPropPath, properties, newProperties)
+    set(schemaModel.value, parentPropPath, newProperties)
+  }
+}
+
+export const processSchemaRequired = (data, newData, schemaModel) => {
+  if (newData.path) {
+    const pathSplits = newData.path.split(/\./)
+    const parentPath = pathSplits.length > 2 ? pathSplits.slice(0, pathSplits.length - 2).join('.') : ''
+    const parent = parentPath ? get(schemaModel.value, parentPath) : schemaModel.value
+    parent.required = parent.required || []
+    pull(parent.required, data.name)
+    if (newData.required && !parent.required.includes(newData.name)) {
+      parent.required.push(newData.name)
+    } else if (!newData.required && parent.required.includes(newData.name)) {
+      pull(parent.required, newData.name)
+    }
+  }
 }
 
 /**

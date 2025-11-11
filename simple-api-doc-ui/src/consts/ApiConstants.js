@@ -178,6 +178,7 @@ export const SCHEMA_BASIC_TYPE_CONFIGS = [
       { name: 'deprecated', type: 'switch' },
       { name: 'enum', type: 'input-tag' },
       { name: 'const', type: 'input' },
+      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input' },
       {
         name: 'format',
         type: 'select',
@@ -193,9 +194,9 @@ export const SCHEMA_BASIC_TYPE_CONFIGS = [
           'hostname',
           'ipv4',
           'ipv6'
-        ]
+        ],
+        startMore: true
       },
-      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input' },
       { name: 'examples', type: 'input-tag' },
       { name: 'pattern', type: 'input' },
       { name: 'minLength', type: 'input-number' },
@@ -210,15 +211,16 @@ export const SCHEMA_BASIC_TYPE_CONFIGS = [
       { name: 'deprecated', type: 'switch' },
       { name: 'enum', type: 'input-tag' },
       { name: 'const', type: 'input-number' },
+      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input-number' },
       {
         name: 'format',
         type: 'select',
         options: [
           'int32',
           'int64'
-        ]
+        ],
+        startMore: true
       },
-      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input-number' },
       { name: 'examples', type: 'input-tag' },
       { name: 'minimum', type: 'input-number' },
       { name: 'maximum', type: 'input-number' },
@@ -235,15 +237,16 @@ export const SCHEMA_BASIC_TYPE_CONFIGS = [
       { name: 'deprecated', type: 'switch' },
       { name: 'enum', type: 'input-tag' },
       { name: 'const', type: 'input-number' },
+      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input-number' },
       {
         name: 'format',
         type: 'select',
         options: [
           'float',
           'double'
-        ]
+        ],
+        startMore: true
       },
-      { name: 'default', labelKey: 'api.label.defaultValue', type: 'input-number' },
       { name: 'examples', type: 'input-tag' },
       { name: 'minimum', type: 'input-number' },
       { name: 'maximum', type: 'input-number' },
@@ -276,12 +279,12 @@ export const SCHEMA_BASIC_TYPE_CONFIGS = [
   {
     value: 'object',
     supportedPropConfigs: [
-      { name: 'required', type: 'input-tag' }, // object: required 是属性名数组
       { name: 'nullable', type: 'switch' },
       { name: 'deprecated', type: 'switch' },
-      { name: 'properties', type: 'custom' },
+      { name: 'required', type: 'input-tag', labelKey: 'api.label.requiredProperties' }, // object: required 是属性名数组
+      { name: 'properties', type: 'common-form-label' },
       { name: 'additionalProperties', type: 'switch' },
-      { name: 'minProperties', type: 'input-number' },
+      { name: 'minProperties', type: 'input-number', startMore: true },
       { name: 'maxProperties', type: 'input-number' },
       { name: 'examples', type: 'input-tag' }
     ]
@@ -292,7 +295,7 @@ export const SCHEMA_BASIC_TYPE_CONFIGS = [
       { name: 'required', type: 'switch' },
       { name: 'nullable', type: 'switch' },
       { name: 'deprecated', type: 'switch' },
-      { name: 'minItems', type: 'input-number' },
+      { name: 'minItems', type: 'input-number', startMore: true },
       { name: 'maxItems', type: 'input-number' },
       { name: 'uniqueItems', type: 'switch' },
       { name: 'examples', type: 'input-tag' }

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="jsx">
 import { computed, ref } from 'vue'
 import {
   SCHEMA_BASE_TYPES,
@@ -12,6 +12,7 @@ import { calcComponentOptions, fromModelToSchema, fromSchemaToModel, hasXxxOf } 
 import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
 import { cloneDeep } from 'lodash-es'
+import { ElText } from 'element-plus'
 
 const vModel = ref()
 const currentInfoDetail = ref()
@@ -145,23 +146,43 @@ const getPropConfig = (config, key) => {
   return config?.supportedPropConfigs?.find(propConfig => propConfig.name === key)
 }
 
+const showMoreOptionsBtn = computed(() => {
+  return !!basicConfig.value?.supportedPropConfigs?.find(propConfig => propConfig.startMore)
+})
+const showMoreOptions = ref(false)
 const additionalOptions = computed(() => {
   const basicEnabled = vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC
   const config = basicConfig.value
   console.log('=========================config', config)
+  let isMoreIndex = 100
   const basicOpts = basicEnabled
     ? config?.supportedPropConfigs?.filter(propConfig => propConfig.type !== 'switch')
-      .map(propConfig => {
+      .map((propConfig, index) => {
         const customOption = {}
         if (['enum', 'const'].includes(propConfig.name)) {
           customOption.enabled = !!vModel.value[`${propConfig.name}Enabled`]
+        }
+        if (propConfig.name === 'properties') {
+          customOption.formatter = function (properties) {
+            const propKeys = Object.keys(properties || {})
+            return <ElText lineClamp={2} type="info">
+              {propKeys.map((prop) => {
+                return <><ElText type="primary">{prop}:</ElText> {properties[prop]?.type}, </>
+              })}
+            </ElText>
+          }
+        }
+        if (propConfig.startMore) {
+          isMoreIndex = index
         }
         return {
           type: propConfig.type,
           labelKey: propConfig.labelKey || `api.label.${propConfig.name}`,
           prop: `basicSchema.${propConfig.name}`,
           children: propConfig.options ? getSingleSelectOptions(...propConfig.options) : undefined,
+          enabled: index >= isMoreIndex ? showMoreOptions.value : true,
           attrs: {
+            allowCreate: propConfig.name === 'format',
             filterable: true
           },
           ...customOption
@@ -372,6 +393,19 @@ defineExpose({
           :option="option"
           :prop="option.prop"
         />
+        <el-form-item v-if="showMoreOptionsBtn">
+          <el-button
+            :type="showMoreOptions?'info':'primary'"
+            size="small"
+            @click="showMoreOptions=!showMoreOptions"
+          >
+            <common-icon
+              :icon="showMoreOptions?'ArrowUpBold':'ArrowDownBold'"
+              class="margin-right1"
+            />
+            {{ $t(showMoreOptions?'api.label.hideMoreOptions':'api.label.showMoreOptions') }}
+          </el-button>
+        </el-form-item>
       </common-form>
       <!--      <pre>{{ vModel }}</pre>-->
     </el-container>

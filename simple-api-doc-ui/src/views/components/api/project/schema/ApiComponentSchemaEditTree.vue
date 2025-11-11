@@ -5,6 +5,8 @@ import {
   processSchemaChildren,
   calcComponentMap,
   hasXxxOf,
+  processSchemaProperties,
+  processSchemaRequired,
   calcSchemaPath
 } from '@/services/api/ApiDocPreviewService'
 import SchemaTreeNode from '@/views/components/api/doc/comp/SchemaTreeNode.vue'
@@ -129,25 +131,13 @@ const newOrEdit = (data, parent, $event) => {
       const newData = calcSchemaPath(cloneDeep(toSaveData), parent, 0)
       console.log('==============toSaveData', toSaveData, newData)
       if (data.path && newData.path !== data.path) { // 改了属性名称，需要删除原数据
-        const parentPropPath = data.path.substring(0, data.path.lastIndexOf('.'))
-        const properties = get(schemaModel.value, parentPropPath)
-        const newProperties = Object.entries(properties || {}).reduce((res, [key, value]) => {
-          if (data.path === parentPropPath + '.' + key) {
-            res[newData.name] = newData.schema
-          } else {
-            res[key] = value
-          }
-          return res
-        }, {})
-        console.log('==============parentPropPath', parentPropPath, properties, newProperties)
-        set(schemaModel.value, parentPropPath, newProperties)
+        processSchemaProperties(data, newData, schemaModel)
+      } else if (newData.path) {
+        set(schemaModel.value, newData.path, newData.schema)
       } else {
-        if (newData.path) {
-          set(schemaModel.value, newData.path, newData.schema)
-        } else {
-          schemaModel.value = newData.schema
-        }
+        schemaModel.value = newData.schema
       }
+      processSchemaRequired(data, newData, schemaModel)
     },
     onEditComponentSchemas (componentSchemas) {
       editComponentSchemas.value = componentSchemas
