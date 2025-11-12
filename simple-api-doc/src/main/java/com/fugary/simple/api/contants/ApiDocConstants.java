@@ -83,6 +83,8 @@ public class ApiDocConstants {
 
     public static final String SCHEMA_TYPE_SECURITY_REQUIREMENT = "security_requirements";
 
+    public static final String SCHEMA_TYPE_DOC_SECURITY_REQUIREMENT = "doc_security_requirements";
+
     public static final String PROJECT_TASK_TYPE_MANUAL = "manual";
 
     public static final String PROJECT_TASK_TYPE_AUTO = "auto";

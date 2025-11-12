@@ -9,10 +9,7 @@ import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.mapper.api.ApiFolderMapper;
-import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
-import com.fugary.simple.api.service.apidoc.ApiDocService;
-import com.fugary.simple.api.service.apidoc.ApiFolderService;
-import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
+import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
@@ -44,7 +41,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     private ApiDocService apiDocService;
 
     @Autowired
-    private ApiDocSchemaService apiDocSchemaService;
+    private ApiProjectInfoDetailService apiDocSchemaService;
 
     @Autowired
     private ApiProjectInfoService apiProjectInfoService;

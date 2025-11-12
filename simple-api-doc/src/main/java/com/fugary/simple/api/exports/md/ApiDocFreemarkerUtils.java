@@ -1,7 +1,7 @@
 package com.fugary.simple.api.exports.md;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fugary.simple.api.entity.api.ApiDocSchema;
+import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -362,7 +362,7 @@ public class ApiDocFreemarkerUtils {
      * @param docSchema
      * @return
      */
-    public String getApiSchemaExamples(ApiDocSchema docSchema, boolean v31) {
+    public String getApiSchemaExamples(ApiProjectInfoDetail docSchema, boolean v31) {
         if (docSchema != null && StringUtils.isNotBlank(docSchema.getExamples())) {
             List<Example> examples = SchemaJsonUtils.fromJson(docSchema.getExamples(), new TypeReference<List<Example>>() {
             }, v31);

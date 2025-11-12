@@ -46,7 +46,7 @@ public class ApiDocController {
     private ApiProjectService apiProjectService;
 
     @Autowired
-    private ApiDocSchemaService apiDocSchemaService;
+    private ApiProjectInfoDetailService apiDocSchemaService;
 
     @Autowired
     private ApiProjectInfoService apiProjectInfoService;

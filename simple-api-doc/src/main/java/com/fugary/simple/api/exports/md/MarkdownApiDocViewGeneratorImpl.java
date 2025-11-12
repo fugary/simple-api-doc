@@ -1,7 +1,7 @@
 package com.fugary.simple.api.exports.md;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fugary.simple.api.entity.api.ApiDocSchema;
+import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.exports.ApiDocViewGenerator;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -56,7 +56,7 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         // 处理 schemasMap，传递给模板
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
         SimpleModelUtils.processComponents(apiDocDetail, specVersion, schemasMap);
-        ApiDocSchema parametersSchema = apiDocDetail.getParametersSchema();
+        ApiProjectInfoDetail parametersSchema = apiDocDetail.getParametersSchema();
         if (parametersSchema != null && StringUtils.isNotBlank(parametersSchema.getSchemaContent())) {
             List<Parameter> parameters = SchemaJsonUtils.fromJson(parametersSchema.getSchemaContent(), new TypeReference<>() {
             }, SchemaJsonUtils.isV31(specVersion));

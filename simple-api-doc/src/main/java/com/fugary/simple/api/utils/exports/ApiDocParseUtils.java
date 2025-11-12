@@ -3,7 +3,6 @@ package com.fugary.simple.api.utils.exports;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
-import com.fugary.simple.api.entity.api.ApiDocSchema;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -127,27 +126,27 @@ public class ApiDocParseUtils {
         boolean isChanged = false;
         if (existsDocDetail != null) {
             ExportApiDocSchemaVo securityRequirements = apiDocVo.getSecurityRequirements();
-            ApiDocSchema existsSecurityRequirements = existsDocDetail.getSecurityRequirements();
+            ApiProjectInfoDetail existsSecurityRequirements = existsDocDetail.getSecurityRequirements();
             if (mergeApiDocSchema(securityRequirements, existsSecurityRequirements)) {
                 isChanged = true;
             }
             ExportApiDocSchemaVo parametersSchema = apiDocVo.getParametersSchema();
-            ApiDocSchema existsParametersSchema = existsDocDetail.getParametersSchema();
+            ApiProjectInfoDetail existsParametersSchema = existsDocDetail.getParametersSchema();
             if (mergeApiDocSchema(parametersSchema, existsParametersSchema)) {
                 isChanged = true;
             }
             List<ExportApiDocSchemaVo> requestsSchemas = apiDocVo.getRequestsSchemas();
-            Map<String, ApiDocSchema> requestSchemaMap = toSchemaMap(existsDocDetail.getRequestsSchemas());
+            Map<String, ApiProjectInfoDetail> requestSchemaMap = toSchemaMap(existsDocDetail.getRequestsSchemas());
             for (ExportApiDocSchemaVo requestsSchema : requestsSchemas) {
-                ApiDocSchema existsRequestSchema = requestSchemaMap.get(getApiDocSchemaKey(requestsSchema));
+                ApiProjectInfoDetail existsRequestSchema = requestSchemaMap.get(getApiDocSchemaKey(requestsSchema));
                 if (mergeApiDocSchema(requestsSchema, existsRequestSchema)) {
                     isChanged = true;
                 }
             }
             List<ExportApiDocSchemaVo> responsesSchemas = apiDocVo.getResponsesSchemas();
-            Map<String, ApiDocSchema> responseSchemaMap = toSchemaMap(existsDocDetail.getResponsesSchemas());
+            Map<String, ApiProjectInfoDetail> responseSchemaMap = toSchemaMap(existsDocDetail.getResponsesSchemas());
             for (ExportApiDocSchemaVo responsesSchema : responsesSchemas) {
-                ApiDocSchema existsResponseSchema = responseSchemaMap.get(getApiDocSchemaKey(responsesSchema));
+                ApiProjectInfoDetail existsResponseSchema = responseSchemaMap.get(getApiDocSchemaKey(responsesSchema));
                 if (mergeApiDocSchema(responsesSchema, existsResponseSchema)) {
                     isChanged = true;
                 }
@@ -156,14 +155,14 @@ public class ApiDocParseUtils {
         return isChanged;
     }
 
-    private static Map<String, ApiDocSchema> toSchemaMap(List<ApiDocSchema> list) {
+    private static Map<String, ApiProjectInfoDetail> toSchemaMap(List<ApiProjectInfoDetail> list) {
         if (CollectionUtils.isEmpty(list)) {
             return Collections.emptyMap();
         }
         return list.stream().collect(Collectors.toMap(ApiDocParseUtils::getApiDocSchemaKey, Function.identity()));
     }
 
-    private static boolean mergeApiDocSchema(ExportApiDocSchemaVo apiDocSchema, ApiDocSchema existsApiDocSchema) {
+    private static boolean mergeApiDocSchema(ExportApiDocSchemaVo apiDocSchema, ApiProjectInfoDetail existsApiDocSchema) {
         boolean isChanged = isApiDocSchemaChanged(apiDocSchema, existsApiDocSchema);
         if (existsApiDocSchema != null) {
             if (isChanged) {
@@ -175,7 +174,7 @@ public class ApiDocParseUtils {
         return isChanged;
     }
 
-    public static boolean isApiDocSchemaChanged(ExportApiDocSchemaVo apiDocSchema, ApiDocSchema existsApiDocSchema) {
+    public static boolean isApiDocSchemaChanged(ExportApiDocSchemaVo apiDocSchema, ApiProjectInfoDetail existsApiDocSchema) {
         if (apiDocSchema == null && existsApiDocSchema == null) {
             return false;
         }
@@ -184,7 +183,7 @@ public class ApiDocParseUtils {
                 || !StringUtils.equals(apiDocSchema.getExamples(), existsApiDocSchema.getExamples());
     }
 
-    public static String getApiDocSchemaKey(ApiDocSchema s){
+    public static String getApiDocSchemaKey(ApiProjectInfoDetail s){
         return String.join("|", s.getSchemaName(), s.getContentType(), s.getBodyType());
     }
 
@@ -199,11 +198,11 @@ public class ApiDocParseUtils {
             boolean isChanged = !StringUtils.equals(existsInfoDetail.getSchemaContent(), projectInfoDetailVo.getSchemaContent())
                     || !StringUtils.equals(existsInfoDetail.getDescription(), projectInfoDetailVo.getDescription());
             if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(existsInfoDetail.getBodyType())) {
-                if (ApiDocConstants.PROJECT_TASK_TYPE_MANUAL.equals(existsInfoDetail.getContentType())) {
+                if (Boolean.TRUE.equals(existsInfoDetail.getLocked())) {
                     String mergedSchemaContent = ApiSchemaContentUtils.mergeComponentSchemaContent(existsInfoDetail.getSchemaContent(),
                             projectInfoDetailVo.getSchemaContent(), isV31);
                     projectInfoDetailVo.setSchemaContent(mergedSchemaContent);
-                    projectInfoDetailVo.setContentType(existsInfoDetail.getContentType());
+                    projectInfoDetailVo.setLocked(existsInfoDetail.getLocked());
                 }
             }
             if (isChanged) {

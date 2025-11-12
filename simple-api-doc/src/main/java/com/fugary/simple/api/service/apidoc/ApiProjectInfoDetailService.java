@@ -1,6 +1,7 @@
 package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
@@ -133,4 +134,35 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      * @return
      */
     boolean existsInfoDetail(ApiProjectInfoDetail infoDetail);
+
+    /**
+     * 按照doc获取
+     *
+     * @param docId
+     * @return
+     */
+    List<ApiProjectInfoDetail> loadByDoc(Integer docId);
+
+    /**
+     * 加载schema等详情
+     *
+     * @param apiDoc
+     * @return
+     */
+    ApiDocDetailVo loadDetailVo(ApiDoc apiDoc);
+
+    /**
+     * 加载schema等详情
+     *
+     * @param apiDocs
+     * @return
+     */
+    List<ApiDocDetailVo> loadDetailList(List<ApiDoc> apiDocs);
+    /**
+     * 按照doc删除
+     *
+     * @param docId
+     * @return
+     */
+    boolean deleteByDoc(Integer docId);
 }

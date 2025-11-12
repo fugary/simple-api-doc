@@ -255,7 +255,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         // 处理Security列表
         if (CollectionUtils.isNotEmpty(operation.getSecurity())) {
             ExportApiDocSchemaVo securityRequirements = new ExportApiDocSchemaVo();
-            securityRequirements.setBodyType(ApiDocConstants.SCHEMA_TYPE_SECURITY_REQUIREMENT);
+            securityRequirements.setBodyType(ApiDocConstants.SCHEMA_TYPE_DOC_SECURITY_REQUIREMENT);
             securityRequirements.setSchemaContent(SchemaJsonUtils.toJson(operation.getSecurity(), SchemaJsonUtils.isV31(openAPI)));
             securityRequirements.setStatus(ApiDocConstants.STATUS_ENABLED);
             apiDoc.setSecurityRequirements(securityRequirements);

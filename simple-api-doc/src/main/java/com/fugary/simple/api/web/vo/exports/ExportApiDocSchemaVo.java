@@ -1,6 +1,6 @@
 package com.fugary.simple.api.web.vo.exports;
 
-import com.fugary.simple.api.entity.api.ApiDocSchema;
+import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import lombok.Data;
 
 /**
@@ -9,5 +9,5 @@ import lombok.Data;
  * @author gary.fu
  */
 @Data
-public class ExportApiDocSchemaVo extends ApiDocSchema {
+public class ExportApiDocSchemaVo extends ApiProjectInfoDetail {
 }

@@ -10,7 +10,6 @@ import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.exports.ApiDocViewGenerator;
 import com.fugary.simple.api.exports.ApiExportFilter;
-import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -50,7 +49,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
     @Autowired
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
     @Autowired
-    private ApiDocSchemaService apiDocSchemaService;
+    private ApiProjectInfoDetailService apiDocSchemaService;
     @Autowired
     private ApiDocViewGenerator apiDocViewGenerator;
     @Autowired

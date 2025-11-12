@@ -16,10 +16,14 @@ public class ApiProjectInfoDetail extends ModelBase {
     private static final long serialVersionUID = 593626013543617186L;
     private Integer projectId;
     private Integer infoId;
+    private Integer docId;
     private String bodyType;
     private String schemaContent;
     private String schemaName;
     private String schemaKey;
     private String contentType;
+    private Boolean locked;
+    private Integer statusCode;
+    private String examples;
     private String description;
 }

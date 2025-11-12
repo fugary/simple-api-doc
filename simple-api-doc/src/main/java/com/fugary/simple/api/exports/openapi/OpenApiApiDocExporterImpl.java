@@ -7,7 +7,6 @@ import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.exports.ApiExportFilter;
-import com.fugary.simple.api.service.apidoc.ApiDocSchemaService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
@@ -58,7 +57,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
     @Autowired
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
     @Autowired
-    private ApiDocSchemaService apiDocSchemaService;
+    private ApiProjectInfoDetailService apiDocSchemaService;
     @Autowired
     private ApiFolderService apiFolderService;
 
@@ -150,7 +149,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 .summary(apiDocDetail.getDocName())
                 .operationId(apiDocDetail.getOperationId())
                 .description(StringUtils.defaultIfBlank(apiDocDetail.getDocContent(), apiDocDetail.getDescription()));
-        ApiDocSchema parametersSchema = apiDocDetail.getParametersSchema();
+        ApiProjectInfoDetail parametersSchema = apiDocDetail.getParametersSchema();
         if (parametersSchema != null && StringUtils.isNotBlank(parametersSchema.getSchemaContent())) {
             List<Parameter> parameters = SchemaJsonUtils.fromJson(parametersSchema.getSchemaContent(), new TypeReference<>() {
             }, SchemaJsonUtils.isV31(openAPI));

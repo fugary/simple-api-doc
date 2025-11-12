@@ -64,7 +64,7 @@ public class SimpleShareController {
     private ApiDocService apiDocService;
 
     @Autowired
-    private ApiDocSchemaService apiDocSchemaService;
+    private ApiProjectInfoDetailService apiDocSchemaService;
 
     @Autowired
     private TokenService tokenService;

@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
@@ -185,6 +186,67 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         List<ApiProjectInfoDetail> existProjects = list(Wrappers.<ApiProjectInfoDetail>query().eq("schema_name", infoDetail.getSchemaName())
                 .eq("body_type", infoDetail.getBodyType()).eq("info_id", infoDetail.getInfoId()));
         return existProjects.stream().anyMatch(existProject -> !existProject.getId().equals(infoDetail.getId()));
+    }
+
+    @Override
+    public List<ApiProjectInfoDetail> loadByDoc(Integer docId) {
+        return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("doc_id", docId));
+    }
+
+    @Override
+    public ApiDocDetailVo loadDetailVo(ApiDoc apiDoc) {
+        ApiDocDetailVo apiDocVo = new ApiDocDetailVo();
+        SimpleModelUtils.copy(apiDoc, apiDocVo);
+        List<ApiProjectInfoDetail> docSchemas = loadByDoc(apiDoc.getId());
+        processDocSchemas(docSchemas, apiDocVo);
+        return apiDocVo;
+    }
+
+    /**
+     * 处理docSchemas
+     * @param docSchemas
+     * @param apiDocVo
+     */
+    protected void processDocSchemas(List<ApiProjectInfoDetail> docSchemas, ApiDocDetailVo apiDocVo) {
+        docSchemas.forEach(schema -> {
+            switch (schema.getBodyType()) {
+                case ApiDocConstants.DOC_SCHEMA_TYPE_REQUEST:
+                    apiDocVo.getRequestsSchemas().add(schema);
+                    break;
+                case ApiDocConstants.DOC_SCHEMA_TYPE_RESPONSE:
+                    apiDocVo.getResponsesSchemas().add(schema);
+                    break;
+                case ApiDocConstants.DOC_SCHEMA_TYPE_PARAMETERS:
+                    apiDocVo.setParametersSchema(schema);
+                    break;
+                case ApiDocConstants.SCHEMA_TYPE_DOC_SECURITY_REQUIREMENT:
+                    apiDocVo.setSecurityRequirements(schema);
+                    break;
+            }
+        });
+    }
+
+    @Override
+    public List<ApiDocDetailVo> loadDetailList(List<ApiDoc> apiDocs) {
+        List<Integer> docIds = apiDocs.stream().map(ApiDoc::getId).collect(Collectors.toList());
+        Map<Integer, List<ApiProjectInfoDetail>> schemaMap = this.list(Wrappers.<ApiProjectInfoDetail>query().in("doc_id", docIds)).stream()
+                .collect(Collectors.groupingBy(ApiProjectInfoDetail::getDocId));
+        return apiDocs.stream().map(apiDoc -> {
+            ApiDocDetailVo apiDocVo = new ApiDocDetailVo();
+            SimpleModelUtils.copy(apiDoc, apiDocVo);
+            if (ApiDocConstants.DOC_TYPE_API.equals(apiDoc.getDocType())) {
+                List<ApiProjectInfoDetail> docSchemas = schemaMap.get(apiDoc.getId());
+                if (docSchemas != null) {
+                    processDocSchemas(docSchemas, apiDocVo);
+                }
+            }
+            return apiDocVo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean deleteByDoc(Integer docId) {
+        return this.remove(Wrappers.<ApiProjectInfoDetail>query().eq("doc_id", docId));
     }
 
     /**
