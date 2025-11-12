@@ -216,6 +216,8 @@ const { isSmallContainer, containerRef } = useContainerCheck()
           v-if="apiDocDetail?.requestsSchemas?.length"
           v-model="apiDocDetail"
           :theme="theme"
+          :editable="editable"
+          @schema-updated="loadDocDetail"
         />
         <api-doc-response-body
           v-if="apiDocDetail?.responsesSchemas?.length"

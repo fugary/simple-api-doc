@@ -409,6 +409,10 @@ export const $ref2Schema = $ref => {
   return $ref.substring($ref.lastIndexOf('/') + 1)
 }
 
+export const schema2$Ref = name => {
+  return `#/components/schemas/${name}`
+}
+
 export const processSchemaChildren = (schema, mergeAllOf = false) => {
   const xxxOf = hasXxxOf(schema)
   const children = []

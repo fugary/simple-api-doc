@@ -15,4 +15,5 @@ public class ProjectComponentQueryVo extends ProjectQueryVo{
     private static final long serialVersionUID = 6764864260446508875L;
     private Integer infoId;
     private String bodyType = PROJECT_SCHEMA_TYPE_COMPONENT;
+    private String schemaName;
 }

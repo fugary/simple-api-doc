@@ -1,34 +1,62 @@
 <script setup lang="jsx">
 import { $i18nBundle, $i18nKey } from '@/messages'
-import { computed, ref, watch } from 'vue'
+import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { ElText } from 'element-plus'
-import { $coreConfirm } from '@/utils'
+import { ElMessage, ElText } from 'element-plus'
+import { $coreConfirm, $coreError } from '@/utils'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
+import ApiProjectInfoDetailApi, { loadInfoDetail } from '@/api/ApiProjectInfoDetailApi'
+import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
+import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
+import { loadDetailById } from '@/api/ApiProjectApi'
 
 const props = defineProps({
-  projectInfos: {
-    type: Array,
-    default: () => []
-  },
-  componentSchemas: {
-    type: Array,
-    default: () => ([])
-  },
-  writable: {
-    type: Boolean,
-    default: false
-  },
-  deletable: {
-    type: Boolean,
-    default: false
+  currentProject: {
+    type: Object,
+    default: null
   }
 })
-
-const currentComponentModel = defineModel({
+const inWindow = inject('commonWindow', null)
+const currentInfoDetail = defineModel({
   type: Object,
   required: true
+})
+const projectItemMap = reactive({})
+props.currentProject && (projectItemMap[props.currentProject.id] = props.currentProject)
+const componentSchemas = ref([])
+const currentComponentModel = ref()
+watch(currentInfoDetail, async model => {
+  if (model.id || model.schemaName) {
+    await loadInfoDetail(model).then(data => {
+      currentComponentModel.value = data.resultData
+      componentSchemas.value = data.addons?.components || []
+    })
+    const projectId = currentComponentModel.value.projectId
+    console.log('=============================data', currentComponentModel.value, projectItemMap, projectId)
+    if (!projectItemMap[projectId]) {
+      loadDetailById(projectId)
+        .then((data) => {
+          projectItemMap[projectId] = data
+        })
+    }
+  } else {
+    currentComponentModel.value = currentInfoDetail.value
+  }
+}, { immediate: true })
+const projectItem = computed(() => projectItemMap[currentComponentModel.value?.projectId])
+const deletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
+const writable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || deletable.value)
+const projectInfos = computed(() => {
+  if (projectItem.value?.infoList?.length) {
+    return projectItem.value.infoList.map(info => {
+      if (info.folderId && projectItem.value.folders?.length) {
+        info.folderName = projectItem.value.folders.find(item => item.id === info.folderId)?.folderName
+      }
+      return info
+    })
+  }
+  return []
 })
 const componentEditOptions = computed(() => {
   return [{
@@ -36,6 +64,7 @@ const componentEditOptions = computed(() => {
     prop: 'schemaName',
     placeholder: $i18nKey('common.msg.commonInput', 'api.label.modelName'),
     required: true,
+    disabled: inWindow?.value,
     attrs: {
       style: {
         minWidth: '350px'
@@ -51,13 +80,13 @@ const componentEditOptions = computed(() => {
       inactiveValue: 'auto'
     }
   }, {
-    enabled: props.projectInfos?.length > 1,
+    enabled: projectInfos.value?.length > 1,
     showLabel: false,
     prop: 'infoId',
     placeholder: $i18nKey('common.msg.commonSelect', 'api.label.importFolder'),
     required: true,
     type: 'select',
-    children: props.projectInfos?.map(info => ({
+    children: projectInfos.value?.map(info => ({
       label: info.folderName,
       value: info.id,
       slots: {
@@ -93,13 +122,33 @@ const saveComponent = (form) => {
   form.validate((valid) => {
     if (valid) {
       currentComponentModel.value.schemaContent = contentRef.value
-      emit('saveComponent', currentComponentModel.value)
+      const data = currentComponentModel.value
+      if (data.schemaContent) {
+        try {
+          JSON.parse(data.schemaContent)
+        } catch (e) {
+          $coreError($i18nBundle('common.msg.jsonError'))
+          return
+        }
+        ApiProjectInfoDetailApi.saveOrUpdate(data)
+          .then((data) => {
+            if (data.success) {
+              ElMessage.success($i18nBundle('common.msg.saveSuccess'))
+              emit('saveComponent', data.resultData)
+            }
+          })
+      } else {
+        $coreError($i18nBundle('common.msg.nonNull', ['JSON Schema']))
+      }
     }
   })
 }
 const deleteComponent = () => {
   $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
-    emit('deleteComponent', currentComponentModel.value)
+    ApiProjectInfoDetailApi.deleteById(currentComponentModel.value.id)
+      .then(() => {
+        emit('deleteComponent', currentComponentModel.value)
+      })
   })
 }
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, languageSelectOption, formatDocument } = useMonacoEditorOptions({ readOnly: false })
@@ -121,24 +170,30 @@ watch(schemaContentObj, () => {
 const codeHeight = '400px'
 
 const currentProjectInfo = computed(() => {
-  return props.projectInfos.find(info => info.id === currentComponentModel.value.infoId)
+  return projectInfos.value?.find(info => info.id === currentComponentModel.value.infoId)
+})
+
+defineExpose({
+  saveComponent,
+  deleteComponent
 })
 </script>
 
 <template>
   <el-container class="flex-column height100">
     <common-form
+      v-if="currentComponentModel&&schemaContentObj"
       class="padding-left2 padding-right2"
       :model="currentComponentModel"
       inline
       :options="componentEditOptions"
       :submit-label="$t('common.label.save')"
-      :show-submit="writable"
+      :show-submit="writable&&!inWindow"
       @submit-form="saveComponent"
     >
       <template #buttons>
         <el-button
-          v-if="deletable"
+          v-if="deletable&&!inWindow"
           type="danger"
           @click="deleteComponent"
         >
@@ -160,6 +215,7 @@ const currentProjectInfo = computed(() => {
               class="flex-column"
             >
               <api-component-schema-edit-tree
+                v-if="currentComponentModel&&schemaContentObj&&currentProjectInfo"
                 v-model="schemaContentObj"
                 :current-info-detail="currentComponentModel"
                 :root-name="currentComponentModel.schemaName"

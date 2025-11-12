@@ -73,6 +73,19 @@ public class ApiProjectInfoDetailController {
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.list(queryWrapper));
     }
 
+    @PostMapping("/loadInfoDetail")
+    public SimpleResult<ApiProjectInfoDetail> loadInfoDetail(@RequestBody ProjectComponentQueryVo queryVo) {
+        QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
+                .eq("project_id", queryVo.getProjectId())
+                .eq("info_id", queryVo.getInfoId())
+                .eq("schema_name", queryVo.getSchemaName())
+                .eq("body_type", queryVo.getBodyType());
+        ApiProjectInfoDetail infoDetail = apiProjectInfoDetailService.getOne(queryWrapper);
+        List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.findRelatedInfoDetails(infoDetail);
+        return SimpleResultUtils.createSimpleResult(infoDetail)
+                .add("components", (Serializable) infoDetails);
+    }
+
     @GetMapping("/{id}")
     public SimpleResult<ApiProjectInfoDetail> get(@PathVariable("id") Integer id) {
         ApiProjectInfoDetail infoDetail = apiProjectInfoDetailService.getById(id);

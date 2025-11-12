@@ -5,11 +5,16 @@ import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { MdPreview } from 'md-editor-v3'
+import { toEditComponent } from '@/utils/DynamicUtils'
 
 defineProps({
   theme: {
     type: String,
     default: 'dark'
+  },
+  editable: {
+    type: Boolean,
+    default: false
   }
 })
 const apiDocDetail = defineModel({
@@ -22,6 +27,28 @@ const projectInfoDetail = computed(() => {
 })
 const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
+const requestsSchemas = computed(() => {
+  return apiDocDetail.value?.requestsSchemas?.map((schema) => {
+    const schemaObj = schema.schemaContent ? JSON.parse(schema.schemaContent) : null
+    const $ref = schemaObj?.schema?.$ref
+    const component = $ref ? componentMap.value[$ref] : null
+    return {
+      schemaObj,
+      $ref,
+      component,
+      ...schema
+    }
+  })
+})
+const emit = defineEmits(['schemaUpdated'])
+const toEditRequestSchema = (requestsSchema) => {
+  toEditComponent(requestsSchema.component, {
+    onSaveComponent: newData => {
+      console.log('========================newData', newData)
+      emit('schemaUpdated')
+    }
+  })
+}
 </script>
 
 <template>
@@ -31,7 +58,7 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
     </h3>
     <el-tabs>
       <el-tab-pane
-        v-for="(requestsSchema, index) in apiDocDetail.requestsSchemas"
+        v-for="(requestsSchema, index) in requestsSchemas"
         :key="index"
         lazy
       >
@@ -53,6 +80,17 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
               <common-icon
                 :size="18"
                 :icon="requestsSchema.contentType?.includes('xml') ? 'custom-icon-xml' : 'custom-icon-json'"
+              />
+            </el-link>
+            <el-link
+              v-if="editable&&requestsSchema.component"
+              class="margin-left1"
+              type="primary"
+              @click="toEditRequestSchema(requestsSchema)"
+            >
+              <common-icon
+                :size="18"
+                icon="Edit"
               />
             </el-link>
           </span>

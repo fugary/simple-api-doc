@@ -1,7 +1,7 @@
 <script setup lang="jsx">
-import { ref, onMounted, onActivated, computed, useTemplateRef } from 'vue'
+import { computed, onActivated, onMounted, ref, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
-import { $coreError, useBackUrl } from '@/utils'
+import { useBackUrl } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -9,8 +9,6 @@ import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import ApiProjectComponent from '@/views/components/api/project/ApiProjectComponent.vue'
-import { ElMessage } from 'element-plus'
-import { $i18nBundle } from '@/messages'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -19,7 +17,6 @@ const componentsTableRef = useTemplateRef('componentsTableRef')
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
 const currentInfoDetail = ref(null)
-const componentSchemas = ref([])
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage(15), bodyType: 'component' },
@@ -40,12 +37,7 @@ const loadProjectComponents = (pageNumber) => searchMethod(pageNumber).then(data
 
 const newOrEdit = (id) => {
   if (id) {
-    currentInfoDetail.value = null
-    componentSchemas.value = []
-    ApiProjectInfoDetailApi.getById(id).then(data => {
-      currentInfoDetail.value = data.resultData
-      componentSchemas.value = data.addons?.components || []
-    })
+    currentInfoDetail.value = { id }
   } else {
     console.log('=========================new', id)
     currentInfoDetail.value = {
@@ -97,43 +89,10 @@ const defaultMinSizes = ref([200, 500])
 const isDeletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
 const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || isDeletable.value)
 
-const projectInfos = computed(() => {
-  if (projectItem.value?.infoList?.length) {
-    return projectItem.value.infoList.map(info => {
-      if (info.folderId && projectItem.value.folders?.length) {
-        info.folderName = projectItem.value.folders.find(item => item.id === info.folderId)?.folderName
-      }
-      return info
-    })
-  }
-  return []
-})
 const saveComponent = (data) => {
   console.log('===========================data', data)
-  if (data.schemaContent) {
-    try {
-      JSON.parse(data.schemaContent)
-    } catch (e) {
-      $coreError($i18nBundle('common.msg.jsonError'))
-      return
-    }
-    ApiProjectInfoDetailApi.saveOrUpdate(data)
-      .then((data) => {
-        if (data.success) {
-          ElMessage.success($i18nBundle('common.msg.saveSuccess'))
-          currentInfoDetail.value = data.resultData
-        }
-        loadProjectComponents()
-      })
-  } else {
-    $coreError($i18nBundle('common.msg.nonNull', ['JSON Schema']))
-  }
-}
-const deleteComponent = (data) => {
-  ApiProjectInfoDetailApi.deleteById(data.id)
-    .then(() => {
-      loadProjectComponents()
-    })
+  currentInfoDetail.value = data
+  loadProjectComponents()
 }
 
 </script>
@@ -215,12 +174,9 @@ const deleteComponent = (data) => {
             <api-project-component
               v-if="currentInfoDetail"
               v-model="currentInfoDetail"
-              :project-infos="projectInfos"
-              :writable="isWritable"
-              :deletable="isDeletable"
-              :component-schemas="componentSchemas"
+              :current-project="projectItem"
               @save-component="saveComponent"
-              @delete-component="deleteComponent"
+              @delete-component="loadProjectComponents()"
             />
           </template>
         </common-split>
