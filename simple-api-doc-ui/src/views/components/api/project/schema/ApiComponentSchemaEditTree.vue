@@ -14,7 +14,7 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import { toEditJsonSchema } from '@/utils/DynamicUtils'
 import { $coreConfirm } from '@/utils'
 import { cloneDeep, pull, unset, get, set } from 'lodash-es'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 
 const props = defineProps({
   rootName: {
@@ -171,6 +171,12 @@ const checkEditProperty = node => !checkRefRelated(node.parent) && checkNotXxxOf
 
 const checkDeleteProperty = node => node.level > 1 && !checkRefRelated(node.parent)
 
+const checkGotoRef = node => {
+  return node.data?.schema$ref && componentsMap.value[node.data?.schema$ref]
+}
+
+defineEmits(['gotoComponent'])
+
 </script>
 
 <template>
@@ -218,6 +224,16 @@ const checkDeleteProperty = node => node.level > 1 && !checkRefRelated(node.pare
               @click="newOrEdit(null, data, $event)"
             >
               <common-icon icon="Plus" />
+            </el-button>
+            <el-button
+              v-if="checkGotoRef(node)"
+              v-common-tooltip="$i18nKey('common.label.commonEdit', 'api.label.typeRef')"
+              type="primary"
+              size="small"
+              round
+              @click="$emit('gotoComponent', componentsMap[data.schema$ref]);$event.stopPropagation()"
+            >
+              <common-icon icon="EditPen" />
             </el-button>
             <el-button
               v-if="checkEditProperty(node)"

@@ -96,3 +96,39 @@ export const useGlobalSaveSearchParam = (defaultParam) => {
     }
   }
 }
+
+export const useManagedArrayItems = () => {
+  const managedItems = ref([])
+  const context = ref(false)
+  const startContext = () => (context.value = true)
+  const pushItem = (item) => {
+    const index = managedItems.value.findIndex(it => item.id === it.id)
+    if (index < 0) {
+      managedItems.value.push(item)
+      return item
+    } else {
+      return goToItem(index)
+    }
+  }
+  const goToItem = index => {
+    let result = null
+    if (index > -1 && (result = managedItems.value[index])) {
+      context.value = true
+      managedItems.value = managedItems.value.slice(0, index + 1)
+    }
+    return result
+  }
+  const clearItems = () => {
+    if (!context.value) {
+      managedItems.value = []
+    }
+    context.value = false
+  }
+  return {
+    managedItems,
+    startContext,
+    pushItem,
+    goToItem,
+    clearItems
+  }
+}

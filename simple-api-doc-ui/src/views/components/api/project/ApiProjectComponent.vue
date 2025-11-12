@@ -10,6 +10,7 @@ import ApiProjectInfoDetailApi, { loadInfoDetail } from '@/api/ApiProjectInfoDet
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
+import { useManagedArrayItems } from '@/hooks/CommonHooks'
 
 const props = defineProps({
   currentProject: {
@@ -26,6 +27,7 @@ const projectItemMap = reactive({})
 props.currentProject && (projectItemMap[props.currentProject.id] = props.currentProject)
 const componentSchemas = ref([])
 const currentComponentModel = ref()
+const { managedItems, pushItem, clearItems, startContext, goToItem } = useManagedArrayItems()
 watch(currentInfoDetail, async model => {
   if (model.id || model.schemaName) {
     await loadInfoDetail(model).then(data => {
@@ -43,6 +45,8 @@ watch(currentInfoDetail, async model => {
   } else {
     currentComponentModel.value = currentInfoDetail.value
   }
+  clearItems()
+  pushItem(currentComponentModel.value)
 }, { immediate: true })
 const projectItem = computed(() => projectItemMap[currentComponentModel.value?.projectId])
 const deletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
@@ -169,6 +173,11 @@ const currentProjectInfo = computed(() => {
   return projectInfos.value?.find(info => info.id === currentComponentModel.value.infoId)
 })
 
+const gotoComponent = (componentData) => {
+  startContext()
+  currentInfoDetail.value = componentData
+}
+
 defineExpose({
   saveComponent,
   deleteComponent
@@ -202,6 +211,36 @@ defineExpose({
           :model="currentComponentModel"
           :option="descriptionEditOption"
         />
+        <el-container
+          v-if="managedItems?.length>1"
+          class="margin-bottom2"
+        >
+          <template
+            v-for="(item, index) in managedItems"
+            :key="index"
+          >
+            <el-link
+              v-if="index<managedItems.length-1"
+              type="primary"
+              @click="gotoComponent(goToItem(index))"
+            >
+              {{ item.schemaName || item.schema$ref }}
+            </el-link>
+            <el-text
+              v-else
+              type="info"
+              tag="b"
+            >
+              {{ item.schemaName || item.schema$ref }}
+            </el-text>
+            <el-text
+              v-if="index<managedItems.length-1"
+              type="info"
+            >
+              &nbsp;/&nbsp;
+            </el-text>
+          </template>
+        </el-container>
         <el-tabs>
           <el-tab-pane
             :label="$t('api.label.dataModel')"
@@ -218,6 +257,7 @@ defineExpose({
                 :spec-version="currentProjectInfo.specVersion"
                 :component-schemas="componentSchemas"
                 :show-merge-all-of="false"
+                @goto-component="gotoComponent"
               />
             </el-container>
           </el-tab-pane>
