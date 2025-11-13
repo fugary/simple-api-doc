@@ -27,22 +27,9 @@ const projectInfoDetail = computed(() => {
 })
 const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
-const requestsSchemas = computed(() => {
-  return apiDocDetail.value?.requestsSchemas?.map((schema) => {
-    const schemaObj = schema.schemaContent ? JSON.parse(schema.schemaContent) : null
-    const $ref = schemaObj?.schema?.$ref
-    const component = $ref ? componentMap.value[$ref] : null
-    return {
-      schemaObj,
-      $ref,
-      component,
-      ...schema
-    }
-  })
-})
 const emit = defineEmits(['schemaUpdated'])
 const toEditRequestSchema = (requestsSchema) => {
-  toEditComponent(requestsSchema.component, {
+  toEditComponent(requestsSchema, {
     onSaveComponent: newData => {
       console.log('========================newData', newData)
       emit('schemaUpdated')
@@ -58,7 +45,7 @@ const toEditRequestSchema = (requestsSchema) => {
     </h3>
     <el-tabs>
       <el-tab-pane
-        v-for="(requestsSchema, index) in requestsSchemas"
+        v-for="(requestsSchema, index) in apiDocDetail.requestsSchemas"
         :key="index"
         lazy
       >
@@ -83,7 +70,7 @@ const toEditRequestSchema = (requestsSchema) => {
               />
             </el-link>
             <el-link
-              v-if="editable&&requestsSchema.component"
+              v-if="editable"
               class="margin-left1"
               type="primary"
               @click="toEditRequestSchema(requestsSchema)"

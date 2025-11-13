@@ -223,6 +223,8 @@ const { isSmallContainer, containerRef } = useContainerCheck()
           v-if="apiDocDetail?.responsesSchemas?.length"
           v-model="apiDocDetail"
           :theme="theme"
+          :editable="editable"
+          @schema-updated="loadDocDetail"
         />
       </el-scrollbar>
       <el-container

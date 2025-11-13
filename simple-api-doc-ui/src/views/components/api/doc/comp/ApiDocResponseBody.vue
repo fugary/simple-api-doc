@@ -5,11 +5,16 @@ import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
 import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { MdPreview } from 'md-editor-v3'
+import { toEditComponent } from '@/utils/DynamicUtils'
 
 defineProps({
   theme: {
     type: String,
     default: 'dark'
+  },
+  editable: {
+    type: Boolean,
+    default: false
   }
 })
 const apiDocDetail = defineModel({
@@ -29,6 +34,15 @@ const responsesSchemas = computed(() => {
   })
 })
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
+const emit = defineEmits(['schemaUpdated'])
+const toEditResponseSchema = (responseSchema) => {
+  toEditComponent(responseSchema, {
+    onSaveComponent: newData => {
+      console.log('========================newData', newData)
+      emit('schemaUpdated')
+    }
+  })
+}
 </script>
 
 <template>
@@ -73,6 +87,17 @@ const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.com
                 <common-icon
                   :size="18"
                   :icon="responseSchema.contentType?.includes('xml') ? 'custom-icon-xml' : 'custom-icon-json'"
+                />
+              </el-link>
+              <el-link
+                v-if="editable"
+                class="margin-left1"
+                type="primary"
+                @click="toEditResponseSchema(responseSchema)"
+              >
+                <common-icon
+                  :size="18"
+                  icon="Edit"
                 />
               </el-link>
             </el-text>

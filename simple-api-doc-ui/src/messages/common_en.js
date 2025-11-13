@@ -131,6 +131,7 @@ common.label.commonExport = 'Export as {0}'
 common.label.commonGenerate = 'Generate {0}'
 common.label.commonClear = 'Clear {0}'
 common.label.commonBack = 'Back to {0}'
+common.label.commonSelect = 'Select {0}'
 
 //* =======================msg=====================//
 common.msg.nonNull = '{0} is required.'

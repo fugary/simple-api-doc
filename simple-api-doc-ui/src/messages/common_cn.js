@@ -131,6 +131,7 @@ common.label.commonExport = '导出为{0}'
 common.label.commonGenerate = '生成{0}'
 common.label.commonClear = '清空{0}'
 common.label.commonBack = '回到{0}'
+common.label.commonSelect = '选择{0}'
 
 //* =======================msg=====================//
 common.msg.nonNull = '{0}不能为空'

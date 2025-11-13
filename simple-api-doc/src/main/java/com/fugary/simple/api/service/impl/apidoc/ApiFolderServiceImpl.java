@@ -4,10 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.ApiDocConstants;
-import com.fugary.simple.api.entity.api.ApiDoc;
-import com.fugary.simple.api.entity.api.ApiFolder;
-import com.fugary.simple.api.entity.api.ApiProject;
-import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.mapper.api.ApiFolderMapper;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -217,25 +214,31 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
 
     protected void saveApiDocSchemas(ExportApiDocVo apiDocVo) {
         if (apiDocVo.getSecurityRequirements() != null) {
-            apiDocVo.getSecurityRequirements().setDocId(apiDocVo.getId());
+            setApiDocInfo(apiDocVo.getSecurityRequirements(), apiDocVo);
             apiDocSchemaService.save(SimpleModelUtils.addAuditInfo(apiDocVo.getSecurityRequirements()));
         }
         if (apiDocVo.getParametersSchema() != null) {
-            apiDocVo.getParametersSchema().setDocId(apiDocVo.getId());
+            setApiDocInfo(apiDocVo.getParametersSchema(), apiDocVo);
             apiDocSchemaService.save(SimpleModelUtils.addAuditInfo(apiDocVo.getParametersSchema()));
         }
         if (!CollectionUtils.isEmpty(apiDocVo.getRequestsSchemas())) {
             apiDocSchemaService.saveBatch(apiDocVo.getRequestsSchemas().stream().map(requestSchema -> {
-                requestSchema.setDocId(apiDocVo.getId());
+                setApiDocInfo(requestSchema, apiDocVo);
                 return SimpleModelUtils.addAuditInfo(requestSchema);
             }).collect(Collectors.toList()));
         }
         if (!CollectionUtils.isEmpty(apiDocVo.getResponsesSchemas())) {
             apiDocSchemaService.saveBatch(apiDocVo.getResponsesSchemas().stream().map(responseSchema -> {
-                responseSchema.setDocId(apiDocVo.getId());
+                setApiDocInfo(responseSchema, apiDocVo);
                 return SimpleModelUtils.addAuditInfo(responseSchema);
             }).collect(Collectors.toList()));
         }
+    }
+
+    protected void setApiDocInfo(ApiProjectInfoDetail infoDetail, ApiDoc apiDoc) {
+        infoDetail.setDocId(apiDoc.getId());
+        infoDetail.setProjectId(apiDoc.getProjectId());
+        infoDetail.setInfoId(apiDoc.getInfoId());
     }
 
     @Override

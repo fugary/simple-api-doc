@@ -67,8 +67,7 @@ const componentEditOptions = computed(() => {
     showLabel: false,
     prop: 'schemaName',
     placeholder: $i18nKey('common.msg.commonInput', 'api.label.modelName'),
-    required: true,
-    disabled: inWindow?.value,
+    required: !currentComponentModel.value?.docId,
     attrs: {
       style: {
         minWidth: '350px'
@@ -78,12 +77,13 @@ const componentEditOptions = computed(() => {
     labelKey: 'api.label.apiDocLock',
     type: 'switch',
     prop: 'locked',
-    tooltip: $i18nBundle('api.msg.apiDocLocked')
+    tooltip: $i18nBundle('api.msg.apiDocLocked'),
+    enabled: !currentComponentModel.value?.docId
   }, {
     enabled: projectInfos.value?.length > 1,
     showLabel: false,
     prop: 'infoId',
-    placeholder: $i18nKey('common.msg.commonSelect', 'api.label.importFolder'),
+    placeholder: $i18nKey('common.label.commonSelect', 'api.label.importFolder'),
     required: true,
     type: 'select',
     children: projectInfos.value?.map(info => ({
@@ -154,17 +154,31 @@ const deleteComponent = () => {
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, languageSelectOption, formatDocument } = useMonacoEditorOptions({ readOnly: false })
 languageRef.value = 'json'
 const schemaContentObj = ref({})
+const mediaTypeSchemaObj = ref()
 watch(() => currentComponentModel.value?.schemaContent, (schemaContent) => {
   contentRef.value = schemaContent
   try {
-    schemaContentObj.value = JSON.parse(schemaContent || '{}')
+    const isMediaType = !!currentComponentModel.value?.docId
+    const defaultContent = isMediaType ? '{"schema": {}}' : '{}'
+    let schemaObj = JSON.parse(schemaContent || defaultContent)
+    mediaTypeSchemaObj.value = null
+    if (schemaObj?.schema) { // 如果是mediaType，特殊处理
+      mediaTypeSchemaObj.value = schemaObj
+      schemaObj = schemaObj.schema
+    }
+    schemaContentObj.value = schemaObj
   } catch (e) { // 忽略错误保证能正常显示
     console.error(e)
   }
 }, { immediate: true })
 watch(schemaContentObj, () => {
   if (currentComponentModel.value) {
-    currentComponentModel.value.schemaContent = JSON.stringify(schemaContentObj.value)
+    let schemaContent = JSON.stringify(schemaContentObj.value)
+    if (mediaTypeSchemaObj.value) {
+      mediaTypeSchemaObj.value.schema = schemaContentObj.value
+      schemaContent = JSON.stringify(mediaTypeSchemaObj.value)
+    }
+    currentComponentModel.value.schemaContent = schemaContent
   }
 }, { deep: true })
 const codeHeight = '400px'
@@ -176,6 +190,17 @@ const currentProjectInfo = computed(() => {
 const gotoComponent = (componentData) => {
   startContext()
   currentInfoDetail.value = componentData
+}
+
+const getSchemaNameLabel = item => {
+  if (!item.schemaName) {
+    if (item.bodyType === 'request') {
+      return $i18nBundle('api.label.requestBody')
+    } else if (item.bodyType === 'response') {
+      return $i18nBundle('api.label.responseBody')
+    }
+  }
+  return item.schemaName || 'root'
 }
 
 defineExpose({
@@ -224,14 +249,14 @@ defineExpose({
               type="primary"
               @click="gotoComponent(goToItem(index))"
             >
-              {{ item.schemaName || item.schema$ref }}
+              {{ getSchemaNameLabel(item) }}
             </el-link>
             <el-text
               v-else
               type="info"
               tag="b"
             >
-              {{ item.schemaName || item.schema$ref }}
+              {{ getSchemaNameLabel(item) }}
             </el-text>
             <el-text
               v-if="index<managedItems.length-1"
@@ -253,7 +278,7 @@ defineExpose({
                 v-if="currentComponentModel&&schemaContentObj&&currentProjectInfo"
                 v-model="schemaContentObj"
                 :current-info-detail="currentComponentModel"
-                :root-name="currentComponentModel.schemaName"
+                :root-name="getSchemaNameLabel(currentComponentModel)"
                 :spec-version="currentProjectInfo.specVersion"
                 :component-schemas="componentSchemas"
                 :show-merge-all-of="false"
