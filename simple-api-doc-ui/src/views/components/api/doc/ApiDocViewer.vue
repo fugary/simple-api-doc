@@ -102,7 +102,7 @@ const handlerConfig = {
     copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
     copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
     copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
-    return Object.assign(target, lastParamTarget)
+    return Object.assign(target, savedTarget)
   },
   changeHandler: target => {
     Object.assign(lastParamTarget, target)
