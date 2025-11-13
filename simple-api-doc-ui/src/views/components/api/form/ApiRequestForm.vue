@@ -33,7 +33,7 @@ const paramTarget = defineModel('modelValue', {
 
 const requestUrl = computed(() => {
   let reqUrl = props.requestPath
-  paramTarget.value?.pathParams?.forEach(pathParam => {
+  paramTarget.value?.pathParams?.filter(pathParam => !!pathParam.value).forEach(pathParam => {
     reqUrl = reqUrl.replace(new RegExp(`:${pathParam.name}`, 'g'), pathParam.value)
       .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), processEvnParams(paramTarget.value.groupConfig, pathParam.value, true))
   })
