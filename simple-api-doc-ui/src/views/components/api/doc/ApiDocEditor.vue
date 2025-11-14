@@ -6,6 +6,8 @@ import { $coreHideLoading, $coreShowLoading, getSingleSelectOptions } from '@/ut
 import ApiDocApi from '@/api/ApiDocApi'
 import { ALL_METHODS } from '@/consts/ApiConstants'
 import { useFormStatus } from '@/consts/GlobalConstants'
+import { $i18nBundle, $i18nKey } from '@/messages'
+import { showMarkdownWindow } from '@/utils/DynamicUtils'
 
 const currentDoc = defineModel({
   type: Object,
@@ -42,7 +44,20 @@ const formOptions = computed(() => {
     prop: 'description',
     attrs: {
       type: 'textarea',
-      rows: 5
+      rows: 4
+    },
+    tooltip: $i18nBundle('common.label.newWindowEdit'),
+    tooltipIcon: 'EditPen',
+    tooltipLinkAttrs: {
+      type: 'primary'
+    },
+    tooltipFunc () {
+      showMarkdownWindow({
+        content: currentDocModel.value.description,
+        title: $i18nKey('common.label.commonEdit', 'common.label.description')
+      }, {
+        'onUpdate:modelValue': value => (currentDocModel.value.description = value)
+      })
     }
   }]
 })
