@@ -7,6 +7,7 @@ import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
 import MarkdownDocEditor from '@/views/components/api/doc/MarkdownDocEditor.vue'
+import ApiDocEditor from '@/views/components/api/doc/ApiDocEditor.vue'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
@@ -189,6 +190,12 @@ const envConfigs = computed(() => {
               class="height100"
             >
               <markdown-doc-editor
+                v-if="currentDoc?.docType==='md'"
+                v-model="currentDoc"
+                @saved-doc="savedApiDoc"
+              />
+              <api-doc-editor
+                v-if="currentDoc?.docType==='api'&&currentDoc.editing"
                 v-model="currentDoc"
                 @saved-doc="savedApiDoc"
               />

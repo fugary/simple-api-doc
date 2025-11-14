@@ -446,7 +446,7 @@ public class SimpleModelUtils {
         apiProjectInfo.setProjectId(project.getId());
         apiProjectInfo.setOasVersion("3.1.0");
         apiProjectInfo.setSpecVersion(SpecVersion.V31.name());
-        apiProjectInfo.setVersion("v1.0.0");
+        apiProjectInfo.setVersion(StringUtils.defaultIfBlank(project.getApiVersion(), "v1.0.0"));
         return apiProjectInfo;
     }
 

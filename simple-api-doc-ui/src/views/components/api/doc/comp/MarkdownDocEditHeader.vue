@@ -24,15 +24,16 @@ const folderPaths = computed(() => {
 
 const docFormOption = computed(() => {
   return {
-    showLabel: false,
+    showLabel: currentDoc.value?.docType === 'api',
+    labelKey: 'api.label.requestName',
     type: 'input',
     prop: 'docName',
     placeholder: $i18nKey('common.msg.commonInput', 'api.label.docName'),
     required: true,
+    style: {
+      flexGrow: 5
+    },
     attrs: {
-      style: {
-        minWidth: '50vw'
-      },
       size: 'large'
     },
     change (value) {
@@ -72,22 +73,30 @@ const saveApiDoc = (form) => {
     </el-breadcrumb>
     <common-form
       inline
+      class-name="common-form-auto"
       :model="currentDocModel"
-      :submit-label="$t('common.label.save')"
-      @submit-form="saveApiDoc"
+      :show-buttons="false"
     >
-      <common-form-control
-        :model="currentDocModel"
-        prop="docName"
-        :option="docFormOption"
-      />
-      <template #buttons>
-        <el-button
-          type="info"
-          @click="currentDoc.editing=false"
-        >
-          {{ $t('common.label.cancel') }}
-        </el-button>
+      <template #default="{form}">
+        <common-form-control
+          :model="currentDocModel"
+          prop="docName"
+          :option="docFormOption"
+        />
+        <el-form-item style="flex-grow: 2;padding-top: 3px">
+          <el-button
+            type="primary"
+            @click="saveApiDoc(form)"
+          >
+            {{ $t('common.label.save') }}
+          </el-button>
+          <el-button
+            type="info"
+            @click="currentDoc.editing=false"
+          >
+            {{ $t('common.label.cancel') }}
+          </el-button>
+        </el-form-item>
       </template>
     </common-form>
   </el-header>

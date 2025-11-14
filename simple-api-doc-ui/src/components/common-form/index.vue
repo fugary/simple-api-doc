@@ -176,6 +176,11 @@ const goBack = (...args) => {
       v-bind="{...$attrs, 'class':undefined}"
       @submit.prevent
     >
+      <slot
+        :form="form"
+        :model="formModel"
+        name="before-options"
+      />
       <template
         v-for="(option,index) in options"
         :key="index"
