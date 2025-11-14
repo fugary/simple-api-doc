@@ -64,6 +64,8 @@ const options = computed(() => {
       v-for="(option, index) in options"
       :key="`${option.prop}__${index}`"
       :width="option.width"
+      :min-width="option.minWidth"
+      v-bind="option.columnAttrs"
     >
       <template
         v-if="option.headerSlot"

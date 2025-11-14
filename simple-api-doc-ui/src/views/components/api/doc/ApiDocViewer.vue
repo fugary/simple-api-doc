@@ -13,7 +13,12 @@ import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBo
 import emitter from '@/vendors/emitter'
 import { AUTH_TYPE } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
-import { calcAuthModelBySchemas, calcSecuritySchemas, copyParamsDynamicOption } from '@/services/api/ApiDocPreviewService'
+import {
+  calcAuthModelBySchemas,
+  calcSecuritySchemas,
+  copyParamsDynamicOption,
+  isGetMethod
+} from '@/services/api/ApiDocPreviewService'
 import { useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
@@ -209,18 +214,20 @@ const { isSmallContainer, containerRef } = useContainerCheck()
           :model-value="docContent"
         />
         <api-doc-parameters
-          v-if="apiDocDetail?.projectInfoDetail&&apiDocDetail?.parametersSchema||!apiDocDetail?.requestsSchemas?.length"
+          v-if="apiDocDetail?.parametersSchema||!apiDocDetail?.requestsSchemas?.length||editable"
           v-model="apiDocDetail"
+          :editable="editable"
+          @schema-updated="loadDocDetail"
         />
         <api-doc-request-body
-          v-if="apiDocDetail?.requestsSchemas?.length"
+          v-if="apiDocDetail?.requestsSchemas?.length||(editable&&!isGetMethod(apiDocDetail.method))"
           v-model="apiDocDetail"
           :theme="theme"
           :editable="editable"
           @schema-updated="loadDocDetail"
         />
         <api-doc-response-body
-          v-if="apiDocDetail?.responsesSchemas?.length"
+          v-if="apiDocDetail?.responsesSchemas?.length||editable"
           v-model="apiDocDetail"
           :theme="theme"
           :editable="editable"

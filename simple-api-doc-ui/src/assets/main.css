@@ -437,6 +437,13 @@ html, body, #app, .index-container {
     width: 700px;
 }
 
+.common-table-form .common-table-form-label {
+    margin-bottom: 0;
+}
+.common-table-form .el-form-item__label {
+    justify-content: flex-start;
+}
+
 .float-right {
     float: right;
 }

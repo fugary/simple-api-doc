@@ -3,7 +3,7 @@ import { $i18nBundle, $i18nKey } from '@/messages'
 import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { ElMessage, ElText } from 'element-plus'
+import { ElText } from 'element-plus'
 import { $coreConfirm, $coreError } from '@/utils'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
 import ApiProjectInfoDetailApi, { loadInfoDetail } from '@/api/ApiProjectInfoDetailApi'
@@ -11,6 +11,7 @@ import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
+import { checkAndSaveDocInfoDetail } from '@/services/api/ApiDocEditService'
 
 const props = defineProps({
   currentProject: {
@@ -124,19 +125,8 @@ const saveComponent = (form) => {
       currentComponentModel.value.schemaContent = contentRef.value
       const data = currentComponentModel.value
       if (data.schemaContent) {
-        try {
-          JSON.parse(data.schemaContent)
-        } catch (e) {
-          $coreError($i18nBundle('common.msg.jsonError'))
-          return
-        }
-        ApiProjectInfoDetailApi.saveOrUpdate(data)
-          .then((data) => {
-            if (data.success) {
-              ElMessage.success($i18nBundle('common.msg.saveSuccess'))
-              emit('saveComponent', data.resultData)
-            }
-          })
+        checkAndSaveDocInfoDetail(data)
+          .then((resultData) => emit('saveComponent', resultData))
       } else {
         $coreError($i18nBundle('common.msg.nonNull', ['JSON Schema']))
       }

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -26,8 +27,8 @@ public class ApiSchemaContentUtils {
      * @return
      */
     public static boolean isSameSchemaContent(String savedComponentSchemaContent, String componentSchemaContent, boolean isV31) {
-        Schema<?> savedSchema = SchemaJsonUtils.fromJson(savedComponentSchemaContent, Schema.class, isV31);
-        Schema<?> newSchema = SchemaJsonUtils.fromJson(componentSchemaContent, Schema.class, isV31);
+        String savedSchema = StringUtils.deleteWhitespace(savedComponentSchemaContent);
+        String newSchema = StringUtils.deleteWhitespace(componentSchemaContent);
         return Objects.equals(savedSchema, newSchema);
     }
 
