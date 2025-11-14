@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
@@ -304,5 +305,39 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         return update(Wrappers.<ApiProject>lambdaUpdate()
                 .set(ApiProject::getEnvContent, jsonContent)
                 .eq(ApiProject::getId, apiProject.getId()));
+    }
+
+    @Override
+    public ApiProjectInfo findOrCreateProjectInfo(ApiDoc apiDoc) {
+        List<ApiProjectInfo> projectInfos = apiProjectInfoService.loadByProjectId(apiDoc.getProjectId());
+        if (CollectionUtils.isNotEmpty(projectInfos)) {
+            if (projectInfos.size() == 1) {
+                return projectInfos.get(0);
+            } else {
+                List<ApiFolder> apiFolders = apiFolderService.loadApiFolders(apiDoc.getProjectId());
+                Map<Integer, ApiFolder> folderMap = apiFolders.stream().collect(Collectors.toMap(ApiFolder::getId, Function.identity()));
+                Map<Integer, ApiProjectInfo> folderProjectInfoMap = projectInfos.stream().collect(Collectors.toMap(ApiProjectInfo::getFolderId, Function.identity()));
+                ApiFolder apiFolder = folderMap.get(apiDoc.getFolderId());
+                Set<Integer> scannedSet = new HashSet<>();
+                while (apiFolder != null && !scannedSet.contains(apiFolder.getId())) {
+                    scannedSet.add(apiFolder.getId());
+                    ApiProjectInfo projectInfo = folderProjectInfoMap.get(apiFolder.getId());
+                    if (projectInfo != null) {
+                        return projectInfo;
+                    } else {
+                        apiFolder = folderMap.get(apiFolder.getParentId());
+                    }
+                }
+                return projectInfos.get(0);
+            }
+        } else if (ApiDocConstants.DOC_TYPE_API.equals(apiDoc.getDocType())) { // 没有Info数据建个新的
+            ApiProject project = this.getById(apiDoc.getProjectId());
+            ApiFolder rootFolder = apiFolderService.getRootFolder(apiDoc.getProjectId());
+            ApiProjectInfo projectInfo = SimpleModelUtils.getDefaultProjectInfo(project);
+            projectInfo.setFolderId(rootFolder.getId());
+            apiProjectInfoService.save(projectInfo);
+            return projectInfo;
+        }
+        return null;
     }
 }

@@ -59,7 +59,9 @@ const hasParameters = computed(() => {
       :show-merge-all-of="showMergeAllOf"
     />
     <el-container v-else>
-      无
+      <el-text type="info">
+        {{ $t('common.msg.noData') }}
+      </el-text>
     </el-container>
   </el-container>
 </template>

@@ -109,7 +109,7 @@ public class ApiDocController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
         if (apiDoc.getInfoId() == null) {
-            ApiProjectInfo projectInfo = apiProjectInfoService.loadByProjectId(apiDoc.getProjectId(), apiDoc.getFolderId());
+            ApiProjectInfo projectInfo = apiProjectService.findOrCreateProjectInfo(apiDoc);
             if (projectInfo != null) {
                 apiDoc.setInfoId(projectInfo.getId());
             }

@@ -43,7 +43,7 @@ const toEditRequestSchema = (requestsSchema) => {
     <h3 id="api-doc-parameters">
       {{ $t('api.label.requestBody') }}
     </h3>
-    <el-tabs>
+    <el-tabs v-if="apiDocDetail.requestsSchemas?.length">
       <el-tab-pane
         v-for="(requestsSchema, index) in apiDocDetail.requestsSchemas"
         :key="index"
@@ -99,6 +99,11 @@ const toEditRequestSchema = (requestsSchema) => {
         </el-container>
       </el-tab-pane>
     </el-tabs>
+    <el-container v-else>
+      <el-text type="info">
+        {{ $t('common.msg.noData') }}
+      </el-text>
+    </el-container>
   </el-container>
 </template>
 

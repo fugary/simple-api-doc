@@ -50,7 +50,10 @@ const toEditResponseSchema = (responseSchema) => {
     <h3 id="api-doc-parameters">
       {{ $t('api.label.responseBody') }}
     </h3>
-    <el-tabs class="padding-right2">
+    <el-tabs
+      v-if="responsesSchemas?.length"
+      class="padding-right2"
+    >
       <el-tab-pane
         v-for="(responseSchema, index) in responsesSchemas"
         :key="index"
@@ -126,6 +129,11 @@ const toEditResponseSchema = (responseSchema) => {
         </el-container>
       </el-tab-pane>
     </el-tabs>
+    <el-container v-else>
+      <el-text type="info">
+        {{ $t('common.msg.noData') }}
+      </el-text>
+    </el-container>
   </el-container>
 </template>
 

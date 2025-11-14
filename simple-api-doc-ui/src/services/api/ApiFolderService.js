@@ -184,6 +184,19 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
       }, true)
     }
   }, {
+    icon: 'custom-api',
+    label: $i18nKey('common.label.commonAdd', 'api.label.interfaces'),
+    handler: () => {
+      handlerData.showDocDetails({
+        isDoc: true,
+        folderId: folder.id,
+        projectId: folder.projectId,
+        docType: 'api',
+        status: 1,
+        sortId: getMdChildrenSortId(folder)
+      }, true)
+    }
+  }, {
     enabled: !folder.rootFlag && handlerData.isDeletable?.value,
     icon: 'FolderDelete',
     type: 'danger',

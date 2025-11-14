@@ -1,7 +1,9 @@
 package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
@@ -110,4 +112,12 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @return
      */
     boolean saveEnvConfigs(ApiProject apiProject, List<ExportEnvConfigVo> envConfigs);
+
+    /**
+     * 获取或创建ProjectInfo信息
+     *
+     * @param apiDoc
+     * @return
+     */
+    ApiProjectInfo findOrCreateProjectInfo(ApiDoc apiDoc);
 }
