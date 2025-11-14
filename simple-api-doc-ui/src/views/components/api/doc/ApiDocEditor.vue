@@ -14,16 +14,18 @@ const currentDoc = defineModel({
   default: () => ({})
 })
 const currentDocModel = ref()
-const urlOptions = computed(() => {
+const getStyleGrow = flexGrow => ({
+  flexGrow,
+  minWidth: `calc(${flexGrow}0%)`
+})
+const formOptions = computed(() => {
   return [{
     type: 'select',
     prop: 'method',
     children: getSingleSelectOptions(...ALL_METHODS.map(method => method.method)),
     labelKey: 'api.label.requestPath',
     required: true,
-    style: {
-      flexGrow: 2
-    },
+    style: getStyleGrow(3),
     attrs: {
       clearable: false
     }
@@ -33,13 +35,17 @@ const urlOptions = computed(() => {
     labelKey: 'api.label.requestPath',
     showLabel: false,
     required: true,
-    style: {
-      flexGrow: 5
-    }
-  }]
-})
-const formOptions = computed(() => {
-  return [useFormStatus(), {
+    style: getStyleGrow(7)
+  }, {
+    ...useFormStatus(),
+    style: getStyleGrow(4)
+  }, {
+    labelKey: 'api.label.apiDocLock',
+    type: 'switch',
+    prop: 'locked',
+    tooltip: $i18nBundle('api.msg.apiDocLocked'),
+    style: getStyleGrow(6)
+  }, {
     labelKey: 'common.label.description',
     prop: 'description',
     attrs: {
@@ -91,24 +97,12 @@ defineEmits(['savedDoc'])
       @saved-doc="$emit('savedDoc', $event)"
     />
     <common-form
+      label-width="130px"
       :options="formOptions"
       :model="currentDocModel"
       :show-buttons="false"
-    >
-      <template #before-options>
-        <div
-          class="common-form-auto"
-        >
-          <common-form-control
-            v-for="(option, optIdx) in urlOptions"
-            :key="optIdx"
-            :model="currentDocModel"
-            :option="option"
-            :prop="option.prop"
-          />
-        </div>
-      </template>
-    </common-form>
+      class-name="common-form-auto"
+    />
   </el-container>
 </template>
 

@@ -76,6 +76,7 @@ const saveApiDoc = (form) => {
       class-name="common-form-auto"
       :model="currentDocModel"
       :show-buttons="false"
+      label-width="130px"
     >
       <template #default="{form}">
         <common-form-control
