@@ -19,6 +19,7 @@ import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
 import { cloneDeep, isArray } from 'lodash-es'
 import { ElText } from 'element-plus'
+import { showMarkdownWindow } from '@/utils/DynamicUtils'
 
 const vModel = ref()
 const currentInfoDetail = ref()
@@ -219,6 +220,23 @@ const additionalOptions = computed(() => {
     prop: 'schema.description',
     attrs: {
       type: 'textarea'
+    },
+    tooltip: $i18nBundle('common.label.newWindowEdit'),
+    tooltipIcon: 'EditPen',
+    tooltipLinkAttrs: {
+      type: 'primary'
+    },
+    tooltipFunc () {
+      showMarkdownWindow({
+        content: vModel.value.schema?.description,
+        title: $i18nKey('common.label.commonEdit', 'common.label.description')
+      }, {
+        'onUpdate:modelValue': value => {
+          if (vModel.value.schema) {
+            vModel.value.schema.description = value
+          }
+        }
+      })
     }
   }]
 })

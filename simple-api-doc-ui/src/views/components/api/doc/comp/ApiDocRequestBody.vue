@@ -6,6 +6,7 @@ import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { MdPreview } from 'md-editor-v3'
 import { toEditComponent } from '@/utils/DynamicUtils'
+import { newDocInfoDetail } from '@/services/api/ApiDocEditService'
 
 defineProps({
   theme: {
@@ -29,11 +30,17 @@ const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
 const emit = defineEmits(['schemaUpdated'])
 const toEditRequestSchema = (requestsSchema) => {
-  toEditComponent(requestsSchema, {
-    onSaveComponent: newData => {
-      console.log('========================newData', newData)
-      emit('schemaUpdated')
+  if (!requestsSchema) {
+    requestsSchema = {
+      ...newDocInfoDetail(apiDocDetail.value),
+      bodyType: 'request',
+      schemaContent: '{"schema":{"type":"object"}}',
+      contentType: 'application/json'
     }
+  }
+  toEditComponent(requestsSchema, {
+    onSaveComponent: () => emit('schemaUpdated'),
+    onDeleteComponent: () => emit('schemaUpdated')
   })
 }
 </script>
@@ -42,6 +49,17 @@ const toEditRequestSchema = (requestsSchema) => {
   <el-container class="flex-column">
     <h3 id="api-doc-parameters">
       {{ $t('api.label.requestBody') }}
+      <el-link
+        v-if="editable"
+        class="margin-left1"
+        type="primary"
+        @click="toEditRequestSchema()"
+      >
+        <common-icon
+          :size="18"
+          icon="Plus"
+        />
+      </el-link>
     </h3>
     <el-tabs v-if="apiDocDetail.requestsSchemas?.length">
       <el-tab-pane

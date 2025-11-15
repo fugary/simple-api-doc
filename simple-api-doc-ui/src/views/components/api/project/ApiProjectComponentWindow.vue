@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { ref, useTemplateRef } from 'vue'
+import { ref, useTemplateRef, computed } from 'vue'
 import ApiProjectComponent from '@/views/components/api/project/ApiProjectComponent.vue'
 import { $i18nKey } from '@/messages'
 const showWindow = ref(false)
@@ -18,6 +18,18 @@ const saveComponent = ({ form }) => {
 defineExpose({
   toEditComponent
 })
+const buttons = computed(() => {
+  return [{
+    labelKey: 'common.label.delete',
+    type: 'danger',
+    click () {
+      apiComponentRef.value?.deleteComponent()?.then(() => {
+        showWindow.value = false
+      })
+    },
+    enabled: !!currentInfo.value?.id
+  }]
+})
 </script>
 
 <template>
@@ -27,6 +39,7 @@ defineExpose({
     :title="$i18nKey('common.label.commonEdit', 'api.label.dataModel')"
     :ok-label="$t('common.label.save')"
     :ok-click="saveComponent"
+    :buttons="buttons"
   >
     <api-project-component
       v-if="currentInfo"

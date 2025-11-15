@@ -30,21 +30,21 @@ const componentSchemas = ref([])
 const currentComponentModel = ref()
 const { managedItems, pushItem, clearItems, startContext, goToItem } = useManagedArrayItems()
 watch(currentInfoDetail, async model => {
-  if (model.id || model.schemaName) {
+  if (model.id) {
     await loadInfoDetail(model).then(data => {
       currentComponentModel.value = data.resultData
       componentSchemas.value = data.addons?.components || []
     })
-    const projectId = currentComponentModel.value.projectId
-    console.log('=============================data', currentComponentModel.value, projectItemMap, projectId)
-    if (!projectItemMap[projectId]) {
-      loadDetailById(projectId)
-        .then((data) => {
-          projectItemMap[projectId] = data
-        })
-    }
   } else {
     currentComponentModel.value = currentInfoDetail.value
+  }
+  const projectId = currentComponentModel.value.projectId
+  console.log('=============================data', currentComponentModel.value, projectItemMap, projectId)
+  if (!projectItemMap[projectId]) {
+    loadDetailById(projectId)
+      .then((data) => {
+        projectItemMap[projectId] = data
+      })
   }
   clearItems()
   pushItem(currentComponentModel.value)
@@ -134,8 +134,8 @@ const saveComponent = (form) => {
   })
 }
 const deleteComponent = () => {
-  $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
-    ApiProjectInfoDetailApi.deleteById(currentComponentModel.value.id)
+  return $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
+    return ApiProjectInfoDetailApi.deleteById(currentComponentModel.value.id)
       .then(() => {
         emit('deleteComponent', currentComponentModel.value)
       })

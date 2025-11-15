@@ -6,6 +6,7 @@ import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { MdPreview } from 'md-editor-v3'
 import { toEditComponent } from '@/utils/DynamicUtils'
+import { newDocInfoDetail } from '@/services/api/ApiDocEditService'
 
 defineProps({
   theme: {
@@ -36,11 +37,17 @@ const responsesSchemas = computed(() => {
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
 const emit = defineEmits(['schemaUpdated'])
 const toEditResponseSchema = (responseSchema) => {
-  toEditComponent(responseSchema, {
-    onSaveComponent: newData => {
-      console.log('========================newData', newData)
-      emit('schemaUpdated')
+  if (!responseSchema) {
+    responseSchema = {
+      ...newDocInfoDetail(apiDocDetail.value),
+      bodyType: 'response',
+      schemaContent: '{"schema":{"type":"object"}}',
+      contentType: 'application/json'
     }
+  }
+  toEditComponent(responseSchema, {
+    onSaveComponent: () => emit('schemaUpdated'),
+    onDeleteComponent: () => emit('schemaUpdated')
   })
 }
 </script>
@@ -49,6 +56,17 @@ const toEditResponseSchema = (responseSchema) => {
   <el-container class="flex-column">
     <h3 id="api-doc-parameters">
       {{ $t('api.label.responseBody') }}
+      <el-link
+        v-if="editable"
+        class="margin-left1"
+        type="primary"
+        @click="toEditResponseSchema()"
+      >
+        <common-icon
+          :size="18"
+          icon="Plus"
+        />
+      </el-link>
     </h3>
     <el-tabs
       v-if="responsesSchemas?.length"
