@@ -23,10 +23,8 @@ const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
 const emit = defineEmits(['schemaUpdated'])
 const toEditApiDocParameters = () => {
   toEditApiDocRequestParams(apiDocDetail.value, {
-    onSaveComponent: newData => {
-      console.log('========================newData', newData)
-      emit('schemaUpdated')
-    }
+    onSaveComponent: () => emit('schemaUpdated'),
+    onDeleteComponent: () => emit('schemaUpdated')
   })
 }
 const hasParameters = computed(() => {

@@ -1,9 +1,11 @@
 <script setup>
 import ApiDocRequestParamsEdit from '@/views/components/api/doc/comp/edit/ApiDocRequestParamsEdit.vue'
 import { computed, ref } from 'vue'
-import { $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { checkAndSaveDocInfoDetail, toParametersSchemaContent } from '@/services/api/ApiDocEditService'
 import { cloneDeep } from 'lodash-es'
+import { $coreConfirm } from '@/utils'
+import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 
 const showWindow = ref(false)
 const apiDocDetail = ref()
@@ -12,7 +14,7 @@ const toEditApiDocRequestParams = (docDetail) => {
   apiDocDetail.value = docDetail
   showWindow.value = true
 }
-const emit = defineEmits(['saveComponent'])
+const emit = defineEmits(['saveComponent', 'deleteComponent'])
 const saveSchemaContent = ({ form }) => {
   form.validate(valid => {
     if (valid) {
@@ -30,6 +32,19 @@ const buttons = computed(() => [{
   labelKey: 'common.label.reset',
   type: 'success',
   click: () => toEditApiDocRequestParams(cloneDeep(apiDocDetail.value))
+}, {
+  labelKey: 'common.label.delete',
+  type: 'danger',
+  click () {
+    return $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
+      return ApiProjectInfoDetailApi.deleteById(paramsModel.value.parametersSchema.id)
+        .then(() => {
+          emit('deleteComponent', paramsModel.value.parametersSchema)
+          showWindow.value = false
+        })
+    })
+  },
+  enabled: !!paramsModel.value?.parametersSchema?.id
 }])
 defineExpose({
   toEditApiDocRequestParams
