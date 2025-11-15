@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
@@ -111,9 +112,10 @@ public interface ApiDocService extends IService<ApiDoc> {
                         Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap);
 
     /**
-     * 复制一份ApiDoc，仅Markdown文档
+     * 复制一份ApiDoc
      * @param apiDoc
+     * @param apiFolder
      * @return
      */
-    boolean copyApiDoc(ApiDoc apiDoc);
+    SimpleResult<ApiDoc> copyApiDoc(ApiDoc apiDoc, ApiFolder apiFolder);
 }

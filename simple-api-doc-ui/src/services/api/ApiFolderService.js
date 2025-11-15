@@ -234,14 +234,12 @@ export const getDocHandlers = (doc, handlerData) => {
   const statusLabel = doc.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
   const lockedLabel = $i18nBundle(doc.locked ? 'api.label.apiDocUnlock' : 'api.label.apiDocLock')
   return [{
-    enabled: !isApi,
     icon: 'Edit',
     label: $i18nBundle('common.label.commonEdit', [label]),
     handler: () => {
       handlerData.showDocDetails(doc, true)
     }
   }, {
-    enabled: !isApi,
     icon: 'DocumentCopy',
     label: $i18nBundle('common.label.commonCopy', [label]),
     handler: () => {

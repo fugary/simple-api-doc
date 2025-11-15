@@ -3,6 +3,7 @@ package com.fugary.simple.api.utils.exports;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
+import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -312,5 +313,31 @@ public class ApiDocParseUtils {
                 .build()
                 .toUriString();
         return baseUrl + path;
+    }
+
+    /**
+     * docKey计算
+     *
+     * @param operationId
+     * @param url
+     * @param method
+     * @return
+     */
+    public static String calcApiDocKey(String operationId, String url, String method) {
+        return StringUtils.defaultIfBlank(operationId, url + "#" + method);
+    }
+
+    /**
+     * 计算新的docKey
+     * @param newDoc
+     * @param apiFolder
+     */
+    public static void calcNewDocKey(ApiDoc newDoc, ApiFolder apiFolder) {
+        if (ApiDocConstants.DOC_TYPE_API.equals(newDoc.getDocType()) && apiFolder != null) {
+            String docKey = ApiDocParseUtils.calcApiDocKey(newDoc.getOperationId(), newDoc.getUrl(), newDoc.getMethod());
+            newDoc.setDocKey(apiFolder.getFolderName() + "#" + docKey);
+        } else if (StringUtils.isBlank(newDoc.getDocKey())) {
+            newDoc.setDocKey(SimpleModelUtils.uuid());
+        }
     }
 }

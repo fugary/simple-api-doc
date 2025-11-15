@@ -46,6 +46,11 @@ const formOptions = computed(() => {
     tooltip: $i18nBundle('api.msg.apiDocLocked'),
     style: getStyleGrow(6)
   }, {
+    label: 'Operation ID',
+    prop: 'operationId',
+    required: true,
+    style: getStyleGrow(10)
+  }, {
     labelKey: 'common.label.description',
     prop: 'description',
     attrs: {

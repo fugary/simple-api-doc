@@ -4,12 +4,16 @@ import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.mapper.api.ApiDocMapper;
 import com.fugary.simple.api.service.apidoc.ApiDocHistoryService;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,21 +140,26 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
             if (infoPair != null && infoPair.getRight() != null) {
                 newDoc.setInfoId(infoPair.getRight().getId());
             }
-            save(newDoc);
-            List<ApiProjectInfoDetail> schemas = apiDocSchemaService.loadByDoc(apiDoc.getId());
-            schemas.forEach(schema -> {
-                ApiProjectInfoDetail newSchema = SimpleModelUtils.copy(schema, ApiProjectInfoDetail.class);
-                newSchema.setId(null);
-                newSchema.setDocId(newDoc.getId());
-                apiDocSchemaService.save(newSchema);
-            });
+            saveCopiedDoc(apiDoc, newDoc);
             docMappings.put(apiDoc.getId(), newDoc.getId());
         });
         return docMappings;
     }
 
+    private boolean saveCopiedDoc(ApiDoc apiDoc, ApiDoc newDoc) {
+        boolean result = save(newDoc);
+        List<ApiProjectInfoDetail> schemas = apiDocSchemaService.loadByDoc(apiDoc.getId());
+        schemas.forEach(schema -> {
+            ApiProjectInfoDetail newSchema = SimpleModelUtils.copy(schema, ApiProjectInfoDetail.class);
+            newSchema.setId(null);
+            newSchema.setDocId(newDoc.getId());
+            apiDocSchemaService.save(newSchema);
+        });
+        return result;
+    }
+
     @Override
-    public boolean copyApiDoc(ApiDoc apiDoc) {
+    public SimpleResult<ApiDoc> copyApiDoc(ApiDoc apiDoc, ApiFolder apiFolder) {
         ApiDoc newDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
         newDoc.setId(null);
         newDoc.setModifier(null);
@@ -160,9 +169,14 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         }
         newDoc.setSortId(newDoc.getSortId() + 5);
         newDoc.setDocVersion(1);
-        newDoc.setDocKey(SimpleModelUtils.uuid());
+        newDoc.setOperationId(apiDoc.getOperationId() + ApiDocConstants.COPY_SUFFIX);
+        ApiDocParseUtils.calcNewDocKey(newDoc, apiFolder);
         newDoc.setDocName(newDoc.getDocName() + ApiDocConstants.COPY_SUFFIX);
         SimpleModelUtils.addAuditInfo(newDoc);
-        return save(newDoc);
+        if (existsApiDoc(newDoc)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
+        }
+        saveCopiedDoc(apiDoc, newDoc);
+        return SimpleResultUtils.createSimpleResult(newDoc);
     }
 }

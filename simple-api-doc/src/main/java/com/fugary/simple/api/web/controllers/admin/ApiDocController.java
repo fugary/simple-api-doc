@@ -11,6 +11,7 @@ import com.fugary.simple.api.exports.md.MdViewContext;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
@@ -114,9 +115,7 @@ public class ApiDocController {
                 apiDoc.setInfoId(projectInfo.getId());
             }
         }
-        if (StringUtils.isBlank(apiDoc.getDocKey())) {
-            apiDoc.setDocKey(SimpleModelUtils.uuid());
-        }
+        ApiDocParseUtils.calcNewDocKey(apiDoc, folder);
         if (apiDoc.getDocVersion() == null) {
             apiDoc.setDocVersion(1);
         }
@@ -242,7 +241,8 @@ public class ApiDocController {
         if (!validateUserProject(apiDoc)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        return SimpleResultUtils.createSimpleResult(apiDocService.copyApiDoc(apiDoc));
+        ApiFolder folder = apiFolderService.getById(apiDoc.getFolderId());
+        return apiDocService.copyApiDoc(apiDoc, folder);
     }
 
     protected boolean validateUserProject(ApiDoc apiDoc) {
