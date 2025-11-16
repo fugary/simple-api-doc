@@ -20,6 +20,10 @@ public class SimpleApiConfigProperties {
 
     private Integer jwtExpire = 7;
     /**
+     * 上传大小
+     */
+    private long maxUploadSize = 10 * 1024 * 1024;
+    /**
      * 是否开启任务
      */
     private boolean taskEnabled = true;

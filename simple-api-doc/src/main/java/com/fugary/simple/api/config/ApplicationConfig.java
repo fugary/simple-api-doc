@@ -49,7 +49,7 @@ public class ApplicationConfig implements WebMvcConfigurer {
     @Bean
     public CommonsMultipartResolver multipartResolver() {
         CommonsMultipartResolver multipartResolver = new CommonsMultipartResolver();
-        multipartResolver.setMaxUploadSize(5 * 1024 * 1024); // 5MB
+        multipartResolver.setMaxUploadSize(simpleApiConfigProperties.getMaxUploadSize()); // 大小限制
         multipartResolver.setDefaultEncoding(StandardCharsets.UTF_8.name());
         return multipartResolver;
     }
