@@ -1,14 +1,15 @@
 <script setup lang="jsx">
 import { computed, nextTick, ref, watch } from 'vue'
 import { checkParamsFilled } from '@/services/api/ApiDocPreviewService'
-import { DEFAULT_HEADERS, SCHEMA_BASE_TYPES } from '@/consts/ApiConstants'
-import { calcApiDocRequestModel } from '@/services/api/ApiDocEditService'
+import { DEFAULT_HEADERS, SCHEMA_BASE_TYPES, SCHEMA_SELECT_TYPE, SCHEMA_SELECT_TYPES } from '@/consts/ApiConstants'
+import { calcApiDocRequestModel, initApiDocParams } from '@/services/api/ApiDocEditService'
 import { getSingleSelectOptions } from '@/utils'
 import { ElButton, ElLink } from 'element-plus'
-import { $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { calcSuggestionsFunc } from '@/services/api/ApiCommonService'
 import { toEditJsonSchema } from '@/utils/DynamicUtils'
 import CommonIcon from '@/components/common-icon/index.vue'
+import { cloneDeep } from 'lodash-es'
 
 const currentDocModel = defineModel('modelValue', {
   type: Object,
@@ -39,6 +40,32 @@ watch(currentDocModel, () => {
 }, { immediate: true })
 
 const formOptions = computed(() => {
+  const basicOptions = [...getSingleSelectOptions(...SCHEMA_BASE_TYPES.filter(type => type !== 'object')),
+    ...SCHEMA_SELECT_TYPES.filter(type => type.value !== SCHEMA_SELECT_TYPE.BASIC).map(item => ({
+      value: item.value,
+      label: $i18nBundle(item.labelKey)
+    }))]
+  const getToEditFunc = model => {
+    return () => {
+      const newModel = cloneDeep(model)
+      initApiDocParams([newModel])
+      return toEditJsonSchema(newModel, paramsModel.value.parametersSchema, {
+        onSaveJsonSchema (toSaveData) {
+          let __type = toSaveData.type
+          if (toSaveData.dataType === SCHEMA_SELECT_TYPE.REF || toSaveData.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
+            __type = toSaveData.dataType
+          }
+          Object.assign(model, {
+            name: toSaveData.name,
+            schema: toSaveData.schema,
+            required: toSaveData.required,
+            description: toSaveData.schema?.description,
+            __type
+          })
+        }
+      })
+    }
+  }
   return [{
     labelKey: 'common.label.name',
     required: true,
@@ -54,17 +81,7 @@ const formOptions = computed(() => {
         slots: {
           append () {
             console.log('============model', model, paramsModel.value)
-            const toEdit = () => toEditJsonSchema(model, null, {
-              onSaveJsonSchema (toSaveData) {
-                console.log('==============toSaveData', toSaveData)
-                Object.assign(model, {
-                  name: toSaveData.name,
-                  schema: toSaveData.schema,
-                  required: toSaveData.required
-                })
-              }
-            })
-            return <ElLink type="primary" onClick={toEdit}>
+            return <ElLink type="primary" onClick={getToEditFunc(model)}>
               <CommonIcon icon="Edit"/>
             </ElLink>
           }
@@ -73,13 +90,22 @@ const formOptions = computed(() => {
     }
   }, {
     labelKey: 'api.label.type',
-    prop: 'schema.type',
+    prop: '__type',
     type: 'select-v2',
     required: true,
     attrs: {
       clearable: false,
       filterable: true,
-      options: getSingleSelectOptions(...SCHEMA_BASE_TYPES)
+      options: basicOptions
+    },
+    formChange (type, { model }) {
+      console.log('================model', model)
+      if (type === SCHEMA_SELECT_TYPE.REF || type === SCHEMA_SELECT_TYPE.XXX_OF) {
+        model.dataType = type
+        getToEditFunc(model)()
+      } else if (model.schema) {
+        model.schema.type = type
+      }
     },
     minWidth: '100px'
   }, {
@@ -205,6 +231,7 @@ const deleteParam = (key, { index }) => {
         </el-container>
       </el-tab-pane>
     </el-tabs>
+    {{ paramsModel.pathParams }}
   </common-form>
 </template>
 

@@ -2,6 +2,8 @@ import { $coreError } from '@/utils'
 import { $i18nBundle } from '@/messages'
 import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { ElMessage } from 'element-plus'
+import { SCHEMA_SELECT_TYPE } from '@/consts/ApiConstants'
+import { fromModelToSchema, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 
 /**
  * 模型初始化计算
@@ -17,10 +19,27 @@ export const calcApiDocRequestModel = docDetail => {
   console.log('==========================docDetail', docDetail, parametersSchema.schemaContent)
   return {
     parametersSchema,
-    pathParams: calcPathParams(schemaItems, docDetail.url),
-    requestParams: schemaItems.filter(item => item.in === 'query'),
-    headerParams: schemaItems.filter(item => item.in === 'header')
+    pathParams: initApiDocParams(calcPathParams(schemaItems, docDetail.url)),
+    requestParams: initApiDocParams(schemaItems.filter(item => item.in === 'query')),
+    headerParams: initApiDocParams(schemaItems.filter(item => item.in === 'header'))
   }
+}
+
+export const initApiDocParams = params => {
+  return params.map(param => {
+    if (!param.__type) {
+      param.__type = param.schema?.type
+      if (param?.schema?.$ref) {
+        param.__type = SCHEMA_SELECT_TYPE.REF
+      } else if (hasXxxOf(param.schema)) {
+        param.__type = SCHEMA_SELECT_TYPE.XXX_OF
+      }
+    }
+    if (param.schema) {
+      param.schema.description = param.description
+    }
+    return param
+  })
 }
 
 export const extractPathParams = (pathTemplate) => {
@@ -82,5 +101,36 @@ export const newDocInfoDetail = docDetail => {
     infoId: docDetail.infoId,
     bodyType: 'component',
     docId: docDetail.id
+  }
+}
+
+export const processSchemaBeforeSave = (model, additionalPropertiesEnabled) => {
+  const type = model.type
+  if (type) {
+    const toClean = ['type', '$ref', 'allOf', 'oneOf', 'anyOf']
+    toClean.forEach(key => delete model.schema[key])
+    if (model.dataType === SCHEMA_SELECT_TYPE.BASIC) {
+      model.schema.type = type
+      if (type === 'array' && model[type].length) {
+        model.schema.items = fromModelToSchema(model[type][0])
+      }
+      if (type === 'object') {
+        delete model.schema.additionalProperties
+        if (additionalPropertiesEnabled && model[type].length) {
+          model.schema.additionalProperties = fromModelToSchema(model[type][0])
+        }
+      }
+    } else if (model.dataType === SCHEMA_SELECT_TYPE.REF) {
+      model.schema = {
+        $ref: type,
+        description: model.schema?.description
+      }
+    } else if (model.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
+      console.log('============type', type, model[type])
+      model.schema = {
+        [type]: model[type].map(fromModelToSchema),
+        description: model.schema?.description
+      }
+    }
   }
 }

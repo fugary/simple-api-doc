@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, ref, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import {
   SCHEMA_BASE_TYPES,
   SCHEMA_BASIC_TYPE_CONFIGS,
@@ -8,18 +8,13 @@ import {
   SCHEMA_XXX_OF_TYPES
 } from '@/consts/ApiConstants'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import {
-  $ref2Schema,
-  calcComponentOptions,
-  fromModelToSchema,
-  fromSchemaToModel,
-  hasXxxOf
-} from '@/services/api/ApiDocPreviewService'
+import { $ref2Schema, calcComponentOptions, fromSchemaToModel, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
 import { cloneDeep, isArray } from 'lodash-es'
 import { ElText } from 'element-plus'
 import { showMarkdownWindow } from '@/utils/DynamicUtils'
+import { processSchemaBeforeSave } from '@/services/api/ApiDocEditService'
 
 const vModel = ref()
 const currentInfoDetail = ref()
@@ -33,17 +28,17 @@ const toEditJsonSchema = (data, currentInfo) => {
 const dataTypeCache = reactive({})
 const initJsonSchema = () => {
   console.log('================model', vModel.value, currentInfoDetail.value)
-  vModel.value.dataType = SCHEMA_SELECT_TYPE.BASIC
-  vModel.value.type = vModel.value?.schema?.type
   let xxxOf = null
-  if (vModel.value?.schema?.$ref) {
+  if (vModel.value?.schema?.$ref || vModel.value.dataType === SCHEMA_SELECT_TYPE.REF) {
     vModel.value.dataType = SCHEMA_SELECT_TYPE.REF
     vModel.value.type = vModel.value?.schema?.$ref
-  } else if ((xxxOf = hasXxxOf(vModel.value?.schema))) {
+  } else if ((xxxOf = hasXxxOf(vModel.value?.schema)) || vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
     vModel.value.dataType = SCHEMA_SELECT_TYPE.XXX_OF
     vModel.value.type = xxxOf
     fromSchemaToModel(vModel, xxxOf)
   } else { // 处理basic基本类型转换
+    vModel.value.dataType = SCHEMA_SELECT_TYPE.BASIC
+    vModel.value.type = vModel.value?.schema?.type
     vModel.value.basicSchema = vModel.value.schema
     vModel.value.enumEnabled = !!vModel.value.schema?.enum?.length
     vModel.value.constEnabled = !!vModel.value.schema?.const
@@ -61,30 +56,7 @@ const initJsonSchema = () => {
   dataTypeCache[vModel.value.dataType] = vModel.value.type
 }
 
-const processBeforeSave = () => {
-  const type = vModel.value.type
-  if (type) {
-    const toClean = ['type', '$ref', 'allOf', 'oneOf', 'anyOf']
-    toClean.forEach(key => delete vModel.value.schema[key])
-    if (vModel.value.dataType === SCHEMA_SELECT_TYPE.BASIC) {
-      vModel.value.schema.type = type
-      if (type === 'array' && vModel.value[type].length) {
-        vModel.value.schema.items = fromModelToSchema(vModel.value[type][0])
-      }
-      if (type === 'object') {
-        delete vModel.value.schema.additionalProperties
-        if (additionalPropertiesEnabled.value && vModel.value[type].length) {
-          vModel.value.schema.additionalProperties = fromModelToSchema(vModel.value[type][0])
-        }
-      }
-    } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.REF) {
-      vModel.value.schema.$ref = type
-    } else if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
-      console.log('============type', type, vModel.value[type])
-      vModel.value.schema[type] = vModel.value[type].map(fromModelToSchema)
-    }
-  }
-}
+const processBeforeSave = () => processSchemaBeforeSave(vModel.value, additionalPropertiesEnabled.value)
 
 const componentSchemas = ref([])
 const loadComponentSchemas = () => {
