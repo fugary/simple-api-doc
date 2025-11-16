@@ -48,7 +48,7 @@ const formOptions = computed(() => {
   }, {
     label: 'Operation ID',
     prop: 'operationId',
-    required: true,
+    required: false,
     style: getStyleGrow(10)
   }, {
     labelKey: 'common.label.description',

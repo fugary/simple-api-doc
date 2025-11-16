@@ -88,7 +88,7 @@ const processBeforeSave = () => {
 
 const componentSchemas = ref([])
 const loadComponentSchemas = () => {
-  if (!componentSchemas.value.length) {
+  if (!componentSchemas.value.length && currentInfoDetail.value) {
     loadInfoDetails({
       projectId: currentInfoDetail.value.projectId,
       infoId: currentInfoDetail.value.infoId,

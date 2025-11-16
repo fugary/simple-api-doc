@@ -17,10 +17,41 @@ export const calcApiDocRequestModel = docDetail => {
   console.log('==========================docDetail', docDetail, parametersSchema.schemaContent)
   return {
     parametersSchema,
+    pathParams: calcPathParams(schemaItems, docDetail.url),
     requestParams: schemaItems.filter(item => item.in === 'query'),
-    pathParams: schemaItems.filter(item => item.in === 'path'),
     headerParams: schemaItems.filter(item => item.in === 'header')
   }
+}
+
+export const extractPathParams = (pathTemplate) => {
+  const regex = /{([^}]+)}/g
+  const params = []
+  let match
+  while ((match = regex.exec(pathTemplate)) !== null) {
+    params.push(match[1]) // 提取参数名
+  }
+  return params
+}
+
+export const calcPathParams = (schemaItems, url) => {
+  // 从 schema 中显式声明的 path 参数
+  const schemaPathParams = schemaItems.filter(item => item.in === 'path')
+  const schemaNames = schemaPathParams.map(item => item.name)
+  // 从 URL 中解析出来的参数名
+  const urlParamNames = extractPathParams(url || '')
+  // URL 中存在但 schema 中未声明的参数
+  const missingParams = urlParamNames.filter(
+    name => !schemaNames.includes(name)
+  )
+  // 合并 schema 参数和 URL 补充出的参数
+  const combinedParams = [
+    ...schemaPathParams,
+    ...missingParams.map(name => ({ name, required: true, schema: { type: 'string' } }))
+  ]
+  // 最终只保留 URL 中真实存在的参数
+  return combinedParams.filter(param =>
+    urlParamNames.includes(param.name)
+  )
 }
 
 export const toParametersSchemaContent = (paramsModel) => {

@@ -1,16 +1,14 @@
-<script setup>
+<script setup lang="jsx">
 import { computed, nextTick, ref, watch } from 'vue'
-import {
-  checkParamsFilled
-} from '@/services/api/ApiDocPreviewService'
-import {
-  DEFAULT_HEADERS, SCHEMA_BASE_TYPES
-} from '@/consts/ApiConstants'
+import { checkParamsFilled } from '@/services/api/ApiDocPreviewService'
+import { DEFAULT_HEADERS, SCHEMA_BASE_TYPES } from '@/consts/ApiConstants'
 import { calcApiDocRequestModel } from '@/services/api/ApiDocEditService'
 import { getSingleSelectOptions } from '@/utils'
-import { ElButton } from 'element-plus'
+import { ElButton, ElLink } from 'element-plus'
 import { $i18nKey } from '@/messages'
 import { calcSuggestionsFunc } from '@/services/api/ApiCommonService'
+import { toEditJsonSchema } from '@/utils/DynamicUtils'
+import CommonIcon from '@/components/common-icon/index.vue'
 
 const currentDocModel = defineModel('modelValue', {
   type: Object,
@@ -47,12 +45,28 @@ const formOptions = computed(() => {
     prop: 'name',
     minWidth: '150px',
     dynamicOption: (model) => {
-      if (model.in === 'header') {
-        return {
-          type: 'autocomplete',
-          attrs: {
-            fetchSuggestions: calcSuggestionsFunc(DEFAULT_HEADERS),
-            triggerOnFocus: false
+      return {
+        type: model.in === 'header' ? 'autocomplete' : 'input',
+        attrs: {
+          fetchSuggestions: calcSuggestionsFunc(DEFAULT_HEADERS),
+          triggerOnFocus: false
+        },
+        slots: {
+          append () {
+            console.log('============model', model, paramsModel.value)
+            const toEdit = () => toEditJsonSchema(model, null, {
+              onSaveJsonSchema (toSaveData) {
+                console.log('==============toSaveData', toSaveData)
+                Object.assign(model, {
+                  name: toSaveData.name,
+                  schema: toSaveData.schema,
+                  required: toSaveData.required
+                })
+              }
+            })
+            return <ElLink type="primary" onClick={toEdit}>
+              <CommonIcon icon="Edit"/>
+            </ElLink>
           }
         }
       }

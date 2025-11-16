@@ -333,9 +333,13 @@ public class ApiDocParseUtils {
      * @param apiFolder
      */
     public static void calcNewDocKey(ApiDoc newDoc, ApiFolder apiFolder) {
-        if (ApiDocConstants.DOC_TYPE_API.equals(newDoc.getDocType()) && apiFolder != null) {
+        if (ApiDocConstants.DOC_TYPE_API.equals(newDoc.getDocType())) {
+            newDoc.setOperationId(StringUtils.defaultIfBlank(newDoc.getOperationId(), SimpleModelUtils.uuid()));
             String docKey = ApiDocParseUtils.calcApiDocKey(newDoc.getOperationId(), newDoc.getUrl(), newDoc.getMethod());
-            newDoc.setDocKey(apiFolder.getFolderName() + "#" + docKey);
+            if (apiFolder != null) {
+                docKey = apiFolder.getFolderName() + "#" + docKey;
+            }
+            newDoc.setDocKey(docKey);
         } else if (StringUtils.isBlank(newDoc.getDocKey())) {
             newDoc.setDocKey(SimpleModelUtils.uuid());
         }
