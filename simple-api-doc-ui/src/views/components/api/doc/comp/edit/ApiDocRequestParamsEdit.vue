@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { checkParamsFilled } from '@/services/api/ApiDocPreviewService'
 import { DEFAULT_HEADERS, SCHEMA_BASE_TYPES, SCHEMA_SELECT_TYPE, SCHEMA_SELECT_TYPES } from '@/consts/ApiConstants'
-import { calcApiDocRequestModel, initApiDocParams } from '@/services/api/ApiDocEditService'
+import { calcApiDocRequestModel, initApiDocParams, processSchemaBeforeSave } from '@/services/api/ApiDocEditService'
 import { getSingleSelectOptions } from '@/utils'
 import { ElButton, ElLink } from 'element-plus'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -104,7 +104,9 @@ const formOptions = computed(() => {
         model.dataType = type
         getToEditFunc(model)()
       } else if (model.schema) {
-        model.schema.type = type
+        model.dataType = SCHEMA_SELECT_TYPE.BASIC
+        model.type = type
+        processSchemaBeforeSave(model)
       }
     },
     minWidth: '100px'
@@ -231,7 +233,7 @@ const deleteParam = (key, { index }) => {
         </el-container>
       </el-tab-pane>
     </el-tabs>
-    {{ paramsModel.pathParams }}
+    <!--    {{ paramsModel.requestParams }}-->
   </common-form>
 </template>
 
