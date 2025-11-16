@@ -127,7 +127,7 @@ const toEditResponseSchema = (responseSchema) => {
               type="info"
               class="margin-right3"
             >
-              Status Code:
+              {{ $t('api.label.statusCode') }}:
               <el-text>{{ responseSchema.statusCode }}</el-text>
             </el-text>
           </el-container>

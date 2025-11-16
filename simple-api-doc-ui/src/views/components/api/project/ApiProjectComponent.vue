@@ -1,14 +1,14 @@
 <script setup lang="jsx">
-import { $i18nBundle, $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nKey, $i18nMsg } from '@/messages'
 import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElText } from 'element-plus'
-import { $coreConfirm, $coreError } from '@/utils'
+import { $coreConfirm, $coreError, getSingleSelectOptions } from '@/utils'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
 import ApiProjectInfoDetailApi, { loadInfoDetail } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
-import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
+import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
 import { checkAndSaveDocInfoDetail } from '@/services/api/ApiDocEditService'
@@ -64,8 +64,15 @@ const projectInfos = computed(() => {
   return []
 })
 const componentEditOptions = computed(() => {
+  const statusOptions = ALL_STATUS_CODES.map(status => {
+    const label = $i18nMsg(`${status.labelCn} - ${(status.labelEn)}`, `${status.labelEn} - ${(status.labelCn)}`)
+    return {
+      value: status.code,
+      label: `${status.code} - ${label}`
+    }
+  })
   return [{
-    showLabel: false,
+    labelKey: 'api.label.modelName',
     prop: 'schemaName',
     placeholder: $i18nKey('common.msg.commonInput', 'api.label.modelName'),
     required: !currentComponentModel.value?.docId,
@@ -105,11 +112,23 @@ const componentEditOptions = computed(() => {
         minWidth: '100px'
       }
     }
+  }, {
+    label: 'Content Type',
+    prop: 'contentType',
+    type: 'select',
+    enabled: ['request', 'response'].includes(currentInfoDetail.value.bodyType),
+    children: getSingleSelectOptions(...ALL_CONTENT_TYPES)
+  }, {
+    labelKey: 'api.label.statusCode',
+    prop: 'statusCode',
+    type: 'select',
+    enabled: currentInfoDetail.value.bodyType === 'response',
+    children: statusOptions
   }]
 })
 const descriptionEditOption = computed(() => {
   return {
-    showLabel: false,
+    labelKey: 'common.label.description',
     placeholder: $i18nKey('common.msg.commonInput', 'common.label.description'),
     prop: 'description',
     attrs: {
