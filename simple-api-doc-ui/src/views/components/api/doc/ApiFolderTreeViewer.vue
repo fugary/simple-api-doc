@@ -443,7 +443,7 @@ defineExpose(handlerData)
                 class="more-actions"
               >
                 <more-actions-link
-                  :handlers="data.isDoc ? getDocHandlers(data, handlerData) : getFolderHandlers(data, sharePreference, handlerData)"
+                  :handlers="data.isDoc ? getDocHandlers(data, sharePreference, handlerData) : getFolderHandlers(data, sharePreference, handlerData)"
                   @show-dropdown="showDropdown(data)"
                   @enter-dropdown="enterDropdown(data)"
                   @leave-dropdown="leaveDropdown(data)"

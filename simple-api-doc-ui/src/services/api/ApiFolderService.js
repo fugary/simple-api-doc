@@ -226,9 +226,10 @@ export const docHandlerSaveDoc = (doc, newData) => {
 /**
  * doc处理工具
  * @param doc
+ * @param preference
  * @param handlerData
  */
-export const getDocHandlers = (doc, handlerData) => {
+export const getDocHandlers = (doc, preference, handlerData) => {
   const isApi = doc.docType === 'api'
   const label = isApi ? $i18nBundle('api.label.interfaces') : $i18nBundle('api.label.mdDocument')
   const statusLabel = doc.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
@@ -245,6 +246,11 @@ export const getDocHandlers = (doc, handlerData) => {
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle('common.label.commonCopy', [label])]))
         .then(() => copyApiDoc(doc.id))
+        .then(newRes => {
+          if (newRes.resultData?.id && preference) {
+            preference.lastDocId = newRes.resultData?.id
+          }
+        })
         .then(() => handlerData.refreshProjectItem())
     }
   }, {
