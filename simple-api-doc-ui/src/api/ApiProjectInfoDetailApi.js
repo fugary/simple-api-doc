@@ -1,5 +1,5 @@
 import { useResourceApi } from '@/hooks/ApiHooks'
-import { $http } from '@/vendors/axios'
+import { $http, $httpPost } from '@/vendors/axios'
 
 const BASE_URL = '/admin/info/detail'
 
@@ -32,6 +32,10 @@ export const loadInfoDetail = (queryData, config) => {
     method: 'POST',
     data
   }, config)).then(response => response.data)
+}
+
+export const copyApiModel = function (modelId, config) {
+  return $httpPost(`${BASE_URL}/copyApiModel/${modelId}`, null, config)
 }
 
 export default ApiProjectInfoDetailApi

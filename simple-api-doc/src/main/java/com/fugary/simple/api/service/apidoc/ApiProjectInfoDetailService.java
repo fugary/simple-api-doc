@@ -5,6 +5,7 @@ import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
@@ -143,6 +144,14 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      * @return
      */
     boolean existsInfoDetail(ApiProjectInfoDetail infoDetail);
+
+    /**
+     * 复制模型
+     *
+     * @param infoDetail
+     * @return
+     */
+    SimpleResult<ApiProjectInfoDetail> copyApiModel(ApiProjectInfoDetail infoDetail);
 
     /**
      * 按照doc获取

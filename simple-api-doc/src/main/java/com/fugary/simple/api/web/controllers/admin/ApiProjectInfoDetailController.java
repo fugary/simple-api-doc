@@ -5,9 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
-import com.fugary.simple.api.entity.api.ApiProject;
-import com.fugary.simple.api.entity.api.ApiProjectInfo;
-import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
+import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
@@ -152,5 +150,17 @@ public class ApiProjectInfoDetailController {
         }
         apiProjectInfoDetailService.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
         return SimpleResultUtils.createSimpleResult(infoDetail);
+    }
+
+    @PostMapping("/copyApiModel/{id}")
+    public SimpleResult<ApiProjectInfoDetail> copyApiModel(@PathVariable("id") Integer id) { // 模型复制
+        ApiProjectInfoDetail infoDetail = apiProjectInfoDetailService.getById(id);
+        if (infoDetail == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectService.validateUserProject(infoDetail.getProjectId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        return apiProjectInfoDetailService.copyApiModel(infoDetail);
     }
 }

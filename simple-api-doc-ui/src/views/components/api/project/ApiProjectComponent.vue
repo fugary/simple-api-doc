@@ -4,9 +4,9 @@ import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElText } from 'element-plus'
-import { $coreConfirm, $coreError, getSingleSelectOptions } from '@/utils'
+import { $coreConfirm, $coreError, getSingleSelectOptions, getStyleGrow } from '@/utils'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
-import ApiProjectInfoDetailApi, { loadInfoDetail } from '@/api/ApiProjectInfoDetailApi'
+import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
@@ -76,17 +76,17 @@ const componentEditOptions = computed(() => {
     prop: 'schemaName',
     placeholder: $i18nKey('common.msg.commonInput', 'api.label.modelName'),
     required: !currentComponentModel.value?.docId,
+    style: getStyleGrow(9),
     attrs: {
-      style: {
-        minWidth: '350px'
-      }
+      size: 'large'
     }
   }, {
     labelKey: 'api.label.apiDocLock',
     type: 'switch',
     prop: 'locked',
     tooltip: $i18nBundle('api.msg.apiDocLocked'),
-    enabled: !currentComponentModel.value?.docId
+    enabled: !currentComponentModel.value?.docId,
+    style: getStyleGrow(3)
   }, {
     enabled: projectInfos.value?.length > 1,
     showLabel: false,
@@ -111,33 +111,34 @@ const componentEditOptions = computed(() => {
       style: {
         minWidth: '100px'
       }
-    }
+    },
+    style: getStyleGrow(3)
   }, {
     label: 'Content Type',
     prop: 'contentType',
     type: 'select',
     enabled: ['request', 'response'].includes(currentInfoDetail.value.bodyType),
-    children: getSingleSelectOptions(...ALL_CONTENT_TYPES)
+    children: getSingleSelectOptions(...ALL_CONTENT_TYPES),
+    style: getStyleGrow(3)
   }, {
     labelKey: 'api.label.statusCode',
     prop: 'statusCode',
     type: 'select',
     enabled: currentInfoDetail.value.bodyType === 'response',
-    children: statusOptions
-  }]
-})
-const descriptionEditOption = computed(() => {
-  return {
+    children: statusOptions,
+    style: getStyleGrow(3)
+  }, {
     labelKey: 'common.label.description',
     placeholder: $i18nKey('common.msg.commonInput', 'common.label.description'),
     prop: 'description',
+    style: getStyleGrow(9),
     attrs: {
       type: 'textarea'
     }
-  }
+  }]
 })
 
-const emit = defineEmits(['saveComponent', 'deleteComponent'])
+const emit = defineEmits(['saveComponent', 'deleteComponent', 'copyComponent'])
 const saveComponent = (form) => {
   form.validate((valid) => {
     if (valid) {
@@ -159,6 +160,16 @@ const deleteComponent = () => {
         emit('deleteComponent', currentComponentModel.value)
       })
   })
+}
+const copyComponent = () => {
+  return $coreConfirm($i18nBundle('common.msg.confirmCopy'))
+    .then(() => copyApiModel(currentComponentModel.value.id))
+    .then(result => {
+      if (result.resultData?.id) {
+        emit('saveComponent', result.resultData)
+        gotoComponent(result.resultData)
+      }
+    })
 }
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, languageSelectOption, formatDocument } = useMonacoEditorOptions({ readOnly: false })
 languageRef.value = 'json'
@@ -214,6 +225,7 @@ const getSchemaNameLabel = item => {
 
 defineExpose({
   saveComponent,
+  copyComponent,
   deleteComponent
 })
 </script>
@@ -223,130 +235,143 @@ defineExpose({
     <common-form
       v-if="currentComponentModel&&schemaContentObj"
       class="padding-left2 padding-right2"
+      :class="{'padding-top3':!inWindow}"
+      class-name="common-form-auto"
       :model="currentComponentModel"
       inline
       :options="componentEditOptions"
-      :submit-label="$t('common.label.save')"
-      :show-submit="writable&&!inWindow"
-      @submit-form="saveComponent"
+      :show-buttons="false"
     >
-      <template #buttons>
-        <el-button
-          v-if="deletable&&!inWindow"
-          type="danger"
-          @click="deleteComponent"
-        >
-          {{ $t('common.label.delete') }}
-        </el-button>
-      </template>
-      <template #after-buttons>
-        <common-form-control
-          class="form-edit-width-90"
-          :model="currentComponentModel"
-          :option="descriptionEditOption"
-        />
-        <el-container
-          v-if="managedItems?.length>1"
-          class="margin-bottom2"
-        >
-          <template
-            v-for="(item, index) in managedItems"
-            :key="index"
+      <template
+        v-if="writable&&!inWindow"
+        #after-buttons="{form}"
+      >
+        <el-container class="container-center">
+          <el-button
+            type="primary"
+            @click="saveComponent(form)"
           >
-            <el-link
-              v-if="index<managedItems.length-1"
-              type="primary"
-              @click="gotoComponent(goToItem(index))"
-            >
-              {{ getSchemaNameLabel(item) }}
-            </el-link>
-            <el-text
-              v-else
-              type="info"
-              tag="b"
-            >
-              {{ getSchemaNameLabel(item) }}
-            </el-text>
-            <el-text
-              v-if="index<managedItems.length-1"
-              type="info"
-            >
-              &nbsp;/&nbsp;
-            </el-text>
-          </template>
+            {{ $t('common.label.save') }}
+          </el-button>
+          <el-button
+            v-if="deletable&&currentComponentModel.id"
+            type="danger"
+            @click="deleteComponent"
+          >
+            {{ $t('common.label.delete') }}
+          </el-button>
+          <el-button
+            v-if="currentComponentModel.id"
+            type="warning"
+            @click="copyComponent"
+          >
+            {{ $t('common.label.copy') }}
+          </el-button>
         </el-container>
-        <el-tabs>
-          <el-tab-pane
-            :label="$t('api.label.dataModel')"
-            lazy
-          >
-            <el-container
-              class="flex-column"
-            >
-              <api-component-schema-edit-tree
-                v-if="currentComponentModel&&schemaContentObj&&currentProjectInfo"
-                v-model="schemaContentObj"
-                :current-info-detail="currentComponentModel"
-                :root-name="getSchemaNameLabel(currentComponentModel)"
-                :spec-version="currentProjectInfo.specVersion"
-                :component-schemas="componentSchemas"
-                :show-merge-all-of="false"
-                @goto-component="gotoComponent"
-              />
-            </el-container>
-          </el-tab-pane>
-          <el-tab-pane
-            label="JSON Schema"
-            lazy
-          >
-            <common-form-control
-              class="form-edit-width-90"
-              :model="languageModel"
-              :option="languageSelectOption"
-            >
-              <template #childAfter>
-                <url-copy-link
-                  :content="currentComponentModel.schemaContent"
-                  :tooltip="$i18nKey('common.label.commonCopy', 'common.label.code')"
-                />
-                <el-link
-                  v-common-tooltip="$i18nKey('common.label.commonFormat', 'common.label.code')"
-                  type="primary"
-                  underline="never"
-                  class="margin-left3"
-                  @click="formatDocument"
-                >
-                  <common-icon
-                    :size="18"
-                    icon="FormatIndentIncreaseFilled"
-                  />
-                </el-link>
-                <el-link
-                  v-common-tooltip="$t('api.msg.showRawData')"
-                  type="primary"
-                  underline="never"
-                  class="margin-left2"
-                  @click="contentRef=currentComponentModel.schemaContent"
-                >
-                  <common-icon
-                    :size="40"
-                    icon="RawOnFilled"
-                  />
-                </el-link>
-              </template>
-            </common-form-control>
-            <vue-monaco-editor
-              v-model:value="contentRef"
-              :language="languageRef"
-              :height="codeHeight"
-              :options="monacoEditorOptions"
-              class="common-resize-vertical"
-              @mount="editorRef=$event"
-            />
-          </el-tab-pane>
-        </el-tabs>
       </template>
     </common-form>
+    <el-container class="padding-10 flex-column">
+      <div
+        v-if="managedItems?.length>1"
+        class="padding-top5 padding-left2 padding-bottom1"
+      >
+        <template
+          v-for="(item, index) in managedItems"
+          :key="index"
+        >
+          <el-link
+            v-if="index<managedItems.length-1"
+            type="primary"
+            @click="gotoComponent(goToItem(index))"
+          >
+            {{ getSchemaNameLabel(item) }}
+          </el-link>
+          <el-text
+            v-else
+            type="info"
+            tag="b"
+          >
+            {{ getSchemaNameLabel(item) }}
+          </el-text>
+          <el-text
+            v-if="index<managedItems.length-1"
+            type="info"
+          >
+            &nbsp;/&nbsp;
+          </el-text>
+        </template>
+      </div>
+      <el-tabs>
+        <el-tab-pane
+          :label="$t('api.label.dataModel')"
+          lazy
+        >
+          <el-container
+            class="flex-column"
+          >
+            <api-component-schema-edit-tree
+              v-if="currentComponentModel&&schemaContentObj&&currentProjectInfo"
+              v-model="schemaContentObj"
+              :current-info-detail="currentComponentModel"
+              :root-name="getSchemaNameLabel(currentComponentModel)"
+              :spec-version="currentProjectInfo.specVersion"
+              :component-schemas="componentSchemas"
+              :show-merge-all-of="false"
+              @goto-component="gotoComponent"
+            />
+          </el-container>
+        </el-tab-pane>
+        <el-tab-pane
+          label="JSON Schema"
+          lazy
+        >
+          <common-form-control
+            class="form-edit-width-90"
+            :model="languageModel"
+            :option="languageSelectOption"
+          >
+            <template #childAfter>
+              <url-copy-link
+                :content="currentComponentModel.schemaContent"
+                :tooltip="$i18nKey('common.label.commonCopy', 'common.label.code')"
+              />
+              <el-link
+                v-common-tooltip="$i18nKey('common.label.commonFormat', 'common.label.code')"
+                type="primary"
+                underline="never"
+                class="margin-left3"
+                @click="formatDocument"
+              >
+                <common-icon
+                  :size="18"
+                  icon="FormatIndentIncreaseFilled"
+                />
+              </el-link>
+              <el-link
+                v-common-tooltip="$t('api.msg.showRawData')"
+                type="primary"
+                underline="never"
+                class="margin-left2"
+                @click="contentRef=currentComponentModel.schemaContent"
+              >
+                <common-icon
+                  :size="40"
+                  icon="RawOnFilled"
+                />
+              </el-link>
+            </template>
+          </common-form-control>
+          <vue-monaco-editor
+            v-model:value="contentRef"
+            :language="languageRef"
+            :height="codeHeight"
+            :options="monacoEditorOptions"
+            class="common-resize-vertical"
+            @mount="editorRef=$event"
+          />
+        </el-tab-pane>
+      </el-tabs>
+    </el-container>
   </el-container>
 </template>
 

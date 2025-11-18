@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import 'md-editor-v3/lib/style.css'
 import MarkdownDocEditHeader from '@/views/components/api/doc/comp/MarkdownDocEditHeader.vue'
-import { $coreHideLoading, $coreShowLoading, getSingleSelectOptions } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, getSingleSelectOptions, getStyleGrow } from '@/utils'
 import ApiDocApi from '@/api/ApiDocApi'
 import { ALL_METHODS } from '@/consts/ApiConstants'
 import { useFormStatus } from '@/consts/GlobalConstants'
@@ -14,10 +14,6 @@ const currentDoc = defineModel({
   default: () => ({})
 })
 const currentDocModel = ref()
-const getStyleGrow = flexGrow => ({
-  flexGrow,
-  minWidth: `calc(${flexGrow}0%)`
-})
 const formOptions = computed(() => {
   return [{
     type: 'select',

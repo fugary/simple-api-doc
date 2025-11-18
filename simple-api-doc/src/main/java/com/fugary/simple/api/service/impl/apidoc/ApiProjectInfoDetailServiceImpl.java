@@ -1,8 +1,10 @@
 package com.fugary.simple.api.service.impl.apidoc;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
@@ -11,7 +13,9 @@ import com.fugary.simple.api.mapper.api.ApiProjectInfoDetailMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
@@ -189,9 +193,27 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public boolean existsInfoDetail(ApiProjectInfoDetail infoDetail) {
-        List<ApiProjectInfoDetail> existProjects = list(Wrappers.<ApiProjectInfoDetail>query().eq("schema_name", infoDetail.getSchemaName())
-                .eq("body_type", infoDetail.getBodyType()).eq("info_id", infoDetail.getInfoId()));
+        QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query().eq("schema_name", infoDetail.getSchemaName())
+                .eq("body_type", infoDetail.getBodyType()).eq("info_id", infoDetail.getInfoId());
+        if (infoDetail.getDocId() != null) {
+            queryWrapper.eq("doc_id", infoDetail.getDocId());
+        }
+        List<ApiProjectInfoDetail> existProjects = list(queryWrapper);
         return existProjects.stream().anyMatch(existProject -> !existProject.getId().equals(infoDetail.getId()));
+    }
+
+    @Override
+    public SimpleResult<ApiProjectInfoDetail> copyApiModel(ApiProjectInfoDetail infoDetail) {
+        ApiProjectInfoDetail newInfoDetail = SimpleModelUtils.copy(infoDetail, ApiProjectInfoDetail.class);
+        newInfoDetail.setId(null);
+        newInfoDetail.setModifier(null);
+        newInfoDetail.setModifyDate(null);
+        newInfoDetail.setSchemaName(StringUtils.defaultIfBlank(infoDetail.getSchemaName(), "Model") + ApiDocConstants.COPY_SUFFIX);
+        if (existsInfoDetail(newInfoDetail)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
+        }
+        save(newInfoDetail);
+        return SimpleResultUtils.createSimpleResult(newInfoDetail);
     }
 
     @Override

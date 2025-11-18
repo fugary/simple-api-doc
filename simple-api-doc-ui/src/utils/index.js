@@ -563,6 +563,11 @@ export const clearAndSetValue = (valueRef, newValue, emptyValue) => {
   })
 }
 
+export const getStyleGrow = flexGrow => ({
+  flexGrow,
+  minWidth: `calc(${flexGrow}0%)`
+})
+
 export default {
   install (app) {
     router = app.config.globalProperties.$router

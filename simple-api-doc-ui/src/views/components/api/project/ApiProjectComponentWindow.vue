@@ -28,6 +28,15 @@ const buttons = computed(() => {
       })
     },
     enabled: !!currentInfo.value?.id
+  }, {
+    labelKey: 'common.label.copy',
+    type: 'warning',
+    click () {
+      apiComponentRef.value?.copyComponent()?.then(() => {
+        showWindow.value = false
+      })
+    },
+    enabled: !!currentInfo.value?.id
   }]
 })
 </script>
