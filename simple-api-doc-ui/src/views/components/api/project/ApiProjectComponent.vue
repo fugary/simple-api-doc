@@ -282,6 +282,7 @@ defineExpose({
           <el-link
             v-if="index<managedItems.length-1"
             type="primary"
+            style="vertical-align: baseline;"
             @click="gotoComponent(goToItem(index))"
           >
             {{ getSchemaNameLabel(item) }}

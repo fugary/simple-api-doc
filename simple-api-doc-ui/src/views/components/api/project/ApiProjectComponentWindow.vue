@@ -20,6 +20,13 @@ defineExpose({
 })
 const buttons = computed(() => {
   return [{
+    labelKey: 'common.label.save',
+    type: 'primary',
+    click ({ form }) {
+      apiComponentRef.value?.saveComponent(form)
+    },
+    enabled: !!currentInfo.value?.id
+  }, {
     labelKey: 'common.label.delete',
     type: 'danger',
     click () {
@@ -32,9 +39,7 @@ const buttons = computed(() => {
     labelKey: 'common.label.copy',
     type: 'warning',
     click () {
-      apiComponentRef.value?.copyComponent()?.then(() => {
-        showWindow.value = false
-      })
+      apiComponentRef.value?.copyComponent()
     },
     enabled: !!currentInfo.value?.id
   }]
@@ -46,7 +51,8 @@ const buttons = computed(() => {
     v-model="showWindow"
     width="1100px"
     :title="$i18nKey('common.label.commonEdit', 'api.label.dataModel')"
-    :ok-label="$t('common.label.save')"
+    :ok-label="$t('common.label.saveAndClose')"
+    :cancel-label="$t('common.label.close')"
     :ok-click="saveComponent"
     :buttons="buttons"
   >

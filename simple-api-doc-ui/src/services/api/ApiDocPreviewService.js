@@ -406,7 +406,7 @@ export const isArraySchema = schema => {
 
 export const $ref2Schema = $ref => {
   // #/components/schemas/xxx截取
-  return $ref.substring($ref.lastIndexOf('/') + 1)
+  return isString($ref) ? $ref.substring($ref.lastIndexOf('/') + 1) : $ref
 }
 
 export const schema2$Ref = name => {

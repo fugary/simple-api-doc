@@ -7,14 +7,14 @@ import {
   hasXxxOf,
   processSchemaProperties,
   processSchemaRequired,
-  calcSchemaPath
+  calcSchemaPath, $ref2Schema
 } from '@/services/api/ApiDocPreviewService'
 import SchemaTreeNode from '@/views/components/api/doc/comp/SchemaTreeNode.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { toEditJsonSchema } from '@/utils/DynamicUtils'
 import { $coreConfirm } from '@/utils'
 import { cloneDeep, pull, unset, get, set } from 'lodash-es'
-import { $i18nBundle, $i18nKey } from '@/messages'
+import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
   rootName: {
@@ -223,17 +223,23 @@ defineEmits(['gotoComponent'])
               round
               @click="newOrEdit(null, data, $event)"
             >
-              <common-icon icon="Plus" />
+              <common-icon
+                icon="Plus"
+                :size="18"
+              />
             </el-button>
             <el-button
               v-if="checkGotoRef(node)"
-              v-common-tooltip="$i18nKey('common.label.commonEdit', 'api.label.typeRef')"
-              type="primary"
+              v-common-tooltip="$i18nBundle('common.label.commonGoto', [$ref2Schema(data?.schema$ref)||$t('api.label.typeRef')])"
+              type="success"
               size="small"
               round
               @click="$emit('gotoComponent', componentsMap[data.schema$ref]);$event.stopPropagation()"
             >
-              <common-icon icon="EditPen" />
+              <common-icon
+                icon="ManageSearchFilled"
+                :size="18"
+              />
             </el-button>
             <el-button
               v-if="checkEditProperty(node)"
@@ -243,7 +249,10 @@ defineEmits(['gotoComponent'])
               round
               @click="newOrEdit(data, node.parent?.data, $event)"
             >
-              <common-icon icon="Edit" />
+              <common-icon
+                icon="Edit"
+                :size="18"
+              />
             </el-button>
             <el-button
               v-if="checkDeleteProperty(node)"
@@ -253,7 +262,10 @@ defineEmits(['gotoComponent'])
               round
               @click="deleteProperty(data, node.parent?.data, $event)"
             >
-              <common-icon icon="DeleteFilled" />
+              <common-icon
+                icon="DeleteFilled"
+                :size="18"
+              />
             </el-button>
           </span>
         </div>
