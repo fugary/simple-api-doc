@@ -57,6 +57,15 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
     boolean deleteByProjectInfo(Integer projectId, Integer infoId);
 
     /**
+     * 按照projectId和infoId删除
+     *
+     * @param projectId
+     * @param infoId
+     * @return
+     */
+    boolean deleteByProjectInfoWithoutDoc(Integer projectId, Integer infoId);
+
+    /**
      * 保存项目详细信息
      *
      * @param apiProject         项目基本信息

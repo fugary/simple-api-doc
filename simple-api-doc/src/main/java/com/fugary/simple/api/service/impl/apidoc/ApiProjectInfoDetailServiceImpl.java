@@ -62,12 +62,18 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     }
 
     @Override
+    public boolean deleteByProjectInfoWithoutDoc(Integer projectId, Integer infoId) {
+        return this.remove(Wrappers.<ApiProjectInfoDetail>query().eq("project_id", projectId)
+                .eq("info_id", infoId).isNull("doc_id"));
+    }
+
+    @Override
     public void saveApiProjectInfoDetails(ApiProject apiProject, ApiProjectInfo apiProjectInfo, List<ExportApiProjectInfoDetailVo> projectInfoDetails) {
         Set<String> types = new HashSet<>(ApiDocConstants.PROJECT_SCHEMA_TYPES);
         types.add(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
         List<ApiProjectInfoDetail> infoDetails = loadByProjectAndInfo(apiProject.getId(), apiProjectInfo.getId(), types);
         Map<String, ApiProjectInfoDetail> detailsMap = infoDetails.stream().collect(Collectors.toMap(ApiDocParseUtils::getProjectInfoDetailKey, Function.identity()));
-        deleteByProjectInfo(apiProject.getId(), apiProjectInfo.getId());
+        deleteByProjectInfoWithoutDoc(apiProject.getId(), apiProjectInfo.getId());
         projectInfoDetails.forEach(projectInfoDetailVo -> {
             projectInfoDetailVo.setProjectId(apiProject.getId());
             projectInfoDetailVo.setInfoId(apiProjectInfo.getId());
@@ -140,7 +146,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
                     String schemaKey = ApiDocConstants.SCHEMA_COMPONENT_PREFIX + detail.getSchemaName();
                     detail.setSchemaKey(schemaKey);
                     return schemaKey;
-                }, Function.identity()));
+                }, Function.identity(), (existing, replacement) -> existing));  // 忽略重复 key
     }
 
     @Override
