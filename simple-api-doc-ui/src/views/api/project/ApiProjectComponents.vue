@@ -68,6 +68,20 @@ const searchFormOptions = computed(() => {
         loadProjectComponents()
       }
     }
+  }, {
+    labelKey: 'api.label.lockStatus',
+    prop: 'locked',
+    type: 'select',
+    children: [{
+      labelKey: 'api.label.locked',
+      value: true
+    }, {
+      labelKey: 'api.label.unlocked',
+      value: false
+    }],
+    change () {
+      loadProjectComponents()
+    }
   }]
 })
 const columns = [{

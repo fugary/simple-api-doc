@@ -60,6 +60,12 @@ public class ApiProjectInfoDetailController {
                         .or().like("description", keyword))
                 .eq("project_id", queryVo.getProjectId())
                 .eq(queryVo.getInfoId() != null, "info_id", queryVo.getInfoId())
+                .and(queryVo.getLocked() != null, wrapper -> {
+                    wrapper.eq("locked", queryVo.getLocked());
+                    if (!queryVo.getLocked()) {
+                        wrapper.or().isNull("locked");
+                    }
+                })
                 .eq("body_type", queryVo.getBodyType());
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.page(page, queryWrapper));
     }
