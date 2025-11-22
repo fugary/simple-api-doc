@@ -79,7 +79,7 @@ const toEditResponseSchema = (responseSchema) => {
       >
         <template #label>
           <span>
-            {{ responseSchema.schemaName }}
+            {{ responseSchema.schemaName || $t('api.label.responseBody') }}
           </span>
           <el-text
             type="info"

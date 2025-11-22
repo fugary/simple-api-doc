@@ -12,6 +12,7 @@ import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE } from '@/consts/Ap
 import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
 import { checkAndSaveDocInfoDetail, processProjectInfos } from '@/services/api/ApiDocEditService'
+import { showMarkdownWindow } from '@/utils/DynamicUtils'
 
 const props = defineProps({
   currentProject: {
@@ -129,6 +130,23 @@ const componentEditOptions = computed(() => {
     style: getStyleGrow(9),
     attrs: {
       type: 'textarea'
+    },
+    tooltip: $i18nBundle('common.label.newWindowEdit'),
+    tooltipIcon: 'EditPen',
+    tooltipLinkAttrs: {
+      type: 'primary'
+    },
+    tooltipFunc () {
+      showMarkdownWindow({
+        content: currentComponentModel.value?.description,
+        title: $i18nKey('common.label.commonEdit', 'common.label.description')
+      }, {
+        'onUpdate:modelValue': value => {
+          if (currentComponentModel.value) {
+            currentComponentModel.value.description = value
+          }
+        }
+      })
     }
   }]
 })

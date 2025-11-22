@@ -69,7 +69,7 @@ const toEditRequestSchema = (requestsSchema) => {
       >
         <template #label>
           <span>
-            {{ $t('api.label.requestBody') }}
+            {{ requestsSchema?.schemaName || $t('api.label.requestBody') }}
             <el-text
               type="info"
               size="small"
