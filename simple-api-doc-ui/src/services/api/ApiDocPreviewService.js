@@ -605,7 +605,7 @@ export const fromModelToSchema = item => {
   return item.schema
 }
 
-export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supportedAuthTypes) => {
+export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supportedAuthTypes, shareDoc) => {
   if (projectInfoDetail?.securitySchemas?.length) {
     const secSchemas = JSON.parse(projectInfoDetail.securitySchemas[0].schemaContent)
     let jwtKey = null
@@ -620,8 +620,8 @@ export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supporte
     if (authTypes.includes(AUTH_TYPE.JWT) && !authTypes.includes(AUTH_TYPE.TOKEN)) { // jwtToken添加一个直接的token模式，方便使用
       const jwtSchema = secSchemas[jwtKey]
       if (jwtSchema) {
-        secSchemas.$JWT_TOKEN = {
-          description: 'JWT authentication with token only.',
+        secSchemas[shareDoc ? jwtKey : '$JWT_TOKEN'] = {
+          description: 'JWT authentication with token.',
           authType: AUTH_TYPE.TOKEN,
           name: jwtSchema.name,
           in: jwtSchema.in,

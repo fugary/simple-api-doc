@@ -89,7 +89,7 @@ const loadDocDetail = async () => {
     })
   }
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
-  calcSecuritySchemas(projectInfoDetail.value, securitySchemas, supportedAuthTypes)
+  calcSecuritySchemas(projectInfoDetail.value, securitySchemas, supportedAuthTypes, props.shareDoc)
   calcAuthModelBySchemas(apiDocDetail.value, authContentModel.value, securitySchemas.value)
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
   apiDocDetail.value.targetUrl = envConfigs.value?.find(env => env.url === sharePreference?.targetUrl)?.url || envConfigs.value[0]?.url
