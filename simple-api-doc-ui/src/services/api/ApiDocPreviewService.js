@@ -605,21 +605,24 @@ export const fromModelToSchema = item => {
   return item.schema
 }
 
-export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supportedAuthTypes, shareDoc) => {
+export const calcSecuritySchemas = (projectInfoDetail, apiDocDetail, securitySchemas, supportedAuthTypes, shareDoc) => {
   if (projectInfoDetail?.securitySchemas?.length) {
+    const requirements = calcSecurityRequirements(projectInfoDetail, apiDocDetail) || []
     const secSchemas = JSON.parse(projectInfoDetail.securitySchemas[0].schemaContent)
     let jwtKey = null
     Object.keys(secSchemas).forEach((key) => {
       const secSchema = secSchemas[key]
       secSchema.authType = calcAuthType(secSchema)
-      secSchema.isSupported = Object.values(AUTH_TYPE).includes(secSchema.authType)
+      secSchema.isSupported = Object.values(AUTH_TYPE).includes(secSchema.authType) && requirements.includes(lowerCase(key))
       secSchema.authType === AUTH_TYPE.JWT && (jwtKey = key)
       secSchema.authKey = key
+      secSchema.authKeyName = key
     })
-    const authTypes = Object.values(secSchemas).map(secSchema => secSchema.authType)
+    const authTypes = Object.values(secSchemas).filter(secSchema => secSchema.isSupported).map(secSchema => secSchema.authType)
     if (authTypes.includes(AUTH_TYPE.JWT) && !authTypes.includes(AUTH_TYPE.TOKEN)) { // jwtToken添加一个直接的token模式，方便使用
       const jwtSchema = secSchemas[jwtKey]
       if (jwtSchema) {
+        const authKeyName = shareDoc ? jwtKey : '$JWT_TOKEN'
         secSchemas[shareDoc ? jwtKey : '$JWT_TOKEN'] = {
           description: 'JWT authentication with token.',
           authType: AUTH_TYPE.TOKEN,
@@ -628,12 +631,15 @@ export const calcSecuritySchemas = (projectInfoDetail, securitySchemas, supporte
           scheme: jwtSchema.scheme,
           type: jwtSchema.type,
           isSupported: true,
+          authKeyName,
           authKey: jwtKey
         }
       }
     }
     console.log('==================================secSchemas', secSchemas)
-    securitySchemas.value = secSchemas
+    securitySchemas.value = Object.fromEntries(Object.entries(secSchemas).sort(([, a], [, b]) => {
+      return !!b.isSupported - !!a.isSupported
+    }))
     supportedAuthTypes.value = Object.values(secSchemas).filter(s => s.isSupported)
       .map(s => s.authType)
     return secSchemas
@@ -677,9 +683,8 @@ export const calcDefaultAuthModel = (authContentModel, authSchema) => {
   }
 }
 
-export const calcAuthModelBySchemas = (apiDocDetail, authContentModel, securitySchemas) => {
+export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
   // 找到匹配的模式，优先考虑 authType 相同的模式
-  const requirements = calcSecurityRequirements(apiDocDetail?.projectInfoDetail, apiDocDetail) || []
   if (securitySchemas) {
     const authModelsMap = Object.fromEntries((authContentModel.authModels || []).map(authModel => [authModel.authType, authModel]))
     const secSchemas = Object.values(securitySchemas).filter(authSchema => authSchema.isSupported)
@@ -687,12 +692,15 @@ export const calcAuthModelBySchemas = (apiDocDetail, authContentModel, securityS
       const authModel = calcDefaultAuthModel({}, secSchema)
       // 从已保存数据复制
       Object.assign(authModel, authModelsMap[authModel.authType] || {})
-      authModel.isSupported = requirements.includes(lowerCase(authModel.authKey))
+      authModel.isSupported = secSchema.isSupported
+      authModel.authKeyName = secSchema.authKeyName
       secSchema.authModel = authModel
       return authModel
     })
     if (authContentModel.authType === AUTH_TYPE.NONE) {
-      authContentModel.authType = authContentModel.authModels?.find(authModel => authModel.isSupported)?.authType || AUTH_TYPE.NONE
+      const firstModel = authContentModel.authModels?.find(authModel => authModel.isSupported)
+      authContentModel.authType = firstModel?.authType || AUTH_TYPE.NONE
+      authContentModel.authKeyName = firstModel?.authKeyName
     }
     console.log('================================authModels', authContentModel)
   }

@@ -90,8 +90,8 @@ const loadDocDetail = async () => {
     })
   }
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
-  calcSecuritySchemas(projectInfoDetail.value, securitySchemas, supportedAuthTypes, props.shareDoc)
-  calcAuthModelBySchemas(apiDocDetail.value, authContentModel.value, securitySchemas.value)
+  calcSecuritySchemas(projectInfoDetail.value, apiDocDetail.value, securitySchemas, supportedAuthTypes, props.shareDoc)
+  calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
   apiDocDetail.value.targetUrl = envConfigs.value?.find(env => env.url === sharePreference?.targetUrl)?.url || envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
@@ -127,6 +127,9 @@ watch(apiDoc, loadDocDetail, {
   immediate: true
 })
 watch(() => globalConfigStore.currentLocale, loadDocDetail)
+watch(() => authContentModel.value.authKeyName, (authKey) => {
+  authContentModel.value.authType = securitySchemas.value?.[authKey]?.authType || AUTH_TYPE.NONE
+})
 const { isDarkTheme } = useShareDocTheme(sharePreference)
 const theme = computed(() => isDarkTheme.value ? 'dark' : 'light')
 const { isMobile } = useScreenCheck()
@@ -293,12 +296,12 @@ const { isSmallContainer, containerRef } = useContainerCheck()
       :ok-click="saveAuthorization"
     >
       <el-container class="flex-column">
-        <el-tabs v-model="authContentModel.authType">
+        <el-tabs v-model="authContentModel.authKeyName">
           <el-tab-pane
             v-for="(schema, name) in securitySchemas"
             :key="name"
             :disabled="!schema.isSupported||!schema.authModel?.isSupported"
-            :name="schema.authType"
+            :name="name"
           >
             <template #label>
               <el-text
