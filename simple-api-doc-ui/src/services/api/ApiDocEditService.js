@@ -2,7 +2,7 @@ import { $coreError } from '@/utils'
 import { $i18nBundle } from '@/messages'
 import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { ElMessage } from 'element-plus'
-import { SCHEMA_SELECT_TYPE } from '@/consts/ApiConstants'
+import { SCHEMA_SELECT_TYPE, SECURITY_OAUTH2_AUTH_TYPES } from '@/consts/ApiConstants'
 import { fromModelToSchema, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { cloneDeep } from 'lodash-es'
 
@@ -163,4 +163,43 @@ export const processSecuritySchema = (securityInfo, schema) => {
     }
   }
   return schema
+}
+
+export const securitySchemas2List = (schemaContentObj, id) => {
+  return Object.entries(schemaContentObj).map(([key, value]) => {
+    let oauth2Type = null
+    if (value?.flows) {
+      oauth2Type = Object.keys(value?.flows)?.[0]
+    }
+    return {
+      id,
+      schemaName: key,
+      schema: value,
+      oauth2Type
+    }
+  })
+}
+
+export const getOauth2ConfigInfo = schema => {
+  let result = {}
+  if (schema.flows) {
+    SECURITY_OAUTH2_AUTH_TYPES.forEach(key => {
+      const typeConfig = schema.flows?.[key]
+      if (typeConfig) {
+        result = {
+          ...typeConfig,
+          oauth2Type: key
+        }
+        if (typeConfig.scopes) {
+          result.scopesOptions = Object.entries(typeConfig?.scopes).map(([key, value]) => {
+            return {
+              value: key,
+              label: `${key} - ${value}`
+            }
+          })
+        }
+      }
+    })
+  }
+  return result
 }

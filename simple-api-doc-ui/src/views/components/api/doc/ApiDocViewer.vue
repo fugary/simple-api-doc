@@ -22,6 +22,7 @@ import {
 import { useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
+import ApiDocSecurityRequirements from '@/views/components/api/doc/comp/ApiDocSecurityRequirements.vue'
 
 const props = defineProps({
   shareDoc: {
@@ -212,6 +213,12 @@ const { isSmallContainer, containerRef } = useContainerCheck()
           class="md-doc-container"
           :theme="theme"
           :model-value="docContent"
+        />
+        <api-doc-security-requirements
+          v-if="!shareDoc&&apiDocDetail?.securityRequirements||editable"
+          v-model="apiDocDetail"
+          :editable="editable"
+          @schema-updated="loadDocDetail"
         />
         <api-doc-parameters
           v-if="apiDocDetail?.parametersSchema||!apiDocDetail?.requestsSchemas?.length||editable"

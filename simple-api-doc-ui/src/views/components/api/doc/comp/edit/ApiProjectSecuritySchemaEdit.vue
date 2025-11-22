@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import { processProjectInfos, processSecuritySchema } from '@/services/api/ApiDocEditService'
+import { processProjectInfos, processSecuritySchema, securitySchemas2List } from '@/services/api/ApiDocEditService'
 import { defineFormOptions, defineTableColumns } from '@/components/utils'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { ElButton } from 'element-plus'
@@ -29,18 +29,7 @@ const initProjectItem = () => {
       const securitySchema = infoDetail.securitySchemas[0]
       infoDetail.securitySchema = securitySchema
       const schemaContentObj = infoDetail.securitySchema.schemaContentObj = JSON.parse(securitySchema.schemaContent || '{}')
-      infoDetail.schemaList = Object.entries(schemaContentObj).map(([key, value]) => {
-        let oauth2Type = null
-        if (value?.flows) {
-          oauth2Type = Object.keys(value?.flows)?.[0]
-        }
-        return {
-          id: securitySchema.id,
-          schemaName: key,
-          schema: value,
-          oauth2Type
-        }
-      })
+      infoDetail.schemaList = securitySchemas2List(schemaContentObj, securitySchema.id)
     } else {
       infoDetail.securitySchema = {
         schemaContentObj: {},
