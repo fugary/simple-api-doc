@@ -13,7 +13,7 @@ import { getSingleSelectOptions } from '@/utils'
 import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
 import { cloneDeep, isArray } from 'lodash-es'
 import { ElText } from 'element-plus'
-import { showMarkdownWindow } from '@/utils/DynamicUtils'
+import { showMarkdownWindow, toEditComponent } from '@/utils/DynamicUtils'
 import { processSchemaBeforeSave } from '@/services/api/ApiDocEditService'
 
 const vModel = ref()
@@ -83,6 +83,28 @@ const getTypeOptions = (dataType) => {
   }
 }
 
+const newTypeRefOption = {
+  tooltip: $i18nKey('common.label.commonAdd', 'api.label.typeRef'),
+  tooltipIcon: 'CirclePlusFilled',
+  tooltipLinkAttrs: {
+    type: 'primary'
+  },
+  tooltipFunc (event) {
+    toEditComponent({
+      projectId: currentInfoDetail.value.projectId,
+      infoId: currentInfoDetail.value.infoId,
+      schemaContent: '{"type":"object","properties":{}}',
+      bodyType: 'component'
+    }, {
+      onSaveComponent: () => {
+        componentSchemas.value = []
+        loadComponentSchemas()
+      }
+    })
+    event.preventDefault()
+  }
+}
+
 const formOptions = computed(() => {
   const typeOptions = getTypeOptions(vModel.value.dataType)
   return [{
@@ -113,6 +135,11 @@ const formOptions = computed(() => {
       clearable: false,
       filterable: true,
       options: typeOptions
+    },
+    dynamicOption () {
+      if (vModel.value.dataType === SCHEMA_SELECT_TYPE.REF) {
+        return newTypeRefOption
+      }
     },
     change (type) {
       if (vModel.value.dataType === SCHEMA_SELECT_TYPE.XXX_OF) {
@@ -307,6 +334,7 @@ const xxxOfOptions = computed(() => {
     },
     dynamicOption (model, option, addInfo) {
       return {
+        ...(model.dataType === SCHEMA_SELECT_TYPE.REF ? newTypeRefOption : {}),
         change (value) {
           console.log('==============changeDataType', value, model, addInfo)
           const key = `${vModel.value.dataType}-${vModel.value.type}-${model.dataType}-${addInfo.index}`
