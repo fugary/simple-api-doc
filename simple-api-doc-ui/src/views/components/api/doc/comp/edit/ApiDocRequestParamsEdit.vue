@@ -150,7 +150,6 @@ const deleteParam = (key, { index }) => {
     <el-tabs
       v-model="currentTabName"
       class="form-edit-width-100 common-tabs"
-      addable
     >
       <el-tab-pane
         v-if="paramsModel.pathParams?.length"

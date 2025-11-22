@@ -371,3 +371,9 @@ export const SCHEMA_SELECT_TYPES = [{
   value: SCHEMA_SELECT_TYPE.XXX_OF,
   labelKey: 'api.label.typeXxxOf'
 }]
+
+export const SECURITY_IN_TYPES = ['header', 'query', 'cookie']
+
+export const SECURITY_TYPE_TYPES = ['apiKey', 'http', 'oauth2', 'openIdConnect', 'mutualTLS']
+
+export const SECURITY_OAUTH2_AUTH_TYPES = ['authorizationCode', 'clientCredentials', 'implicit', 'password']

@@ -15,6 +15,7 @@ import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
 import { toEditEnvConfigs } from '@/utils/DynamicUtils'
 import { $i18nKey } from '@/messages'
+import ApiProjectSecuritySchemaEdit from '@/views/components/api/doc/comp/edit/ApiProjectSecuritySchemaEdit.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -65,6 +66,7 @@ const envConfigs = computed(() => {
   return JSON.parse(projectItem.value?.envContent || '[]') || []
 })
 
+const showSecurityEditWindow = ref(false)
 </script>
 
 <template>
@@ -99,6 +101,18 @@ const envConfigs = computed(() => {
             {{ $t('common.label.back') }}
           </el-button>
           <el-button
+            v-if="projectItem.infoList?.length"
+            class="margin-left2"
+            type="primary"
+            @click="showSecurityEditWindow=true"
+          >
+            <common-icon
+              icon="LockOutlined"
+              class="margin-right1"
+            />
+            {{ $t('api.label.authorization') }}
+          </el-button>
+          <el-button
             class="margin-left2"
             type="warning"
             @click="$goto(`/api/projects/components/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
@@ -120,6 +134,10 @@ const envConfigs = computed(() => {
               type="info"
               @click="toEditEnvConfigs(projectItem).then(() => savedApiDoc(currentDoc))"
             >
+              <common-icon
+                icon="ListAltFilled"
+                class="margin-right1"
+              />
               {{ $t('api.label.environments') }}
             </el-button>
           </el-badge>
@@ -253,6 +271,12 @@ const envConfigs = computed(() => {
             </el-container>
           </template>
         </common-split>
+        <api-project-security-schema-edit
+          v-if="projectItem"
+          v-model="showSecurityEditWindow"
+          :project-item="projectItem"
+          @save-security-schema="initLoadOnce()"
+        />
       </div>
     </el-container>
   </el-container>

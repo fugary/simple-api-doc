@@ -4,6 +4,7 @@ import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { ElMessage } from 'element-plus'
 import { SCHEMA_SELECT_TYPE } from '@/consts/ApiConstants'
 import { fromModelToSchema, hasXxxOf } from '@/services/api/ApiDocPreviewService'
+import { cloneDeep } from 'lodash-es'
 
 /**
  * 模型初始化计算
@@ -133,4 +134,33 @@ export const processSchemaBeforeSave = (model, additionalPropertiesEnabled) => {
       }
     }
   }
+}
+
+export const processProjectInfos = (projectItem) => {
+  return projectItem.infoList?.map(info => {
+    info = cloneDeep(info)
+    if (info.folderId && projectItem.folders?.length) {
+      const folder = projectItem.folders.find(item => item.id === info.folderId)
+      if (folder && !folder.rootFlag) {
+        info.folderName = folder.folderName
+      }
+    }
+    return info
+  }) || []
+}
+
+export const processSecuritySchema = (securityInfo, schema) => {
+  schema = cloneDeep(schema)
+  if (schema.type !== 'openIdConnect') {
+    delete schema.openIdConnectUrl
+  }
+  if (schema.type !== 'oauth2') {
+    delete schema.flows
+  } else if (schema.flows) {
+    const oauth2Type = securityInfo.oauth2Type
+    schema.flows = {
+      [oauth2Type]: schema.flows[oauth2Type]
+    }
+  }
+  return schema
 }

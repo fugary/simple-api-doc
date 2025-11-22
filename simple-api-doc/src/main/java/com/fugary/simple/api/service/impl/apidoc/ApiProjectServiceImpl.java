@@ -98,14 +98,17 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             }
             ApiProjectDetailVo apiProjectVo = SimpleModelUtils.copy(apiProject, ApiProjectDetailVo.class);
             List<ApiProjectInfo> infoList = apiProjectInfoService.loadByProjectId(apiProject.getId());
-            infoList.forEach(info -> {
+            infoList = infoList.stream().map(info -> {
+                List<ApiProjectInfoDetail> securityDetails = apiProjectInfoDetailService.loadByProjectAndInfo(info.getProjectId(), info.getId(),
+                        Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
                 if (StringUtils.isNotBlank(info.getAuthContent())) {
                     info.setAuthContent(ApiDocConstants.SECURITY_CONFUSION_VALUE);
                 }
                 if (queryVo.isRemoveAuditFields()) {
                     SimpleModelUtils.removeAuditInfo(info);
                 }
-            });
+                return apiProjectInfoDetailService.parseInfoDetailVo(info, securityDetails, List.of());
+            }).collect(Collectors.toList());
             apiProjectVo.setInfoList(infoList);
             if (includeDocs) {
                 List<ApiFolder> folders = forceEnabled ? apiFolderService.loadEnabledApiFolders(apiProject.getId())

@@ -11,7 +11,7 @@ import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
-import { checkAndSaveDocInfoDetail } from '@/services/api/ApiDocEditService'
+import { checkAndSaveDocInfoDetail, processProjectInfos } from '@/services/api/ApiDocEditService'
 
 const props = defineProps({
   currentProject: {
@@ -54,12 +54,7 @@ const deletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORI
 const writable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || deletable.value)
 const projectInfos = computed(() => {
   if (projectItem.value?.infoList?.length) {
-    return projectItem.value.infoList.map(info => {
-      if (info.folderId && projectItem.value.folders?.length) {
-        info.folderName = projectItem.value.folders.find(item => item.id === info.folderId)?.folderName
-      }
-      return info
-    })
+    return processProjectInfos(projectItem.value)
   }
   return []
 })

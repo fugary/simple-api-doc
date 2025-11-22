@@ -14,6 +14,9 @@ const props = defineProps({
   saveCurrentItem: {
     type: Function,
     default: () => {}
+  },
+  debug: {
+    type: Boolean, default: false
   }
 })
 
@@ -49,25 +52,28 @@ const internalSaveCurrentItem = ({ form }) => {
     append-to-body
     destroy-on-close
   >
-    <common-form
-      v-if="currentItem"
-      class="form-edit-width-100"
-      :model="currentItem"
-      :options="formOptions"
-      :show-buttons="false"
-      v-bind="$attrs"
-    >
-      <template
-        v-for="(slot, slotKey) in $slots"
-        :key="slotKey"
-        #[slotKey]="scope"
+    <el-container class="flex-column">
+      <common-form
+        v-if="currentItem"
+        class="form-edit-width-100"
+        :model="currentItem"
+        :options="formOptions"
+        :show-buttons="false"
+        v-bind="$attrs"
       >
-        <slot
-          :name="slotKey"
-          v-bind="scope"
-        />
-      </template>
-    </common-form>
+        <template
+          v-for="(slot, slotKey) in $slots"
+          :key="slotKey"
+          #[slotKey]="scope"
+        >
+          <slot
+            :name="slotKey"
+            v-bind="scope"
+          />
+        </template>
+      </common-form>
+      <pre v-if="debug">{{ currentItem }}</pre>
+    </el-container>
   </common-window>
 </template>
 
