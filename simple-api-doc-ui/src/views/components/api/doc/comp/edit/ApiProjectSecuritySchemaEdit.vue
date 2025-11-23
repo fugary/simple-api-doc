@@ -89,7 +89,8 @@ const getOauth2Options = () => {
     ? properties.map(label => {
       return {
         label,
-        prop: `schema.flows.${oauth2Type}.${label}`
+        prop: `schema.flows.${oauth2Type}.${label}`,
+        pattern: label?.toLowerCase()?.includes('url') ? /https?:\/\/.*/ : undefined
       }
     })
     : []
@@ -131,7 +132,9 @@ const editFormOptions = computed(() => {
   }, {
     label: 'openIdConnectUrl',
     prop: 'schema.openIdConnectUrl',
-    enabled: securityInfoModel.value?.schema?.type === 'openIdConnect'
+    enabled: securityInfoModel.value?.schema?.type === 'openIdConnect',
+    pattern: /https?:\/\/.*/,
+    required: true
   }, {
     label: 'OAuth2 Type',
     prop: 'oauth2Type',
@@ -178,7 +181,7 @@ const saveOrDeleteSecuritySchema = async (item, isDelete) => {
     .then((resultData) => emit('saveSecuritySchema', resultData))
 }
 const saveSecuritySchema = async () => {
-  saveOrDeleteSecuritySchema(securityInfoModel.value)
+  return saveOrDeleteSecuritySchema(securityInfoModel.value)
 }
 </script>
 
@@ -186,7 +189,7 @@ const saveSecuritySchema = async () => {
   <common-window
     v-model="showWindow"
     width="1000px"
-    :title="$i18nKey('common.label.commonEdit', 'api.label.authorization')"
+    :title="$i18nKey('common.label.commonEdit', 'api.label.authDetails')"
     :ok-label="$t('common.label.close')"
     :show-cancel="false"
   >

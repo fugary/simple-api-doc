@@ -237,6 +237,7 @@ const showSecurityEditWindow = ref(false)
                 :editable="isWritable"
                 @to-debug-api="toDebugApi"
                 @update-history="savedApiDoc"
+                @to-edit-security-schemas="showSecurityEditWindow=true"
               />
             </el-container>
           </template>
@@ -275,7 +276,7 @@ const showSecurityEditWindow = ref(false)
           v-if="projectItem"
           v-model="showSecurityEditWindow"
           :project-item="projectItem"
-          @save-security-schema="initLoadOnce()"
+          @save-security-schema="initLoadOnce().then(()=>savedApiDoc(currentDoc))"
         />
       </div>
     </el-container>

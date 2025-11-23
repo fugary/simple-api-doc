@@ -134,7 +134,7 @@ const { isDarkTheme } = useShareDocTheme(sharePreference)
 const theme = computed(() => isDarkTheme.value ? 'dark' : 'light')
 const { isMobile } = useScreenCheck()
 
-defineEmits(['toDebugApi', 'updateHistory'])
+defineEmits(['toDebugApi', 'updateHistory', 'toEditSecuritySchemas'])
 
 const showAuthorizationWindow = ref(false)
 const toEditAuthorization = () => {
@@ -221,6 +221,7 @@ const { isSmallContainer, containerRef } = useContainerCheck()
           v-if="!shareDoc&&apiDocDetail?.securityRequirements||editable"
           v-model="apiDocDetail"
           :editable="editable"
+          @to-edit-security-schemas="$emit('toEditSecuritySchemas')"
           @schema-updated="loadDocDetail"
         />
         <api-doc-parameters

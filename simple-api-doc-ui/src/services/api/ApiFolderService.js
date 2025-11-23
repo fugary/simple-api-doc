@@ -1,6 +1,6 @@
 import { computed, inject, provide, ref } from 'vue'
 import ApiFolderApi, { clearFolder, loadAvailableFolders } from '@/api/ApiFolderApi'
-import { $coreAlert, $coreConfirm, processTreeData } from '@/utils'
+import { $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import ApiDocApi, { copyApiDoc, updateApiDoc } from '@/api/ApiDocApi'
 import {
@@ -164,13 +164,6 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         .then(() => handlerData.refreshProjectItem())
     }
   }, {
-    icon: 'custom-api',
-    enabled: false,
-    label: $i18nKey('common.label.commonAdd', 'api.label.interfaces'),
-    handler: () => {
-      $coreAlert('暂未实现')
-    }
-  }, {
     icon: 'custom-markdown',
     label: $i18nKey('common.label.commonAdd', 'api.label.mdDocument'),
     handler: () => {
@@ -191,6 +184,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
         isDoc: true,
         folderId: folder.id,
         projectId: folder.projectId,
+        method: 'GET',
         docType: 'api',
         status: 1,
         sortId: getMdChildrenSortId(folder)

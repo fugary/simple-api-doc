@@ -31,7 +31,12 @@ const formOptions = computed(() => {
     labelKey: 'api.label.requestPath',
     showLabel: false,
     required: true,
-    style: getStyleGrow(7)
+    style: getStyleGrow(7),
+    change (val) {
+      if (val && !val.startsWith('/')) {
+        currentDocModel.value.url = `/${val.trim()}`
+      }
+    }
   }, {
     ...useFormStatus(),
     style: getStyleGrow(4)

@@ -7,7 +7,7 @@ import {
   newDocInfoDetail,
   securitySchemas2List
 } from '@/services/api/ApiDocEditService'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, defineTableButtons } from '@/components/utils'
 import { cloneDeep } from 'lodash-es'
 import { ElText } from 'element-plus'
 import { checkShowColumn } from '@/utils'
@@ -48,7 +48,7 @@ const showSecurityConfigWindow = ref(false)
 const schemaEditModel = ref({
   securityParams: []
 })
-const emit = defineEmits(['schemaUpdated'])
+const emit = defineEmits(['schemaUpdated', 'toEditSecuritySchemas'])
 const toEditSecuritySchemas = () => {
   const securityParams = cloneDeep(securitySchemaList.value)
   let hasOauth2 = false
@@ -119,6 +119,16 @@ const formOptions = computed(() => {
     minWidth: '250px'
   }])
 })
+const buttons = computed(() => {
+  return defineTableButtons([{
+    type: 'success',
+    label: $i18nKey('common.label.commonEdit', 'api.label.authDetails'),
+    click () {
+      emit('toEditSecuritySchemas')
+      showSecurityConfigWindow.value = false
+    }
+  }])
+})
 </script>
 
 <template>
@@ -182,6 +192,7 @@ const formOptions = computed(() => {
       width="1000px"
       :title="$i18nKey('common.label.commonEdit', 'api.label.authorization')"
       :ok-click="saveSecuritySchemas"
+      :buttons="buttons"
     >
       <el-container class="flex-column">
         <common-table-form
