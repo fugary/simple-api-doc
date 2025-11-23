@@ -87,16 +87,20 @@ const getOauth2Options = () => {
   const properties = ['authorizationUrl', 'tokenUrl', 'refreshUrl', 'scopes']
   return oauth2 && oauth2Type
     ? properties.map(label => {
+      const pattern = label?.toLowerCase()?.includes('url') ? /https?:\/\/.*/ : undefined
+      const type = label === 'scopes' ? 'common-object' : 'input'
       return {
         label,
         prop: `schema.flows.${oauth2Type}.${label}`,
-        pattern: label?.toLowerCase()?.includes('url') ? /https?:\/\/.*/ : undefined
+        type,
+        pattern
       }
     })
     : []
 }
 const editFormOptions = computed(() => {
   const oauth2 = securityInfoModel.value?.schema?.type === 'oauth2'
+  const needIn = ['http', 'apiKey'].includes(securityInfoModel.value?.schema?.type)
   return defineFormOptions([{
     labelKey: 'common.label.name',
     prop: 'schemaName',
@@ -118,11 +122,11 @@ const editFormOptions = computed(() => {
     attrs: {
       clearable: false
     },
-    required: true
+    required: needIn
   }, {
     labelKey: 'api.label.authParamName',
     prop: 'schema.name',
-    required: true
+    required: needIn
   }, {
     label: 'scheme',
     prop: 'schema.scheme'

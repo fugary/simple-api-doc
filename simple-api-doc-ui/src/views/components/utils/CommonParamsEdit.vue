@@ -20,9 +20,17 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  valueReadOnly: {
+    type: Boolean,
+    default: false
+  },
   valueRequired: {
     type: Boolean,
     default: false
+  },
+  showEnableSwitch: {
+    type: Boolean,
+    default: true
   },
   showAddButton: {
     type: Boolean,
@@ -146,12 +154,13 @@ const paramsOptions = computed(() => {
   const nameSuggestions = calcSuggestions('name')
   const valueSuggestions = calcSuggestions('value')
   return params.value.map((param, index) => {
-    const nvSpan = 8
+    const nvSpan = props.showEnableSwitch ? 8 : 10
     const paramValueSuggestions = concatValueSuggestions(param.valueSuggestions, valueSuggestions)
     return defineFormOptions([{
       labelWidth: '30px',
       prop: 'enabled',
       disabled: props.nameReadOnly,
+      enabled: props.showEnableSwitch,
       type: 'switch',
       colSpan: 2
     }, {
@@ -176,6 +185,7 @@ const paramsOptions = computed(() => {
       prop: 'type',
       type: 'select',
       value: 'text',
+      disabled: props.valueReadOnly,
       children: getSingleSelectOptions('text', 'file'),
       attrs: {
         clearable: false,
@@ -193,6 +203,7 @@ const paramsOptions = computed(() => {
       prop: props.valueKey,
       required: props.nameReadOnly || props.valueRequired || param.valueRequired,
       colSpan: nvSpan,
+      disabled: props.valueReadOnly,
       enabled: param.type !== 'file',
       type: paramValueSuggestions ? 'autocomplete' : 'input',
       attrs: {

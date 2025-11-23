@@ -31,7 +31,7 @@ const currentItem = defineModel('modelValue', {
 })
 
 const internalSaveCurrentItem = ({ form }) => {
-  form.validate(valid => {
+  form.validate().then(valid => {
     if (valid) {
       props.saveCurrentItem(currentItem.value).then(() => {
         ElMessage.success($i18nBundle('common.msg.saveSuccess'))
