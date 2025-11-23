@@ -85,22 +85,15 @@ const componentEditOptions = computed(() => {
     style: getStyleGrow(3)
   }, {
     enabled: projectInfos.value?.length > 1,
-    showLabel: false,
+    labelKey: 'api.label.importFolder',
     prop: 'infoId',
     placeholder: $i18nKey('common.label.commonSelect', 'api.label.importFolder'),
+    disabled: !!currentComponentModel.value?.id,
     required: true,
     type: 'select',
     children: projectInfos.value?.map(info => ({
       label: info.folderName,
-      value: info.id,
-      slots: {
-        default: () => <>
-          {info.folderName}
-          <ElText type="info" class="margin-left1">
-            ({$i18nBundle('api.label.importFolder')})
-          </ElText>
-        </>
-      }
+      value: info.id
     })),
     attrs: {
       clearable: false,

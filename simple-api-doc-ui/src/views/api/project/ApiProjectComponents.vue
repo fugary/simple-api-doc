@@ -9,6 +9,7 @@ import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import ApiProjectComponent from '@/views/components/api/project/ApiProjectComponent.vue'
+import { processProjectInfos } from '@/services/api/ApiDocEditService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -44,7 +45,7 @@ const newOrEdit = (id) => {
       bodyType: 'component',
       schemaContent: '{"type":"object","properties":{}}',
       projectId: projectItem.value?.id,
-      infoId: projectItem.value?.infoList?.[0]?.id
+      infoId: searchParam.value?.infoId || projectItem.value?.infoList?.[0]?.id
     }
   }
 }
@@ -58,8 +59,17 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
 onMounted(initLoadOnce)
 
 onActivated(initLoadOnce)
-
+const projectInfos = computed(() => {
+  if (projectItem.value?.infoList?.length) {
+    return processProjectInfos(projectItem.value)
+  }
+  return []
+})
 const searchFormOptions = computed(() => {
+  const infoOptions = projectInfos.value?.map(info => ({
+    label: info.folderName,
+    value: info.id
+  }))
   return [{
     labelKey: 'common.label.keywords',
     prop: 'keyword',
@@ -79,6 +89,15 @@ const searchFormOptions = computed(() => {
       labelKey: 'api.label.unlocked',
       value: false
     }],
+    change () {
+      loadProjectComponents()
+    }
+  }, {
+    labelKey: 'api.label.importFolder',
+    enabled: infoOptions?.length > 1,
+    prop: 'infoId',
+    type: 'select',
+    children: infoOptions,
     change () {
       loadProjectComponents()
     }
