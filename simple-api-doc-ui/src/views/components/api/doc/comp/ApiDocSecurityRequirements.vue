@@ -5,6 +5,8 @@ import {
 } from '@/services/api/ApiDocEditService'
 import { ElText } from 'element-plus'
 import { toEditSecuritySchemas } from '@/utils/DynamicUtils'
+import { calcSecurityRequirements } from '@/services/api/ApiDocPreviewService'
+import { lowerCase } from 'lodash-es'
 
 defineProps({
   editable: {
@@ -22,15 +24,18 @@ const securitySchemaList = computed(() => {
   return securitySchemas2List(securitySchemas)
 })
 // doc支持的
-const securityRequirements = computed(() => {
-  const securityRequirements = apiDocDetail.value?.securityRequirements
-  return JSON.parse(securityRequirements?.schemaContent || '[]')
-})
-const supportedKeys = computed(() => securityRequirements.value.flatMap(config => Object.keys(config)))
+const supportedKeys = computed(() => calcSecurityRequirements(apiDocDetail.value))
+const defaultSupportedKeys = computed(() => calcSecurityRequirements(apiDocDetail.value?.projectInfoDetail))
 const supportedSecurities = computed(() => {
-  return securitySchemaList.value.filter(schema => supportedKeys.value.includes(schema.schemaName))
+  return securitySchemaList.value.filter(schema => {
+    const name = lowerCase(schema.schemaName)
+    const docSupport = supportedKeys.value.includes(name)
+    const defaultSupport = defaultSupportedKeys.value.includes(name)
+    schema.defaultFlag = defaultSupport && !docSupport
+    return docSupport || defaultSupport
+  })
 })
-const hasSecurity = computed(() => !!supportedKeys.value?.length)
+const hasSecurity = computed(() => !!supportedSecurities.value?.length)
 const emit = defineEmits(['schemaUpdated', 'toEditSecuritySchemas'])
 const toEditDocSecuritySchemas = () => {
   toEditSecuritySchemas({
@@ -60,7 +65,7 @@ const toEditDocSecuritySchemas = () => {
     </h3>
     <div v-if="hasSecurity">
       <template
-        v-for="({schema:security}, index) in supportedSecurities"
+        v-for="({schema:security, defaultFlag}, index) in supportedSecurities"
         :key="index"
       >
         <el-text
@@ -69,7 +74,17 @@ const toEditDocSecuritySchemas = () => {
         >
           {{ $t('api.label.authType') }}:
         </el-text>
-        <el-text type="primary">
+        <el-tag
+          v-if="defaultFlag"
+          type="success"
+          class="margin-right1"
+        >
+          {{ $t('api.label.authTypeInherit') }}
+        </el-tag>
+        <el-text
+          type="primary"
+          class="margin-right1"
+        >
           {{ security.name }}
         </el-text>
         <el-text

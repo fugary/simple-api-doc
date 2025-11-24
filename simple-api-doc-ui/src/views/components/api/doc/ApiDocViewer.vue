@@ -218,7 +218,7 @@ const { isSmallContainer, containerRef } = useContainerCheck()
           :model-value="docContent"
         />
         <api-doc-security-requirements
-          v-if="!shareDoc&&apiDocDetail?.securityRequirements||editable"
+          v-if="!shareDoc&&supportedAuthModels.length||editable"
           v-model="apiDocDetail"
           :editable="editable"
           @to-edit-security-schemas="$emit('toEditSecuritySchemas')"

@@ -55,7 +55,7 @@ const columns = computed(() => {
     prop: 'schema.type',
     minWidth: '100px'
   }, {
-    label: 'In',
+    labelKey: 'api.label.paramIn',
     prop: 'schema.in',
     minWidth: '100px'
   }, {
