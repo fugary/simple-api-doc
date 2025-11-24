@@ -11,6 +11,7 @@ import { $coreConfirm, getSingleSelectOptions } from '@/utils'
 import { SECURITY_IN_TYPES, SECURITY_OAUTH2_AUTH_TYPES, SECURITY_TYPE_TYPES } from '@/consts/ApiConstants'
 import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { toEditSecuritySchemas } from '@/utils/DynamicUtils'
+import { calcSecurityRequirements } from '@/services/api/ApiDocPreviewService'
 
 const showWindow = defineModel({
   type: Boolean,
@@ -116,7 +117,7 @@ const editFormOptions = computed(() => {
     },
     required: true
   }, {
-    label: 'In',
+    labelKey: 'api.label.paramIn',
     prop: 'schema.in',
     type: 'select',
     children: getSingleSelectOptions(...SECURITY_IN_TYPES),
@@ -229,17 +230,24 @@ const toEditDefaultSecuritySchemas = projectInfoDetail => toEditSecuritySchemas(
               />
               {{ $i18nKey('common.label.commonAdd1', 'api.label.authorization') }}
             </el-button>
-            <el-button
-              type="success"
-              size="small"
-              @click="toEditDefaultSecuritySchemas(infoDetail)"
+            <el-badge
+              :value="calcSecurityRequirements(infoDetail)?.length"
+              :show-zero="false"
+              type="primary"
+              class="padding-left2"
             >
-              <common-icon
-                class="margin-right1"
-                icon="Lock"
-              />
-              {{ $t('api.label.defaultAuth') }}
-            </el-button>
+              <el-button
+                type="success"
+                size="small"
+                @click="toEditDefaultSecuritySchemas(infoDetail)"
+              >
+                <common-icon
+                  class="margin-right1"
+                  icon="Lock"
+                />
+                {{ $t('api.label.defaultAuth') }}
+              </el-button>
+            </el-badge>
           </el-container>
         </el-tab-pane>
       </el-tabs>

@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, ref } from 'vue'
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep, lowerCase } from 'lodash-es'
 import { $i18nKey } from '@/messages'
 import {
   checkAndSaveDocInfoDetail,
@@ -53,7 +53,7 @@ const securityRequirements = computed(() => {
   const securityRequirements = getSecurityRequirements()
   return JSON.parse(securityRequirements?.schemaContent || '[]')
 })
-const supportedKeys = computed(() => securityRequirements.value.flatMap(config => Object.keys(config)))
+const supportedKeys = computed(() => securityRequirements.value.flatMap(config => Object.keys(config).map(key => lowerCase(key))))
 const showSecurityConfigWindow = ref(false)
 const schemaEditModel = ref({
   securityParams: []
@@ -63,7 +63,7 @@ const toEditSecuritySchemas = () => {
   const securityParams = cloneDeep(securitySchemaList.value)
   let hasOauth2 = false
   securityParams.forEach(securityParam => {
-    securityParam.needAuth = supportedKeys.value?.includes(securityParam.schemaName)
+    securityParam.needAuth = supportedKeys.value?.includes(lowerCase(securityParam.schemaName))
     if (securityParam.schema?.type === 'oauth2') {
       hasOauth2 = true
       securityParam.scopes = securityRequirements.value.find(require => require[securityParam.schemaName])?.[securityParam.schemaName]
@@ -145,7 +145,7 @@ defineExpose({
   <common-window
     v-model="showSecurityConfigWindow"
     width="1000px"
-    :title="$i18nKey('common.label.commonEdit', 'api.label.authorization')"
+    :title="$i18nKey('common.label.commonEdit', docSecurity?'api.label.authorization':'api.label.defaultAuth')"
     :ok-click="saveSecuritySchemas"
     :buttons="buttons"
   >
