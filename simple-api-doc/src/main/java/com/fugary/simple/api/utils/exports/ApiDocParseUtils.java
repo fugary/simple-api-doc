@@ -165,7 +165,7 @@ public class ApiDocParseUtils {
 
     private static boolean mergeApiDocSchema(ExportApiDocSchemaVo apiDocSchema, ApiProjectInfoDetail existsApiDocSchema) {
         boolean isChanged = isApiDocSchemaChanged(apiDocSchema, existsApiDocSchema);
-        if (existsApiDocSchema != null) {
+        if (apiDocSchema != null && existsApiDocSchema != null) {
             if (isChanged) {
                 SimpleModelUtils.mergeAuditInfo(apiDocSchema, existsApiDocSchema);
             } else {

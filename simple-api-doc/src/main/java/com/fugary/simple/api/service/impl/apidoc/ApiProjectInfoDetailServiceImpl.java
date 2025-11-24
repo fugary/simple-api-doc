@@ -76,7 +76,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         Set<String> types = new HashSet<>(ApiDocConstants.PROJECT_SCHEMA_TYPES);
         types.add(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
         List<ApiProjectInfoDetail> infoDetails = loadByProjectAndInfo(apiProject.getId(), apiProjectInfo.getId(), types);
-        Map<String, ApiProjectInfoDetail> detailsMap = infoDetails.stream().collect(Collectors.toMap(ApiDocParseUtils::getProjectInfoDetailKey, Function.identity()));
+        Map<String, ApiProjectInfoDetail> detailsMap = infoDetails.stream().collect(Collectors.toMap(ApiDocParseUtils::getProjectInfoDetailKey, Function.identity(), (existing, replacement) -> replacement));
         deleteByProjectInfoWithoutDoc(apiProject.getId(), apiProjectInfo.getId());
         projectInfoDetails.forEach(projectInfoDetailVo -> {
             projectInfoDetailVo.setProjectId(apiProject.getId());
@@ -150,7 +150,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
                     String schemaKey = ApiDocConstants.SCHEMA_COMPONENT_PREFIX + detail.getSchemaName();
                     detail.setSchemaKey(schemaKey);
                     return schemaKey;
-                }, Function.identity(), (existing, replacement) -> existing));  // 忽略重复 key
+                }, Function.identity(), (existing, replacement) -> replacement));  // 忽略重复 key
     }
 
     @Override
