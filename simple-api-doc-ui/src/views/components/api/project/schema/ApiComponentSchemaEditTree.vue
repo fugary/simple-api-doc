@@ -146,10 +146,14 @@ const newOrEdit = (data, parent, $event) => {
   $event.stopPropagation()
 }
 
+const getData$ref = data => {
+  return data?.schema$ref || data?.schema?.items?.schema$ref
+}
+
 const checkRefRelated = node => { // 判断上级是否是ref
   let res = false
   while (node?.level !== 0) { // 不是第一级,循环验证
-    if (node.data?.schema$ref) { // || node.data?.xxxOf
+    if (getData$ref(node.data)) { // || node.data?.xxxOf
       res = true
       break
     }
@@ -172,20 +176,30 @@ const checkEditProperty = node => !checkRefRelated(node.parent) && checkNotXxxOf
 const checkDeleteProperty = node => node.level > 1 && !checkRefRelated(node.parent)
 
 const checkGotoRef = node => {
-  return node.data?.schema$ref && componentsMap.value[node.data?.schema$ref]
+  const $ref = getData$ref(node.data)
+  return $ref && componentsMap.value[$ref]
 }
 
 const dereferenceSchema = data => {
-  const unRefMsg = $i18nBundle('api.label.deRef', [$ref2Schema(data?.schema$ref) || $i18nBundle('api.label.typeRef')])
+  const $ref = getData$ref(data)
+  const unRefMsg = $i18nBundle('api.label.deRef', [$ref2Schema($ref) || $i18nBundle('api.label.typeRef')])
   $coreConfirm($i18nBundle('common.msg.commonConfirm', [unRefMsg])).then(() => {
-    const component = componentsMap.value[data?.schema$ref]
+    const component = componentsMap.value[getData$ref(data)]
     if (component?.schema) {
       const schema = cloneDeep(component.schema)
-      console.log('=============================dereference schema', schema, data)
-      if (data.path) {
-        set(schemaModel.value, data.path, schema)
+      console.log('=============================dereference schema', schemaModel.value, data, schema)
+      if (data?.schema?.items?.schema$ref && schemaModel.value?.items) {
+        if (data.path) {
+          set(schemaModel.value.items, data.path, schema)
+        } else {
+          schemaModel.value.items = schema
+        }
       } else {
-        schemaModel.value = schema
+        if (data.path) {
+          set(schemaModel.value, data.path, schema)
+        } else {
+          schemaModel.value = schema
+        }
       }
     }
   })
@@ -246,11 +260,11 @@ defineEmits(['gotoComponent'])
             </el-button>
             <el-button
               v-if="checkGotoRef(node)"
-              v-common-tooltip="$i18nBundle('common.label.commonGoto', [$ref2Schema(data?.schema$ref)||$t('api.label.typeRef')])"
+              v-common-tooltip="$i18nBundle('common.label.commonGoto', [$ref2Schema(getData$ref(data))||$t('api.label.typeRef')])"
               type="success"
               size="small"
               round
-              @click="$emit('gotoComponent', componentsMap[data.schema$ref]);$event.stopPropagation()"
+              @click="$emit('gotoComponent', componentsMap[getData$ref(data)]);$event.stopPropagation()"
             >
               <common-icon
                 icon="ManageSearchFilled"
@@ -259,7 +273,7 @@ defineEmits(['gotoComponent'])
             </el-button>
             <el-button
               v-if="checkGotoRef(node)&&!checkGotoRef(node.parent)"
-              v-common-tooltip="$i18nBundle('api.label.deRef', [$ref2Schema(data?.schema$ref)||$t('api.label.typeRef')])"
+              v-common-tooltip="$i18nBundle('api.label.deRef', [$ref2Schema(getData$ref(data))||$t('api.label.typeRef')])"
               type="danger"
               size="small"
               round
