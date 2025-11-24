@@ -10,6 +10,7 @@ const ShowUserInfo = () => import('@/views/components/user/ShowUserInfo.vue')
 const JsonSchemaEdit = () => import('@/views/components/api/project/schema/JsonSchemaEdit.vue')
 const ApiProjectComponentWindow = () => import('@/views/components/api/project/ApiProjectComponentWindow.vue')
 const ApiDocRequestParamsEditWindow = () => import('@/views/components/api/doc/comp/edit/ApiDocRequestParamsEditWindow.vue')
+const SecurityRequirementsWindow = () => import('@/views/components/api/doc/comp/edit/SecurityRequirementsWindow.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
 const MarkdownWindow = () => import('@/views/components/utils/MarkdownWindow.vue')
 
@@ -105,6 +106,15 @@ export const toEditApiDocRequestParams = async (docDetail, config = {}) => {
     ...config
   })
   vnode.component?.exposed?.toEditApiDocRequestParams(docDetail)
+}
+
+export const toEditSecuritySchemas = async (config = {}) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(SecurityRequirementsWindow, {
+    onClosed: () => dynamicHelper.destroy(),
+    ...config
+  })
+  vnode.component?.exposed?.toEditSecuritySchemas()
 }
 
 /**

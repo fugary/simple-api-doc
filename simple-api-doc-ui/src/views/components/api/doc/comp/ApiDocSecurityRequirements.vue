@@ -1,10 +1,10 @@
 <script setup lang="jsx">
-import { computed, useTemplateRef } from 'vue'
+import { computed } from 'vue'
 import {
   securitySchemas2List
 } from '@/services/api/ApiDocEditService'
 import { ElText } from 'element-plus'
-import SecurityRequirementsWindow from '@/views/components/api/doc/comp/edit/SecurityRequirementsWindow.vue'
+import { toEditSecuritySchemas } from '@/utils/DynamicUtils'
 
 defineProps({
   editable: {
@@ -31,10 +31,14 @@ const supportedSecurities = computed(() => {
   return securitySchemaList.value.filter(schema => supportedKeys.value.includes(schema.schemaName))
 })
 const hasSecurity = computed(() => !!supportedKeys.value?.length)
-defineEmits(['schemaUpdated', 'toEditSecuritySchemas'])
-const securityWinRef = useTemplateRef('securityWinRef')
-const toEditSecuritySchemas = () => {
-  securityWinRef.value.toEditSecuritySchemas()
+const emit = defineEmits(['schemaUpdated', 'toEditSecuritySchemas'])
+const toEditDocSecuritySchemas = () => {
+  toEditSecuritySchemas({
+    apiDocDetail: apiDocDetail.value,
+    projectInfoDetail: apiDocDetail.value.projectInfoDetail,
+    onSchemaUpdated: (...args) => emit('schemaUpdated', ...args),
+    onToEditSecuritySchemas: (...args) => emit('toEditSecuritySchemas', ...args)
+  })
 }
 </script>
 
@@ -46,7 +50,7 @@ const toEditSecuritySchemas = () => {
         v-if="editable"
         class="margin-left1"
         type="primary"
-        @click="toEditSecuritySchemas"
+        @click="toEditDocSecuritySchemas"
       >
         <common-icon
           :size="18"
@@ -94,13 +98,6 @@ const toEditSecuritySchemas = () => {
         {{ $t('common.msg.noData') }}
       </el-text>
     </el-container>
-    <security-requirements-window
-      ref="securityWinRef"
-      :project-info-detail="apiDocDetail.projectInfoDetail"
-      :api-doc-detail="apiDocDetail"
-      @schema-updated="$emit('schemaUpdated')"
-      @to-edit-security-schemas="$emit('toEditSecuritySchemas')"
-    />
   </el-container>
 </template>
 

@@ -10,6 +10,7 @@ import { cloneDeep } from 'lodash-es'
 import { $coreConfirm, getSingleSelectOptions } from '@/utils'
 import { SECURITY_IN_TYPES, SECURITY_OAUTH2_AUTH_TYPES, SECURITY_TYPE_TYPES } from '@/consts/ApiConstants'
 import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
+import { toEditSecuritySchemas } from '@/utils/DynamicUtils'
 
 const showWindow = defineModel({
   type: Boolean,
@@ -187,6 +188,11 @@ const saveOrDeleteSecuritySchema = async (item, isDelete) => {
 const saveSecuritySchema = async () => {
   return saveOrDeleteSecuritySchema(securityInfoModel.value)
 }
+const toEditDefaultSecuritySchemas = projectInfoDetail => toEditSecuritySchemas({
+  projectInfoDetail,
+  docSecurity: false,
+  onSchemaUpdated: (...args) => emit('saveSecuritySchema', ...args)
+})
 </script>
 
 <template>
@@ -222,6 +228,17 @@ const saveSecuritySchema = async () => {
                 icon="Plus"
               />
               {{ $i18nKey('common.label.commonAdd1', 'api.label.authorization') }}
+            </el-button>
+            <el-button
+              type="success"
+              size="small"
+              @click="toEditDefaultSecuritySchemas(infoDetail)"
+            >
+              <common-icon
+                class="margin-right1"
+                icon="Lock"
+              />
+              {{ $t('api.label.defaultAuth') }}
             </el-button>
           </el-container>
         </el-tab-pane>

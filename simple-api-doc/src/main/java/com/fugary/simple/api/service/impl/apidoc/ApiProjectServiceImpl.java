@@ -100,7 +100,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
             List<ApiProjectInfo> infoList = apiProjectInfoService.loadByProjectId(apiProject.getId());
             infoList = infoList.stream().map(info -> {
                 List<ApiProjectInfoDetail> securityDetails = apiProjectInfoDetailService.loadByProjectAndInfo(info.getProjectId(), info.getId(),
-                        Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY));
+                        Set.of(ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY, ApiDocConstants.SCHEMA_TYPE_SECURITY_REQUIREMENT));
                 if (StringUtils.isNotBlank(info.getAuthContent())) {
                     info.setAuthContent(ApiDocConstants.SECURITY_CONFUSION_VALUE);
                 }

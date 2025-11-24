@@ -129,6 +129,7 @@ const buttons = computed(() => {
   return defineTableButtons([{
     type: 'success',
     label: $i18nKey('common.label.commonEdit', 'api.label.authDetails'),
+    enabled: props.docSecurity,
     click () {
       emit('toEditSecuritySchemas')
       showSecurityConfigWindow.value = false

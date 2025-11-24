@@ -110,11 +110,11 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
  * @returns {*}
  */
 export const calcSecurityRequirements = (projectInfoDetail, apiDocDetail) => {
-  const securityRequirements = apiDocDetail.securityRequirements || projectInfoDetail?.securityRequirements
-  if (securityRequirements?.schemaContent) {
-    const secRequirements = JSON.parse(securityRequirements?.schemaContent)
-    return secRequirements.flatMap(sec => Object.keys(sec).map(key => lowerCase(key)))
+  let docRequirements = JSON.parse(apiDocDetail?.securityRequirements?.schemaContent || '[]')
+  if (!docRequirements.length) {
+    docRequirements = JSON.parse(projectInfoDetail?.securityRequirements?.schemaContent || '[]')
   }
+  return docRequirements.flatMap(sec => Object.keys(sec).map(key => lowerCase(key)))
 }
 
 export const preProcessParams = (params = []) => {
