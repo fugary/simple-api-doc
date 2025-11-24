@@ -25,11 +25,7 @@ const apiDocDetail = defineModel({
 })
 
 const securitySchemas = computed(() => {
-  return apiDocDetail.value.projectInfoDetail?.securitySchemas?.filter(security => !!security.schemaContent)
-    .map(security => JSON.parse(security.schemaContent))
-    .reduce((res, item) => {
-      return { ...res, ...item }
-    }, {})
+  return JSON.parse(apiDocDetail.value.projectInfoDetail?.securitySchemas?.schemaContent || '{}')
 })
 const securitySchemaList = computed(() => {
   return securitySchemas2List(securitySchemas.value)

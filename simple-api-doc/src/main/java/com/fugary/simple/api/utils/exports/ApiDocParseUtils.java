@@ -216,8 +216,8 @@ public class ApiDocParseUtils {
 
     public static void overrideApiDocModifyInfo(ApiProjectInfoDetailVo projectInfoDetailVo, ApiDoc apiDoc) {
         // 查找修改时间最近的一条数据，
-        Stream.of(projectInfoDetailVo.getComponentSchemas(), projectInfoDetailVo.getSecuritySchemas(),
-                        projectInfoDetailVo.getSecurityRequirements()).flatMap(Collection::stream)
+        Stream.concat(projectInfoDetailVo.getComponentSchemas().stream(), Stream.of(projectInfoDetailVo.getSecuritySchemas(),
+                        projectInfoDetailVo.getSecurityRequirements())).filter(Objects::nonNull)
                 .filter(detail -> StringUtils.isNotBlank(detail.getModifier()) && detail.getModifyDate() != null)
                 .max(Comparator.comparing(ApiProjectInfoDetail::getModifyDate)).stream().findFirst().ifPresent(detail -> {
                     Date docDate = ObjectUtils.defaultIfNull(apiDoc.getModifyDate(), apiDoc.getCreateDate());

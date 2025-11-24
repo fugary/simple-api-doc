@@ -257,19 +257,19 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
      */
     protected void processComponentsAndSecuritySchemas(ApiProjectInfoDetailVo projectInfoDetailVo, OpenAPI openAPI) {
         List<ApiProjectInfoDetail> componentSchemas = projectInfoDetailVo.getComponentSchemas();
-        List<ApiProjectInfoDetail> securitySchemas = projectInfoDetailVo.getSecuritySchemas();
-        List<ApiProjectInfoDetail> securityRequirements = projectInfoDetailVo.getSecurityRequirements();
+        ApiProjectInfoDetail securitySchemas = projectInfoDetailVo.getSecuritySchemas();
+        ApiProjectInfoDetail securityRequirements = projectInfoDetailVo.getSecurityRequirements();
         componentSchemas.forEach(detail -> {
             Schema<?> schema = SchemaJsonUtils.fromJson(detail.getSchemaContent(), Schema.class, SchemaJsonUtils.isV31(openAPI));
             openAPI.getComponents().addSchemas(detail.getSchemaName(), schema);
         });
-        securitySchemas.forEach(detail -> {
-            Map<String, SecurityScheme> secSchemas = SchemaJsonUtils.fromJson(detail.getSchemaContent(), new TypeReference<>() {
+        if (securitySchemas != null && StringUtils.isNotBlank(securitySchemas.getSchemaContent())) {
+            Map<String, SecurityScheme> secSchemas = SchemaJsonUtils.fromJson(securitySchemas.getSchemaContent(), new TypeReference<>() {
             }, SchemaJsonUtils.isV31(openAPI));
             openAPI.getComponents().setSecuritySchemes(secSchemas);
-        });
-        securityRequirements.forEach(detail -> {
-            List<SecurityRequirement> requirementsSchemas = SchemaJsonUtils.fromJson(detail.getSchemaContent(), new TypeReference<>() {
+        }
+        if (securityRequirements != null && StringUtils.isNotBlank(securityRequirements.getSchemaContent())) {
+            List<SecurityRequirement> requirementsSchemas = SchemaJsonUtils.fromJson(securityRequirements.getSchemaContent(), new TypeReference<>() {
             }, SchemaJsonUtils.isV31(openAPI));
             if (CollectionUtils.isNotEmpty(requirementsSchemas)) {
                 requirementsSchemas.forEach(requirement -> {
@@ -279,6 +279,6 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                     }
                 });
             }
-        });
+        }
     }
 }

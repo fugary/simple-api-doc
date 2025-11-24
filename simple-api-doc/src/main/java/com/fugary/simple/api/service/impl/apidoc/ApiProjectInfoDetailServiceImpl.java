@@ -129,10 +129,10 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
                     apiInfoVo.getComponentSchemas().add(detail);
                     break;
                 case ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY:
-                    apiInfoVo.getSecuritySchemas().add(detail);
+                    apiInfoVo.setSecuritySchemas(detail);
                     break;
                 case ApiDocConstants.SCHEMA_TYPE_SECURITY_REQUIREMENT:
-                    apiInfoVo.getSecurityRequirements().add(detail);
+                    apiInfoVo.setSecurityRequirements(detail);
                     break;
             }
         });

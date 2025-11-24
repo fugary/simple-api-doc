@@ -110,7 +110,7 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
  * @returns {*}
  */
 export const calcSecurityRequirements = (projectInfoDetail, apiDocDetail) => {
-  const securityRequirements = apiDocDetail.securityRequirements || projectInfoDetail?.securityRequirements?.[0]
+  const securityRequirements = apiDocDetail.securityRequirements || projectInfoDetail?.securityRequirements
   if (securityRequirements?.schemaContent) {
     const secRequirements = JSON.parse(securityRequirements?.schemaContent)
     return secRequirements.flatMap(sec => Object.keys(sec).map(key => lowerCase(key)))
@@ -606,9 +606,9 @@ export const fromModelToSchema = item => {
 }
 
 export const calcSecuritySchemas = (projectInfoDetail, apiDocDetail, securitySchemas, supportedAuthTypes, shareDoc) => {
-  if (projectInfoDetail?.securitySchemas?.length) {
+  if (projectInfoDetail?.securitySchemas?.schemaContent) {
     const requirements = calcSecurityRequirements(projectInfoDetail, apiDocDetail) || []
-    const secSchemas = JSON.parse(projectInfoDetail.securitySchemas[0].schemaContent)
+    const secSchemas = JSON.parse(projectInfoDetail.securitySchemas.schemaContent)
     let jwtKey = null
     Object.keys(secSchemas).forEach((key) => {
       const secSchema = secSchemas[key]

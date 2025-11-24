@@ -25,8 +25,8 @@ const initProjectItem = () => {
   console.log('=====================change', projectItem.value.infoList)
   infoListDetails.value = processProjectInfos(projectItem.value)
   infoListDetails.value.forEach(infoDetail => {
-    if (infoDetail.securitySchemas?.length) {
-      const securitySchema = infoDetail.securitySchemas[0]
+    if (infoDetail.securitySchemas) {
+      const securitySchema = infoDetail.securitySchemas
       infoDetail.securitySchema = securitySchema
       const schemaContentObj = infoDetail.securitySchema.schemaContentObj = JSON.parse(securitySchema.schemaContent || '{}')
       infoDetail.schemaList = securitySchemas2List(schemaContentObj, securitySchema.id)
