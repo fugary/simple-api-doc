@@ -175,6 +175,22 @@ const checkGotoRef = node => {
   return node.data?.schema$ref && componentsMap.value[node.data?.schema$ref]
 }
 
+const dereferenceSchema = data => {
+  const unRefMsg = $i18nBundle('api.label.deRef', [$ref2Schema(data?.schema$ref) || $i18nBundle('api.label.typeRef')])
+  $coreConfirm($i18nBundle('common.msg.commonConfirm', [unRefMsg])).then(() => {
+    const component = componentsMap.value[data?.schema$ref]
+    if (component?.schema) {
+      const schema = cloneDeep(component.schema)
+      console.log('=============================dereference schema', schema, data)
+      if (data.path) {
+        set(schemaModel.value, data.path, schema)
+      } else {
+        schemaModel.value = schema
+      }
+    }
+  })
+}
+
 defineEmits(['gotoComponent'])
 
 </script>
@@ -238,6 +254,19 @@ defineEmits(['gotoComponent'])
             >
               <common-icon
                 icon="ManageSearchFilled"
+                :size="18"
+              />
+            </el-button>
+            <el-button
+              v-if="checkGotoRef(node)&&!checkGotoRef(node.parent)"
+              v-common-tooltip="$i18nBundle('api.label.deRef', [$ref2Schema(data?.schema$ref)||$t('api.label.typeRef')])"
+              type="danger"
+              size="small"
+              round
+              @click="dereferenceSchema(data);$event.stopPropagation()"
+            >
+              <common-icon
+                icon="LinkOffFilled"
                 :size="18"
               />
             </el-button>

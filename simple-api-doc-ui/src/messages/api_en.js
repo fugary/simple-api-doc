@@ -207,6 +207,7 @@ api.label.requiredProperties = 'Required Props'
 api.label.showMoreOptions = 'Show More Options'
 api.label.hideMoreOptions = 'Hide More Options'
 api.label.commonMorePlus = '{0}+'
+api.label.deRef = 'Dereference [{0}]'
 
 api.msg.noExportData = 'No data to export'
 api.msg.exportConfirm = 'Confirm to export API docs?'
