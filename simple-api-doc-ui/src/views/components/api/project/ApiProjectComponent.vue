@@ -8,10 +8,10 @@ import { $coreConfirm, $coreError, getSingleSelectOptions, getStyleGrow } from '
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
 import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
-import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE } from '@/consts/ApiConstants'
+import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE, SCHEMA_COMPONENT_PREFIX } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
-import { checkAndSaveDocInfoDetail, processProjectInfos } from '@/services/api/ApiDocEditService'
+import { checkAndSaveDocInfoDetail, processProjectInfos, useComponentSchemas } from '@/services/api/ApiDocEditService'
 import { showMarkdownWindow } from '@/utils/DynamicUtils'
 
 const props = defineProps({
@@ -27,7 +27,7 @@ const currentInfoDetail = defineModel({
 })
 const projectItemMap = reactive({})
 props.currentProject && (projectItemMap[props.currentProject.id] = props.currentProject)
-const componentSchemas = ref([])
+const { componentSchemas, loadComponents } = useComponentSchemas()
 const currentComponentModel = ref()
 const { managedItems, pushItem, clearItems, startContext, goToItem } = useManagedArrayItems()
 watch(currentInfoDetail, async model => {
@@ -38,6 +38,9 @@ watch(currentInfoDetail, async model => {
     })
   } else {
     currentComponentModel.value = currentInfoDetail.value
+    if (!componentSchemas.value.length && currentInfoDetail.value?.schemaContent?.includes(SCHEMA_COMPONENT_PREFIX)) {
+      await loadComponents(currentInfoDetail.value)
+    }
   }
   const projectId = currentComponentModel.value.projectId
   console.log('=============================data', currentComponentModel.value, projectItemMap, projectId)

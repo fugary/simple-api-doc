@@ -209,6 +209,7 @@ api.label.showMoreOptions = '显示更多选项'
 api.label.hideMoreOptions = '隐藏更多选项'
 api.label.commonMorePlus = '{0}+'
 api.label.deRef = '解除ref关联[{0}]'
+api.label.constructRef = '构建为引用对象'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出API文档数据？'

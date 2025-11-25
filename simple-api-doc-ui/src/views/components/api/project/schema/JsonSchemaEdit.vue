@@ -10,11 +10,10 @@ import {
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { $ref2Schema, calcComponentOptions, fromSchemaToModel, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { getSingleSelectOptions } from '@/utils'
-import { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
 import { cloneDeep, isArray } from 'lodash-es'
 import { ElText } from 'element-plus'
 import { showMarkdownWindow, toEditComponent } from '@/utils/DynamicUtils'
-import { processSchemaBeforeSave } from '@/services/api/ApiDocEditService'
+import { processSchemaBeforeSave, useComponentSchemas } from '@/services/api/ApiDocEditService'
 
 const vModel = ref()
 const currentInfoDetail = ref()
@@ -58,17 +57,10 @@ const initJsonSchema = () => {
 
 const processBeforeSave = () => processSchemaBeforeSave(vModel.value, additionalPropertiesEnabled.value)
 
-const componentSchemas = ref([])
+const { componentSchemas, loadComponents } = useComponentSchemas()
 const loadComponentSchemas = () => {
   if (!componentSchemas.value.length && currentInfoDetail.value) {
-    loadInfoDetails({
-      projectId: currentInfoDetail.value.projectId,
-      infoId: currentInfoDetail.value.infoId,
-      bodyType: 'component'
-    }).then(components => {
-      componentSchemas.value = components || []
-      emit('editComponentSchemas', components)
-    })
+    loadComponents(currentInfoDetail.value).then(components => emit('editComponentSchemas', components))
   }
 }
 const getTypeOptions = (dataType) => {

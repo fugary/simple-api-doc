@@ -1,10 +1,11 @@
 import { $coreError } from '@/utils'
 import { $i18nBundle } from '@/messages'
-import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
+import ApiProjectInfoDetailApi, { loadInfoDetails } from '@/api/ApiProjectInfoDetailApi'
 import { ElMessage } from 'element-plus'
 import { SCHEMA_SELECT_TYPE, SECURITY_OAUTH2_AUTH_TYPES } from '@/consts/ApiConstants'
 import { fromModelToSchema, hasXxxOf } from '@/services/api/ApiDocPreviewService'
 import { cloneDeep } from 'lodash-es'
+import { ref } from 'vue'
 
 /**
  * 模型初始化计算
@@ -202,4 +203,20 @@ export const getOauth2ConfigInfo = schema => {
     })
   }
   return result
+}
+
+export const useComponentSchemas = () => {
+  const componentSchemas = ref([])
+  const loadComponents = (infoDetail) => loadInfoDetails({
+    projectId: infoDetail.projectId,
+    infoId: infoDetail.infoId,
+    bodyType: 'component'
+  }).then(components => {
+    componentSchemas.value = components || []
+    return componentSchemas.value
+  })
+  return {
+    componentSchemas,
+    loadComponents
+  }
 }

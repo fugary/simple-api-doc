@@ -11,10 +11,12 @@ import {
 } from '@/services/api/ApiDocPreviewService'
 import SchemaTreeNode from '@/views/components/api/doc/comp/SchemaTreeNode.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { toEditJsonSchema } from '@/utils/DynamicUtils'
+import { toEditComponent, toEditJsonSchema } from '@/utils/DynamicUtils'
 import { $coreConfirm } from '@/utils'
 import { cloneDeep, pull, unset, get, set } from 'lodash-es'
 import { $i18nBundle, $i18nKey } from '@/messages'
+import { SCHEMA_COMPONENT_PREFIX } from '@/consts/ApiConstants'
+import { useComponentSchemas } from '@/services/api/ApiDocEditService'
 
 const props = defineProps({
   rootName: {
@@ -62,8 +64,8 @@ watch([schemaModel, () => props.rootName], () => {
   })
 }, { immediate: true, deep: true })
 
-const editComponentSchemas = ref()
-const componentsMap = computed(() => calcComponentMap(editComponentSchemas.value || props.componentSchemas))
+const { componentSchemas: editComponentSchemas, loadComponents } = useComponentSchemas()
+const componentsMap = computed(() => calcComponentMap(editComponentSchemas.value?.length ? editComponentSchemas.value : props.componentSchemas))
 
 const loadTreeNode = (node, resolve) => {
   if (!node.parent) { // 第一级
@@ -180,6 +182,22 @@ const checkGotoRef = node => {
   return $ref && componentsMap.value[$ref]
 }
 
+const saveToSchemaModel = (data, schema) => {
+  if (data?.schema?.items?.schema$ref && schemaModel.value?.items) {
+    if (data.path) {
+      set(schemaModel.value.items, data.path, schema)
+    } else {
+      schemaModel.value.items = schema
+    }
+  } else {
+    if (data.path) {
+      set(schemaModel.value, data.path, schema)
+    } else {
+      schemaModel.value = schema
+    }
+  }
+}
+
 const dereferenceSchema = data => {
   const $ref = getData$ref(data)
   const unRefMsg = $i18nBundle('api.label.deRef', [$ref2Schema($ref) || $i18nBundle('api.label.typeRef')])
@@ -188,20 +206,27 @@ const dereferenceSchema = data => {
     if (component?.schema) {
       const schema = cloneDeep(component.schema)
       console.log('=============================dereference schema', schemaModel.value, data, schema)
-      if (data?.schema?.items?.schema$ref && schemaModel.value?.items) {
-        if (data.path) {
-          set(schemaModel.value.items, data.path, schema)
-        } else {
-          schemaModel.value.items = schema
-        }
-      } else {
-        if (data.path) {
-          set(schemaModel.value, data.path, schema)
-        } else {
-          schemaModel.value = schema
-        }
-      }
+      saveToSchemaModel(data, schema)
     }
+  })
+}
+
+const constructRefSchema = data => {
+  $coreConfirm($i18nBundle('api.label.constructRef')).then(() => {
+    const editSchema = data.path ? get(schemaModel.value, data.path) : schemaModel.value
+    toEditComponent({
+      projectId: props.currentInfoDetail.projectId,
+      infoId: props.currentInfoDetail.infoId,
+      schemaContent: JSON.stringify(editSchema),
+      bodyType: 'component'
+    }, {
+      onSaveComponent: (newData) => {
+        console.log('==================================', data, newData)
+        loadComponents(props.currentInfoDetail).then(() => {
+          saveToSchemaModel(data, { $ref: `${SCHEMA_COMPONENT_PREFIX}${newData.schemaName}` })
+        })
+      }
+    })
   })
 }
 
@@ -281,6 +306,19 @@ defineEmits(['gotoComponent'])
             >
               <common-icon
                 icon="LinkOffFilled"
+                :size="18"
+              />
+            </el-button>
+            <el-button
+              v-if="!checkGotoRef(node)&&data.schema?.type==='object'"
+              v-common-tooltip="$i18nBundle('api.label.constructRef')"
+              type="success"
+              size="small"
+              round
+              @click="constructRefSchema(data);$event.stopPropagation()"
+            >
+              <common-icon
+                icon="LinkFilled"
                 :size="18"
               />
             </el-button>

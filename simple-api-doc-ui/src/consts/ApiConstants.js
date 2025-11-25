@@ -14,6 +14,8 @@ export const CURRENT_SHARE_THEME_KEY = 'simple-api-share-theme'
 
 export const DEFAULT_PREFERENCE_ID_KEY = 'simple-api-preference-id'
 
+export const SCHEMA_COMPONENT_PREFIX = '#/components/schemas/'
+
 export const DEFAULT_HEADERS = ['Accept',
   'Accept-Charset',
   'Accept-Encoding',
