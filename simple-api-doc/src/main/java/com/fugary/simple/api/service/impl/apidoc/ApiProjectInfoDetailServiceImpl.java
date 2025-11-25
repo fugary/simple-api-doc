@@ -21,6 +21,7 @@ import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -45,12 +46,15 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public List<ApiProjectInfoDetail> loadByProject(Integer projectId, Set<String> types) {
-        return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("project_id", projectId).in(!types.isEmpty(), "body_type", types));
+        return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("project_id", projectId)
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
+                .in(!types.isEmpty(), "body_type", types));
     }
 
     @Override
     public List<ApiProjectInfoDetail> loadByProjectAndInfo(Integer projectId, Integer infoId, Set<String> types) {
         return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("project_id", projectId)
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .eq("info_id", infoId).in(!types.isEmpty(), "body_type", types));
     }
 
@@ -77,13 +81,32 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         types.add(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
         List<ApiProjectInfoDetail> infoDetails = loadByProjectAndInfo(apiProject.getId(), apiProjectInfo.getId(), types);
         Map<String, ApiProjectInfoDetail> detailsMap = infoDetails.stream().collect(Collectors.toMap(ApiDocParseUtils::getProjectInfoDetailKey, Function.identity(), (existing, replacement) -> replacement));
-        deleteByProjectInfoWithoutDoc(apiProject.getId(), apiProjectInfo.getId());
         projectInfoDetails.forEach(projectInfoDetailVo -> {
             projectInfoDetailVo.setProjectId(apiProject.getId());
             projectInfoDetailVo.setInfoId(apiProjectInfo.getId());
-            ApiDocParseUtils.processProjectInfoDetail(detailsMap, projectInfoDetailVo, SchemaJsonUtils.isV31(apiProjectInfo.getSpecVersion()));
-            save(SimpleModelUtils.addAuditInfo(projectInfoDetailVo));
+            Pair<ExportApiProjectInfoDetailVo, ApiProjectInfoDetail> infoDetailPair = ApiDocParseUtils.processProjectInfoDetail(detailsMap, projectInfoDetailVo, SchemaJsonUtils.isV31(apiProjectInfo.getSpecVersion()));
+            ApiProjectInfoDetail toSaveInfoDetail = infoDetailPair.getLeft();
+            ApiProjectInfoDetail existsInfoDetail = infoDetailPair.getRight();
+            if (existsInfoDetail != null) {
+                saveApiHistory(existsInfoDetail);
+            }
+            if (toSaveInfoDetail != null) {
+                saveOrUpdate(SimpleModelUtils.addAuditInfo(toSaveInfoDetail));
+            }
         });
+    }
+
+    @Override
+    public boolean saveApiHistory(ApiProjectInfoDetail infoDetail) {
+        if (infoDetail != null) {
+            ApiProjectInfoDetail infoHistory = SimpleModelUtils.copy(infoDetail, ApiProjectInfoDetail.class);
+            infoHistory.setId(null);
+            infoHistory.setModifyFrom(infoDetail.getId());
+            infoHistory.setCreator(infoDetail.getModifier());
+            infoHistory.setCreateDate(infoDetail.getModifyDate());
+            return this.save(infoHistory);
+        }
+        return true;
     }
 
     @Override
@@ -193,7 +216,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public boolean existsInfoDetail(ApiProjectInfoDetail infoDetail) {
-        QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query().eq("schema_name", infoDetail.getSchemaName())
+        QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
+                .eq("schema_name", infoDetail.getSchemaName())
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .eq("body_type", infoDetail.getBodyType()).eq("info_id", infoDetail.getInfoId());
         if (infoDetail.getDocId() != null) {
             queryWrapper.eq("doc_id", infoDetail.getDocId());
@@ -208,6 +233,8 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         newInfoDetail.setId(null);
         newInfoDetail.setModifier(null);
         newInfoDetail.setModifyDate(null);
+        newInfoDetail.setVersion(1);
+        newInfoDetail.setModifyFrom(null);
         newInfoDetail.setSchemaName(StringUtils.defaultIfBlank(infoDetail.getSchemaName(), "Model") + ApiDocConstants.COPY_SUFFIX);
         if (existsInfoDetail(newInfoDetail)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
@@ -218,7 +245,8 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
 
     @Override
     public List<ApiProjectInfoDetail> loadByDoc(Integer docId) {
-        return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("doc_id", docId));
+        return this.list(Wrappers.<ApiProjectInfoDetail>query().eq("doc_id", docId)
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY));
     }
 
     @Override
@@ -257,7 +285,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public List<ApiDocDetailVo> loadDetailList(List<ApiDoc> apiDocs) {
         List<Integer> docIds = apiDocs.stream().map(ApiDoc::getId).collect(Collectors.toList());
-        Map<Integer, List<ApiProjectInfoDetail>> schemaMap = this.list(Wrappers.<ApiProjectInfoDetail>query().in("doc_id", docIds)).stream()
+        Map<Integer, List<ApiProjectInfoDetail>> schemaMap = this.list(Wrappers.<ApiProjectInfoDetail>query()
+                        .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
+                        .in("doc_id", docIds)).stream()
                 .collect(Collectors.groupingBy(ApiProjectInfoDetail::getDocId));
         return apiDocs.stream().map(apiDoc -> {
             ApiDocDetailVo apiDocVo = new ApiDocDetailVo();

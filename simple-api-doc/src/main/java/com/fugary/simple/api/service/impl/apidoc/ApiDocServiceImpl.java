@@ -150,6 +150,8 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
             ApiProjectInfoDetail newSchema = SimpleModelUtils.copy(schema, ApiProjectInfoDetail.class);
             newSchema.setId(null);
             newSchema.setDocId(newDoc.getId());
+            newSchema.setVersion(1);
+            newSchema.setModifyFrom(null);
             apiDocSchemaService.save(newSchema);
         });
         return result;

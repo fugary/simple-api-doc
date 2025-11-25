@@ -23,10 +23,9 @@ public class ApiSchemaContentUtils {
      *
      * @param savedComponentSchemaContent
      * @param componentSchemaContent
-     * @param isV31
      * @return
      */
-    public static boolean isSameSchemaContent(String savedComponentSchemaContent, String componentSchemaContent, boolean isV31) {
+    public static boolean isSameSchemaContent(String savedComponentSchemaContent, String componentSchemaContent) {
         String savedSchema = StringUtils.deleteWhitespace(savedComponentSchemaContent);
         String newSchema = StringUtils.deleteWhitespace(componentSchemaContent);
         return Objects.equals(savedSchema, newSchema);

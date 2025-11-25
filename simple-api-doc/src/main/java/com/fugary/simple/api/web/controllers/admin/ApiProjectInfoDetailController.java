@@ -3,6 +3,7 @@ package com.fugary.simple.api.web.controllers.admin;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.*;
@@ -57,6 +58,7 @@ public class ApiProjectInfoDetailController {
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("schema_name", keyword)
                         .or().like("description", keyword))
                 .eq("project_id", queryVo.getProjectId())
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .eq(queryVo.getInfoId() != null, "info_id", queryVo.getInfoId())
                 .and(queryVo.getLocked() != null, wrapper -> {
                     wrapper.eq("locked", queryVo.getLocked());
@@ -72,6 +74,7 @@ public class ApiProjectInfoDetailController {
     public SimpleResult<List<ApiProjectInfoDetail>> loadInfoDetails(@RequestBody ProjectComponentQueryVo queryVo) {
         QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
                 .eq("project_id", queryVo.getProjectId())
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .eq(queryVo.getInfoId() != null, "info_id", queryVo.getInfoId())
                 .eq("body_type", queryVo.getBodyType());
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.list(queryWrapper));
@@ -133,15 +136,10 @@ public class ApiProjectInfoDetailController {
         if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        boolean isV31 = false;
-        ApiProjectInfo projectInfo = null;
-        if (infoDetail.getInfoId() != null && (projectInfo = apiProjectInfoService.getById(infoDetail.getInfoId())) != null) {
-            isV31 = SchemaJsonUtils.isV31(projectInfo.getSpecVersion());
-        }
         if (infoDetail.getId() != null) {
             ApiProjectInfoDetail oldInfoDetail = apiProjectInfoDetailService.getById(infoDetail.getId());
             if (oldInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, oldInfoDetail, "schemaContent")
-                    && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), oldInfoDetail.getSchemaContent(), isV31)) {
+                    && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), oldInfoDetail.getSchemaContent())) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
             }
         }
@@ -149,6 +147,7 @@ public class ApiProjectInfoDetailController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
         apiProjectInfoDetailService.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
+        apiProjectInfoDetailService.saveApiHistory(infoDetail);
         return SimpleResultUtils.createSimpleResult(infoDetail);
     }
 

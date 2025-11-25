@@ -76,6 +76,14 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
     void saveApiProjectInfoDetails(ApiProject apiProject, ApiProjectInfo apiProjectInfo, List<ExportApiProjectInfoDetailVo> projectInfoDetails);
 
     /**
+     * 保存历史版本
+     *
+     * @param infoDetail
+     * @return
+     */
+    boolean saveApiHistory(ApiProjectInfoDetail infoDetail);
+
+    /**
      * 解析doc详情
      *
      * @param apiInfo

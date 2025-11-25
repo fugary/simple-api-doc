@@ -160,7 +160,7 @@ public class ApiDocParseUtils {
         if (CollectionUtils.isEmpty(list)) {
             return Collections.emptyMap();
         }
-        return list.stream().collect(Collectors.toMap(ApiDocParseUtils::getApiDocSchemaKey, Function.identity()));
+        return list.stream().collect(Collectors.toMap(ApiDocParseUtils::getApiDocSchemaKey, Function.identity(), (existing, replacement) -> replacement));
     }
 
     private static boolean mergeApiDocSchema(ExportApiDocSchemaVo apiDocSchema, ApiProjectInfoDetail existsApiDocSchema) {
@@ -192,12 +192,12 @@ public class ApiDocParseUtils {
         return String.join("|", infoDetail.getBodyType(), infoDetail.getSchemaName());
     }
 
-    public static void processProjectInfoDetail(Map<String, ApiProjectInfoDetail> detailsMap,
+    public static Pair<ExportApiProjectInfoDetailVo, ApiProjectInfoDetail> processProjectInfoDetail(Map<String, ApiProjectInfoDetail> detailsMap,
                                                 ExportApiProjectInfoDetailVo projectInfoDetailVo, boolean isV31) {
         ApiProjectInfoDetail existsInfoDetail = detailsMap.get(ApiDocParseUtils.getProjectInfoDetailKey(projectInfoDetailVo));
         if (existsInfoDetail != null) {
-            boolean isChanged = !StringUtils.equals(existsInfoDetail.getSchemaContent(), projectInfoDetailVo.getSchemaContent())
-                    || !StringUtils.equals(existsInfoDetail.getDescription(), projectInfoDetailVo.getDescription());
+            boolean isSameInfoDetail = !SimpleModelUtils.isSameData(projectInfoDetailVo, existsInfoDetail, "schemaContent")
+                    || !ApiSchemaContentUtils.isSameSchemaContent(projectInfoDetailVo.getSchemaContent(), existsInfoDetail.getSchemaContent());
             if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(existsInfoDetail.getBodyType())) {
                 if (Boolean.TRUE.equals(existsInfoDetail.getLocked())) {
                     String mergedSchemaContent = ApiSchemaContentUtils.mergeComponentSchemaContent(existsInfoDetail.getSchemaContent(),
@@ -206,12 +206,13 @@ public class ApiDocParseUtils {
                     projectInfoDetailVo.setLocked(existsInfoDetail.getLocked());
                 }
             }
-            if (isChanged) {
-                SimpleModelUtils.mergeAuditInfo(projectInfoDetailVo, existsInfoDetail);
-            } else {
-                SimpleModelUtils.mergeCreateInfo(projectInfoDetailVo, existsInfoDetail);
+            projectInfoDetailVo.setId(existsInfoDetail.getId()); // 存在的话更新对应的ID
+            SimpleModelUtils.mergeAuditInfo(projectInfoDetailVo, existsInfoDetail);
+            if (isSameInfoDetail) { // 数据相同不更新
+                return Pair.of(null, null);
             }
         }
+        return Pair.of(projectInfoDetailVo, existsInfoDetail);
     }
 
     public static void overrideApiDocModifyInfo(ApiProjectInfoDetailVo projectInfoDetailVo, ApiDoc apiDoc) {
