@@ -1,5 +1,6 @@
 package com.fugary.simple.api.entity.api;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 
@@ -9,7 +10,7 @@ import lombok.Data;
  * @author gary.fu
  */
 @Data
-public class ApiDoc extends ModelBase {
+public class ApiDoc extends ModelBase implements HistoryBase {
 
     private static final long serialVersionUID = -8358397569699746687L;
     private Integer projectId;
@@ -28,5 +29,7 @@ public class ApiDoc extends ModelBase {
     private String summary;
     private String description;
     @Version
-    private Integer docVersion;
+    @TableField("doc_version")
+    private Integer version;
+    private Integer modifyFrom;
 }

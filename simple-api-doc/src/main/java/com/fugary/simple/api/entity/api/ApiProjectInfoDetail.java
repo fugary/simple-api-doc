@@ -1,6 +1,8 @@
 package com.fugary.simple.api.entity.api;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import lombok.Data;
 
@@ -26,4 +28,8 @@ public class ApiProjectInfoDetail extends ModelBase {
     private Integer statusCode;
     private String examples;
     private String description;
+    @Version
+    @TableField("data_version")
+    private Integer version;
+    private Integer modifyFrom;
 }

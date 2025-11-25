@@ -118,4 +118,20 @@ public interface ApiDocService extends IService<ApiDoc> {
      * @return
      */
     SimpleResult<ApiDoc> copyApiDoc(ApiDoc apiDoc, ApiFolder apiFolder);
+
+    /**
+     * 从apiDoc中保存历史版本
+     *
+     * @param apiDoc
+     * @return
+     */
+    boolean saveByApiDoc(ApiDoc apiDoc);
+
+    /**
+     * 从历史复制数据
+     *
+     * @param apiDocHistory
+     * @param apiDoc
+     */
+    ApiDoc copyFromHistory(ApiDoc apiDocHistory, ApiDoc apiDoc);
 }

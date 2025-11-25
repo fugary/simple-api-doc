@@ -26,6 +26,10 @@ public class ApiDocConstants {
     public static final String MODIFIER_KEY = "modifier";
 
     public static final String MODIFY_DATE_KEY = "modifyDate";
+    /**
+     * 数据库字段名
+     */
+    public static final String DB_MODIFY_FROM_KEY = "modify_from";
 
     public static final String API_USER_KEY = "simple-api-user";
 

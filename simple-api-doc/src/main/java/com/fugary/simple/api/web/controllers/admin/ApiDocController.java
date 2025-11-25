@@ -56,9 +56,6 @@ public class ApiDocController {
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
 
     @Autowired
-    private ApiDocHistoryService apiDocHistoryService;
-
-    @Autowired
     private ApiDocViewGenerator apiDocViewGenerator;
 
     @GetMapping
@@ -67,6 +64,7 @@ public class ApiDocController {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         QueryWrapper<ApiDoc> queryWrapper = Wrappers.<ApiDoc>query()
                 .eq("project_id", queryVo.getProjectId())
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .and(StringUtils.isNotBlank(keyword),
                         query -> query.like(StringUtils.isNotBlank(keyword), "doc_name", keyword)
                                 .or().like(StringUtils.isNotBlank(keyword), "url", keyword)
@@ -83,7 +81,7 @@ public class ApiDocController {
         }
         SimpleResult<ApiDoc> result = SimpleResultUtils.createSimpleResult(apiDoc);
         if (ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType())) {
-            result.add("historyCount", apiDocHistoryService.count(Wrappers.<ApiDocHistory>query().eq("doc_id", id)));
+            result.add("historyCount", apiDocService.count(Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, id)));
         }
         return result;
     }
@@ -116,8 +114,8 @@ public class ApiDocController {
             }
         }
         ApiDocParseUtils.calcNewDocKey(apiDoc, folder);
-        if (apiDoc.getDocVersion() == null) {
-            apiDoc.setDocVersion(1);
+        if (apiDoc.getVersion() == null) {
+            apiDoc.setVersion(1);
         }
         apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDoc), null);
         return SimpleResultUtils.createSimpleResult(apiDoc);
@@ -129,18 +127,18 @@ public class ApiDocController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         ApiDoc existsDoc = apiDocService.getById(apiDoc.getId());
-        if (apiDoc.getDocVersion() == null) {
-            apiDoc.setDocVersion(1);
+        if (apiDoc.getVersion() == null) {
+            apiDoc.setVersion(1);
         }
-        if (existsDoc != null && existsDoc.getDocVersion() != null) {
-            apiDoc.setDocVersion(existsDoc.getDocVersion() + 1);
+        if (existsDoc != null && existsDoc.getVersion() != null) {
+            apiDoc.setVersion(existsDoc.getVersion() + 1);
         }
-        apiDocHistoryService.saveByApiDoc(existsDoc);
+        apiDocService.saveByApiDoc(existsDoc);
         apiDocService.update(Wrappers.<ApiDoc>update().eq("id", apiDoc.getId())
                 .set(ApiDocConstants.STATUS_KEY, apiDoc.getStatus())
                 .set(ApiDocConstants.MODIFIER_KEY, SecurityUtils.getLoginUserName())
                 .set("locked", apiDoc.getLocked())
-                .set("doc_version", apiDoc.getDocVersion())
+                .set("doc_version", apiDoc.getVersion())
                 .set("modify_date", new Date()));
         return SimpleResultUtils.createSimpleResult(apiDoc);
     }
@@ -162,7 +160,7 @@ public class ApiDocController {
         apiDocVo.setProject(apiProject);
         apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
         SimpleResult<ApiDocDetailVo> result = SimpleResultUtils.createSimpleResult(apiDocVo);
-        result.add("historyCount", apiDocHistoryService.count(Wrappers.<ApiDocHistory>query().eq("doc_id", docId)));
+        result.add("historyCount", apiDocService.count(Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)));
         if (Boolean.TRUE.equals(markdown)) {
             String apiMarkdown = apiDocViewGenerator.generate(new MdViewContext(apiDocVo));
             apiDocVo.setApiMarkdown(apiMarkdown);
@@ -177,15 +175,15 @@ public class ApiDocController {
      * @return
      */
     @PostMapping("/historyList")
-    public SimpleResult<List<ApiDocHistory>> loadHistoryList(@RequestBody ApiDocQueryVo queryVo) {
+    public SimpleResult<List<ApiDoc>> loadHistoryList(@RequestBody ApiDocQueryVo queryVo) {
         Integer docId = queryVo.getDocId();
-        Page<ApiDocHistory> page = SimpleResultUtils.toPage(queryVo);
+        Page<ApiDoc> page = SimpleResultUtils.toPage(queryVo);
         ApiDoc currentDoc = apiDocService.getById(docId);
         if (currentDoc == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        return SimpleResultUtils.createSimpleResult(apiDocHistoryService.page(page, Wrappers.<ApiDocHistory>query()
-                        .eq("doc_id", docId)
+        return SimpleResultUtils.createSimpleResult(apiDocService.page(page, Wrappers.<ApiDoc>query()
+                        .eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
                         .orderByDesc("doc_version")))
                 .add("current", currentDoc);
     }
@@ -197,18 +195,18 @@ public class ApiDocController {
      * @return
      */
     @PostMapping("/loadHistoryDiff")
-    public SimpleResult<Map<String, ApiDocHistory>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
+    public SimpleResult<Map<String, ApiDoc>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
         Integer docId = queryVo.getDocId();
         Integer maxVersion = queryVo.getDocVersion();
-        Page<ApiDocHistory> page = new Page<>(1, 2);
-        apiDocHistoryService.page(page, Wrappers.<ApiDocHistory>query().eq("doc_id", docId)
+        Page<ApiDoc> page = new Page<>(1, 2);
+        apiDocService.page(page, Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
                 .le(maxVersion != null, "doc_version", maxVersion)
                 .orderByDesc("doc_version"));
         if (page.getRecords().isEmpty()) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         } else {
-            Map<String, ApiDocHistory> map = new HashMap<>(2);
-            List<ApiDocHistory> docs = page.getRecords();
+            Map<String, ApiDoc> map = new HashMap<>(2);
+            List<ApiDoc> docs = page.getRecords();
             map.put("modifiedDoc", docs.get(0));
             if (docs.size() > 1) {
                 map.put("originalDoc", docs.get(1));
@@ -219,15 +217,15 @@ public class ApiDocController {
 
     @PostMapping("/recoverFromHistory")
     public SimpleResult<ApiDoc> recoverFromHistory(@RequestBody ApiDocHistoryQueryVo historyVo) {
-        ApiDocHistory history = apiDocHistoryService.getById(historyVo.getDocId()); // 加载历史
+        ApiDoc history = apiDocService.getById(historyVo.getDocId()); // 加载历史
         ApiDoc target = null;
-        if (history != null && history.getDocId() != null) {
-            target = apiDocService.getById(history.getDocId());
+        if (history != null && history.getModifyFrom() != null) {
+            target = apiDocService.getById(history.getModifyFrom());
         }
         if (history == null || target == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        ApiDoc apiDoc = apiDocHistoryService.copyFromHistory(history, target);
+        ApiDoc apiDoc = apiDocService.copyFromHistory(history, target);
         apiDocService.saveApiDoc(apiDoc, target); // 更新
         return SimpleResultUtils.createSimpleResult(apiDoc);
     }

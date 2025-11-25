@@ -7,7 +7,6 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.mapper.api.ApiDocMapper;
-import com.fugary.simple.api.service.apidoc.ApiDocHistoryService;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
@@ -35,9 +34,6 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     @Autowired
     private ApiProjectInfoDetailService apiDocSchemaService;
 
-    @Autowired
-    private ApiDocHistoryService apiDocHistoryService;
-
     @Override
     public List<ApiDoc> loadByProject(Integer projectId) {
         return this.loadByProject(projectId, true);
@@ -53,6 +49,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         Predicate<TableFieldInfo> contentFilter = info -> content || !"docContent".equals(info.getProperty());
         return this.list(Wrappers.<ApiDoc>query().select(ApiDoc.class, contentFilter)
                 .eq("project_id", projectId)
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .orderByAsc("sort_id"));
     }
 
@@ -61,6 +58,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         Predicate<TableFieldInfo> contentFilter = info -> content || !"docContent".equals(info.getProperty());
         return this.list(Wrappers.<ApiDoc>query().eq("project_id", projectId).select(ApiDoc.class, contentFilter)
                 .eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED)
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .orderByAsc("sort_id"));
     }
 
@@ -68,8 +66,6 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     public boolean deleteByProject(Integer projectId) {
         apiDocSchemaService.remove(Wrappers.<ApiProjectInfoDetail>query()
                 .exists("select 1 from t_api_doc d where d.project_id = {0} and d.id = t_api_project_info_detail.doc_id", projectId));
-        apiDocHistoryService.remove(Wrappers.<ApiDocHistory>query()
-                .exists("select 1 from t_api_doc d where d.project_id = {0} and d.id = t_api_doc_history.doc_id", projectId));
         return this.remove(Wrappers.<ApiDoc>query().eq("project_id", projectId));
     }
 
@@ -92,7 +88,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         }
         boolean sameApiDoc = isSameApiDoc(apiDoc, existsDoc);
         if (!sameApiDoc && existsDoc != null) {
-            apiDocHistoryService.saveByApiDoc(existsDoc); // 保存历史
+            this.saveByApiDoc(existsDoc); // 保存历史
         }
         if (!sameApiDoc || schemaChanged) {
             return this.saveOrUpdate(apiDoc);
@@ -116,6 +112,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     @Override
     public boolean existsApiDoc(ApiDoc doc) {
         List<ApiDoc> existsItems = list(Wrappers.<ApiDoc>query().eq("project_id", doc.getProjectId())
+                .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .eq("folder_id", doc.getFolderId())
                 .eq("doc_name", doc.getDocName()));
         return existsItems.stream().anyMatch(item -> !item.getId().equals(doc.getId()));
@@ -131,7 +128,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
             ApiDoc newDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
             newDoc.setProjectId(toProjectId);
             newDoc.setId(null);
-            newDoc.setDocVersion(1);
+            newDoc.setVersion(1);
             Pair<ApiFolder, ApiFolder> folderPair = foldersMap.get(apiDoc.getFolderId());
             if (folderPair != null && folderPair.getRight() != null) {
                 newDoc.setFolderId(folderPair.getRight().getId());
@@ -168,7 +165,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
             newDoc.setSortId(5);
         }
         newDoc.setSortId(newDoc.getSortId() + 5);
-        newDoc.setDocVersion(1);
+        newDoc.setVersion(1);
         newDoc.setOperationId(apiDoc.getOperationId() + ApiDocConstants.COPY_SUFFIX);
         ApiDocParseUtils.calcNewDocKey(newDoc, apiFolder);
         newDoc.setDocName(newDoc.getDocName() + ApiDocConstants.COPY_SUFFIX);
@@ -178,5 +175,29 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         }
         saveCopiedDoc(apiDoc, newDoc);
         return SimpleResultUtils.createSimpleResult(newDoc);
+    }
+
+    @Override
+    public boolean saveByApiDoc(ApiDoc apiDoc) {
+        if (apiDoc != null) {
+            ApiDoc apiDocHistory = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
+            apiDocHistory.setId(null);
+            apiDocHistory.setModifyFrom(apiDoc.getId());
+            apiDocHistory.setCreator(apiDoc.getModifier());
+            apiDocHistory.setCreateDate(apiDoc.getModifyDate());
+            return this.save(apiDocHistory);
+        }
+        return true;
+    }
+
+    @Override
+    public ApiDoc copyFromHistory(ApiDoc apiDocHistory, ApiDoc apiDoc) {
+        ApiDoc resultDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
+        SimpleModelUtils.copy(apiDocHistory, resultDoc);
+        resultDoc.setId(apiDoc.getId()); // 还原不能修改的属性
+        resultDoc.setVersion(apiDoc.getVersion());
+        resultDoc.setModifyFrom(null);
+        SimpleModelUtils.addAuditInfo(resultDoc);
+        return resultDoc;
     }
 }

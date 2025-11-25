@@ -1,0 +1,46 @@
+UPDATE t_api_project_info_detail
+SET data_version = 1
+WHERE data_version is null;
+
+INSERT INTO t_api_doc (project_id,
+                       folder_id,
+                       info_id,
+                       doc_type,
+                       doc_name,
+                       doc_content,
+                       doc_key,
+                       status,
+                       sort_id,
+                       operation_id,
+                       spec_version,
+                       method,
+                       url,
+                       summary,
+                       description,
+                       creator,
+                       create_date,
+                       doc_version,
+                       modify_from,
+                       locked)
+SELECT d.project_id,
+       d.folder_id,
+       d.info_id,
+       h.doc_type,
+       h.doc_name,
+       h.doc_content,
+       h.doc_key,
+       h.status,
+       h.sort_id,
+       d.operation_id,
+       d.spec_version,
+       d.method,
+       d.url,
+       d.summary,
+       h.description,
+       h.creator,
+       h.create_date,
+       h.doc_version,
+       h.doc_id,
+       h.locked
+FROM t_api_doc_history h
+         JOIN t_api_doc d ON h.doc_id = d.id;

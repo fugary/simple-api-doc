@@ -86,7 +86,7 @@ const columns = [{
   formatter (data) {
     const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
     return <>
-      <span class="margin-right2">{data.docVersion}</span>
+      <span class="margin-right2">{data.version}</span>
       {currentFlag}
     </>
   }
@@ -142,7 +142,7 @@ const showApiDocDiff = (item, diff) => {
     const docId = item.isCurrent ? item.id : item.docId
     loadHistoryDiff({
       docId,
-      docVersion: item.docVersion
+      version: item.version
     }).then(data => {
       if (data.success) {
         if (item.isCurrent) {
