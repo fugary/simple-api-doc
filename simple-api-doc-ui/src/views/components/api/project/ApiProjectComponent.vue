@@ -67,11 +67,13 @@ const componentEditOptions = computed(() => {
       label: `${status.code} - ${label}`
     }
   })
+  const bodyType = currentComponentModel.value?.bodyType
+  const modelLabelKey = bodyType ? `api.label.${currentComponentModel.value?.bodyType}Name` : 'api.label.componentName'
   return [{
-    labelKey: 'api.label.modelName',
+    labelKey: modelLabelKey,
     prop: 'schemaName',
-    placeholder: $i18nKey('common.msg.commonInput', 'api.label.modelName'),
-    required: !currentComponentModel.value?.docId,
+    placeholder: $i18nKey('common.msg.commonInput', modelLabelKey),
+    required: bodyType !== 'request',
     style: getStyleGrow(9),
     attrs: {
       size: 'large'
@@ -108,14 +110,20 @@ const componentEditOptions = computed(() => {
     type: 'select',
     enabled: ['request', 'response'].includes(currentInfoDetail.value.bodyType),
     children: getSingleSelectOptions(...ALL_CONTENT_TYPES),
-    style: getStyleGrow(3)
+    style: getStyleGrow(3),
+    attrs: {
+      filterable: true
+    }
   }, {
     labelKey: 'api.label.statusCode',
     prop: 'statusCode',
     type: 'select',
     enabled: currentInfoDetail.value.bodyType === 'response',
     children: statusOptions,
-    style: getStyleGrow(3)
+    style: getStyleGrow(3),
+    attrs: {
+      filterable: true
+    }
   }, {
     labelKey: 'common.label.description',
     placeholder: $i18nKey('common.msg.commonInput', 'common.label.description'),

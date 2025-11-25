@@ -14,7 +14,7 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import { toEditJsonSchema } from '@/utils/DynamicUtils'
 import { $coreConfirm } from '@/utils'
 import { cloneDeep, pull, unset, get, set } from 'lodash-es'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 
 const props = defineProps({
   rootName: {
@@ -247,7 +247,7 @@ defineEmits(['gotoComponent'])
           >
             <el-button
               v-if="checkAddProperty(node)"
-              v-common-tooltip="$t('common.label.add')"
+              v-common-tooltip="$i18nKey('common.label.commonAdd1', 'api.label.property')"
               type="primary"
               size="small"
               round
