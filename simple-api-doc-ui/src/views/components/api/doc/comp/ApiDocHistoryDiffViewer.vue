@@ -51,10 +51,10 @@ const calcApiDocItems = (originalDoc, modifiedDoc) => {
       formatter: () => originalDoc.version
     }, {
       labelFormatter: calcFormatter({
-        key: 'docVersion', value: $i18nBundle('common.label.version')
+        key: 'version', value: $i18nBundle('common.label.version')
       }),
       formatter: calcFormatter({
-        key: 'docVersion',
+        key: 'version',
         value: <>
           <span class="margin-right2">{modifiedDoc.version}</span>
           {newTag}

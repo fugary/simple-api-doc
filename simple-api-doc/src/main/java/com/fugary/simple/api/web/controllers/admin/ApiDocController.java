@@ -197,7 +197,7 @@ public class ApiDocController {
     @PostMapping("/loadHistoryDiff")
     public SimpleResult<Map<String, ApiDoc>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
         Integer docId = queryVo.getDocId();
-        Integer maxVersion = queryVo.getDocVersion();
+        Integer maxVersion = queryVo.getVersion();
         Page<ApiDoc> page = new Page<>(1, 2);
         apiDocService.page(page, Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
                 .le(maxVersion != null, "doc_version", maxVersion)

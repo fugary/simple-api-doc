@@ -1,4 +1,4 @@
-import { $coreHideLoading, $coreShowLoading } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, formatDate } from '@/utils'
 import { cloneDeep, get, isArray, isObject, isString, lowerCase, pull, set } from 'lodash-es'
 import { hasLoading } from '@/vendors/axios'
 import {
@@ -18,6 +18,7 @@ import { nextTick, ref, watch, computed } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import { $i18nBundle } from '@/messages'
 
 export const previewRequest = function (reqData, config) {
   const req = axios.create({
@@ -813,4 +814,34 @@ export const useApiDocDebugConfig = (editable = false) => {
     hideDebugSplit,
     toDebugApi
   }
+}
+
+export const getDocHistoryViewOptions = (doc, history) => {
+  const isApi = doc.docType === 'api'
+  return [
+    { labelKey: 'api.label.docName', prop: 'docName' },
+    { labelKey: 'common.label.version', prop: () => `${doc.version ?? ''}${doc.isCurrent ? ` <${$i18nBundle('api.label.current')}>` : ''}` },
+    { labelKey: 'common.label.modifyDate', prop: () => formatDate(doc[history ? 'createDate' : 'modifyDate']) },
+    { labelKey: 'common.label.modifier', prop: () => doc[history ? 'creator' : 'modifier'] },
+    { labelKey: 'api.label.requestPath', prop: 'url', enabled: isApi },
+    { labelKey: 'api.label.method', prop: 'method', enabled: isApi },
+    { label: 'Operation ID', prop: 'operationId', enabled: isApi },
+    {
+      labelKey: 'common.label.status',
+      prop: () => {
+        return [$i18nBundle('common.label.statusDisabled'), $i18nBundle('common.label.statusEnabled')][doc.status]
+      }
+    },
+    {
+      labelKey: 'api.label.lockStatus',
+      prop: () => doc.locked ? $i18nBundle('api.label.locked') : $i18nBundle('api.label.unlocked')
+    },
+    { labelKey: 'common.label.sortId', prop: 'sortId' },
+    {
+      labelKey: 'api.label.docContent',
+      prop: () => {
+        return doc.docContent || doc.description
+      }
+    }
+  ]
 }

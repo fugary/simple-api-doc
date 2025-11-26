@@ -6,9 +6,10 @@ import { useDefaultPage } from '@/config'
 import { ElText, ElTag } from 'element-plus'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
-import ApiDocHistoryDiffViewer from '@/views/components/api/doc/comp/ApiDocHistoryDiffViewer.vue'
+import ApiNewHistoryDiffViewer from '@/views/components/api/doc/comp/ApiNewHistoryDiffViewer.vue'
 import { $i18nBundle } from '@/messages'
 import { $copyText, $coreConfirm } from '@/utils'
+import { getDocHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -139,7 +140,7 @@ const showApiDocDiff = (item, diff) => {
     }
     showDiffViewer.value = true
   } else {
-    const docId = item.isCurrent ? item.id : item.docId
+    const docId = item.isCurrent ? item.id : item.modifyFrom
     loadHistoryDiff({
       docId,
       version: item.version
@@ -205,10 +206,11 @@ defineExpose({
       @page-size-change="searchHistories()"
       @current-page-change="searchHistories()"
     />
-    <api-doc-history-diff-viewer
+    <api-new-history-diff-viewer
       v-model="showDiffViewer"
       :original-doc="originalDoc"
       :modified-doc="modifiedDoc"
+      :history-options-method="getDocHistoryViewOptions"
     />
   </common-window>
 </template>

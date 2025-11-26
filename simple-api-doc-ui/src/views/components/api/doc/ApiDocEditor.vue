@@ -53,7 +53,7 @@ const formOptions = computed(() => {
     style: getStyleGrow(10)
   }, {
     labelKey: 'common.label.description',
-    prop: 'description',
+    prop: 'docContent',
     attrs: {
       type: 'textarea',
       rows: 4
@@ -65,10 +65,10 @@ const formOptions = computed(() => {
     },
     tooltipFunc () {
       showMarkdownWindow({
-        content: currentDocModel.value.description,
+        content: currentDocModel.value.docContent,
         title: $i18nKey('common.label.commonEdit', 'common.label.description')
       }, {
-        'onUpdate:modelValue': value => (currentDocModel.value.description = value)
+        'onUpdate:modelValue': value => (currentDocModel.value.docContent = value)
       })
     }
   }]
@@ -78,6 +78,9 @@ const loadCurrentDoc = (id) => {
   ApiDocApi.getById(id).then(data => {
     currentDocModel.value = data.resultData
     console.log('========================currentDocModel', currentDocModel.value)
+    if (!currentDocModel.value.docContent && currentDocModel.value.docType === 'api') {
+      currentDocModel.value.docContent = currentDocModel.value.description
+    }
     $coreHideLoading()
   }).catch(() => $coreHideLoading())
 }

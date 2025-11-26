@@ -10,5 +10,5 @@ import lombok.Data;
 @Data
 public class ApiDocHistoryQueryVo extends SimpleQueryVo {
     private Integer docId;
-    private Integer docVersion;
+    private Integer version;
 }
