@@ -849,18 +849,21 @@ export const getDocHistoryViewOptions = (doc, history) => {
 export const getComponentHistoryViewOptions = (component, history) => {
   const bodyType = component.bodyType
   const modelLabelKey = bodyType ? `api.label.${bodyType}Name` : 'api.label.componentName'
+  const isRequest = bodyType === 'request'
+  const isResponse = bodyType === 'response'
   return [
     { labelKey: modelLabelKey, prop: 'schemaName' },
     { labelKey: 'common.label.version', prop: () => `${component.version ?? ''}${component.isCurrent ? ` <${$i18nBundle('api.label.current')}>` : ''}` },
     { labelKey: 'common.label.modifyDate', prop: () => formatDate(component[history ? 'createDate' : 'modifyDate']) },
     { labelKey: 'common.label.modifier', prop: () => component[history ? 'creator' : 'modifier'] },
-    { label: 'Content Type', prop: 'contentType' },
-    { labelKey: 'api.label.statusCode', prop: 'statusCode' },
+    { label: 'Content Type', prop: 'contentType', enabled: isRequest || isResponse },
+    { labelKey: 'api.label.statusCode', prop: 'statusCode', enabled: isResponse },
     {
       labelKey: 'api.label.lockStatus',
       prop: () => component.locked ? $i18nBundle('api.label.locked') : $i18nBundle('api.label.unlocked')
     },
     { labelKey: 'api.label.examples', prop: 'examples' },
+    { labelKey: 'common.label.description', prop: 'description' },
     {
       label: 'JSON Schema',
       prop: () => {

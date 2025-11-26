@@ -115,7 +115,7 @@ const componentEditOptions = computed(() => {
     label: 'Content Type',
     prop: 'contentType',
     type: 'select',
-    enabled: ['request', 'response'].includes(currentInfoDetail.value.bodyType),
+    enabled: ['request', 'response'].includes(bodyType),
     children: getSingleSelectOptions(...ALL_CONTENT_TYPES),
     style: getStyleGrow(3),
     attrs: {
@@ -125,7 +125,7 @@ const componentEditOptions = computed(() => {
     labelKey: 'api.label.statusCode',
     prop: 'statusCode',
     type: 'select',
-    enabled: currentInfoDetail.value.bodyType === 'response',
+    enabled: bodyType === 'response',
     children: statusOptions,
     style: getStyleGrow(3),
     attrs: {
@@ -266,7 +266,7 @@ defineExpose({
       :show-buttons="false"
     >
       <template
-        v-if="writable&&!inWindow"
+        v-if="writable&&(!inWindow || historyCount)"
         #after-buttons="{form}"
       >
         <el-container class="container-center">
@@ -281,26 +281,28 @@ defineExpose({
               ({{ historyCount }})
             </el-text>
           </el-link>
-          <el-button
-            type="primary"
-            @click="saveComponent(form)"
-          >
-            {{ $t('common.label.save') }}
-          </el-button>
-          <el-button
-            v-if="deletable&&currentComponentModel.id"
-            type="danger"
-            @click="deleteComponent"
-          >
-            {{ $t('common.label.delete') }}
-          </el-button>
-          <el-button
-            v-if="currentComponentModel.id"
-            type="warning"
-            @click="copyComponent"
-          >
-            {{ $t('common.label.copy') }}
-          </el-button>
+          <template v-if="!inWindow">
+            <el-button
+              type="primary"
+              @click="saveComponent(form)"
+            >
+              {{ $t('common.label.save') }}
+            </el-button>
+            <el-button
+              v-if="deletable&&currentComponentModel.id"
+              type="danger"
+              @click="deleteComponent"
+            >
+              {{ $t('common.label.delete') }}
+            </el-button>
+            <el-button
+              v-if="currentComponentModel.id"
+              type="warning"
+              @click="copyComponent"
+            >
+              {{ $t('common.label.copy') }}
+            </el-button>
+          </template>
         </el-container>
       </template>
     </common-form>
