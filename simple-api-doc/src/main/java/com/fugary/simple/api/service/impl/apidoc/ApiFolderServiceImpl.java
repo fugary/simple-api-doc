@@ -239,6 +239,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         infoDetail.setDocId(apiDoc.getId());
         infoDetail.setProjectId(apiDoc.getProjectId());
         infoDetail.setInfoId(apiDoc.getInfoId());
+        infoDetail.setVersion(1);
     }
 
     @Override

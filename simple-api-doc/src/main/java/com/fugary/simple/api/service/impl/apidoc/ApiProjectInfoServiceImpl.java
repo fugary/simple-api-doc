@@ -104,6 +104,7 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
                 infoDetail.setId(null);
                 infoDetail.setProjectId(toProjectId);
                 infoDetail.setInfoId(newProjectInfo.getId());
+                infoDetail.setVersion(1);
                 apiProjectInfoDetailService.save(infoDetail);
             });
         });

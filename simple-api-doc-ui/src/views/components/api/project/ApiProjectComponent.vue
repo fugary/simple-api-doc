@@ -13,6 +13,7 @@ import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
 import { checkAndSaveDocInfoDetail, processProjectInfos, useComponentSchemas } from '@/services/api/ApiDocEditService'
 import { showMarkdownWindow } from '@/utils/DynamicUtils'
+import ApiSchemaHistoryViewer from '@/views/components/api/doc/comp/ApiSchemaHistoryViewer.vue'
 
 const props = defineProps({
   currentProject: {
@@ -30,11 +31,14 @@ props.currentProject && (projectItemMap[props.currentProject.id] = props.current
 const { componentSchemas, loadComponents } = useComponentSchemas()
 const currentComponentModel = ref()
 const { managedItems, pushItem, clearItems, startContext, goToItem } = useManagedArrayItems()
+const historyCount = ref(0)
 watch(currentInfoDetail, async model => {
+  historyCount.value = 0
   if (model.id) {
     await loadInfoDetail(model).then(data => {
       currentComponentModel.value = data.resultData
       componentSchemas.value = data.addons?.components || []
+      historyCount.value = data.addons?.historyCount || 0
     })
   } else {
     currentComponentModel.value = currentInfoDetail.value
@@ -77,7 +81,7 @@ const componentEditOptions = computed(() => {
     prop: 'schemaName',
     placeholder: $i18nKey('common.msg.commonInput', modelLabelKey),
     required: bodyType !== 'request',
-    style: getStyleGrow(9),
+    style: getStyleGrow(10),
     attrs: {
       size: 'large'
     }
@@ -131,7 +135,7 @@ const componentEditOptions = computed(() => {
     labelKey: 'common.label.description',
     placeholder: $i18nKey('common.msg.commonInput', 'common.label.description'),
     prop: 'description',
-    style: getStyleGrow(9),
+    style: getStyleGrow(10),
     attrs: {
       type: 'textarea'
     },
@@ -240,6 +244,8 @@ const getSchemaNameLabel = item => {
   return item.schemaName || 'root'
 }
 
+const apiHistoryRef = ref()
+
 defineExpose({
   saveComponent,
   copyComponent,
@@ -264,6 +270,17 @@ defineExpose({
         #after-buttons="{form}"
       >
         <el-container class="container-center">
+          <el-link
+            v-if="historyCount"
+            class="margin-right1"
+            type="primary"
+            @click="apiHistoryRef?.showHistoryList(currentInfoDetail.id)"
+          >
+            {{ $t('api.label.historyVersions') }}
+            <el-text type="info">
+              ({{ historyCount }})
+            </el-text>
+          </el-link>
           <el-button
             type="primary"
             @click="saveComponent(form)"
@@ -390,6 +407,11 @@ defineExpose({
         </el-tab-pane>
       </el-tabs>
     </el-container>
+    <api-schema-history-viewer
+      v-if="historyCount"
+      ref="apiHistoryRef"
+      @update-history="$emit('saveComponent', $event)"
+    />
   </el-container>
 </template>
 

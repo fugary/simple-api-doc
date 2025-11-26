@@ -24,10 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,8 +99,8 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
             ApiProjectInfoDetail infoHistory = SimpleModelUtils.copy(infoDetail, ApiProjectInfoDetail.class);
             infoHistory.setId(null);
             infoHistory.setModifyFrom(infoDetail.getId());
-            infoHistory.setCreator(infoDetail.getModifier());
-            infoHistory.setCreateDate(infoDetail.getModifyDate());
+            infoHistory.setCreator(StringUtils.defaultIfBlank(infoDetail.getModifier(), infoDetail.getCreator()));
+            infoHistory.setCreateDate(Objects.requireNonNullElse(infoDetail.getModifyDate(), infoDetail.getCreateDate()));
             return this.save(infoHistory);
         }
         return true;
@@ -305,6 +302,17 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public boolean deleteByDoc(Integer docId) {
         return this.remove(Wrappers.<ApiProjectInfoDetail>query().eq("doc_id", docId));
+    }
+
+    @Override
+    public ApiProjectInfoDetail copyFromHistory(ApiProjectInfoDetail history, ApiProjectInfoDetail target) {
+        ApiProjectInfoDetail resultDoc = SimpleModelUtils.copy(target, ApiProjectInfoDetail.class);
+        SimpleModelUtils.copy(history, resultDoc);
+        resultDoc.setId(target.getId()); // 还原不能修改的属性
+        resultDoc.setVersion(target.getVersion());
+        resultDoc.setModifyFrom(null);
+        SimpleModelUtils.addAuditInfo(resultDoc);
+        return resultDoc;
     }
 
     /**

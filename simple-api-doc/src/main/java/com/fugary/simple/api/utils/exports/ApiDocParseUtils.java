@@ -206,6 +206,7 @@ public class ApiDocParseUtils {
                     projectInfoDetailVo.setLocked(existsInfoDetail.getLocked());
                 }
             }
+            projectInfoDetailVo.setVersion(existsInfoDetail.getVersion());
             projectInfoDetailVo.setId(existsInfoDetail.getId()); // 存在的话更新对应的ID
             SimpleModelUtils.mergeAuditInfo(projectInfoDetailVo, existsInfoDetail);
             if (isSameInfoDetail) { // 数据相同不更新

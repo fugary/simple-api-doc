@@ -5,7 +5,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
-import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.entity.api.ApiDoc;
+import com.fugary.simple.api.entity.api.ApiFolder;
+import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.exports.ApiDocViewGenerator;
 import com.fugary.simple.api.exports.md.MdViewContext;
 import com.fugary.simple.api.service.apidoc.*;
@@ -17,8 +20,8 @@ import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.query.ApiDocHistoryQueryVo;
-import com.fugary.simple.api.web.vo.query.ApiDocQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
+import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -175,8 +178,8 @@ public class ApiDocController {
      * @return
      */
     @PostMapping("/historyList")
-    public SimpleResult<List<ApiDoc>> loadHistoryList(@RequestBody ApiDocQueryVo queryVo) {
-        Integer docId = queryVo.getDocId();
+    public SimpleResult<List<ApiDoc>> loadHistoryList(@RequestBody SimpleQueryVo queryVo) {
+        Integer docId = queryVo.getQueryId();
         Page<ApiDoc> page = SimpleResultUtils.toPage(queryVo);
         ApiDoc currentDoc = apiDocService.getById(docId);
         if (currentDoc == null) {
@@ -196,7 +199,7 @@ public class ApiDocController {
      */
     @PostMapping("/loadHistoryDiff")
     public SimpleResult<Map<String, ApiDoc>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
-        Integer docId = queryVo.getDocId();
+        Integer docId = queryVo.getQueryId();
         Integer maxVersion = queryVo.getVersion();
         Page<ApiDoc> page = new Page<>(1, 2);
         apiDocService.page(page, Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
@@ -217,7 +220,7 @@ public class ApiDocController {
 
     @PostMapping("/recoverFromHistory")
     public SimpleResult<ApiDoc> recoverFromHistory(@RequestBody ApiDocHistoryQueryVo historyVo) {
-        ApiDoc history = apiDocService.getById(historyVo.getDocId()); // 加载历史
+        ApiDoc history = apiDocService.getById(historyVo.getQueryId()); // 加载历史
         ApiDoc target = null;
         if (history != null && history.getModifyFrom() != null) {
             target = apiDocService.getById(history.getModifyFrom());

@@ -6,24 +6,28 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
-import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
-import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.exports.ApiSchemaContentUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.query.ApiDocHistoryQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectComponentQueryVo;
+import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
@@ -100,8 +104,10 @@ public class ApiProjectInfoDetailController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.findRelatedInfoDetails(infoDetail);
+        long historyCount = apiProjectInfoDetailService.count(Wrappers.<ApiProjectInfoDetail>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, id));
         return SimpleResultUtils.createSimpleResult(infoDetail)
-                .add("components", (Serializable) infoDetails);
+                .add("components", (Serializable) infoDetails)
+                .add("historyCount", historyCount);
     }
 
     @DeleteMapping("/{id}")
@@ -136,19 +142,89 @@ public class ApiProjectInfoDetailController {
         if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        ApiProjectInfoDetail existsInfoDetail = null;
         if (infoDetail.getId() != null) {
-            ApiProjectInfoDetail oldInfoDetail = apiProjectInfoDetailService.getById(infoDetail.getId());
-            if (oldInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, oldInfoDetail, "schemaContent")
-                    && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), oldInfoDetail.getSchemaContent())) {
+            existsInfoDetail = apiProjectInfoDetailService.getById(infoDetail.getId());
+            if (existsInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, existsInfoDetail, "schemaContent")
+                    && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), existsInfoDetail.getSchemaContent())) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
             }
         }
         if (apiProjectInfoDetailService.existsInfoDetail(infoDetail)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
+        if (infoDetail.getVersion() == null) {
+            infoDetail.setVersion(1);
+        }
+        if (existsInfoDetail != null) {
+            if (existsInfoDetail.getVersion() == null) {
+                existsInfoDetail.setVersion(1);
+            }
+            apiProjectInfoDetailService.saveApiHistory(existsInfoDetail);
+        }
         apiProjectInfoDetailService.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
-        apiProjectInfoDetailService.saveApiHistory(infoDetail);
         return SimpleResultUtils.createSimpleResult(infoDetail);
+    }
+
+    /**
+     * 获取历史版本
+     *
+     * @param queryVo
+     * @return
+     */
+    @PostMapping("/historyList")
+    public SimpleResult<List<ApiProjectInfoDetail>> loadHistoryList(@RequestBody SimpleQueryVo queryVo) {
+        Integer infoDetailId = queryVo.getQueryId();
+        Page<ApiProjectInfoDetail> page = SimpleResultUtils.toPage(queryVo);
+        ApiProjectInfoDetail currentDoc = apiProjectInfoDetailService.getById(infoDetailId);
+        if (currentDoc == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.page(page, Wrappers.<ApiProjectInfoDetail>query()
+                        .eq(ApiDocConstants.DB_MODIFY_FROM_KEY, infoDetailId)
+                        .orderByDesc("data_version")))
+                .add("current", currentDoc);
+    }
+
+    /**
+     * 获取历史版本
+     *
+     * @param queryVo
+     * @return
+     */
+    @PostMapping("/loadHistoryDiff")
+    public SimpleResult<Map<String, ApiProjectInfoDetail>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
+        Integer docId = queryVo.getQueryId();
+        Integer maxVersion = queryVo.getVersion();
+        Page<ApiProjectInfoDetail> page = new Page<>(1, 2);
+        apiProjectInfoDetailService.page(page, Wrappers.<ApiProjectInfoDetail>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
+                .le(maxVersion != null, "data_version", maxVersion)
+                .orderByDesc("data_version"));
+        if (page.getRecords().isEmpty()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        } else {
+            Map<String, ApiProjectInfoDetail> map = new HashMap<>(2);
+            List<ApiProjectInfoDetail> docs = page.getRecords();
+            map.put("modifiedDoc", docs.get(0));
+            if (docs.size() > 1) {
+                map.put("originalDoc", docs.get(1));
+            }
+            return SimpleResultUtils.createSimpleResult(map);
+        }
+    }
+
+    @PostMapping("/recoverFromHistory")
+    public SimpleResult<ApiProjectInfoDetail> recoverFromHistory(@RequestBody ApiDocHistoryQueryVo historyVo) {
+        ApiProjectInfoDetail history = apiProjectInfoDetailService.getById(historyVo.getQueryId()); // 加载历史
+        ApiProjectInfoDetail target = null;
+        if (history != null && history.getModifyFrom() != null) {
+            target = apiProjectInfoDetailService.getById(history.getModifyFrom());
+        }
+        if (history == null || target == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        ApiProjectInfoDetail apiInfoDetail = apiProjectInfoDetailService.copyFromHistory(history, target);
+        return this.save(apiInfoDetail); // 更新
     }
 
     @PostMapping("/copyApiModel/{id}")

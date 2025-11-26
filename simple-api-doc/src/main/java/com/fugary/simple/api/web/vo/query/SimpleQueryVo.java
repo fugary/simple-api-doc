@@ -17,4 +17,5 @@ public class SimpleQueryVo implements Serializable {
     private Integer status;
     private SimplePage page;
     private String userName;
+    private Integer queryId;
 }

@@ -38,4 +38,16 @@ export const copyApiModel = function (modelId, config) {
   return $httpPost(`${BASE_URL}/copyApiModel/${modelId}`, null, config)
 }
 
+export const loadHistoryList = function (param, config) {
+  return $httpPost(`${BASE_URL}/historyList`, param, config)
+}
+
+export const loadHistoryDiff = function (param, config) {
+  return $httpPost(`${BASE_URL}/loadHistoryDiff`, param, config)
+}
+
+export const recoverFromHistory = function (param, config) {
+  return $httpPost(`${BASE_URL}/recoverFromHistory`, param, config)
+}
+
 export default ApiProjectInfoDetailApi

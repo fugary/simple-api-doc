@@ -191,4 +191,12 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      * @return
      */
     boolean deleteByDoc(Integer docId);
+
+    /**
+     * 从历史复制数据
+     *
+     * @param history
+     * @param target
+     */
+    ApiProjectInfoDetail copyFromHistory(ApiProjectInfoDetail history, ApiProjectInfoDetail target);
 }

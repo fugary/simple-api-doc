@@ -845,3 +845,34 @@ export const getDocHistoryViewOptions = (doc, history) => {
     }
   ]
 }
+
+export const getComponentHistoryViewOptions = (component, history) => {
+  const bodyType = component.bodyType
+  const modelLabelKey = bodyType ? `api.label.${bodyType}Name` : 'api.label.componentName'
+  return [
+    { labelKey: modelLabelKey, prop: 'schemaName' },
+    { labelKey: 'common.label.version', prop: () => `${component.version ?? ''}${component.isCurrent ? ` <${$i18nBundle('api.label.current')}>` : ''}` },
+    { labelKey: 'common.label.modifyDate', prop: () => formatDate(component[history ? 'createDate' : 'modifyDate']) },
+    { labelKey: 'common.label.modifier', prop: () => component[history ? 'creator' : 'modifier'] },
+    { label: 'Content Type', prop: 'contentType' },
+    { labelKey: 'api.label.statusCode', prop: 'statusCode' },
+    {
+      labelKey: 'api.label.lockStatus',
+      prop: () => component.locked ? $i18nBundle('api.label.locked') : $i18nBundle('api.label.unlocked')
+    },
+    { labelKey: 'api.label.examples', prop: 'examples' },
+    {
+      label: 'JSON Schema',
+      prop: () => {
+        if (component.schemaContent) {
+          try {
+            return JSON.stringify(JSON.parse(component.schemaContent), null, 2)
+          } catch (e) {
+            console.error('解析schema content错误', e)
+          }
+        }
+        return component.schemaContent
+      }
+    }
+  ]
+}

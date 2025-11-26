@@ -13,6 +13,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -185,8 +187,8 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
             ApiDoc apiDocHistory = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
             apiDocHistory.setId(null);
             apiDocHistory.setModifyFrom(apiDoc.getId());
-            apiDocHistory.setCreator(apiDoc.getModifier());
-            apiDocHistory.setCreateDate(apiDoc.getModifyDate());
+            apiDocHistory.setCreator(StringUtils.defaultIfBlank(apiDoc.getModifier(), apiDoc.getCreator()));
+            apiDocHistory.setCreateDate(Objects.requireNonNullElse(apiDoc.getModifyDate(), apiDoc.getCreateDate()));
             return this.save(apiDocHistory);
         }
         return true;

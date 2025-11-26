@@ -1,15 +1,13 @@
 <script setup lang="jsx">
 import { ref, computed } from 'vue'
-import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiDocApi'
+import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiProjectInfoDetailApi'
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import { ElText, ElTag } from 'element-plus'
-import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
-import CommonIcon from '@/components/common-icon/index.vue'
 import ApiNewHistoryDiffViewer from '@/views/components/api/doc/comp/ApiNewHistoryDiffViewer.vue'
 import { $i18nBundle } from '@/messages'
 import { $copyText, $coreConfirm } from '@/utils'
-import { getDocHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
+import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -39,71 +37,48 @@ const limit = 300
  *
  * @type {[CommonTableColumn]}
  */
-const columns = [{
-  labelKey: 'api.label.docName',
-  formatter (data) {
-    return <ElText v-common-tooltip={data.docName}
-                   onClick={() => $copyText(data.docName)}
-                   style="white-space: nowrap;cursor: pointer;">
-      {data.docName}
-    </ElText>
-  },
-  attrs: {
-    style: 'white-space: nowrap;'
-  }
-}, {
-  labelKey: 'api.label.docContent',
-  property: 'docContent',
-  formatter (data) {
-    let tooltip = data.docContent
-    if (data.docContent?.length && data.docContent.length > limit) {
-      tooltip = data.docContent?.substring(0, limit) + '...'
+const columns = computed(() => {
+  const bodyType = currentDoc.value?.bodyType
+  const modelLabelKey = bodyType ? `api.label.${bodyType}Name` : 'api.label.componentName'
+  return [{
+    labelKey: modelLabelKey,
+    property: 'schemaName'
+  }, {
+    label: 'JSON Schema',
+    formatter (data) {
+      let tooltip = data.schemaContent
+      if (data.schemaContent?.length && data.schemaContent.length > limit) {
+        tooltip = data.schemaContent?.substring(0, limit) + '...'
+      }
+      return <ElText v-common-tooltip={tooltip}
+                     onClick={() => $copyText(data.schemaContent)}
+                     style="white-space: nowrap;cursor: pointer;">
+        {data.schemaContent}
+      </ElText>
     }
-    return <ElText v-common-tooltip={tooltip}
-                   onClick={() => $copyText(data.docContent)}
-                   style="white-space: nowrap;cursor: pointer;">
-      {data.docContent}
-    </ElText>
-  }
-}, {
-  labelKey: 'common.label.status',
-  formatter (data) {
-    let lockStatus = <></>
-    if (data.locked) {
-      lockStatus = <CommonIcon icon="LockFilled" size={18} class="margin-left1"
-                               style="vertical-align: middle;"
-                               v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+  }, {
+    labelKey: 'common.label.version',
+    formatter (data) {
+      const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
+      return <>
+        <span class="margin-right2">{data.version}</span>
+        {currentFlag}
+      </>
     }
-    return <>
-      <DelFlagTag v-model={data.status}/>
-      {lockStatus}
-    </>
-  },
-  attrs: {
-    align: 'center'
-  }
-}, {
-  labelKey: 'common.label.version',
-  formatter (data) {
-    const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
-    return <>
-      <span class="margin-right2">{data.version}</span>
-      {currentFlag}
-    </>
-  }
-}, {
-  labelKey: 'common.label.modifier',
-  formatter (data) {
-    return <ElText>{data.modifier || data.creator}</ElText>
-  },
-  attrs: {
-    align: 'center'
-  }
-}, {
-  labelKey: 'common.label.modifyDate',
-  property: 'createDate',
-  dateFormat: 'YYYY-MM-DD HH:mm:ss'
-}]
+  }, {
+    labelKey: 'common.label.modifier',
+    formatter (data) {
+      return <ElText>{data.modifier || data.creator}</ElText>
+    },
+    attrs: {
+      align: 'center'
+    }
+  }, {
+    labelKey: 'common.label.modifyDate',
+    property: 'createDate',
+    dateFormat: 'YYYY-MM-DD HH:mm:ss'
+  }]
+})
 const buttons = computed(() => {
   return [{
     labelKey: 'api.label.compare',
@@ -210,7 +185,7 @@ defineExpose({
       v-model="showDiffViewer"
       :original-doc="originalDoc"
       :modified-doc="modifiedDoc"
-      :history-options-method="getDocHistoryViewOptions"
+      :history-options-method="getComponentHistoryViewOptions"
     />
   </common-window>
 </template>
