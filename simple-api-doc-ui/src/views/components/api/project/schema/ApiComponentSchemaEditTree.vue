@@ -11,12 +11,13 @@ import {
 } from '@/services/api/ApiDocPreviewService'
 import SchemaTreeNode from '@/views/components/api/doc/comp/SchemaTreeNode.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { toEditComponent, toEditJsonSchema } from '@/utils/DynamicUtils'
-import { $coreConfirm } from '@/utils'
+import { showMarkdownWindow, toEditComponent, toEditJsonSchema } from '@/utils/DynamicUtils'
+import { $coreConfirm, getSingleSelectOptions } from '@/utils'
 import { cloneDeep, pull, unset, get, set } from 'lodash-es'
 import { $i18nBundle, $i18nKey } from '@/messages'
-import { SCHEMA_COMPONENT_PREFIX } from '@/consts/ApiConstants'
+import { SCHEMA_BASE_TYPES, SCHEMA_COMPONENT_PREFIX } from '@/consts/ApiConstants'
 import { useComponentSchemas } from '@/services/api/ApiDocEditService'
+import { defineFormOptions } from '@/components/utils'
 
 const props = defineProps({
   rootName: {
@@ -97,7 +98,7 @@ const treeProps = {
 
 const currentTreeData = ref()
 
-const deleteProperty = (data, parent, $event) => {
+const deleteProperty = (data, parent) => {
   if (data.path) {
     $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
       unset(schemaModel.value, data.path)
@@ -115,37 +116,44 @@ const deleteProperty = (data, parent, $event) => {
       }
     })
   }
-  $event.stopPropagation()
 }
 
 const currentEdit = ref()
-const newOrEdit = (data, parent, $event) => {
-  console.log('=======================newOrEdit', data?.path, data, parent, $event)
+const newOrEdit = (data, parent) => {
+  console.log('=======================newOrEdit', data?.path, data, parent)
+  data = initEditData(data)
+  currentEdit.value = data
+  toEditJsonSchema(data, props.currentInfoDetail, {
+    onSaveJsonSchema (toSaveData) {
+      saveEditSchemaData(data, parent, toSaveData)
+    },
+    onEditComponentSchemas (componentSchemas) {
+      editComponentSchemas.value = componentSchemas
+    }
+  })
+}
+
+const initEditData = (data) => {
   if (data) {
     data = cloneDeep(data)
     data.schema = cloneDeep(data?.path ? get(schemaModel.value, data.path) : schemaModel.value)
   } else {
     data = { schema: { type: 'string' } }
   }
-  currentEdit.value = data
-  toEditJsonSchema(data, props.currentInfoDetail, {
-    onSaveJsonSchema (toSaveData) {
-      const newData = calcSchemaPath(cloneDeep(toSaveData), parent, 0)
-      console.log('==============toSaveData', toSaveData, newData)
-      if (data.path && newData.path !== data.path) { // 改了属性名称，需要删除原数据
-        processSchemaProperties(data, newData, schemaModel)
-      } else if (newData.path) {
-        set(schemaModel.value, newData.path, newData.schema)
-      } else {
-        schemaModel.value = newData.schema
-      }
-      processSchemaRequired(data, newData, schemaModel)
-    },
-    onEditComponentSchemas (componentSchemas) {
-      editComponentSchemas.value = componentSchemas
-    }
-  })
-  $event.stopPropagation()
+  return data
+}
+
+const saveEditSchemaData = (data, parent, toSaveData) => {
+  const newData = calcSchemaPath(cloneDeep(toSaveData), parent, 0)
+  console.log('==============toSaveData', toSaveData, newData)
+  if (data.path && newData.path !== data.path) { // 改了属性名称，需要删除原数据
+    processSchemaProperties(data, newData, schemaModel)
+  } else if (newData.path) {
+    set(schemaModel.value, newData.path, newData.schema)
+  } else {
+    schemaModel.value = newData.schema
+  }
+  processSchemaRequired(data, newData, schemaModel)
 }
 
 const getData$ref = data => {
@@ -168,7 +176,7 @@ const checkNotXxxOf = node => !node?.data?.xxxOf
 
 const checkNotAdditional = node => !node?.data?.isAdditional
 
-const isObjectSchema = schema => schema?.type === 'object' || schema?.properties
+const isObjectSchema = schema => schema?.type === 'object' || (!schema?.type && schema?.properties)
 
 const checkAddProperty = node => {
   const schema = node.data?.schema
@@ -254,8 +262,53 @@ const handleDragEnd = (draggingNode, dropNode, type) => {
       console.log('========================node', data.path, node, schema)
       saveToSchemaModel(data, cloneDeep(schema)) // 设置值
     })
-    console.log('=================================drop', draggingNode, dropNode, childNodes, type)
   }
+}
+
+const currentModel = ref()
+const inlineEditOptions = computed(() => {
+  const typeOptions = getSingleSelectOptions(...SCHEMA_BASE_TYPES)
+  return defineFormOptions([
+    { labelKey: 'common.label.name', prop: 'name', required: true, showLabel: false },
+    { labelKey: 'api.label.required', prop: 'required', type: 'switch', labelWidth: 'auto' },
+    { labelKey: 'api.label.typeBasic', prop: 'schema.type', required: true, children: typeOptions, type: 'select', showLabel: false },
+    {
+      labelKey: 'common.label.description',
+      prop: 'schema.description',
+      showLabel: false,
+      attrs: {
+        onDblclick () {
+          showMarkdownWindow({
+            content: currentModel.value?.schema?.description,
+            title: $i18nKey('common.label.commonEdit', 'common.label.description')
+          }, {
+            'onUpdate:modelValue': value => {
+              if (currentModel.value?.schema) {
+                currentModel.value.schema.description = value
+              }
+            }
+          })
+        }
+      }
+    }
+  ])
+})
+
+const toEditSchemaModel = (node) => {
+  if (checkNotXxxOf(node) && !checkRefRelated(node)) {
+    currentModel.value = initEditData(node.data)
+  } else {
+    newOrEdit(node.data, node.parent?.data)
+  }
+}
+
+const saveInlineEditSchemaData = (form, data, parent) => {
+  form.validate().then(valid => {
+    if (valid) {
+      saveEditSchemaData(data, parent, currentModel.value)
+      currentModel.value = null
+    }
+  })
 }
 
 defineEmits(['gotoComponent'])
@@ -294,12 +347,61 @@ defineEmits(['gotoComponent'])
           @mouseleave="currentTreeData=null"
         >
           <schema-tree-node
+            v-if="!currentModel||currentModel.id!==data.id"
             class="form-edit-width-100"
             :data="data"
             :show-merge-all-of="showMergeAllOf"
           />
+          <common-form
+            v-else
+            inline
+            class-name="common-form-auto"
+            :model="currentModel"
+            :options="inlineEditOptions"
+            :show-submit="false"
+            @click.stop
+          >
+            <template #buttons="{form}">
+              <el-button
+                v-common-tooltip="$t('common.label.edit')"
+                type="primary"
+                size="small"
+                round
+                @click.stop="saveInlineEditSchemaData(form, data, node.parent?.data)"
+              >
+                <common-icon
+                  icon="Check"
+                  :size="18"
+                />
+              </el-button>
+              <el-button
+                v-if="checkEditProperty(node)"
+                v-common-tooltip="$t('common.label.newWindowEdit')"
+                type="primary"
+                size="small"
+                round
+                @click.stop="newOrEdit(data, node.parent?.data)"
+              >
+                <common-icon
+                  icon="Edit"
+                  :size="18"
+                />
+              </el-button>
+              <el-button
+                v-common-tooltip="$t('common.label.cancel')"
+                size="small"
+                round
+                @click.stop="currentModel=null"
+              >
+                <common-icon
+                  icon="CloseBold"
+                  :size="18"
+                />
+              </el-button>
+            </template>
+          </common-form>
           <span
-            v-if="currentTreeData===data"
+            v-if="currentTreeData===data&&currentModel?.id!==data.id"
             style="position: absolute; top:calc(50% - 11px);right:50px"
           >
             <el-button
@@ -308,7 +410,7 @@ defineEmits(['gotoComponent'])
               type="primary"
               size="small"
               round
-              @click="newOrEdit(null, data, $event)"
+              @click.stop="newOrEdit(null, data)"
             >
               <common-icon
                 icon="Plus"
@@ -321,7 +423,7 @@ defineEmits(['gotoComponent'])
               type="success"
               size="small"
               round
-              @click="$emit('gotoComponent', componentsMap[getData$ref(data)]);$event.stopPropagation()"
+              @click.stop="$emit('gotoComponent', componentsMap[getData$ref(data)]);"
             >
               <common-icon
                 icon="ManageSearchFilled"
@@ -334,7 +436,7 @@ defineEmits(['gotoComponent'])
               type="danger"
               size="small"
               round
-              @click="dereferenceSchema(data);$event.stopPropagation()"
+              @click.stop="dereferenceSchema(data);"
             >
               <common-icon
                 icon="LinkOffFilled"
@@ -347,7 +449,7 @@ defineEmits(['gotoComponent'])
               type="success"
               size="small"
               round
-              @click="constructRefSchema(data);$event.stopPropagation()"
+              @click.stop="constructRefSchema(data);"
             >
               <common-icon
                 icon="LinkFilled"
@@ -360,7 +462,7 @@ defineEmits(['gotoComponent'])
               type="primary"
               size="small"
               round
-              @click="newOrEdit(data, node.parent?.data, $event)"
+              @click.stop="toEditSchemaModel(node)"
             >
               <common-icon
                 icon="Edit"
@@ -373,7 +475,7 @@ defineEmits(['gotoComponent'])
               type="danger"
               size="small"
               round
-              @click="deleteProperty(data, node.parent?.data, $event)"
+              @click.stop="deleteProperty(data, node.parent?.data)"
             >
               <common-icon
                 icon="DeleteFilled"
