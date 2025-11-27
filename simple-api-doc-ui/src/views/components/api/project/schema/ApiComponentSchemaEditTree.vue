@@ -230,6 +230,32 @@ const constructRefSchema = data => {
   })
 }
 
+const baseNodeCheck = node => node?.data?.id !== '_root' && checkEditProperty(node)
+
+const allowDrop = (draggingNode, dropNode, type) => {
+  return baseNodeCheck(dropNode) && (type !== 'inner' || dropNode.data?.schema?.type === 'object')
+}
+const allowDrag = (draggingNode) => {
+  return baseNodeCheck(draggingNode) // 可编辑的非根节点
+}
+const handleDragEnd = (draggingNode, dropNode, type) => {
+  if (dropNode) {
+    const parentNode = type === 'inner' ? dropNode : dropNode.parent
+    const childNodes = [...parentNode.childNodes]
+    childNodes.forEach(node => {
+      let data = node.data
+      const schema = get(schemaModel.value, data.path) // 从schemaModel中提取schema原始数据
+      unset(schemaModel.value, data.path) // 清理schema数据
+      if (data.id === draggingNode.data.id) { // 如果是移动节点可能父节点会变化，重新计算路径值
+        data = calcSchemaPath(cloneDeep(draggingNode.data), parentNode.data, 0)
+      }
+      console.log('========================node', data.path, node, schema)
+      saveToSchemaModel(data, cloneDeep(schema)) // 设置值
+    })
+    console.log('=================================drop', draggingNode, dropNode, childNodes, type)
+  }
+}
+
 defineEmits(['gotoComponent'])
 
 </script>
@@ -244,6 +270,10 @@ defineEmits(['gotoComponent'])
       node-key="id"
       lazy
       :load="loadTreeNode"
+      :allow-drag="allowDrag"
+      :allow-drop="allowDrop"
+      draggable
+      @node-drag-end="handleDragEnd"
       @node-expand="toggleExpandKey($event, true)"
       @node-collapse="toggleExpandKey($event, false)"
     >
