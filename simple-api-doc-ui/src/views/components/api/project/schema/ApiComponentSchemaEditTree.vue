@@ -168,9 +168,11 @@ const checkNotXxxOf = node => !node?.data?.xxxOf
 
 const checkNotAdditional = node => !node?.data?.isAdditional
 
+const isObjectSchema = schema => schema?.type === 'object' || schema?.properties
+
 const checkAddProperty = node => {
   const schema = node.data?.schema
-  return (schema?.type === 'object' || schema?.properties) && !checkRefRelated(node) && checkNotXxxOf(node)// 当前以及上级都没有ref
+  return (isObjectSchema(schema) || isObjectSchema(schema?.items)) && !checkRefRelated(node) && checkNotXxxOf(node)// 当前以及上级都没有ref
 }
 
 const checkEditProperty = node => !checkRefRelated(node.parent) && checkNotXxxOf(node.parent) && checkNotAdditional(node) // 上级中没有ref
@@ -233,7 +235,7 @@ const constructRefSchema = data => {
 const baseNodeCheck = node => node?.data?.id !== '_root' && checkEditProperty(node)
 
 const allowDrop = (draggingNode, dropNode, type) => {
-  return baseNodeCheck(dropNode) && (type !== 'inner' || dropNode.data?.schema?.type === 'object')
+  return baseNodeCheck(dropNode) && (type !== 'inner' || isObjectSchema(dropNode.data?.schema))
 }
 const allowDrag = (draggingNode) => {
   return baseNodeCheck(draggingNode) // 可编辑的非根节点
