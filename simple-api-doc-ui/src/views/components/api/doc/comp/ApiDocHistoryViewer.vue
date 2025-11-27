@@ -10,6 +10,7 @@ import ApiNewHistoryDiffViewer from '@/views/components/api/doc/comp/ApiNewHisto
 import { $i18nBundle } from '@/messages'
 import { $copyText, $coreConfirm } from '@/utils'
 import { getDocHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
+import { defineTableColumns } from '@/components/utils'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -39,71 +40,75 @@ const limit = 300
  *
  * @type {[CommonTableColumn]}
  */
-const columns = [{
-  labelKey: 'api.label.docName',
-  formatter (data) {
-    return <ElText v-common-tooltip={data.docName}
-                   onClick={() => $copyText(data.docName)}
-                   style="white-space: nowrap;cursor: pointer;">
-      {data.docName}
-    </ElText>
-  },
-  attrs: {
-    style: 'white-space: nowrap;'
-  }
-}, {
-  labelKey: 'api.label.docContent',
-  property: 'docContent',
-  formatter (data) {
-    let tooltip = data.docContent
-    if (data.docContent?.length && data.docContent.length > limit) {
-      tooltip = data.docContent?.substring(0, limit) + '...'
+const columns = computed(() => {
+  const isApi = currentDoc.value?.docType === 'api'
+  return defineTableColumns([{
+    labelKey: isApi ? 'api.label.requestName' : 'api.label.docName',
+    formatter (data) {
+      return <ElText v-common-tooltip={data.docName}
+                     onClick={() => $copyText(data.docName)}
+                     style="white-space: nowrap;cursor: pointer;">
+        {data.docName}
+      </ElText>
+    },
+    attrs: {
+      style: 'white-space: nowrap;'
     }
-    return <ElText v-common-tooltip={tooltip}
-                   onClick={() => $copyText(data.docContent)}
-                   style="white-space: nowrap;cursor: pointer;">
-      {data.docContent}
-    </ElText>
-  }
-}, {
-  labelKey: 'common.label.status',
-  formatter (data) {
-    let lockStatus = <></>
-    if (data.locked) {
-      lockStatus = <CommonIcon icon="LockFilled" size={18} class="margin-left1"
-                               style="vertical-align: middle;"
-                               v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+  }, {
+    labelKey: isApi ? 'api.label.apiDescription' : 'api.label.docContent',
+    property: 'docContent',
+    formatter (data) {
+      const docContent = data.docContent || data.description
+      let tooltip = docContent
+      if (docContent?.length && docContent.length > limit) {
+        tooltip = docContent?.substring(0, limit) + '...'
+      }
+      return <ElText v-common-tooltip={tooltip}
+                     onClick={() => $copyText(docContent)}
+                     style="white-space: nowrap;cursor: pointer;">
+        {docContent}
+      </ElText>
     }
-    return <>
-      <DelFlagTag v-model={data.status}/>
-      {lockStatus}
-    </>
-  },
-  attrs: {
-    align: 'center'
-  }
-}, {
-  labelKey: 'common.label.version',
-  formatter (data) {
-    const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
-    return <>
-      <span class="margin-right2">{data.version}</span>
-      {currentFlag}
-    </>
-  }
-}, {
-  labelKey: 'common.label.modifier',
-  formatter (data) {
-    return <ElText>{data.modifier || data.creator}</ElText>
-  },
-  attrs: {
-    align: 'center'
-  }
-}, {
-  labelKey: 'common.label.modifyDate',
-  property: 'createDate',
-  dateFormat: 'YYYY-MM-DD HH:mm:ss'
-}]
+  }, {
+    labelKey: 'common.label.status',
+    formatter (data) {
+      let lockStatus = <></>
+      if (data.locked) {
+        lockStatus = <CommonIcon icon="LockFilled" size={18} class="margin-left1"
+                                 style="vertical-align: middle;"
+                                 v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+      }
+      return <>
+        <DelFlagTag v-model={data.status}/>
+        {lockStatus}
+      </>
+    },
+    attrs: {
+      align: 'center'
+    }
+  }, {
+    labelKey: 'common.label.version',
+    formatter (data) {
+      const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
+      return <>
+        <span class="margin-right2">{data.version}</span>
+        {currentFlag}
+      </>
+    }
+  }, {
+    labelKey: 'common.label.modifier',
+    formatter (data) {
+      return <ElText>{data.modifier || data.creator}</ElText>
+    },
+    attrs: {
+      align: 'center'
+    }
+  }, {
+    labelKey: 'common.label.modifyDate',
+    property: 'createDate',
+    dateFormat: 'YYYY-MM-DD HH:mm:ss'
+  }])
+})
 const buttons = computed(() => {
   return [{
     labelKey: 'api.label.compare',

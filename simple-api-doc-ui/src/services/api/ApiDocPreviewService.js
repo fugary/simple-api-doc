@@ -819,7 +819,7 @@ export const useApiDocDebugConfig = (editable = false) => {
 export const getDocHistoryViewOptions = (doc, history) => {
   const isApi = doc.docType === 'api'
   return [
-    { labelKey: 'api.label.docName', prop: 'docName' },
+    { labelKey: isApi ? 'api.label.requestName' : 'api.label.docName', prop: 'docName' },
     { labelKey: 'common.label.version', prop: () => `${doc.version ?? ''}${doc.isCurrent ? ` <${$i18nBundle('api.label.current')}>` : ''}` },
     { labelKey: 'common.label.modifyDate', prop: () => formatDate(doc[history ? 'createDate' : 'modifyDate']) },
     { labelKey: 'common.label.modifier', prop: () => doc[history ? 'creator' : 'modifier'] },
@@ -838,7 +838,7 @@ export const getDocHistoryViewOptions = (doc, history) => {
     },
     { labelKey: 'common.label.sortId', prop: 'sortId' },
     {
-      labelKey: 'api.label.docContent',
+      labelKey: isApi ? 'api.label.apiDescription' : 'api.label.docContent',
       prop: () => {
         return doc.docContent || doc.description
       }
