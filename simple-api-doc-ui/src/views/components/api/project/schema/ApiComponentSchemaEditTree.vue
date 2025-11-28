@@ -15,7 +15,12 @@ import { showMarkdownWindow, toEditComponent, toEditJsonSchema } from '@/utils/D
 import { $coreConfirm, getSingleSelectOptions } from '@/utils'
 import { cloneDeep, pull, unset, get, set } from 'lodash-es'
 import { $i18nBundle, $i18nKey } from '@/messages'
-import { SCHEMA_BASE_TYPES, SCHEMA_COMPONENT_PREFIX } from '@/consts/ApiConstants'
+import {
+  SCHEMA_BASE_TYPES,
+  SCHEMA_COMPONENT_PREFIX,
+  SCHEMA_SELECT_TYPE,
+  SCHEMA_SELECT_TYPES
+} from '@/consts/ApiConstants'
 import { useComponentSchemas } from '@/services/api/ApiDocEditService'
 import { defineFormOptions } from '@/components/utils'
 
@@ -120,9 +125,9 @@ const deleteProperty = (data, parent) => {
 }
 
 const currentEdit = ref()
-const newOrEdit = (data, parent) => {
+const newOrEdit = (data, parent, dataType) => {
   console.log('=======================newOrEdit', data?.path, data, parent)
-  data = initEditData(data)
+  data = initEditData(data, dataType)
   currentEdit.value = data
   toEditJsonSchema(data, props.currentInfoDetail, {
     onSaveJsonSchema (toSaveData) {
@@ -134,10 +139,13 @@ const newOrEdit = (data, parent) => {
   })
 }
 
-const initEditData = (data) => {
+const initEditData = (data, dataType) => {
   if (data) {
     data = cloneDeep(data)
     data.schema = cloneDeep(data?.path ? get(schemaModel.value, data.path) : schemaModel.value)
+    if (dataType) {
+      data.dataType = dataType
+    }
   } else {
     data = { schema: { type: 'string' } }
   }
@@ -267,12 +275,28 @@ const handleDragEnd = (draggingNode, dropNode, type) => {
 }
 
 const currentModel = ref()
-const inlineEditOptions = computed(() => {
-  const typeOptions = getSingleSelectOptions(...SCHEMA_BASE_TYPES)
+const getInlineEditOptions = (data, parent) => {
+  const typeOptions = [...getSingleSelectOptions(...SCHEMA_BASE_TYPES), ...SCHEMA_SELECT_TYPES.slice(1)]
+  const lastType = currentModel.value?.schema?.type
   return defineFormOptions([
     { labelKey: 'common.label.name', prop: 'name', required: true, showLabel: false },
     { labelKey: 'api.label.required', prop: 'required', type: 'switch', labelWidth: 'auto' },
-    { labelKey: 'api.label.typeBasic', prop: 'schema.type', required: true, children: typeOptions, type: 'select', showLabel: false },
+    {
+      labelKey: 'api.label.typeBasic',
+      prop: 'schema.type',
+      required: true,
+      children: typeOptions,
+      type: 'select',
+      showLabel: false,
+      change (val) {
+        if ([SCHEMA_SELECT_TYPE.REF, SCHEMA_SELECT_TYPE.XXX_OF].includes(val)) {
+          if (currentModel.value.schema) {
+            currentModel.value.schema.type = lastType
+          }
+          newOrEdit(data, parent, val)
+        }
+      }
+    },
     {
       labelKey: 'common.label.description',
       prop: 'schema.description',
@@ -293,7 +317,7 @@ const inlineEditOptions = computed(() => {
       }
     }
   ])
-})
+}
 
 const toEditSchemaModel = (node) => {
   if (checkNotXxxOf(node) && !checkRefRelated(node)) {
@@ -358,7 +382,7 @@ defineEmits(['gotoComponent'])
             inline
             class-name="common-form-auto"
             :model="currentModel"
-            :options="inlineEditOptions"
+            :options="getInlineEditOptions(data, node.parent?.data)"
             :show-submit="false"
             @click.stop
           >
@@ -384,7 +408,7 @@ defineEmits(['gotoComponent'])
                 @click.stop="newOrEdit(data, node.parent?.data)"
               >
                 <common-icon
-                  icon="Edit"
+                  icon="EditPen"
                   :size="18"
                 />
               </el-button>
