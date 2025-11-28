@@ -219,7 +219,7 @@ const showSecurityEditWindow = ref(false)
               />
             </el-container>
             <el-container
-              v-else
+              v-else-if="currentDoc?.id"
               class="flex-column height100"
             >
               <markdown-doc-viewer
@@ -240,6 +240,10 @@ const showSecurityEditWindow = ref(false)
                 @to-edit-security-schemas="showSecurityEditWindow=true"
               />
             </el-container>
+            <el-empty
+              v-else
+              :description="$t('common.msg.noData')"
+            />
           </template>
           <template #split-2>
             <el-container class="flex-column padding-left2">
