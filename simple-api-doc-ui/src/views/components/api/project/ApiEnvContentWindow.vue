@@ -18,6 +18,9 @@ const toEditEnvConfigs = (projectInfo) => {
   projectInfoItem.value = projectInfo
   showWindow.value = true
   infoConfig.value.envConfigs = JSON.parse(projectInfo.envContent || '[]') || []
+  if (!infoConfig.value.envConfigs.length) {
+    infoConfig.value.envConfigs.push({ manual: true })
+  }
   return new Promise(resolve => (callback = resolve))
 }
 
@@ -139,6 +142,16 @@ const paramsOptions = computed(() => {
           </el-button>
         </el-col>
       </el-row>
+      <el-row
+        v-if="!infoConfig.envConfigs?.length"
+        class="margin-bottom3"
+      >
+        <el-col>
+          <el-text type="info">
+            {{ $t('common.msg.noData') }}
+          </el-text>
+        </el-col>
+      </el-row>
       <el-row>
         <el-col>
           <el-button
@@ -147,7 +160,7 @@ const paramsOptions = computed(() => {
             @click="infoConfig.envConfigs.push({manual: true})"
           >
             <common-icon icon="Plus" />
-            {{ $t('common.label.add') }}
+            {{ $i18nKey('common.label.commonAdd1', 'api.label.environments') }}
           </el-button>
         </el-col>
       </el-row>
