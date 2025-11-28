@@ -347,11 +347,11 @@ defineExpose({
             class="flex-column"
           >
             <api-component-schema-edit-tree
-              v-if="currentComponentModel&&schemaContentObj&&currentProjectInfo"
+              v-if="currentComponentModel&&schemaContentObj"
               v-model="schemaContentObj"
               :current-info-detail="currentComponentModel"
               :root-name="getSchemaNameLabel(currentComponentModel)"
-              :spec-version="currentProjectInfo.specVersion"
+              :spec-version="currentProjectInfo?.specVersion"
               :component-schemas="componentSchemas"
               :show-merge-all-of="false"
               @goto-component="gotoComponent"

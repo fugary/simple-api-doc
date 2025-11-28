@@ -7,6 +7,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
@@ -148,6 +149,12 @@ public class ApiProjectInfoDetailController {
             if (existsInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, existsInfoDetail, "schemaContent")
                     && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), existsInfoDetail.getSchemaContent())) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
+            }
+        }
+        if (infoDetail.getInfoId() == null) {
+            ApiProjectInfo projectInfo = apiProjectService.findOrCreateProjectInfo(infoDetail.getProjectId());
+            if (projectInfo != null) {
+                infoDetail.setInfoId(projectInfo.getId());
             }
         }
         if (apiProjectInfoDetailService.existsInfoDetail(infoDetail)) {

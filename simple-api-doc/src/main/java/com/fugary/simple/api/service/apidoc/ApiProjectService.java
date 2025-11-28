@@ -120,4 +120,12 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @return
      */
     ApiProjectInfo findOrCreateProjectInfo(ApiDoc apiDoc);
+
+    /**
+     * 获取或创建ProjectInfo信息
+     *
+     * @param projectId
+     * @return
+     */
+    public ApiProjectInfo findOrCreateProjectInfo(Integer projectId);
 }

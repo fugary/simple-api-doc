@@ -334,13 +334,18 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 return projectInfos.get(0);
             }
         } else if (ApiDocConstants.DOC_TYPE_API.equals(apiDoc.getDocType())) { // 没有Info数据建个新的
-            ApiProject project = this.getById(apiDoc.getProjectId());
-            ApiFolder rootFolder = apiFolderService.getRootFolder(apiDoc.getProjectId());
-            ApiProjectInfo projectInfo = SimpleModelUtils.getDefaultProjectInfo(project);
-            projectInfo.setFolderId(rootFolder.getId());
-            apiProjectInfoService.save(projectInfo);
-            return projectInfo;
+            return findOrCreateProjectInfo(apiDoc.getProjectId());
         }
         return null;
+    }
+
+    @Override
+    public ApiProjectInfo findOrCreateProjectInfo(Integer projectId) {
+        ApiProject project = this.getById(projectId);
+        ApiFolder rootFolder = apiFolderService.getRootFolder(projectId);
+        ApiProjectInfo projectInfo = SimpleModelUtils.getDefaultProjectInfo(project);
+        projectInfo.setFolderId(rootFolder.getId());
+        apiProjectInfoService.save(projectInfo);
+        return projectInfo;
     }
 }
