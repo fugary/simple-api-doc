@@ -62,6 +62,7 @@ watch([schemaModel, () => props.rootName], () => {
   showTree.value = false
   nextTick(() => {
     showTree.value = true
+    currentModel.value = null
   })
 }, { immediate: true, deep: true })
 
@@ -363,7 +364,7 @@ defineEmits(['gotoComponent'])
           >
             <template #buttons="{form}">
               <el-button
-                v-common-tooltip="$t('common.label.edit')"
+                v-common-tooltip="$t('common.label.confirm')"
                 type="primary"
                 size="small"
                 round
