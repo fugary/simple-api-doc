@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
@@ -16,10 +17,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created on 2020/5/3 22:37 .<br>
@@ -98,8 +96,10 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
             }
             save(newProjectInfo);
             results.put(projectInfo.getId(), Pair.of(projectInfo, newProjectInfo));
+            Set<String> types = new HashSet<>(ApiDocConstants.PROJECT_SCHEMA_TYPES);
+            types.add(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
             List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.loadByProjectAndInfo(fromProjectId,
-                    projectInfo.getId(), Set.of());
+                    projectInfo.getId(), types);
             infoDetails.forEach(infoDetail -> {
                 infoDetail.setId(null);
                 infoDetail.setProjectId(toProjectId);
