@@ -341,11 +341,16 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Override
     public ApiProjectInfo findOrCreateProjectInfo(Integer projectId) {
-        ApiProject project = this.getById(projectId);
-        ApiFolder rootFolder = apiFolderService.getRootFolder(projectId);
-        ApiProjectInfo projectInfo = SimpleModelUtils.getDefaultProjectInfo(project);
-        projectInfo.setFolderId(rootFolder.getId());
-        apiProjectInfoService.save(projectInfo);
-        return projectInfo;
+        List<ApiProjectInfo> projectInfos = apiProjectInfoService.loadByProjectId(projectId);
+        if (CollectionUtils.isNotEmpty(projectInfos)) {
+            return projectInfos.get(0);
+        } else {
+            ApiProject project = this.getById(projectId);
+            ApiFolder rootFolder = apiFolderService.getRootFolder(projectId);
+            ApiProjectInfo projectInfo = SimpleModelUtils.getDefaultProjectInfo(project);
+            projectInfo.setFolderId(rootFolder.getId());
+            apiProjectInfoService.save(projectInfo);
+            return projectInfo;
+        }
     }
 }

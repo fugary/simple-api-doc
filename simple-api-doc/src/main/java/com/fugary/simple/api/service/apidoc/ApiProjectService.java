@@ -127,5 +127,5 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @param projectId
      * @return
      */
-    public ApiProjectInfo findOrCreateProjectInfo(Integer projectId);
+    ApiProjectInfo findOrCreateProjectInfo(Integer projectId);
 }
