@@ -1,5 +1,5 @@
 <script setup>
-import { computed, isVNode } from 'vue'
+import { computed } from 'vue'
 import { toLabelByKey, useInputType } from '@/components/utils'
 import { isFunction } from 'lodash-es'
 
@@ -71,6 +71,8 @@ const tooltipFunc = ($event) => {
       <span>
         <el-link
           underline="never"
+          :type="option.tooltipFunc?'primary':'default'"
+          v-bind="option.tooltipLinkAttrs"
           @click="tooltipFunc($event)"
         >&nbsp;
           <common-icon
