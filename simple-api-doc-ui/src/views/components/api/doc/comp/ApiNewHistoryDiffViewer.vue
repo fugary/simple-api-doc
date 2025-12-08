@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, shallowRef } from 'vue'
+import { computed, shallowRef, onBeforeUnmount } from 'vue'
 import { $i18nBundle } from '@/messages'
 import { isFunction } from 'lodash-es'
 
@@ -31,6 +31,9 @@ const diffOptions = {
 }
 const diffEditorRef = shallowRef()
 const handleMount = diffEditor => (diffEditorRef.value = diffEditor)
+onBeforeUnmount(() => {
+  diffEditorRef.value?.dispose()
+})
 
 const calcHistoryContent = (doc, history) => {
   const options = props.historyOptionsMethod(doc, history).filter(item => item.enabled !== false)

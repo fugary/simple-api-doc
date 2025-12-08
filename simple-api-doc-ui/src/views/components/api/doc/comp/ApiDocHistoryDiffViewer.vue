@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { shallowRef, computed } from 'vue'
+import { shallowRef, computed, onBeforeUnmount } from 'vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
@@ -31,6 +31,9 @@ const diffOptions = {
 }
 const diffEditorRef = shallowRef()
 const handleMount = diffEditor => (diffEditorRef.value = diffEditor)
+onBeforeUnmount(() => {
+  diffEditorRef.value?.dispose()
+})
 
 const calcFormatter = ({ originalDoc = props.originalDoc, modifiedDoc = props.modifiedDoc, key, modifiedKey, value }) => {
   return () => {
