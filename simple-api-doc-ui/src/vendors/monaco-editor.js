@@ -1,5 +1,5 @@
 import VueMonacoEditor, { loader, VueMonacoDiffEditor } from '@guolao/vue-monaco-editor'
-import { ref, watch, toRaw, h, withDirectives, resolveDirective, computed } from 'vue'
+import { ref, watch, toRaw, h, withDirectives, resolveDirective, computed, shallowRef, onBeforeUnmount } from 'vue'
 import * as monaco from 'monaco-editor'
 import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
 import CssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
@@ -20,7 +20,8 @@ const defaultConfig = {
   wordWrap: 'on',
   readOnly: true,
   language: 'javascript',
-  fixedOverflowWidgets: true
+  fixedOverflowWidgets: true,
+  formatOnPaste: true
 }
 
 /**
@@ -73,7 +74,7 @@ const langCheckConfig = [{
 }]
 
 export const $checkLang = value => {
-  const val = value?.trim() || ''
+  const val = value?.trim?.() || ''
   if (val) {
     for (const langConfig of langCheckConfig) {
       const checkReg = langConfig.checkReg
@@ -91,7 +92,7 @@ export const $formatDocument = (editor, readOnly, delay = 200) => {
         readOnly: false
       })
     }
-    editor.getAction('editor.action.formatDocument').run().then(function () {
+    editor.getAction('editor.action.formatDocument')?.run().then(function () {
       if (readOnly) {
         editor.updateOptions({
           readOnly: true
@@ -113,7 +114,7 @@ export const processPasteCode = data => {
  */
 export const useMonacoEditorOptions = (config) => {
   const contentRef = ref('')
-  const languageRef = ref('')
+  const languageRef = ref(config?.language || '')
   const editorRef = ref()
   const monacoEditorOptions = defineMonacoOptions(config)
   const languageModel = ref({
@@ -198,6 +199,36 @@ const fixEditorSetValue = (props, context) => {
     onMountFunc(instance)
   }
   return { ...props, [onMountKey]: newOnMount }
+}
+
+export const useMonacoDiffEditorOptions = (config) => {
+  const diffOptions = ref({
+    automaticLayout: true,
+    formatOnType: true,
+    formatOnPaste: true,
+    originalEditable: true,
+    readOnly: false,
+    ...config
+  })
+  const diffEditorRef = shallowRef()
+  const handleMount = diffEditor => (diffEditorRef.value = diffEditor)
+  onBeforeUnmount(() => {
+    diffEditorRef.value?.dispose()
+  })
+  const originalContent = ref('')
+  const modifiedContent = ref('')
+  const diffChanged = () => {
+    originalContent.value = diffEditorRef.value.getOriginalEditor().getValue() || ''
+    modifiedContent.value = diffEditorRef.value.getModifiedEditor().getValue() || ''
+  }
+  return {
+    originalContent,
+    modifiedContent,
+    diffOptions,
+    diffEditorRef,
+    handleMount,
+    diffChanged
+  }
 }
 
 export default {

@@ -4,10 +4,10 @@ import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiP
 import { useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import { ElText, ElTag } from 'element-plus'
-import ApiNewHistoryDiffViewer from '@/views/components/api/doc/comp/ApiNewHistoryDiffViewer.vue'
 import { $i18nBundle } from '@/messages'
 import { $copyText, $coreConfirm } from '@/utils'
 import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
+import { showCompareWindowNew } from '@/services/api/ApiDocEditService'
 
 const showHistoryWindow = defineModel({
   type: Boolean,
@@ -103,20 +103,18 @@ const buttons = computed(() => {
   }]
 })
 
-const showDiffViewer = ref(false)
 const originalDoc = ref()
 const modifiedDoc = ref()
-const showApiDocDiff = (item, diff) => {
+const showApiDocDiff = async (item, diff) => {
   if (!diff) {
     originalDoc.value = item
     modifiedDoc.value = {
       ...currentDoc.value,
       isCurrent: true
     }
-    showDiffViewer.value = true
   } else {
     const queryId = item.isCurrent ? item.id : item.modifyFrom
-    loadHistoryDiff({
+    await loadHistoryDiff({
       queryId,
       version: item.version
     }).then(data => {
@@ -137,9 +135,13 @@ const showApiDocDiff = (item, diff) => {
           }
         }
       }
-      showDiffViewer.value = true
     })
   }
+  showCompareWindowNew({
+    modified: modifiedDoc.value,
+    original: originalDoc.value,
+    historyOptionsMethod: getComponentHistoryViewOptions
+  })
 }
 
 const calcTableData = computed(() => {
@@ -180,12 +182,6 @@ defineExpose({
       :loading="loading"
       @page-size-change="searchHistories()"
       @current-page-change="searchHistories()"
-    />
-    <api-new-history-diff-viewer
-      v-model="showDiffViewer"
-      :original-doc="originalDoc"
-      :modified-doc="modifiedDoc"
-      :history-options-method="getComponentHistoryViewOptions"
     />
   </common-window>
 </template>

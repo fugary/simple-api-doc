@@ -124,5 +124,20 @@ export const ALL_MENUS = [
         closeOnClickModal: false
       })
     }
+  },
+  {
+    id: 96,
+    parentId: 9,
+    iconCls: 'DifferenceFilled',
+    nameCn: '对比编辑器',
+    nameEn: 'Diff Editor',
+    click: () => {
+      showCodeWindow({
+        title: $i18nBundle('api.label.compare'),
+        diffEditor: true,
+        readOnly: false,
+        closeOnClickModal: false
+      })
+    }
   }
 ]
