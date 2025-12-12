@@ -9,6 +9,7 @@ import {
   formatDate,
   useBackUrl,
   isAdminUser,
+  getStyleGrow,
   $goto
 } from '@/utils'
 import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
@@ -291,14 +292,10 @@ const editFormOptions = computed(() => {
     prop: 'shareName',
     required: true
   }, {
-    labelKey: 'api.label.shareId',
-    prop: 'shareId',
-    enabled: !!currentShare.value?.shareId,
-    disabled: !isCopyData
-  }, {
     labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     type: 'select',
+    style: getStyleGrow(5),
     enabled: !inProject && !!projectGroupOptions.value?.length,
     disabled: !!currentShare.value?.id && !isCopyData,
     children: projectGroupOptions.value,
@@ -311,6 +308,7 @@ const editFormOptions = computed(() => {
     prop: 'projectId',
     required: true,
     type: 'select',
+    style: getStyleGrow(5),
     enabled: !inProject,
     disabled: !!currentShare.value?.id && !isCopyData,
     children: filteredProjectOptions,
@@ -321,25 +319,36 @@ const editFormOptions = computed(() => {
       currentShare.value.shareDocsArr = []
       currentShare.value.shareEnvs = []
     }
-  }, useFormStatus(), {
+  }, { ...useFormStatus(), style: getStyleGrow(currentShare.value?.shareId ? 5 : 10) }, {
+    labelKey: 'api.label.shareId',
+    prop: 'shareId',
+    style: getStyleGrow(5),
+    enabled: !!currentShare.value?.shareId,
+    disabled: !isCopyData
+  }, {
     labelKey: 'api.label.exportEnabled',
     prop: 'exportEnabled',
+    style: getStyleGrow(2),
     type: 'switch'
   }, {
     labelKey: 'api.label.debugEnabled',
     prop: 'debugEnabled',
+    style: getStyleGrow(2),
     type: 'switch'
   }, {
     labelKey: 'api.label.showChildrenLength',
     prop: 'showChildrenLength',
+    style: getStyleGrow(2),
     type: 'switch'
   }, {
     labelKey: 'api.label.showTreeIcon',
     prop: 'showTreeIcon',
+    style: getStyleGrow(2),
     type: 'switch'
   }, {
     labelKey: 'api.label.accessPassword',
     prop: 'sharePassword',
+    style: getStyleGrow(5),
     slots: {
       append () {
         const generatePass = () => {
@@ -350,6 +359,11 @@ const editFormOptions = computed(() => {
         </ElButton>
       }
     }
+  }, {
+    labelKey: 'api.label.expireDate',
+    prop: 'expireDate',
+    style: getStyleGrow(5),
+    type: 'date-picker'
   }, {
     labelKey: 'api.label.selectShareDocs',
     type: 'common-form-label',
@@ -366,10 +380,6 @@ const editFormOptions = computed(() => {
         </ElButton>
       </>
     }
-  }, {
-    labelKey: 'api.label.expireDate',
-    prop: 'expireDate',
-    type: 'date-picker'
   }, {
     labelKey: 'api.label.environments',
     prop: 'shareEnvs',
@@ -406,6 +416,7 @@ const editFormOptions = computed(() => {
     labelKey: 'common.label.defaultTheme',
     prop: 'defaultTheme',
     type: 'select',
+    style: getStyleGrow(5),
     attrs: {
       clearable: false
     },
@@ -420,6 +431,7 @@ const editFormOptions = computed(() => {
     labelKey: 'common.label.defaultShowLabel',
     prop: 'defaultShowLabel',
     type: 'select',
+    style: getStyleGrow(5),
     attrs: {
       clearable: false
     },
@@ -498,6 +510,7 @@ const { customDocLabel, customToggleButtons } = useCustomDocLabel()
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
       :name="$t('api.label.shareDocs')"
+      inline-auto-mode
       :save-current-item="saveProjectShare"
       label-width="130px"
       :close-on-click-modal="false"

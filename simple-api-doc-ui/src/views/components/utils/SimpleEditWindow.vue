@@ -1,6 +1,8 @@
 <script setup>
 import { $i18nBundle, $i18nKey } from '@/messages'
 import { ElMessage } from 'element-plus'
+import { computed } from 'vue'
+import { getStyleGrow } from '@/utils'
 
 const props = defineProps({
   formOptions: {
@@ -11,9 +13,17 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  width: {
+    type: String,
+    default: '1000px'
+  },
   saveCurrentItem: {
     type: Function,
     default: () => {}
+  },
+  inlineAutoMode: {
+    type: Boolean,
+    default: false
   },
   debug: {
     type: Boolean, default: false
@@ -31,7 +41,7 @@ const currentItem = defineModel('modelValue', {
 })
 
 const internalSaveCurrentItem = ({ form }) => {
-  form.validate().then(valid => {
+  form.validate(valid => {
     if (valid) {
       props.saveCurrentItem(currentItem.value).then(() => {
         ElMessage.success($i18nBundle('common.msg.saveSuccess'))
@@ -42,6 +52,18 @@ const internalSaveCurrentItem = ({ form }) => {
   return false
 }
 
+const calcOptions = computed(() => {
+  if (props.inlineAutoMode) {
+    return props.formOptions.map(option => {
+      const style = { ...getStyleGrow(10), ...option.style || {} }
+      return {
+        ...option, style
+      }
+    })
+  }
+  return props.formOptions
+})
+
 </script>
 
 <template>
@@ -51,29 +73,31 @@ const internalSaveCurrentItem = ({ form }) => {
     :ok-click="internalSaveCurrentItem"
     append-to-body
     destroy-on-close
+    show-fullscreen
+    :close-on-click-modal="false"
+    :width="width"
   >
-    <el-container class="flex-column">
-      <common-form
-        v-if="currentItem"
-        class="form-edit-width-100"
-        :model="currentItem"
-        :options="formOptions"
-        :show-buttons="false"
-        v-bind="$attrs"
+    <common-form
+      v-if="currentItem"
+      class="form-edit-width-100"
+      :model="currentItem"
+      :options="calcOptions"
+      :show-buttons="false"
+      v-bind="$attrs"
+      :class-name="inlineAutoMode?'common-form-auto':''"
+    >
+      <template
+        v-for="(slot, slotKey) in $slots"
+        :key="slotKey"
+        #[slotKey]="scope"
       >
-        <template
-          v-for="(slot, slotKey) in $slots"
-          :key="slotKey"
-          #[slotKey]="scope"
-        >
-          <slot
-            :name="slotKey"
-            v-bind="scope"
-          />
-        </template>
-      </common-form>
-      <pre v-if="debug">{{ currentItem }}</pre>
-    </el-container>
+        <slot
+          :name="slotKey"
+          v-bind="scope"
+        />
+      </template>
+    </common-form>
+    <pre v-if="debug">{{ currentItem }}</pre>
   </common-window>
 </template>
 
