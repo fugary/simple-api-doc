@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { $coreAlert, $coreConfirm, $goto, checkShowColumn, isAdminUser, useBackUrl } from '@/utils'
+import { $coreAlert, $coreConfirm, $goto, checkShowColumn, getStyleGrow, isAdminUser, useBackUrl } from '@/utils'
 import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
@@ -284,7 +284,8 @@ const editFormOptions = computed(() => {
   authOptions = authOptions.map(option => {
     return {
       ...option,
-      prop: `authContentModel.${option.prop}`
+      prop: `authContentModel.${option.prop}`,
+      style: getStyleGrow(5)
     }
   })
   const isCopyData = currentModel.value?.taskName?.endsWith('-copy')
@@ -296,6 +297,7 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     type: 'select',
+    style: getStyleGrow(5),
     enabled: !inProject && !!projectGroupOptions.value?.length,
     disabled: !!currentModel.value?.id && !isCopyData,
     children: projectGroupOptions.value,
@@ -308,6 +310,7 @@ const editFormOptions = computed(() => {
     prop: 'projectId',
     required: true,
     type: 'select',
+    style: getStyleGrow(5),
     enabled: !inProject,
     disabled: !!currentModel.value?.id && !isCopyData,
     children: filteredProjectOptions.value,
@@ -316,6 +319,7 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.importData',
     prop: 'taskType',
     type: 'segmented',
+    style: getStyleGrow(5),
     attrs: {
       clearable: false,
       options: IMPORT_TASK_TYPES.map(item => ({
@@ -329,6 +333,7 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.triggerRate',
     prop: 'scheduleRate',
     type: 'select',
+    style: getStyleGrow(5),
     children: TASK_TRIGGER_RATES,
     attrs: {
       clearable: false
@@ -514,6 +519,7 @@ const isWritable = computed(() => {
       :form-options="editFormOptions"
       :name="$t('api.label.importData')"
       :save-current-item="saveProjectTask"
+      inline-auto-mode
       label-width="130px"
     />
   </el-container>
