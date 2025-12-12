@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, ref, useTemplateRef } from 'vue'
-import { $coreAlert, $coreError } from '@/utils'
+import { $coreAlert, $coreError, getStyleGrow } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
 import {
   IMPORT_AUTH_TYPES,
@@ -59,7 +59,8 @@ const authOptions = computed(() => {
   return options.map(option => {
     return {
       ...option,
-      prop: `authContentModel.${option.prop}`
+      prop: `authContentModel.${option.prop}`,
+      style: getStyleGrow(5)
     }
   })
 })
@@ -215,7 +216,12 @@ const formOptions = computed(() => {
     value: props.defaultGroupCode,
     type: 'select',
     children: props.groupOptions
-  }])
+  }]).map(option => {
+    const style = { ...getStyleGrow(10), ...option.style || {} }
+    return {
+      ...option, style
+    }
+  })
 })
 const emit = defineEmits(['import-success'])
 const importFormRef = useTemplateRef('importForm')
@@ -262,6 +268,7 @@ defineExpose({
       :show-buttons="showButtons"
       :model="importModel"
       :submit-label="$t('api.label.importData')"
+      class-name="common-form-auto"
       v-bind="$attrs"
       @submit-form="doImportProject()"
     />
