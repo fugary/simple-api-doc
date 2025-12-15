@@ -124,7 +124,7 @@ const formOptions = computed(() => {
           })
         }
         return <ElUpload class="custom-img-upload" showFileList={false} autoUpload={false} onChange={(...args) => changeFile(...args)} accept="image/*">
-          <CommonIcon size={18} icon="Upload" class="append-icon-cls"/>
+          <CommonIcon size={18} icon="Picture" class="append-icon-cls"/>
         </ElUpload>
       }
     }
@@ -169,7 +169,10 @@ const formOptions = computed(() => {
     slots: {
       trigger () {
         return <>
-          <ElButton type="primary">{$i18nBundle('api.label.selectFile')}</ElButton>
+          <ElButton type="primary">
+            <CommonIcon size={18} icon="FileUploadFilled"/>
+            {$i18nBundle('api.label.selectFile')}
+          </ElButton>
           <span style="display: inline-block; margin-left: 10px;">{importFiles.value?.[0]?.name}</span>
         </>
       },

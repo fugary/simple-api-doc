@@ -162,7 +162,7 @@ const editFormOptions = computed(() => {
         }
         return <ElUpload class="custom-img-upload" showFileList={false} autoUpload={false}
                          onChange={(...args) => changeFile(...args)} accept="image/*">
-          <CommonIcon size={18} icon="Upload" class="append-icon-cls"/>
+          <CommonIcon size={18} icon="Picture" class="append-icon-cls"/>
         </ElUpload>
       }
     }
