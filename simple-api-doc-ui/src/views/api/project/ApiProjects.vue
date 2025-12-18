@@ -367,6 +367,7 @@ const pageAttrs = {
               >
                 <el-checkbox
                   v-model="project.selected"
+                  :disabled="!project.isWritable"
                   style="margin-right: auto;"
                   @click="$event.stopPropagation()"
                 >

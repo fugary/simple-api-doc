@@ -266,10 +266,10 @@ defineExpose({
       :show-buttons="false"
     >
       <template
-        v-if="writable&&(!inWindow || historyCount)"
+        v-if="(writable && !inWindow) || historyCount"
         #after-buttons="{form}"
       >
-        <el-container class="container-center">
+        <el-container class="flex-center">
           <el-link
             v-if="historyCount"
             class="margin-right1"
@@ -281,7 +281,7 @@ defineExpose({
               ({{ historyCount }})
             </el-text>
           </el-link>
-          <template v-if="!inWindow">
+          <template v-if="writable&&!inWindow">
             <el-button
               type="primary"
               @click="saveComponent(form)"
@@ -412,6 +412,7 @@ defineExpose({
     <api-schema-history-viewer
       v-if="historyCount"
       ref="apiHistoryRef"
+      :editable="writable"
       @update-history="$emit('saveComponent', $event)"
     />
   </el-container>

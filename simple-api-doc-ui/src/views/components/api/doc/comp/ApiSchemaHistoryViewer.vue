@@ -9,6 +9,10 @@ import { $copyText, $coreConfirm } from '@/utils'
 import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 import { showCompareWindowNew } from '@/services/api/ApiDocEditService'
 
+const props = defineProps({
+  editable: { type: Boolean, default: false }
+})
+
 const showHistoryWindow = defineModel({
   type: Boolean,
   default: false
@@ -88,7 +92,7 @@ const buttons = computed(() => {
   }, {
     labelKey: 'api.label.recover',
     type: 'warning',
-    buttonIf: item => !item.isCurrent,
+    buttonIf: item => !item.isCurrent && props.editable,
     click: item => $coreConfirm($i18nBundle('api.msg.recoverFromHistory'))
       .then(() => recoverFromHistory({ queryId: item.id }))
       .then(() => searchHistories())

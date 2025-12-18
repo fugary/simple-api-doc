@@ -101,7 +101,7 @@ const showSecurityEditWindow = ref(false)
             {{ $t('common.label.back') }}
           </el-button>
           <el-button
-            v-if="projectItem.infoList?.length"
+            v-if="projectItem.infoList?.length&&isWritable"
             class="margin-left2"
             type="primary"
             @click="showSecurityEditWindow=true"

@@ -60,7 +60,7 @@ defineEmits(['updateHistory'])
         {{ $t('common.label.edit') }}
       </el-button>
       <el-link
-        v-if="editable&&historyCount"
+        v-if="historyCount"
         class="margin-left2"
         type="primary"
         @click="apiDocHistoryRef?.showHistoryList(currentDoc.id)"
@@ -89,6 +89,7 @@ defineEmits(['updateHistory'])
       <api-doc-history-viewer
         v-if="historyCount"
         ref="apiDocHistoryRef"
+        :editable="editable"
         @update-history="$emit('updateHistory', $event)"
       />
     </h2>
