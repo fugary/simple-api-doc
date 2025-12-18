@@ -3,17 +3,25 @@ import { $i18nBundle, $i18nKey, $i18nMsg } from '@/messages'
 import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { ElText } from 'element-plus'
-import { $coreConfirm, $coreError, getSingleSelectOptions, getStyleGrow } from '@/utils'
+import { ElTag, ElText } from 'element-plus'
+import { $copyText, $coreConfirm, $coreError, getSingleSelectOptions, getStyleGrow } from '@/utils'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
-import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail } from '@/api/ApiProjectInfoDetailApi'
+import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail, loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE, SCHEMA_COMPONENT_PREFIX } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
-import { checkAndSaveDocInfoDetail, processProjectInfos, useComponentSchemas } from '@/services/api/ApiDocEditService'
-import { showMarkdownWindow } from '@/utils/DynamicUtils'
-import ApiSchemaHistoryViewer from '@/views/components/api/doc/comp/ApiSchemaHistoryViewer.vue'
+import {
+  checkAndSaveDocInfoDetail,
+  processProjectInfos,
+  showCompareWindowNew,
+  useComponentSchemas
+} from '@/services/api/ApiDocEditService'
+import { showHistoryListWindow, showMarkdownWindow } from '@/utils/DynamicUtils'
+import { defineTableColumns } from '@/components/utils'
+
+import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
+import CommonIcon from '@/components/common-icon/index.vue'
 
 const props = defineProps({
   currentProject: {
@@ -244,7 +252,91 @@ const getSchemaNameLabel = item => {
   return item.schemaName || 'root'
 }
 
-const apiHistoryRef = ref()
+const toShowHistoryWindow = (current) => {
+  const limit = 300
+  const emptyDoc = { bodyType: current.bodyType }
+  const bodyType = current?.bodyType
+  const modelLabelKey = bodyType ? `api.label.${bodyType}Name` : 'api.label.componentName'
+  showHistoryListWindow({
+    columns: defineTableColumns([{
+      labelKey: modelLabelKey,
+      property: 'schemaName'
+    }, {
+      label: 'JSON Schema',
+      formatter (data) {
+        let tooltip = data.schemaContent
+        if (data.schemaContent?.length && data.schemaContent.length > limit) {
+          tooltip = data.schemaContent?.substring(0, limit) + '...'
+        }
+        return <ElText v-common-tooltip={tooltip}
+                       onClick={() => $copyText(data.schemaContent)}
+                       style="white-space: nowrap;cursor: pointer;">
+          {data.schemaContent}
+        </ElText>
+      }
+    }, {
+      labelKey: 'api.label.lockStatus',
+      formatter (data) {
+        let lockStatus = <></>
+        if (data.locked) {
+          lockStatus = <CommonIcon icon="LockFilled" size={18} class="margin-left1"
+                                   style="vertical-align: middle;"
+                                   v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+        }
+        return <>
+          {lockStatus}
+        </>
+      },
+      attrs: {
+        align: 'center'
+      }
+    }, {
+      labelKey: 'common.label.version',
+      formatter (data) {
+        const currentFlag = data.isCurrent ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
+        return <>
+          <span class="margin-right2">{data.version}</span>
+          {currentFlag}
+        </>
+      }
+    }, {
+      labelKey: 'common.label.modifier',
+      formatter (data) {
+        return <ElText>{data.modifier || data.creator}</ElText>
+      },
+      attrs: {
+        align: 'center'
+      }
+    }, {
+      labelKey: 'common.label.modifyDate',
+      property: 'createDate',
+      dateFormat: 'YYYY-MM-DD HH:mm:ss'
+    }]),
+    searchFunc: param => loadHistoryList({ ...param, queryId: current.id }),
+    compareFunc: async (modified, target, previous) => {
+      let original = modified
+      if (previous) {
+        await loadHistoryDiff({
+          queryId: modified.id,
+          version: modified.version
+        }).then(data => {
+          modified = data.resultData?.modifiedDoc || emptyDoc
+          original = data.resultData?.originalDoc || emptyDoc
+          modified.current = !modified.modifyFrom
+        })
+      } else {
+        modified = target
+      }
+      showCompareWindowNew({
+        modified,
+        original,
+        historyOptionsMethod: getComponentHistoryViewOptions
+      })
+    },
+    recoverFunc: writable.value ? recoverFromHistory : null,
+    onUpdateHistory: data => emit('saveComponent', data)
+  })
+}
 
 defineExpose({
   saveComponent,
@@ -274,7 +366,7 @@ defineExpose({
             v-if="historyCount"
             class="margin-right1"
             type="primary"
-            @click="apiHistoryRef?.showHistoryList(currentInfoDetail.id)"
+            @click="toShowHistoryWindow(currentInfoDetail)"
           >
             {{ $t('api.label.historyVersions') }}
             <el-text type="info">
@@ -409,12 +501,6 @@ defineExpose({
         </el-tab-pane>
       </el-tabs>
     </el-container>
-    <api-schema-history-viewer
-      v-if="historyCount"
-      ref="apiHistoryRef"
-      :editable="writable"
-      @update-history="$emit('saveComponent', $event)"
-    />
   </el-container>
 </template>
 

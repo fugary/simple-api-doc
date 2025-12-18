@@ -1,8 +1,17 @@
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="jsx">
+import { computed } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
-import ApiDocHistoryViewer from '@/views/components/api/doc/comp/ApiDocHistoryViewer.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
+import { showHistoryListWindow } from '@/utils/DynamicUtils'
+import { defineTableColumns } from '@/components/utils'
+import { $copyText } from '@/utils'
+import { $i18nBundle } from '@/messages'
+import { ElText, ElTag } from 'element-plus'
+import CommonIcon from '@/components/common-icon/index.vue'
+import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
+import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiDocApi'
+import { showCompareWindowNew } from '@/services/api/ApiDocEditService'
+import { getDocHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 const props = defineProps({
   editable: {
     type: Boolean,
@@ -27,10 +36,105 @@ const folderPaths = computed(() => {
   }
   return []
 })
-const apiDocHistoryRef = ref()
 const { isMobile } = useScreenCheck()
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
-defineEmits(['updateHistory'])
+const emit = defineEmits(['updateHistory'])
+const toShowHistoryWindow = (current) => {
+  const isApi = current.docType === 'api'
+  const limit = 300
+  const emptyDoc = { docType: current.docType }
+  showHistoryListWindow({
+    columns: defineTableColumns([{
+      labelKey: isApi ? 'api.label.requestName' : 'api.label.docName',
+      formatter (data) {
+        return <ElText v-common-tooltip={data.docName}
+                       onClick={() => $copyText(data.docName)}
+                       style="white-space: nowrap;cursor: pointer;">
+          {data.docName}
+        </ElText>
+      },
+      attrs: {
+        style: 'white-space: nowrap;'
+      }
+    }, {
+      labelKey: isApi ? 'api.label.apiDescription' : 'api.label.docContent',
+      property: 'docContent',
+      formatter (data) {
+        const docContent = data.docContent || data.description
+        let tooltip = docContent
+        if (docContent?.length && docContent.length > limit) {
+          tooltip = docContent?.substring(0, limit) + '...'
+        }
+        return <ElText v-common-tooltip={tooltip}
+                       onClick={() => $copyText(docContent)}
+                       style="white-space: nowrap;cursor: pointer;">
+          {docContent}
+        </ElText>
+      }
+    }, {
+      labelKey: 'common.label.status',
+      formatter (data) {
+        let lockStatus = <></>
+        if (data.locked) {
+          lockStatus = <CommonIcon icon="LockFilled" size={18} class="margin-left1"
+                                   style="vertical-align: middle;"
+                                   v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
+        }
+        return <>
+          <DelFlagTag v-model={data.status}/>
+          {lockStatus}
+        </>
+      },
+      attrs: {
+        align: 'center'
+      }
+    }, {
+      labelKey: 'common.label.version',
+      formatter (data) {
+        const currentFlag = data.current ? <ElTag type="success" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
+        return <>
+          <span class="margin-right2">{data.version}</span>
+          {currentFlag}
+        </>
+      }
+    }, {
+      labelKey: 'common.label.modifier',
+      formatter (data) {
+        return <ElText>{data.modifier || data.creator}</ElText>
+      },
+      attrs: {
+        align: 'center'
+      }
+    }, {
+      labelKey: 'common.label.modifyDate',
+      property: 'createDate',
+      dateFormat: 'YYYY-MM-DD HH:mm:ss'
+    }]),
+    searchFunc: param => loadHistoryList({ ...param, queryId: current.id }),
+    compareFunc: async (modified, target, previous) => {
+      let original = modified
+      if (previous) {
+        await loadHistoryDiff({
+          queryId: modified.id,
+          version: modified.version
+        }).then(data => {
+          modified = data.resultData?.modifiedDoc || emptyDoc
+          original = data.resultData?.originalDoc || emptyDoc
+          modified.current = !modified.modifyFrom
+        })
+      } else {
+        modified = target
+      }
+      showCompareWindowNew({
+        modified,
+        original,
+        historyOptionsMethod: getDocHistoryViewOptions
+      })
+    },
+    recoverFunc: props.editable ? recoverFromHistory : null,
+    onUpdateHistory: data => emit('updateHistory', data)
+  })
+}
 </script>
 
 <template>
@@ -63,7 +167,7 @@ defineEmits(['updateHistory'])
         v-if="historyCount"
         class="margin-left2"
         type="primary"
-        @click="apiDocHistoryRef?.showHistoryList(currentDoc.id)"
+        @click="toShowHistoryWindow(currentDoc)"
       >
         {{ $t('api.label.historyVersions') }}
         <el-text type="info">
@@ -86,12 +190,6 @@ defineEmits(['updateHistory'])
           </el-text>
         </el-col>
       </el-row>
-      <api-doc-history-viewer
-        v-if="historyCount"
-        ref="apiDocHistoryRef"
-        :editable="editable"
-        @update-history="$emit('updateHistory', $event)"
-      />
     </h2>
   </el-header>
 </template>

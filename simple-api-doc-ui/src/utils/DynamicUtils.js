@@ -11,6 +11,7 @@ const JsonSchemaEdit = () => import('@/views/components/api/project/schema/JsonS
 const ApiProjectComponentWindow = () => import('@/views/components/api/project/ApiProjectComponentWindow.vue')
 const ApiDocRequestParamsEditWindow = () => import('@/views/components/api/doc/comp/edit/ApiDocRequestParamsEditWindow.vue')
 const SecurityRequirementsWindow = () => import('@/views/components/api/doc/comp/edit/SecurityRequirementsWindow.vue')
+const ApiHistoryListWindow = () => import('@/views/components/api/doc/comp/ApiHistoryListWindow.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
 const MarkdownWindow = () => import('@/views/components/utils/MarkdownWindow.vue')
 
@@ -115,6 +116,15 @@ export const toEditSecuritySchemas = async (config = {}) => {
     ...config
   })
   vnode.component?.exposed?.toEditSecuritySchemas()
+}
+
+export const showHistoryListWindow = async (config) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(ApiHistoryListWindow, {
+    onClosed: () => dynamicHelper.destroy(),
+    ...config
+  })
+  vnode.component?.exposed?.showHistoryListWindow()
 }
 
 /**

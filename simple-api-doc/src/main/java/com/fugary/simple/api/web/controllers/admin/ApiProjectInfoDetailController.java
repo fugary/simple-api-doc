@@ -21,6 +21,7 @@ import com.fugary.simple.api.web.vo.query.ApiDocHistoryQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectComponentQueryVo;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -201,21 +202,22 @@ public class ApiProjectInfoDetailController {
      */
     @PostMapping("/loadHistoryDiff")
     public SimpleResult<Map<String, ApiProjectInfoDetail>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
-        Integer docId = queryVo.getQueryId();
+        Integer id = queryVo.getQueryId();
         Integer maxVersion = queryVo.getVersion();
+        ApiProjectInfoDetail modified = apiProjectInfoDetailService.getById(id);
         Page<ApiProjectInfoDetail> page = new Page<>(1, 2);
-        apiProjectInfoDetailService.page(page, Wrappers.<ApiProjectInfoDetail>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
+        apiProjectInfoDetailService.page(page, Wrappers.<ApiProjectInfoDetail>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, ObjectUtils.defaultIfNull(modified.getModifyFrom(), modified.getId()))
                 .le(maxVersion != null, "data_version", maxVersion)
                 .orderByDesc("data_version"));
         if (page.getRecords().isEmpty()) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         } else {
             Map<String, ApiProjectInfoDetail> map = new HashMap<>(2);
-            List<ApiProjectInfoDetail> docs = page.getRecords();
-            map.put("modifiedDoc", docs.get(0));
-            if (docs.size() > 1) {
-                map.put("originalDoc", docs.get(1));
-            }
+            List<ApiProjectInfoDetail> dataList = page.getRecords();
+            map.put("modifiedDoc", modified);
+            dataList.stream().filter(data -> !data.getId().equals(modified.getId())).findFirst().ifPresent(data -> {
+                map.put("originalDoc", data);
+            });
             return SimpleResultUtils.createSimpleResult(map);
         }
     }

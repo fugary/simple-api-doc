@@ -22,6 +22,7 @@ import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.query.ApiDocHistoryQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -199,21 +200,22 @@ public class ApiDocController {
      */
     @PostMapping("/loadHistoryDiff")
     public SimpleResult<Map<String, ApiDoc>> loadHistoryDiff(@RequestBody ApiDocHistoryQueryVo queryVo) {
-        Integer docId = queryVo.getQueryId();
+        Integer id = queryVo.getQueryId();
         Integer maxVersion = queryVo.getVersion();
+        ApiDoc modified = apiDocService.getById(id);
         Page<ApiDoc> page = new Page<>(1, 2);
-        apiDocService.page(page, Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
+        apiDocService.page(page, Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, ObjectUtils.defaultIfNull(modified.getModifyFrom(), modified.getId()))
                 .le(maxVersion != null, "doc_version", maxVersion)
                 .orderByDesc("doc_version"));
         if (page.getRecords().isEmpty()) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         } else {
             Map<String, ApiDoc> map = new HashMap<>(2);
-            List<ApiDoc> docs = page.getRecords();
-            map.put("modifiedDoc", docs.get(0));
-            if (docs.size() > 1) {
-                map.put("originalDoc", docs.get(1));
-            }
+            List<ApiDoc> dataList = page.getRecords();
+            map.put("modifiedDoc", modified);
+            dataList.stream().filter(data -> !data.getId().equals(modified.getId())).findFirst().ifPresent(data -> {
+                map.put("originalDoc", data);
+            });
             return SimpleResultUtils.createSimpleResult(map);
         }
     }
