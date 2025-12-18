@@ -203,7 +203,7 @@ const tableProjectItems = computed(() => {
       projectItems: [{
         labelKey: 'common.label.status',
         formatter () {
-          return <DelFlagTag v-model={project.status} clickToToggle={true}
+          return <DelFlagTag v-model={project.status} clickToToggle={project.isWritable}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
         }
       }, {

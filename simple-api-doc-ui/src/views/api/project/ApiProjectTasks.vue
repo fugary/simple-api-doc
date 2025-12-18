@@ -89,7 +89,7 @@ const columns = [{
 }, {
   labelKey: 'common.label.status',
   formatter (data) {
-    return <DelFlagTag v-model={data.status} clickToToggle={true}
+    return <DelFlagTag v-model={data.status} clickToToggle={data.isWritable}
                        onToggleValue={(status) => saveProjectTask({ ...data, status })}/>
   },
   attrs: {

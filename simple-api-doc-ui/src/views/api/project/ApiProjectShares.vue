@@ -118,7 +118,7 @@ const columns = [{
   labelKey: 'common.label.status',
   minWidth: '100px',
   formatter (data) {
-    return <DelFlagTag v-model={data.status} clickToToggle={true}
+    return <DelFlagTag v-model={data.status} clickToToggle={data.isWritable}
                        onToggleValue={(status) => saveProjectShare({ ...data, status })}/>
   },
   attrs: {
