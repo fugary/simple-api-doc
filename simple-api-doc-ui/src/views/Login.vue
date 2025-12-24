@@ -62,7 +62,7 @@ const copyRight = useCopyRight()
     <el-card class="login-form">
       <template #header>
         <div class="card-header">
-          <span>{{ $t('common.msg.loginTitle') }}</span>
+          <span>{{ $t('common.label.title') }}</span>
           <common-menu
             :menus="themeAndLocaleMenus"
             mode="horizontal"
@@ -70,6 +70,9 @@ const copyRight = useCopyRight()
           />
         </div>
       </template>
+      <el-container class="text-center flex-column margin-bottom3">
+        <strong>{{ $t('common.msg.loginTitle') }}</strong>
+      </el-container>
       <common-form
         ref="formRef"
         :model="loginVo"
