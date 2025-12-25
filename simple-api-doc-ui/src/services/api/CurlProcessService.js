@@ -88,7 +88,12 @@ export function curl2Json (curlCmd) {
   return result
 }
 
+export const isCURLStr = curlStr => curlStr?.trim()?.match(/^curl\s+/ig)
+
 export const extendCurlParams = (paramTarget, curlStr) => {
+  if (!isCURLStr(curlStr)) { // curl格式
+    return
+  }
   const curlObj = curl2Json(curlStr)
   console.log('===============================curl', curlObj, curlStr)
   if (paramTarget.value) {
