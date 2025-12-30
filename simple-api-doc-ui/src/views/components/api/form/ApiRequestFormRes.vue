@@ -198,7 +198,7 @@ const codeHeight = '300px'
         </el-descriptions>
       </el-tab-pane>
       <el-tab-pane
-        v-if="responseTarget.requestHeaders?.length"
+        v-if="responseTarget?.requestHeaders?.length"
         name="requestHeaders"
       >
         <template #label>
