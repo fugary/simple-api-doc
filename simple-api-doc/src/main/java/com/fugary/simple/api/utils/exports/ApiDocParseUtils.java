@@ -196,8 +196,8 @@ public class ApiDocParseUtils {
                                                 ExportApiProjectInfoDetailVo projectInfoDetailVo, boolean isV31) {
         ApiProjectInfoDetail existsInfoDetail = detailsMap.get(ApiDocParseUtils.getProjectInfoDetailKey(projectInfoDetailVo));
         if (existsInfoDetail != null) {
-            boolean isSameInfoDetail = !SimpleModelUtils.isSameData(projectInfoDetailVo, existsInfoDetail, "schemaContent")
-                    || !ApiSchemaContentUtils.isSameSchemaContent(projectInfoDetailVo.getSchemaContent(), existsInfoDetail.getSchemaContent());
+            boolean isSameInfoDetail = SimpleModelUtils.isSameData(projectInfoDetailVo, existsInfoDetail, "schemaContent")
+                    && ApiSchemaContentUtils.isSameSchemaContent(projectInfoDetailVo.getSchemaContent(), existsInfoDetail.getSchemaContent());
             if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(existsInfoDetail.getBodyType())) {
                 if (Boolean.TRUE.equals(existsInfoDetail.getLocked())) {
                     String mergedSchemaContent = ApiSchemaContentUtils.mergeComponentSchemaContent(existsInfoDetail.getSchemaContent(),
