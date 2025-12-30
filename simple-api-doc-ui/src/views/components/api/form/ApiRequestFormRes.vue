@@ -5,6 +5,8 @@ import { $i18nKey, $i18nBundle } from '@/messages'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { isString } from 'lodash-es'
 import { $coreError } from '@/utils'
+import { isJson } from '@/services/api/ApiCommonService'
+import { showJsonDataWindow } from '@/utils/DynamicUtils'
 
 const props = defineProps({
   responseTarget: {
@@ -38,6 +40,8 @@ watch(() => props.responseTarget, (responseTarget) => {
     setTimeout(() => formatDocument())
   }
 }, { immediate: true })
+
+const jsonResponseData = computed(() => isJson(props.responseTarget?.data))
 
 const requestInfo = computed(() => {
   return props.responseTarget?.requestInfo
@@ -137,6 +141,19 @@ const codeHeight = '300px'
                   <common-icon
                     :size="40"
                     icon="RawOnFilled"
+                  />
+                </el-link>
+                <el-link
+                  v-if="jsonResponseData"
+                  v-common-tooltip="$t('api.label.viewAsTable')"
+                  type="primary"
+                  underline="never"
+                  class="margin-left3"
+                  @click="showJsonDataWindow(responseTarget?.data)"
+                >
+                  <common-icon
+                    :size="18"
+                    icon="TableRowsFilled"
                   />
                 </el-link>
               </template>

@@ -2,7 +2,7 @@ import { $coreConfirm, formatDate, getSingleSelectOptions, isUserAdmin, useCurre
 import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
-import { cloneDeep, isArray, isFunction, isObject, isString } from 'lodash-es'
+import { cloneDeep, isArray, isFunction, isObject, isString, isPlainObject } from 'lodash-es'
 import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { processSchemas, removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
@@ -242,4 +242,58 @@ export const useCustomDocLabel = () => {
     customDocLabel,
     customToggleButtons
   }
+}
+
+export const isJson = str => {
+  if (isString(str)) {
+    str = str.trim()
+    return str.startsWith('{') || str.startsWith('[')
+  }
+  return false
+}
+
+/**
+ * 查找：
+ * 1. 第一个数组的值
+ * 2. key 为 x.x.x 形式（作为 lodash.get 路径）
+ */
+export function findArrayAndPath (obj) {
+  let arrayData
+  const arrayPath = []
+
+  function traverse (current, path = []) {
+    if (!current || typeof current !== 'object') return
+    if (Array.isArray(current)) return
+    for (const key of Object.keys(current)) {
+      const value = current[key]
+      const currentPath = [...path, key]
+      if (Array.isArray(value) && isPlainObject(value[0])) {
+        arrayPath.push(currentPath)
+        if (arrayData === undefined) {
+          arrayData = value
+        }
+      } else {
+        traverse(value, currentPath)
+      }
+    }
+  }
+
+  traverse(obj)
+
+  return {
+    data: obj,
+    arrayData,
+    arrayPath
+  }
+}
+
+export function checkArrayAndPath (jsonStr) {
+  if (isJson(jsonStr)) {
+    try {
+      return findArrayAndPath(JSON.parse(jsonStr))
+    } catch (e) {
+      console.error('解析json错误', e)
+    }
+  }
+  return {}
 }

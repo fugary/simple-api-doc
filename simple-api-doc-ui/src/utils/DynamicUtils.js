@@ -14,6 +14,7 @@ const SecurityRequirementsWindow = () => import('@/views/components/api/doc/comp
 const ApiHistoryListWindow = () => import('@/views/components/api/doc/comp/ApiHistoryListWindow.vue')
 const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
 const MarkdownWindow = () => import('@/views/components/utils/MarkdownWindow.vue')
+const SimpleJsonDataWindow = () => import('@/views/components/utils/SimpleJsonDataWindow.vue')
 
 export const closeAllOnRouteChange = () => {
   document.querySelectorAll('.el-overlay:not([style*="display: none"]) .common-window .el-dialog__headerbtn:not(.dialog-fullscreen-btn)')
@@ -125,6 +126,14 @@ export const showHistoryListWindow = async (config) => {
     ...config
   })
   vnode.component?.exposed?.showHistoryListWindow()
+}
+
+export const showJsonDataWindow = async (...args) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(SimpleJsonDataWindow, {
+    onClosed: () => dynamicHelper.destroy()
+  })
+  vnode.component?.exposed?.showJsonDataWindow(...args)
 }
 
 /**
