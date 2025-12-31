@@ -5,7 +5,7 @@ import { $i18nKey, $i18nBundle } from '@/messages'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { isString } from 'lodash-es'
 import { $coreError } from '@/utils'
-import { isJson } from '@/services/api/ApiCommonService'
+import { isJson, isXml } from '@/services/api/ApiCommonService'
 import { showJsonDataWindow } from '@/utils/DynamicUtils'
 
 const props = defineProps({
@@ -46,7 +46,7 @@ watch(() => props.responseTarget, (responseTarget) => {
   }
 }, { immediate: true })
 
-const jsonResponseData = computed(() => isJson(props.responseTarget?.data))
+const jsonResponseData = computed(() => isJson(props.responseTarget?.data) || isXml(props.responseTarget?.data))
 const toShowJsonDataWindow = () => {
   paramTarget.value.tableConfig = paramTarget.value.tableConfig || {}
   return showJsonDataWindow(props.responseTarget?.data, {
