@@ -1,23 +1,15 @@
 <script setup lang="jsx">
 import { isString, isArray, get, isPlainObject } from 'lodash-es'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { checkArrayAndPath } from '@/services/api/ApiCommonService'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { limitStr } from '@/components/utils'
 import { checkShowColumn } from '@/utils'
 
-const props = defineProps({
-  data: {
-    type: [Array, String, Object],
-    default: () => []
-  },
-  columns: {
-    type: Array,
-    default: () => undefined
-  }
-})
+const vModel = defineModel({ type: String, default: '' })
+const formModel = defineModel('tableConfig', { type: Object })
 
-const dataPathConfig = computed(() => checkArrayAndPath(props.data))
+const dataPathConfig = computed(() => checkArrayAndPath(vModel.value))
 
 const tableData = computed(() => {
   let data = dataPathConfig.value.data
@@ -38,35 +30,38 @@ const tableData = computed(() => {
 
 const selectedColumns = computed(() => {
   if (formModel.value.columns?.length) {
-    return tableColumns.value.filter(column => formModel.value.columns.includes(column.value))
+    const calcColumns = tableColumns.value.filter(column => formModel.value.columns.includes(column.value))
+    const existsColumns = calcColumns.map(value => value)
+    return calcColumns.concat(formModel.value.columns
+      .filter(column => !existsColumns.includes(column)))
+      .map(str2Column)
   }
   return tableColumns.value
 })
 
-const tableColumns = computed(() => {
-  if (isArray(props.columns)) {
-    return props.columns
+const str2Column = column => {
+  return {
+    value: column,
+    label: column,
+    minWidth: '150px',
+    enabled: checkShowColumn(tableData.value, column),
+    formatter (item) {
+      let value = get(item, column)
+      if (isPlainObject(value) || isArray(value)) {
+        value = JSON.stringify(value)
+      }
+      if (isString(value)) {
+        return limitStr(value, 40)
+      }
+      return value !== undefined ? String(value) : ''
+    }
   }
+}
+
+const tableColumns = computed(() => {
   const columns = Object.keys(tableData.value?.[0] || {})
   if (columns) {
-    return columns.map(column => {
-      return {
-        value: column,
-        label: column,
-        minWidth: '150px',
-        enabled: checkShowColumn(tableData.value, column),
-        formatter (item) {
-          let value = get(item, column)
-          if (isPlainObject(value) || isArray(value)) {
-            value = JSON.stringify(value)
-          }
-          if (isString(value)) {
-            return limitStr(value, 40)
-          }
-          return value !== undefined ? String(value) : ''
-        }
-      }
-    })
+    return columns.map(column => str2Column(column))
   }
   return []
 })
@@ -75,26 +70,26 @@ const tableButtons = computed(() => {
     labelKey: 'common.label.view',
     type: 'primary',
     click: item => {
-      showCodeWindow(JSON.stringify(item))
+      showCodeWindow(JSON.stringify(item), { language: 'json' })
     }
   }]
 })
-const formModel = ref({})
 const formOptions = computed(() => {
-  const defaultDataKey = dataPathConfig.value.arrayPath?.[0]?.join('.')
+  const defaultDataKey = dataPathConfig.value.arrayPath?.map(path => path.join('.'))
+    ?.find(pathKey => pathKey === formModel.value.dataKey) ||
+      dataPathConfig.value.arrayPath?.[0]?.join('.')
   return [
     {
       labelKey: 'api.label.dataProperty',
       prop: 'dataKey',
-      type: 'autocomplete',
+      type: 'select',
       value: defaultDataKey,
+      children: dataPathConfig.value.arrayPath?.map(path => path.join('.')).map(value => ({ value, label: value })),
       attrs: {
-        fetchSuggestions: (queryString, cb) => {
-          const dataList = dataPathConfig.value.arrayPath?.map(path => path.join('.'))
-            .filter(item => item?.toLowerCase().includes(queryString?.toLowerCase()))
-            .map(value => ({ value }))
-          cb(dataList)
-        }
+        clearable: true,
+        filterable: true,
+        allowCreate: true,
+        style: { width: '20vw' }
       }
     },
     {
@@ -104,11 +99,20 @@ const formOptions = computed(() => {
       children: tableColumns.value,
       attrs: {
         multiple: true,
+        clearable: true,
+        filterable: true,
+        allowCreate: true,
         style: { width: '40vw' }
       }
     }
   ]
 })
+defineEmits(['saveTableConfig'])
+const customPageAttrs = {
+  layout: 'total, sizes, prev, pager, next',
+  pageSizes: [5, 10, 20, 50],
+  background: true
+}
 </script>
 
 <template>
@@ -124,7 +128,10 @@ const formOptions = computed(() => {
       :columns="selectedColumns"
       :buttons="tableButtons"
       :buttons-column-attrs="{fixed:'right'}"
+      :frontend-page-size="5"
+      :page-attrs="customPageAttrs"
       frontend-paging
+      @row-dblclick="showCodeWindow(JSON.stringify($event), {language: 'json'})"
     />
   </el-container>
 </template>

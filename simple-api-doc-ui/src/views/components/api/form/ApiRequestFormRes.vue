@@ -15,6 +15,11 @@ const props = defineProps({
   }
 })
 
+const paramTarget = defineModel('modelValue', {
+  type: Object,
+  default: () => ({})
+})
+
 const currentTabName = ref('responseData')
 
 const {
@@ -42,6 +47,15 @@ watch(() => props.responseTarget, (responseTarget) => {
 }, { immediate: true })
 
 const jsonResponseData = computed(() => isJson(props.responseTarget?.data))
+const toShowJsonDataWindow = () => {
+  paramTarget.value.tableConfig = paramTarget.value.tableConfig || {}
+  return showJsonDataWindow(props.responseTarget?.data, {
+    tableConfig: paramTarget.value.tableConfig,
+    'onUpdate:tableConfig': (value) => {
+      paramTarget.value.tableConfig = value
+    }
+  })
+}
 
 const requestInfo = computed(() => {
   return props.responseTarget?.requestInfo
@@ -149,7 +163,7 @@ const codeHeight = '300px'
                   type="primary"
                   underline="never"
                   class="margin-left3"
-                  @click="showJsonDataWindow(responseTarget?.data)"
+                  @click="toShowJsonDataWindow()"
                 >
                   <common-icon
                     :size="18"
