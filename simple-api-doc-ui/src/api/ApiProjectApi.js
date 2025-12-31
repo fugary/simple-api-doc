@@ -204,7 +204,7 @@ export const xml2Json = function (data, config) {
     url: `${API_PROJECT_URL}/xml2Json`,
     method: 'post',
     data
-  }, config)).then(response => response.data)
+  }, Object.assign({ addToken: false }, config))).then(response => response.data)
 }
 
 export const checkExportProjectDocs = function (param, config) {
