@@ -65,7 +65,12 @@ public class ApplicationConfig implements WebMvcConfigurer {
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration(ALL_PATH_PATTERN, getCorsConfiguration());
+        CorsConfiguration allConfig = getCorsConfiguration();
+        CorsConfiguration proxyConfig = getCorsConfiguration();
+        proxyConfig.setExposedHeaders(Arrays.asList(" * ")); // spring boot目前强制不能使用*，但是没有trim处理，因此这样配置算是一个漏洞
+        source.registerCorsConfiguration("/admin/proxy" + ALL_PATH_PATTERN, proxyConfig);
+        source.registerCorsConfiguration("/shares/proxy" + ALL_PATH_PATTERN, proxyConfig);
+        source.registerCorsConfiguration(ALL_PATH_PATTERN, allConfig);
         return new CorsFilter(source);
     }
 
