@@ -199,6 +199,14 @@ export const generateJWT = function (data, config) {
   }, Object.assign({ addToken: false }, config))).then(response => response.data)
 }
 
+export const xml2Json = function (data, config) {
+  return $http(Object.assign({
+    url: `${API_PROJECT_URL}/xml2Json`,
+    method: 'post',
+    data
+  }, config)).then(response => response.data)
+}
+
 export const checkExportProjectDocs = function (param, config) {
   return $httpPost(`${API_PROJECT_URL}/checkExportDownloadDocs`, param, Object.assign({ loading: true, timeout: 60000 }, config))
 }

@@ -5,9 +5,17 @@ import { checkArrayAndPath } from '@/services/api/ApiCommonService'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { limitStr } from '@/components/utils'
 import { checkShowColumn } from '@/utils'
+import { $i18nBundle, $i18nConcat } from '@/messages'
+
+defineProps({
+  xmlContent: {
+    type: String,
+    default: ''
+  }
+})
 
 const vModel = defineModel({ type: String, default: '' })
-const formModel = defineModel('tableConfig', { type: Object })
+const formModel = defineModel('tableConfig', { type: Object, default: () => ({}) })
 
 const dataPathConfig = computed(() => checkArrayAndPath(vModel.value))
 
@@ -107,7 +115,6 @@ const formOptions = computed(() => {
     }
   ]
 })
-defineEmits(['saveTableConfig'])
 const customPageAttrs = {
   layout: 'total, sizes, prev, pager, next',
   pageSizes: [5, 10, 20, 50],
@@ -123,6 +130,21 @@ const customPageAttrs = {
       :show-buttons="false"
       inline
     />
+    <el-container class="flex-center margin-bottom2">
+      <el-button
+        type="success"
+        @click="showCodeWindow(vModel, {language: 'json'})"
+      >
+        {{ $i18nBundle('common.label.commonView', [$i18nConcat('JSON', $i18nBundle('common.label.originalContent'))]) }}
+      </el-button>
+      <el-button
+        v-if="xmlContent"
+        type="success"
+        @click="showCodeWindow(xmlContent, {language: 'xml'})"
+      >
+        {{ $i18nBundle('common.label.commonView', [$i18nConcat('XML', $i18nBundle('common.label.originalContent'))]) }}
+      </el-button>
+    </el-container>
     <common-table
       :data="tableData"
       :columns="selectedColumns"

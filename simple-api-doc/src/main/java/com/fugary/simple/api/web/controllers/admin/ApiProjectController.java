@@ -15,8 +15,10 @@ import com.fugary.simple.api.exports.ApiDocExporter;
 import com.fugary.simple.api.service.apidoc.ApiGroupService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiUserService;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.XmlUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportDownloadVo;
@@ -25,6 +27,7 @@ import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.JwtParamVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
+import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import io.swagger.v3.oas.models.OpenAPI;
 import lombok.extern.slf4j.Slf4j;
@@ -297,6 +300,16 @@ public class ApiProjectController {
         }
         String token = builder.sign(algorithm);
         return SimpleResultUtils.createSimpleResult(token);
+    }
+
+    @PostMapping("/xml2Json")
+    public SimpleResult<String> xml2Json(@RequestBody SimpleQueryVo queryVo) {
+        String resultStr =  "";
+        if (StringUtils.isNotBlank(queryVo.getKeyword()) && XmlUtils.isXml(queryVo.getKeyword())) {
+            Map<String, ?> xmlMap = XmlUtils.fromXml(queryVo.getKeyword(), Map.class);
+            resultStr = JsonUtils.toJson(xmlMap);
+        }
+        return SimpleResultUtils.createSimpleResult(resultStr);
     }
 
     protected Algorithm getAlgorithm(String algorithm, String secret) {

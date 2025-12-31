@@ -121,6 +121,7 @@ export const ALL_MENUS = [
         title: $i18nBundle('common.label.codeEdit'),
         fullEditor: true,
         readOnly: false,
+        viewAsTable: true,
         closeOnClickModal: false
       })
     }
