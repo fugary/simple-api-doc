@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { checkArrayAndPath } from '@/services/api/ApiCommonService'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { limitStr } from '@/components/utils'
-import { checkShowColumn } from '@/utils'
+import { checkShowColumn, getStyleGrow } from '@/utils'
 import { $i18nBundle, $i18nConcat } from '@/messages'
 
 defineProps({
@@ -93,11 +93,12 @@ const formOptions = computed(() => {
       type: 'select',
       value: defaultDataKey,
       children: dataPathConfig.value.arrayPath?.map(path => path.join('.')).map(value => ({ value, label: value })),
+      style: getStyleGrow(4),
       attrs: {
         clearable: true,
         filterable: true,
         allowCreate: true,
-        style: { width: '20vw' }
+        style: { flexGrow: 1 }
       }
     },
     {
@@ -105,12 +106,13 @@ const formOptions = computed(() => {
       type: 'select',
       prop: 'columns',
       children: tableColumns.value,
+      style: getStyleGrow(5),
       attrs: {
         multiple: true,
         clearable: true,
         filterable: true,
         allowCreate: true,
-        style: { width: '40vw' }
+        style: { flexGrow: 1 }
       }
     }
   ]

@@ -617,6 +617,26 @@ html, body, #app, .index-container {
     max-width: 200px !important;
 }
 
+.dark .el-card .el-menu {
+    --el-menu-bg-color: var(--el-card-bg-color)
+}
+
+.dark .el-card .el-descriptions__body {
+    background-color: var(--el-card-bg-color)
+}
+
+.dark .md-editor-dark.md-editor-previewOnly {
+    --md-bk-color: var(--el-fill-color-blank);
+}
+
+.md-editor-previewOnly .md-editor-preview-wrapper {
+    overflow: auto !important;
+}
+
+.md-editor-preview .md-editor-code .md-editor-code-head {
+    z-index: 1000 !important;
+}
+
 @container (min-width: 320px) {
     .md-doc-container table th {
         min-width: 50px;

@@ -1,4 +1,5 @@
 cd simple-api-doc-ui
+npm config set strict-ssl false
 npm install
 npm run build
 cd ..
