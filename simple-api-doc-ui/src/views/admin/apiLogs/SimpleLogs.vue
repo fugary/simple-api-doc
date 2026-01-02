@@ -93,44 +93,46 @@ const columns = computed(() => {
   }]
 })
 
+const showLogDetail = item => {
+  showCodeWindow(JSON.stringify(item), {
+    showSelectButton: true,
+    buttons: [{
+      enabled: !!item.logData,
+      type: 'info',
+      label: $i18nKey('common.label.commonView', 'api.label.requestBody1'),
+      click: () => {
+        showCodeWindow(item.logData)
+      }
+    }, {
+      enabled: !!item.responseBody,
+      label: $i18nKey('common.label.commonView', 'api.label.responseBody1'),
+      type: 'info',
+      click: () => {
+        showCodeWindow(item.responseBody)
+      }
+    }, {
+      enabled: !!item.headers,
+      label: $i18nKey('common.label.commonView', 'api.label.requestHeaders'),
+      type: 'info',
+      click: () => {
+        showCodeWindow(item.headers)
+      }
+    }, {
+      enabled: !!item.responseHeaders,
+      label: $i18nKey('common.label.commonView', 'api.label.responseHeaders'),
+      type: 'info',
+      click: () => {
+        showCodeWindow(item.responseHeaders)
+      }
+    }]
+  })
+}
+
 const buttons = computed(() => {
   return [{
     labelKey: 'common.label.view',
     type: 'primary',
-    click: item => {
-      showCodeWindow(JSON.stringify(item), {
-        showSelectButton: true,
-        buttons: [{
-          enabled: !!item.logData,
-          type: 'info',
-          label: $i18nKey('common.label.commonView', 'api.label.requestBody1'),
-          click: () => {
-            showCodeWindow(item.logData)
-          }
-        }, {
-          enabled: !!item.responseBody,
-          label: $i18nKey('common.label.commonView', 'api.label.responseBody1'),
-          type: 'info',
-          click: () => {
-            showCodeWindow(item.responseBody)
-          }
-        }, {
-          enabled: !!item.headers,
-          label: $i18nKey('common.label.commonView', 'api.label.requestHeaders'),
-          type: 'info',
-          click: () => {
-            showCodeWindow(item.headers)
-          }
-        }, {
-          enabled: !!item.responseHeaders,
-          label: $i18nKey('common.label.commonView', 'api.label.responseHeaders'),
-          type: 'info',
-          click: () => {
-            showCodeWindow(item.responseHeaders)
-          }
-        }]
-      })
-    }
+    click: showLogDetail
   }]
 })
 //* ************搜索框**************//
@@ -196,6 +198,7 @@ const searchFormOptions = computed(() => {
       :loading="loading"
       @page-size-change="loadApiLogs()"
       @current-page-change="loadApiLogs()"
+      @row-dblclick="showLogDetail($event)"
     />
   </el-container>
 </template>

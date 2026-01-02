@@ -460,6 +460,7 @@ const isWritable = computed(() => {
             :loading="loading"
             @page-size-change="loadProjectTasks()"
             @current-page-change="loadProjectTasks()"
+            @row-dblclick="$event.isWritable?newOrEdit($event.id):undefined"
           />
         </el-container>
       </el-tab-pane>

@@ -504,6 +504,7 @@ const { customDocLabel, customToggleButtons } = useCustomDocLabel()
       :loading="loading"
       @page-size-change="loadProjectShares()"
       @current-page-change="loadProjectShares()"
+      @row-dblclick="$event.isWritable?newOrEdit($event.id):undefined"
     />
     <simple-edit-window
       v-model="currentShare"

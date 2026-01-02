@@ -208,6 +208,7 @@ const saveProjectGroup = (data) => {
       :loading="loading"
       @page-size-change="loadProjectGroups()"
       @current-page-change="loadProjectGroups()"
+      @row-dblclick="newOrEdit($event.id)"
     />
     <simple-edit-window
       v-model="currentModel"
