@@ -6,7 +6,7 @@ import CssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import HtmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import JsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
-import { isFunction } from 'lodash-es'
+import { isFunction, merge } from 'lodash-es'
 
 /**
  * 默认配置
@@ -16,6 +16,9 @@ const defaultConfig = {
   automaticLayout: true,
   autoIndent: 'full',
   scrollBeyondLastLine: false,
+  scrollbar: {
+    alwaysConsumeMouseWheel: false
+  },
   theme: 'vs-dark',
   wordWrap: 'on',
   readOnly: true,
@@ -30,10 +33,9 @@ const defaultConfig = {
  * @return {IStandaloneEditorConstructionOptions}
  */
 export const defineMonacoOptions = (config) => {
-  return {
-    ...defaultConfig,
-    ...config
-  }
+  return merge({
+    ...defaultConfig
+  }, config)
 }
 
 /**
