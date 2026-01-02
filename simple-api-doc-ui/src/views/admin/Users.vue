@@ -37,7 +37,7 @@ const columns = [{
 }, {
   labelKey: 'common.label.status',
   formatter (data) {
-    const clickToToggle = !isUserAdmin(data.userName)
+    const clickToToggle = !isUserAdmin(data.userName) && isAdminUser()
     const enableOrDisable = (status) => {
       if (clickToToggle) {
         return saveUser({ ...data, status })
@@ -124,6 +124,7 @@ const doSearch = () => {
       :loading="loading"
       @page-size-change="loadUsers()"
       @current-page-change="loadUsers()"
+      @row-dblclick="isAdminUser()?$goto(`/admin/users/edit/${$event.id}`):showUserInfo($event.id)"
     />
   </el-container>
 </template>
