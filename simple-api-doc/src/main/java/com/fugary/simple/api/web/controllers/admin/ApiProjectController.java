@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
@@ -306,7 +307,13 @@ public class ApiProjectController {
     public SimpleResult<String> xml2Json(@RequestBody SimpleQueryVo queryVo) {
         String resultStr =  "";
         if (StringUtils.isNotBlank(queryVo.getKeyword()) && XmlUtils.isXml(queryVo.getKeyword())) {
-            Map<String, ?> xmlMap = XmlUtils.fromXml(queryVo.getKeyword(), Map.class);
+            Map<String, ?> xmlMap;
+            try {
+                xmlMap = XmlUtils.getMapper().readValue(queryVo.getKeyword(), Map.class);
+            } catch (JsonProcessingException e) {
+                log.error("XML解析失败", e);
+                return SimpleResultUtils.createError(e.getOriginalMessage());
+            }
             resultStr = JsonUtils.toJson(xmlMap);
         }
         return SimpleResultUtils.createSimpleResult(resultStr);
