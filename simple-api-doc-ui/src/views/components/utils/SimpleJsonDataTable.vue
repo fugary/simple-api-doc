@@ -89,7 +89,7 @@ const tableButtons = computed(() => {
     labelKey: 'common.label.view',
     type: 'primary',
     click: item => {
-      showCodeWindow(JSON.stringify(item), { language: 'json' })
+      showCodeWindow(JSON.stringify(item), { language: 'json', viewAsTable: true })
     }
   }]
 })
@@ -170,7 +170,7 @@ const customPageAttrs = {
       :frontend-page-size="5"
       :page-attrs="customPageAttrs"
       frontend-paging
-      @row-dblclick="showCodeWindow(JSON.stringify($event), {language: 'json'})"
+      @row-dblclick="showCodeWindow(JSON.stringify($event), {language: 'json', viewAsTable: true})"
     />
   </el-container>
 </template>
