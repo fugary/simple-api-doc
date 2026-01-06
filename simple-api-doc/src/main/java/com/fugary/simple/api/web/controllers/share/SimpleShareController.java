@@ -204,7 +204,7 @@ public class SimpleShareController {
      * @return
      */
     @RequestMapping("/proxy/**")
-    public ResponseEntity<?> proxyApi(HttpServletRequest request, HttpServletResponse response) {
+    public Object proxyApi(HttpServletRequest request, HttpServletResponse response) {
         return apiInvokeProcessor.invoke(request, response);
     }
 }

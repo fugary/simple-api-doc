@@ -1,4 +1,4 @@
-import { $coreHideLoading, $coreShowLoading, formatDate } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, formatDate, toGetParams } from '@/utils'
 import { cloneDeep, get, isArray, isObject, isString, lowerCase, pull, set } from 'lodash-es'
 import { hasLoading } from '@/vendors/axios'
 import {
@@ -13,7 +13,6 @@ import {
   ALL_CONTENT_TYPES_LIST,
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
-import axios from 'axios'
 import { processEvnParams, useScreenCheck } from '@/services/api/ApiCommonService'
 import { nextTick, ref, watch, computed, markRaw } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
@@ -21,22 +20,125 @@ import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { $i18nBundle } from '@/messages'
 import { InfoFilled } from '@vicons/material'
+import { isExternalLink } from '@/components/utils'
 
-export const previewRequest = function (reqData, config) {
-  const req = axios.create({
-    baseURL: import.meta.env.VITE_APP_API_BASE_URL, // url = base url + request url
-    timeout: 60000 // request timeout,
-  })
-  const headers = config.headers || {}
-  config.__startTime = new Date().getTime()
-  if (hasLoading(config)) {
-    $coreShowLoading(isString(config.loading) ? config.loading : undefined)
+export const getHeader = (headers, key) => {
+  if (isObject(headers) && key) {
+    return headers[Object.keys(headers)
+      .find(headerName => headerName?.toLowerCase() === key?.toLowerCase())] || ''
   }
-  return req(Object.assign({
-    url: reqData.url,
-    method: reqData.method,
-    transformResponse: res => res// 信息不要转换掉，这边需要预览原始信息
-  }, config, { headers }))
+  return ''
+}
+
+export const deleteHeader = (headers, key) => {
+  if (isObject(headers) && key) {
+    Object.keys(headers).forEach(headerName => {
+      if (headerName?.toLowerCase() === key?.toLowerCase()) {
+        delete headers[headerName]
+      }
+    })
+  }
+}
+
+export const previewRequest = function (reqData, config = {}) {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController()
+    const headers = config.headers || {}
+    const requestConfig = {
+      ...config,
+      url: reqData.url,
+      method: reqData.method
+    }
+    requestConfig.__startTime = Date.now()
+    if (hasLoading(config)) {
+      $coreShowLoading(isString(config.loading) ? config.loading : undefined)
+    }
+    let fetchUrl = import.meta.env.VITE_APP_API_BASE_URL + reqData.url
+    if (isExternalLink(reqData.url)) {
+      fetchUrl = reqData.url
+    }
+    if (config.params) {
+      const qs = (config.paramsSerializer || toGetParams)(config.params)
+      if (qs) {
+        fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + qs
+      }
+    }
+    let body
+    const method = (reqData.method || 'GET').toUpperCase()
+    console.log('=======================================config', config)
+    const contentTypeKey = 'Content-Type'
+    if (!['GET', 'HEAD'].includes(method)) {
+      const data = config.data
+      const contentType = getHeader(headers, contentTypeKey)
+      if (data instanceof FormData) {
+        body = data
+        deleteHeader(headers, contentTypeKey)
+      } else if (data instanceof Blob || data instanceof ArrayBuffer) {
+        body = data
+      } else if (typeof data === 'string') {
+        body = data
+      } else if (contentType.includes('application/x-www-form-urlencoded')) {
+        body = toGetParams(data)
+        deleteHeader(headers, contentTypeKey)
+        headers[contentTypeKey] = 'application/x-www-form-urlencoded;charset=UTF-8'
+      } else if (data !== undefined) {
+        body = JSON.stringify(data)
+        headers[contentTypeKey] = 'application/json;charset=UTF-8'
+      }
+    }
+    fetch(fetchUrl, {
+      method: reqData.method || 'GET',
+      headers,
+      signal: controller.signal,
+      body
+    }).then(async response => {
+      const contentType = response.headers.get('content-type') || ''
+      /** axios response 公共部分 */
+      const baseResponse = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        config: requestConfig,
+        request: {
+          abort: () => controller.abort()
+        }
+      }
+      let data
+      console.log('=============================res', response)
+      if (contentType.includes('text/event-stream')) {
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let raw = ''
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+          const chunk = decoder.decode(value, { stream: true })
+          raw += chunk
+          // axios 风格 onChunk
+          config.onChunk?.({
+            ...baseResponse,
+            data: raw,
+            chunk
+          })
+        }
+        data = raw
+      } else if (config.responseType === 'arraybuffer') {
+        data = await response.arrayBuffer()
+      } else if (config.responseType === 'blob' || isMediaContentType(contentType) || isStreamContentType(contentType)) {
+        data = await response.blob()
+      } else {
+        data = await response.text()
+      }
+      resolve({
+        ...baseResponse,
+        data
+      })
+    }).catch(err => {
+      if (err.name === 'AbortError') return
+      reject(err)
+    })
+    requestConfig.abort = () => controller.abort()
+  })
 }
 
 export const processResponse = function (response) {

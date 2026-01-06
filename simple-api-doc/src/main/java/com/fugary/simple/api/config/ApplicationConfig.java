@@ -16,6 +16,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -45,6 +46,14 @@ public class ApplicationConfig implements WebMvcConfigurer {
 
     @Autowired
     private SimpleApiConfigProperties simpleApiConfigProperties;
+
+    @Bean
+    public ThreadPoolExecutorFactoryBean eventStreamThreadPool() {
+        ThreadPoolExecutorFactoryBean pool = new ThreadPoolExecutorFactoryBean();
+        pool.setCorePoolSize(10);
+        pool.setMaxPoolSize(20);
+        return pool;
+    }
 
     @Bean
     public CommonsMultipartResolver multipartResolver() {

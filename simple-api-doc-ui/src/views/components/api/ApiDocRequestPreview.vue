@@ -98,7 +98,8 @@ const doDataPreview = async () => {
     params,
     paramsSerializer: toGetParams,
     data,
-    headers
+    headers,
+    onChunk: calcResponse
   }
   if (hasBody && isString(data)) { // 字符串不让axios处理，防止调试请求和postman有差异
     config.transformRequest = req => req

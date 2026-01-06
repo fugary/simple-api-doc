@@ -11,6 +11,7 @@ import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +20,14 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.MultiValueMapAdapter;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -32,6 +38,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -268,5 +275,71 @@ public class HttpRequestUtils {
 			requestHeaders.put(resHeader, response.getHeader(resHeader));
 		}
 		return requestHeaders;
+	}
+
+	/**
+	 * 计算请求url地址
+	 *
+	 * @param baseUrl
+	 * @param mockParams
+	 * @return
+	 */
+	public static String getRequestUrl(String baseUrl, ApiParamsVo mockParams) {
+		String requestUrl = mockParams.getRequestPath();
+		if (CollectionUtils.isNotEmpty(mockParams.getPathParams())) {
+			requestUrl = requestUrl.replaceAll(":([\\w-]+)", "{$1}"); // spring 支持的ant path不支持:var格式，只支持{var}格式
+			for (NameValue nv : mockParams.getPathParams()) {
+				requestUrl = requestUrl.replace("{" + nv.getName() + "}", nv.getValue());
+			}
+		}
+		requestUrl = UriComponentsBuilder.fromUriString(baseUrl)
+				.path(requestUrl)
+				.queryParams(getQueryParams(mockParams))
+				.encode()
+				.build().toUriString();
+		return requestUrl;
+	}
+	/**
+	 * 获取头信息
+	 *
+	 * @param paramsVo
+	 * @return
+	 */
+	public static HttpHeaders getHeaders(ApiParamsVo paramsVo) {
+		HttpHeaders headers = new HttpHeaders();
+		paramsVo.getHeaderParams().forEach(nv -> {
+			if (StringUtils.equalsIgnoreCase(nv.getName(), HttpHeaders.ACCEPT_ENCODING)
+					&& StringUtils.containsIgnoreCase(nv.getValue(), "zstd")) {
+				nv.setValue("gzip, deflate, br");
+			}
+			headers.addIfAbsent(nv.getName(), nv.getValue());
+		});
+		return headers;
+	}
+
+	/**
+	 * 获取参数
+	 *
+	 * @param paramsVo
+	 * @return
+	 */
+	public static MultiValueMap<String, String> getQueryParams(ApiParamsVo paramsVo) {
+		return new MultiValueMapAdapter<>(paramsVo.getRequestParams().stream()
+				.collect(Collectors.toMap(NameValue::getName, nv -> List.of(nv.getValue()))));
+	}
+
+	public static MultiValueMap<String, Object> getMultipartBody(ApiParamsVo mockParams) {
+		MultiValueMap<String, Object> bodyMap = new LinkedMultiValueMap<>();
+		mockParams.getFormData().forEach(nv -> {
+			if (nv.getValue() instanceof Iterable) {
+				((Iterable) nv.getValue()).forEach(v -> bodyMap.add(nv.getName(), ((MultipartFile) v).getResource()));
+			} else {
+				bodyMap.add(nv.getName(), nv.getValue());
+			}
+		});
+		mockParams.getFormUrlencoded().forEach(nv -> {
+			bodyMap.add(nv.getName(), nv.getValue());
+		});
+		return bodyMap;
 	}
 }

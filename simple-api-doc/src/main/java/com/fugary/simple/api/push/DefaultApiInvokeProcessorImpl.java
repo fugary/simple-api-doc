@@ -10,25 +10,20 @@ import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.MultiValueMapAdapter;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Create date 2024/7/17<br>
@@ -42,11 +37,19 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private ApiSseInvokeProcessor apiSseInvokeProcessor;
+
     @Override
-    public ResponseEntity<?> invoke(HttpServletRequest request, HttpServletResponse response) {
+    public Object invoke(HttpServletRequest request, HttpServletResponse response) {
         String targetUrl = request.getHeader(ApiDocConstants.SIMPLE_API_TARGET_URL_HEADER);
         if (StringUtils.isBlank(targetUrl)) {
             return ResponseEntity.ok(SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404));
+        }
+        String acceptHeader = request.getHeader(HttpHeaders.ACCEPT);
+        if (StringUtils.contains(acceptHeader, MediaType.TEXT_EVENT_STREAM_VALUE)) {
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            return apiSseInvokeProcessor.processSseProxy(SimpleModelUtils.toApiParams(request));
         }
         ResponseEntity<byte[]> responseEntity = invoke(SimpleModelUtils.toApiParams(request));
         List<NameValue> requestHeaders = HttpRequestUtils.getRequestHeaders(request);
@@ -56,10 +59,10 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
 
     @Override
     public ResponseEntity<byte[]> invoke(ApiParamsVo mockParams) {
-        String requestUrl = getRequestUrl(mockParams.getTargetUrl(), mockParams);
-        HttpEntity<?> entity = new HttpEntity<>(mockParams.getRequestBody(), getHeaders(mockParams));
+        String requestUrl = HttpRequestUtils.getRequestUrl(mockParams.getTargetUrl(), mockParams);
+        HttpEntity<?> entity = new HttpEntity<>(mockParams.getRequestBody(), HttpRequestUtils.getHeaders(mockParams));
         if (HttpRequestUtils.isCompatibleWith(mockParams, MediaType.MULTIPART_FORM_DATA, MediaType.APPLICATION_FORM_URLENCODED)) {
-            entity = new HttpEntity<>(getMultipartBody(mockParams), getHeaders(mockParams));
+            entity = new HttpEntity<>(HttpRequestUtils.getMultipartBody(mockParams), HttpRequestUtils.getHeaders(mockParams));
         }
         try {
             SimpleLogUtils.addRequestData(mockParams);
@@ -86,7 +89,7 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
             URI location = responseEntity.getHeaders().getLocation();
             if (location != null) {
                 URI targetUri = UriComponentsBuilder.fromUri(location)
-                        .queryParams(getQueryParams(mockParams))
+                        .queryParams(HttpRequestUtils.getQueryParams(mockParams))
                         .encode()
                         .build().toUri();
                 responseEntity = restTemplate.exchange(targetUri,
@@ -95,71 +98,5 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
             }
         }
         return responseEntity;
-    }
-
-    protected MultiValueMap<String, Object> getMultipartBody(ApiParamsVo mockParams) {
-        MultiValueMap<String, Object> bodyMap = new LinkedMultiValueMap<>();
-        mockParams.getFormData().forEach(nv -> {
-            if (nv.getValue() instanceof Iterable) {
-                ((Iterable) nv.getValue()).forEach(v -> bodyMap.add(nv.getName(), ((MultipartFile) v).getResource()));
-            } else {
-                bodyMap.add(nv.getName(), nv.getValue());
-            }
-        });
-        mockParams.getFormUrlencoded().forEach(nv -> {
-            bodyMap.add(nv.getName(), nv.getValue());
-        });
-        return bodyMap;
-    }
-
-    /**
-     * 计算请求url地址
-     *
-     * @param baseUrl
-     * @param mockParams
-     * @return
-     */
-    protected String getRequestUrl(String baseUrl, ApiParamsVo mockParams) {
-        String requestUrl = mockParams.getRequestPath();
-        if (CollectionUtils.isNotEmpty(mockParams.getPathParams())) {
-            requestUrl = requestUrl.replaceAll(":([\\w-]+)", "{$1}"); // spring 支持的ant path不支持:var格式，只支持{var}格式
-            for (NameValue nv : mockParams.getPathParams()) {
-                requestUrl = requestUrl.replace("{" + nv.getName() + "}", nv.getValue());
-            }
-        }
-        requestUrl = UriComponentsBuilder.fromUriString(baseUrl)
-                .path(requestUrl)
-                .queryParams(getQueryParams(mockParams))
-                .encode()
-                .build().toUriString();
-        return requestUrl;
-    }
-    /**
-     * 获取头信息
-     *
-     * @param paramsVo
-     * @return
-     */
-    protected HttpHeaders getHeaders(ApiParamsVo paramsVo) {
-        HttpHeaders headers = new HttpHeaders();
-        paramsVo.getHeaderParams().forEach(nv -> {
-            if (StringUtils.equalsIgnoreCase(nv.getName(), HttpHeaders.ACCEPT_ENCODING)
-                    && StringUtils.containsIgnoreCase(nv.getValue(), "zstd")) {
-                nv.setValue("gzip, deflate, br");
-            }
-            headers.addIfAbsent(nv.getName(), nv.getValue());
-        });
-        return headers;
-    }
-
-    /**
-     * 获取参数
-     *
-     * @param paramsVo
-     * @return
-     */
-    protected MultiValueMap<String, String> getQueryParams(ApiParamsVo paramsVo) {
-        return new MultiValueMapAdapter<>(paramsVo.getRequestParams().stream()
-                .collect(Collectors.toMap(NameValue::getName, nv -> List.of(nv.getValue()))));
     }
 }

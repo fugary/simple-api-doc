@@ -28,5 +28,5 @@ public interface ApiInvokeProcessor {
      * @param response
      * @return
      */
-    ResponseEntity<?> invoke(HttpServletRequest request, HttpServletResponse response);
+    Object invoke(HttpServletRequest request, HttpServletResponse response);
 }

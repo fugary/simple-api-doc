@@ -2,7 +2,6 @@ package com.fugary.simple.api.web.controllers.share;
 
 import com.fugary.simple.api.push.ApiInvokeProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,7 +21,7 @@ public class ApiProxyController {
      * @return
      */
     @RequestMapping("/proxy/**")
-    public ResponseEntity<?> proxyApi(HttpServletRequest request, HttpServletResponse response) {
+    public Object proxyApi(HttpServletRequest request, HttpServletResponse response) {
         return apiInvokeProcessor.invoke(request, response);
     }
 }
