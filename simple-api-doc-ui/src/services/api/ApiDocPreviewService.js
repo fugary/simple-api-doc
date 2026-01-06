@@ -10,15 +10,17 @@ import {
   AUTH_TYPE,
   BEARER_KEY,
   SCHEMA_SELECT_TYPE,
+  ALL_CONTENT_TYPES_LIST,
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
 import axios from 'axios'
 import { processEvnParams, useScreenCheck } from '@/services/api/ApiCommonService'
-import { nextTick, ref, watch, computed } from 'vue'
+import { nextTick, ref, watch, computed, markRaw } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { $i18nBundle } from '@/messages'
+import { InfoFilled } from '@vicons/material'
 
 export const previewRequest = function (reqData, config) {
   const req = axios.create({
@@ -878,4 +880,48 @@ export const getComponentHistoryViewOptions = (component, history) => {
       }
     }
   ]
+}
+
+export const downloadByLink = (downloadUrl, name) => {
+  const downloadLink = document.createElement('a')
+  downloadLink.href = downloadUrl
+  downloadLink.download = name || 'download'
+  downloadLink.click()
+}
+
+export const checkImageAccept = headers => Object.entries(headers || {}).find(([key]) => key.toLowerCase() === 'accept')?.[1]
+
+export const isMediaUrl = (url) => /\.(png|jpg|jpeg|gif|webp|bmp|svg|mp3|wav|mp4|webm|ogg|pdf|zip|doc|docx|xls|xlsx|ppt|pptx)(\?.*)?$/i.test(url)
+
+export const calcPreviewHeaders = (paramTarget, url, config) => {
+  const imageExt = isMediaUrl(url)
+  const accept = checkImageAccept(config?.headers)
+  if (imageExt || (accept && (isStreamContentType(accept) || isMediaContentType(accept)))) {
+    config.responseType = 'blob'
+  }
+}
+
+export const isMediaContentType = contentType => ['image', 'audio', 'video'].find(type => contentType?.includes(type))
+
+export const isHtmlContentType = contentType => ['text/html'].find(type => contentType?.includes(type))
+
+export const isStreamContentType = contentType => {
+  if (contentType) {
+    if (['text', '*', 'json'].find(keyword => contentType?.includes(keyword))) {
+      return false
+    }
+    return !ALL_CONTENT_TYPES_LIST.find(content => contentType?.includes(content.contentType))?.text
+  }
+}
+
+export const getDownloadConfirmConfig = (config) => {
+  return {
+    type: 'info',
+    icon: markRaw(InfoFilled),
+    cancelButtonClass: 'el-button--success',
+    confirmButtonText: $i18nBundle('api.label.downloadAsFile'),
+    cancelButtonText: $i18nBundle('api.label.previewAsText'),
+    distinguishCancelAndClose: true,
+    ...config
+  }
 }

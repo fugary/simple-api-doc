@@ -50,6 +50,16 @@ export const calcContentType = (lang, body) => {
   return LANG_TO_CONTENT_TYPES[lang]
 }
 
+export const calcContentLanguage = contentType => {
+  if (contentType) {
+    const charIndex = contentType?.indexOf(';')
+    if (charIndex > -1) {
+      contentType = contentType.substring(0, charIndex)
+    }
+    return CONTENT_TYPES_TO_LANG[contentType]
+  }
+}
+
 export const AUTH_TYPE = {
   INHERIT: 'inherit',
   NONE,
@@ -379,3 +389,43 @@ export const SECURITY_IN_TYPES = ['header', 'query', 'cookie']
 export const SECURITY_TYPE_TYPES = ['apiKey', 'http', 'oauth2', 'openIdConnect', 'mutualTLS']
 
 export const SECURITY_OAUTH2_AUTH_TYPES = ['authorizationCode', 'clientCredentials', 'implicit', 'password']
+
+export const ALL_CONTENT_TYPES_LIST = [
+  { contentType: 'application/json', text: true },
+  { contentType: 'application/xml', text: true },
+  { contentType: 'text/html', text: true },
+  { contentType: 'text/plain', text: true },
+  { contentType: 'text/css', text: true },
+  { contentType: 'application/javascript', text: true },
+  { contentType: 'text/javascript', text: true },
+  { contentType: 'text/event-stream', text: true },
+  { contentType: 'application/x-www-form-urlencoded', response: false },
+  { contentType: 'multipart/form-data', response: false },
+  { contentType: 'image/png' },
+  { contentType: 'image/jpeg' },
+  { contentType: 'image/gif' },
+  { contentType: 'application/pdf' },
+  { contentType: 'application/zip' },
+  { contentType: 'audio/mpeg' },
+  { contentType: 'audio/ogg' },
+  { contentType: 'video/mp4' },
+  { contentType: 'video/ogg' },
+  { contentType: 'application/graphql', text: true },
+  { contentType: 'application/yaml', text: true },
+  { contentType: 'text/markdown', text: true },
+  { contentType: 'application/octet-stream' },
+  { contentType: 'application/vnd.ms-excel' },
+  { contentType: 'application/msword' },
+  { contentType: 'application/vnd.ms-powerpoint' }
+]
+
+export const CONTENT_TYPES_TO_LANG = {
+  'application/json': 'json',
+  'application/xml': 'html',
+  'application/javascript': 'javascript',
+  'text/javascript': 'javascript',
+  'text/html': 'html',
+  'text/plain': 'text',
+  'text/event-stream': 'text',
+  'text/css': 'css'
+}

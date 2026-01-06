@@ -1,12 +1,20 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { $i18nKey, $i18nBundle } from '@/messages'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { isString } from 'lodash-es'
-import { $coreError } from '@/utils'
+import { $coreConfirm, $coreError } from '@/utils'
 import { isJson, isXml } from '@/services/api/ApiCommonService'
 import { showJsonDataWindow } from '@/utils/DynamicUtils'
+import {
+  downloadByLink,
+  getDownloadConfirmConfig,
+  isHtmlContentType,
+  isMediaContentType,
+  isStreamContentType
+} from '@/services/api/ApiDocPreviewService'
+import { calcContentLanguage } from '@/consts/ApiConstants'
 
 const props = defineProps({
   responseTarget: {
@@ -27,22 +35,84 @@ const {
   languageModel, normalLanguageSelectOption, formatDocument
 } = useMonacoEditorOptions()
 
-const responseImg = ref()
+const currentElRef = useTemplateRef('currentElRef')
+const mediaConfig = reactive({
+  responseImg: null,
+  responseAudio: null,
+  responseVideo: null,
+  responseHtml: null,
+  responseStream: null
+})
+const previewHtml = ref(false)
+const clearMediaItems = (remove) => {
+  for (const key in mediaConfig) {
+    remove && currentElRef.value?.$el?.querySelector(`.${key}El`)?.remove()
+    mediaConfig[key] = null
+  }
+}
 
-watch(() => props.responseTarget, (responseTarget) => {
+onBeforeUnmount(() => clearMediaItems(true))
+const mediaUrl = computed(() => {
+  for (const key in mediaConfig) {
+    if (mediaConfig[key] && key !== 'responseHtml') {
+      return mediaConfig[key]
+    }
+  }
+  return null
+})
+const downloadResponse = (url) => {
+  const urlSegments = props.responseTarget?.requestInfo?.url?.split('/') || []
+  downloadByLink(url, urlSegments[urlSegments.length - 1])
+}
+watch(() => props.responseTarget, async (responseTarget) => {
   currentTabName.value = 'responseData'
-  responseImg.value = null
-  const contentType = responseTarget?.responseHeaders?.find(header => header.name?.toLowerCase() === 'content-type' && header.value?.includes('image'))
+  const oriContentType = responseTarget?.responseHeaders?.find(header => header.name?.toLowerCase() === 'content-type')?.value
+  const contentType = isMediaContentType(oriContentType) || isStreamContentType(oriContentType) || isHtmlContentType(oriContentType) ? oriContentType : undefined
   if (responseTarget?.data && contentType) {
+    clearMediaItems()
     if (isString(responseTarget.data)) {
-      $coreError($i18nBundle('api.msg.checkImageAccept'))
+      if (isHtmlContentType(contentType)) {
+        previewHtml.value = true
+        mediaConfig.responseHtml = `data:text/html;charset=utf-8,${encodeURIComponent(responseTarget.data)}`
+        contentRef.value = responseTarget.data
+      } else {
+        $coreError($i18nBundle('api.msg.checkImageAccept'))
+      }
     } else {
-      const base64Data = btoa(new Uint8Array(responseTarget.data).reduce((data, byte) => data + String.fromCharCode(byte), '')) // 将 ArrayBuffer 转换为 Base64
-      responseImg.value = `data:${contentType};base64,${base64Data}`
+      if (isMediaContentType(contentType)) {
+        nextTick(() => {
+          if (contentType?.includes('image')) {
+            mediaConfig.responseImg = URL.createObjectURL(responseTarget.data)
+          } else if (contentType?.includes('audio')) {
+            mediaConfig.responseAudio = URL.createObjectURL(responseTarget.data)
+          } else if (contentType?.includes('video')) {
+            mediaConfig.responseVideo = URL.createObjectURL(responseTarget.data)
+          }
+        })
+      } else {
+        const streamUrl = mediaConfig.responseStream = URL.createObjectURL(responseTarget.data)
+        $coreConfirm($i18nBundle('api.msg.previewStreamConfirm'), getDownloadConfirmConfig()).then(() => {
+          downloadResponse(streamUrl)
+        }, async () => {
+          contentRef.value = await responseTarget?.data?.text?.()
+        })
+      }
     }
   } else {
-    contentRef.value = responseTarget?.data
-    setTimeout(() => formatDocument())
+    let content = responseTarget?.data
+    if (responseTarget?.data instanceof Blob) {
+      content = await responseTarget?.data.text()
+    }
+    contentRef.value = content
+    const isRedirect = !!responseTarget?.responseHeaders?.find(header => header.name === 'mock-data-redirect')
+    setTimeout(() => {
+      if (isRedirect) {
+        languageRef.value = 'text'
+      } else {
+        languageRef.value = calcContentLanguage(oriContentType) || languageRef.value
+      }
+      formatDocument()
+    })
   }
 }, { immediate: true })
 
@@ -81,6 +151,32 @@ const codeHeight = '300px'
           v-if="responseTarget"
           style="display: flex; margin-top: -7px;"
         >
+          <el-link
+            v-if="mediaConfig.responseHtml"
+            v-common-tooltip="previewHtml?$i18nKey('common.label.commonView', 'common.label.code'):$t('common.label.preview')"
+            type="primary"
+            underline="never"
+            class="margin-right3"
+            @click="previewHtml=!previewHtml"
+          >
+            <common-icon
+              :size="previewHtml?20:18"
+              :icon="previewHtml?'CodeOutlined':'View'"
+            />
+          </el-link>
+          <el-link
+            v-if="mediaUrl"
+            v-common-tooltip="$t('api.label.downloadAsFile')"
+            type="primary"
+            underline="never"
+            class="margin-right3"
+            @click="downloadResponse(mediaUrl)"
+          >
+            <common-icon
+              :size="18"
+              icon="DownloadFilled"
+            />
+          </el-link>
           <el-text
             v-common-tooltip="responseTarget?.error?.message"
             :type="requestInfo.status===200?'success':'danger'"
@@ -116,12 +212,33 @@ const codeHeight = '300px'
           </el-badge>
         </template>
         <el-container class="flex-column">
-          <template v-if="responseImg">
-            <img
-              :src="responseImg"
-              alt="response image"
-            >
-          </template>
+          <img
+            v-if="mediaConfig.responseImg"
+            :src="mediaConfig.responseImg"
+            alt="response image"
+          >
+          <audio
+            v-else-if="mediaConfig.responseAudio"
+            class="responseAudioEl"
+            :src="mediaConfig.responseAudio"
+            controls
+          >
+            Your browser does not support the audio element.
+          </audio>
+          <video
+            v-else-if="mediaConfig.responseVideo"
+            class="responseVideoEl"
+            controls
+            :src="mediaConfig.responseVideo"
+          >
+            Your browser does not support the video tag.
+          </video>
+          <iframe
+            v-else-if="mediaConfig.responseHtml&&previewHtml"
+            class="iframe-preview"
+            :src="mediaConfig.responseHtml"
+            height="500px"
+          />
           <template v-else>
             <common-form-control
               :model="languageModel"

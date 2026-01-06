@@ -197,15 +197,6 @@ export const useCopyRight = (shareDoc) => {
   return h('span', { innerHTML: copyRight.value })
 }
 
-export const checkImageAccept = headers => Object.keys(headers || {}).find(key => key.toLowerCase() === 'accept')
-
-export const calcPreviewHeaders = config => {
-  const accept = checkImageAccept(config?.headers)
-  if (accept && config.headers[accept]?.includes('image')) {
-    config.responseType = 'arraybuffer'
-  }
-}
-
 export const checkUserAuthAccess = (userName, accessData, authority) => {
   if (isUserAdmin(userName)) {
     return true

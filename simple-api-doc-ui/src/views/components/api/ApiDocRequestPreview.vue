@@ -5,11 +5,12 @@ import {
   calcRequestBody,
   preProcessParams,
   previewRequest,
-  processResponse
+  processResponse,
+  calcPreviewHeaders
 } from '@/services/api/ApiDocPreviewService'
 import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
-import { calcPreviewHeaders, processEvnParams } from '@/services/api/ApiCommonService'
+import { processEvnParams } from '@/services/api/ApiCommonService'
 import { joinPath, toGetParams } from '@/utils'
 import {
   AUTH_TYPE,
@@ -102,7 +103,7 @@ const doDataPreview = async () => {
   if (hasBody && isString(data)) { // 字符串不让axios处理，防止调试请求和postman有差异
     config.transformRequest = req => req
   }
-  calcPreviewHeaders(config)
+  calcPreviewHeaders(paramTarget.value, targetUrl, config)
   let authContent = paramTarget.value.authContent
   if (authContent) {
     if (authContent.authType === AUTH_TYPE.INHERIT) {
