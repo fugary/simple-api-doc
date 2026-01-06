@@ -26,6 +26,13 @@ const showErrorMessage = config => {
   return config?.showErrorMessage ?? GLOBAL_ERROR_MESSAGE
 }
 
+export const clearTooltip = () => {
+  setTimeout(() => {
+    document.querySelectorAll('.common-el-tooltip,.common-el-popover')
+      .forEach(el => el.remove()) // 清理所有残留 Tooltip
+  })
+}
+
 $http.interceptors.request.use(/** @param config {ServiceRequestConfig} */ config => {
   const globalConfigStore = useGlobalConfigStore()
   const loginConfigStore = useLoginConfigStore()
@@ -41,6 +48,7 @@ $http.interceptors.request.use(/** @param config {ServiceRequestConfig} */ confi
   if (hasLoading(config)) {
     $coreShowLoading(isString(config.loading) ? config.loading : undefined)
   }
+  clearTooltip()
   return config
 })
 

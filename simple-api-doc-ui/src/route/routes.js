@@ -9,6 +9,7 @@ import { checkRouteAuthority, processRouteLoading } from '@/authority'
 import { checkReplaceHistoryShouldReplace } from '@/route/RouteUtils'
 import { useTabsViewStore } from '@/stores/TabsViewStore'
 import { closeAllOnRouteChange } from '@/utils/DynamicUtils'
+import { clearTooltip } from '@/vendors/axios'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -92,10 +93,7 @@ export const routeScrollBehavior = (to, from) => {
   scrollMain(to, scrollOption)
 }
 
-router.beforeEach(() => {
-  document.querySelectorAll('.common-el-tooltip,.common-el-popover')
-    .forEach(el => el.remove()) // 清理所有残留 Tooltip
-})
+router.beforeEach(clearTooltip)
 router.beforeEach(checkRouteAuthority)
 router.afterEach((...args) => {
   processRouteLoading(...args)
