@@ -40,7 +40,7 @@ const props = defineProps({
   },
   newWindowEdit: {
     type: Boolean,
-    default: false
+    default: true
   },
   responseTarget: {
     type: Object,

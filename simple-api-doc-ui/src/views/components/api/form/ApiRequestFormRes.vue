@@ -15,6 +15,7 @@ import {
   isStreamContentType
 } from '@/services/api/ApiDocPreviewService'
 import { calcContentLanguage } from '@/consts/ApiConstants'
+import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
 
 const props = defineProps({
   responseTarget: {
@@ -249,6 +250,14 @@ const codeHeight = '300px'
                 <url-copy-link
                   :content="contentRef"
                   :tooltip="$i18nKey('common.label.commonCopy', 'api.label.responseBody')"
+                />
+                <new-window-edit-link
+                  v-model="contentRef"
+                  class="margin-left3"
+                  icon="View"
+                  :tooltip="$t('common.label.view')"
+                  full-editor
+                  read-only
                 />
                 <el-link
                   v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.responseBody')"
