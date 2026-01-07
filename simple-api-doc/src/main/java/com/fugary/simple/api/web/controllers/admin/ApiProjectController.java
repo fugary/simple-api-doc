@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
@@ -307,14 +308,14 @@ public class ApiProjectController {
     public SimpleResult<String> xml2Json(@RequestBody SimpleQueryVo queryVo) {
         String resultStr =  "";
         if (StringUtils.isNotBlank(queryVo.getKeyword()) && XmlUtils.isXml(queryVo.getKeyword())) {
-            Map<String, ?> xmlMap;
+            JsonNode jsonNode;
             try {
-                xmlMap = XmlUtils.getMapper().readValue(queryVo.getKeyword(), Map.class);
+                jsonNode = XmlUtils.getMapper().readTree(queryVo.getKeyword());
             } catch (JsonProcessingException e) {
                 log.error("XML解析失败", e);
                 return SimpleResultUtils.createError(e.getOriginalMessage());
             }
-            resultStr = JsonUtils.toJson(xmlMap);
+            resultStr = JsonUtils.toJson(jsonNode);
         }
         return SimpleResultUtils.createSimpleResult(resultStr);
     }
