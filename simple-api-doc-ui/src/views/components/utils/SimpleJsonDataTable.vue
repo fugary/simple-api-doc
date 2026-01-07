@@ -65,7 +65,7 @@ const str2Column = column => {
         value = JSON.stringify(value)
       }
       if (isString(value)) {
-        return limitStr(value, 40)
+        return limitStr(value, formModel.value?.limit || 40)
       }
       return value !== undefined ? String(value) : ''
     }
@@ -108,26 +108,32 @@ const formOptions = computed(() => {
       type: 'select',
       value: defaultDataKey,
       children: selectKeys,
-      style: getStyleGrow(4),
+      style: getStyleGrow(6),
       attrs: {
         clearable: true,
         filterable: true,
-        allowCreate: true,
-        style: { flexGrow: 1 }
+        allowCreate: true
       }
-    },
-    {
+    }, {
+      labelKey: 'api.label.lengthLimit',
+      prop: 'limit',
+      type: 'input-number',
+      value: 40,
+      style: getStyleGrow(4),
+      attrs: {
+        min: 0
+      }
+    }, {
       labelKey: 'api.label.dataColumns',
       type: 'select',
       prop: 'columns',
       children: tableColumns.value,
-      style: getStyleGrow(5),
+      style: getStyleGrow(9),
       attrs: {
         multiple: true,
         clearable: true,
         filterable: true,
-        allowCreate: true,
-        style: { flexGrow: 1 }
+        allowCreate: true
       }
     }
   ]
@@ -144,8 +150,9 @@ const customPageAttrs = {
     <common-form
       :options="formOptions"
       :model="formModel"
+      class="form-edit-width-100"
+      class-name="common-form-auto"
       :show-buttons="false"
-      inline
     />
     <el-container class="flex-center margin-bottom2">
       <el-button

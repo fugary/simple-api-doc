@@ -215,6 +215,7 @@ api.label.dataProperty = '数据属性'
 api.label.dataColumns = '数据列'
 api.label.downloadAsFile = '下载为文件'
 api.label.previewAsText = '预览为文本'
+api.label.lengthLimit = '长度限制'
 
 api.msg.noExportData = '没有需要导出的数据'
 api.msg.exportConfirm = '确认导出API文档数据？'
