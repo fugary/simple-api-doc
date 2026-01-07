@@ -6,6 +6,7 @@ import { $i18nBundle, $i18nKey } from '@/messages'
 import { ElMessage, ElButton } from 'element-plus'
 import { calcSuggestionsFunc, concatValueSuggestions } from '@/services/api/ApiCommonService'
 import { isFunction, cloneDeep } from 'lodash-es'
+import { useRenderKey, useSortableParams } from '@/hooks/CommonHooks'
 
 const props = defineProps({
   formProp: {
@@ -67,6 +68,10 @@ const props = defineProps({
   fileFlag: {
     type: Boolean,
     default: false
+  },
+  baseTabIndex: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -173,7 +178,7 @@ const paramsOptions = computed(() => {
       attrs: {
         fetchSuggestions: nameSuggestions,
         triggerOnFocus: false,
-        tabindex: index * 2 + 1
+        tabindex: props.baseTabIndex + index * 2 + 1
       },
       dynamicOption: (item, ...args) => {
         if (isFunction(item.dynamicOption)) {
@@ -209,7 +214,7 @@ const paramsOptions = computed(() => {
       attrs: {
         fetchSuggestions: paramValueSuggestions,
         triggerOnFocus: true,
-        tabindex: 100 + index * 2 + 2
+        tabindex: props.baseTabIndex + 100 + index * 2 + 2
       },
       dynamicOption: (item, ...args) => {
         if (isFunction(item.dynamicOption)) {
@@ -238,17 +243,26 @@ const paramsOptions = computed(() => {
   })
 })
 
+const { sortableRef, hoverIndex, dragging } = useSortableParams(params, '.common-params-item')
+
+const { renderKey } = useRenderKey()
+
 </script>
 
 <template>
-  <el-container class="flex-column common-params-edit">
+  <el-container
+    ref="sortableRef"
+    class="flex-column common-params-edit"
+  >
     <el-row
       v-for="(item, index) in params"
-      :key="index"
-      class="padding-bottom2"
+      :key="renderKey(item)"
+      class="padding-bottom2 common-params-item"
+      @mouseenter="hoverIndex=index"
+      @mouseleave="hoverIndex=-1"
     >
       <template
-        v-for="option in paramsOptions[index]"
+        v-for="(option, idx) in paramsOptions[index]"
         :key="`${index}_${option.prop}`"
       >
         <el-col
@@ -260,7 +274,17 @@ const paramsOptions = computed(() => {
             :model="item"
             :option="option"
             :prop="`${formProp}.${index}.${option.prop}`"
-          />
+          >
+            <template #beforeLabel>
+              <common-icon
+                v-if="idx===0&&hoverIndex===index&&!dragging"
+                :size="20"
+                class="margin-top1 move-indicator"
+                icon="DragIndicatorFilled"
+                style="cursor: move;"
+              />
+            </template>
+          </common-form-control>
         </el-col>
       </template>
       <el-col

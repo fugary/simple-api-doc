@@ -1,8 +1,9 @@
-import { ref, watch } from 'vue'
-import { isFunction, isNumber } from 'lodash-es'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { isFunction, isNumber, uniqueId } from 'lodash-es'
 import { useGlobalSearchParamStore } from '@/stores/GlobalSearchParamStore'
 import { GLOBAL_LOADING } from '@/config'
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
+import Sortable from 'sortablejs'
 
 const defaultPageProcessor = (searchResult, searchParam) => {
   if (searchResult.page && searchParam.value.page) {
@@ -130,5 +131,58 @@ export const useManagedArrayItems = () => {
     pushItem,
     goToItem,
     clearItems
+  }
+}
+
+export const useSortableParams = (params, selector, moveCls = '.move-indicator') => {
+  let sortable = null
+  const sortableRef = ref()
+  const dragging = ref(false)
+  const hoverIndex = ref(-1)
+  onMounted(() => {
+    sortable = new Sortable(sortableRef.value.$el, {
+      animation: 150,
+      draggable: selector,
+      handle: moveCls,
+      onStart () {
+        hoverIndex.value = -1
+        dragging.value = true
+      },
+      onEnd (event) {
+        const { oldIndex, newIndex } = event
+        params.value.splice(newIndex, 0, params.value.splice(oldIndex, 1)[0]) // 插入到 newIndex 位置
+        setTimeout(() => {
+          dragging.value = false
+          hoverIndex.value = newIndex
+        })
+      }
+    })
+  })
+  onBeforeUnmount(() => {
+    sortable?.destroy()
+    sortable = null
+  })
+  return {
+    dragging,
+    hoverIndex,
+    sortableRef
+  }
+}
+
+export const useRenderKey = () => {
+  const renderKeyMap = new WeakMap()
+
+  function renderKey (param) {
+    if (param.id != null) {
+      return `param-${param.id}`
+    }
+    if (!renderKeyMap.has(param)) {
+      renderKeyMap.set(param, uniqueId())
+    }
+    return `param-tmp-${renderKeyMap.get(param)}`
+  }
+
+  return {
+    renderKey
   }
 }
