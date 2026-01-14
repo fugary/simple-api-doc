@@ -1,20 +1,13 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig, loadEnv, splitVendorChunkPlugin } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import eslint from 'vite-plugin-eslint'
-import { visualizer } from 'rollup-plugin-visualizer'
 import packageJson from './package.json'
 import dayjs from 'dayjs'
 
-const optionalPlugins = [{
-  plugin: visualizer({ open: true }),
-  enabled: false
-}, {
-  plugin: splitVendorChunkPlugin(),
-  enabled: true
-}].filter(p => p.enabled).map(p => p.plugin)
+const optionalPlugins = [].filter(p => p.enabled).map(p => p.plugin)
 
 const JS_FILE_NAMES = 'js/[name]-[hash].js'
 const CSS_FILE_NAMES = 'css/[name]-[hash].css'
