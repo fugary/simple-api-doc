@@ -86,6 +86,7 @@ export const checkAndSaveDocInfoDetail = (data) => {
   try {
     JSON.parse(data.schemaContent)
   } catch (e) {
+    console.log('json解析错误', e)
     $coreError($i18nBundle('common.msg.jsonError'))
     return
   }
