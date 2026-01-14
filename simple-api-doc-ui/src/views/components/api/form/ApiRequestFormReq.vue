@@ -25,6 +25,7 @@ import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString, isArray } from 'lodash-es'
 import {
   calcEnvSuggestions,
+  calcHeaderSuggestions,
   generateFormSample,
   generateSchemaSample
 } from '@/services/api/ApiCommonService'
@@ -121,6 +122,15 @@ watch(languageRef, lang => {
 watch(contentRef, val => {
   paramTarget.value.requestBody = val
 })
+
+watch(() => [paramTarget.value.headerParams, paramTarget.value.requestParams], (allParams) => {
+  allParams.forEach(eachParams => eachParams.forEach(param => {
+    const newSuggestions = calcHeaderSuggestions(param.name)
+    if (JSON.stringify(param.valueSuggestions) !== JSON.stringify(newSuggestions)) {
+      param.valueSuggestions = newSuggestions
+    }
+  }))
+}, { deep: true })
 
 const currentTabName = ref('requestParamsTab')
 const authContentModel = ref({})

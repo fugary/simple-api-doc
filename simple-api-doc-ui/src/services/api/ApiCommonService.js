@@ -1,9 +1,16 @@
-import { $coreConfirm, formatDate, getSingleSelectOptions, isUserAdmin, useCurrentUserName } from '@/utils'
+import {
+  $coreConfirm,
+  formatDate,
+  getSingleSelectOptions,
+  includesAnyIgnoreCase,
+  isUserAdmin,
+  useCurrentUserName
+} from '@/utils'
 import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
 import { XMLBuilder } from 'fast-xml-parser'
 import { cloneDeep, isArray, isFunction, isObject, isString, isPlainObject } from 'lodash-es'
-import { ALL_CONTENT_TYPES } from '@/consts/ApiConstants'
+import { ALL_CONTENT_TYPES, ALL_CONTENT_TYPES_LIST, CHARSET_LIST, LANGUAGE_LIST1 } from '@/consts/ApiConstants'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { processSchemas, removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
@@ -295,4 +302,32 @@ export function checkArrayAndPath (jsonStr) {
     }
   }
   return {}
+}
+
+const HEADER_SUGGESTIONS = [{
+  keys: ['accept-encoding', 'content-encoding'],
+  values: ['gzip', 'deflate', 'br']
+}, {
+  keys: ['accept', 'content-type'],
+  values: ALL_CONTENT_TYPES_LIST.map(i => i.contentType)
+}, {
+  keys: ['cache-control'],
+  values: ['no-cache', 'no-store', 'max-age=3600']
+}, {
+  keys: ['authorization'],
+  values: ['Bearer ', 'Basic ']
+}, {
+  keyWords: ['charset', 'encoding'],
+  values: CHARSET_LIST
+}, {
+  keyWords: ['language', 'locale', 'lang'],
+  values: LANGUAGE_LIST1
+}]
+
+export const calcHeaderSuggestions = name => {
+  if (!name) return []
+  const header = HEADER_SUGGESTIONS.find(h =>
+    includesAnyIgnoreCase(name, h.keys) || includesAnyIgnoreCase(name, h.keyWords)
+  )
+  return header ? header.values : []
 }
