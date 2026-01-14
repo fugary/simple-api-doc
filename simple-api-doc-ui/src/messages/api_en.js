@@ -218,6 +218,7 @@ api.label.dataColumns = 'Columns'
 api.label.downloadAsFile = 'Download as file'
 api.label.previewAsText = 'Preview as text'
 api.label.lengthLimit = 'Length Limit'
+api.label.savedParams = 'Saved Params'
 
 api.msg.noExportData = 'No data to export'
 api.msg.exportConfirm = 'Confirm to export API docs?'

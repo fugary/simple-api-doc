@@ -121,6 +121,7 @@ const jsonResponseData = computed(() => isJson(props.responseTarget?.data) || is
 const toShowJsonDataWindow = () => {
   paramTarget.value.tableConfig = paramTarget.value.tableConfig || {}
   return showJsonDataWindow(props.responseTarget?.data, {
+    manual: true,
     tableConfig: paramTarget.value.tableConfig,
     'onUpdate:tableConfig': (value) => {
       paramTarget.value.tableConfig = value

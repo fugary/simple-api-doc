@@ -1,46 +1,56 @@
 <script setup lang="jsx">
-import { isString, isArray, get, isPlainObject } from 'lodash-es'
-import { computed } from 'vue'
+import { isString, isArray, get, isPlainObject, cloneDeep } from 'lodash-es'
+import { computed, ref } from 'vue'
 import { checkArrayAndPath } from '@/services/api/ApiCommonService'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { limitStr } from '@/components/utils'
-import { checkShowColumn, getStyleGrow } from '@/utils'
-import { $i18nBundle, $i18nConcat } from '@/messages'
+import { $coreConfirm, checkShowColumn, getStyleGrow } from '@/utils'
+import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
+import { useJsonTableConfigStore } from '@/stores/JsonTableConfigStore'
+import CommonIcon from '@/components/common-icon/index.vue'
+import { ElLink } from 'element-plus'
+import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 
-defineProps({
+const props = defineProps({
+  manual: {
+    type: Boolean,
+    default: false
+  },
   xmlContent: {
     type: String,
     default: ''
   }
 })
 
+const jsonTableConfigStore = useJsonTableConfigStore()
+
 const vModel = defineModel({ type: String, default: '' })
 const formModel = defineModel('tableConfig', { type: Object, default: () => ({}) })
 
 const dataPathConfig = computed(() => checkArrayAndPath(vModel.value))
 const DEFAULT_ROOT = '$ROOT'
-const calcTableData = () => {
+const calcTableData = (currentKey) => {
   let data = dataPathConfig.value.data
-  if (isArray(data)) {
-    return data
-  }
-  if (formModel.value?.dataKey) {
-    const dataKey = dataPathConfig.value.arrayPath?.find(path => path.join('.') === formModel.value?.dataKey) || formModel.value?.dataKey
+  if (currentKey) {
+    const dataKey = dataPathConfig.value.arrayPath?.find(path => path.join('.') === currentKey) || currentKey
     const oriData = data
     data = get(data, dataKey)
     if (!data && DEFAULT_ROOT === dataKey) {
       data = oriData
     }
-    return isArray(data) ? data : [data]
+    return isArray(data) ? data : (data ? [data] : [])
   }
   const arrayData = dataPathConfig.value.arrayData
   if (arrayData) {
     return arrayData
   }
+  if (isArray(data)) {
+    return data
+  }
   return [data]
 }
 
-const tableData = computed(() => calcTableData().filter(obj => !!obj))
+const tableData = computed(() => calcTableData(formModel.value?.dataKey).filter(obj => !!obj))
 
 const selectedColumns = computed(() => {
   if (formModel.value.columns?.length) {
@@ -93,21 +103,24 @@ const tableButtons = computed(() => {
     }
   }]
 })
+const selectKeys = computed(() => {
+  const selKeys = dataPathConfig.value.arrayPath?.map(path => path.join('.')).map(value => ({ value, label: value }))
+  if (selKeys?.length) {
+    selKeys.unshift({ value: DEFAULT_ROOT, label: DEFAULT_ROOT })
+  }
+  return selKeys
+})
 const formOptions = computed(() => {
   const defaultDataKey = dataPathConfig.value.arrayPath?.map(path => path.join('.'))
     ?.find(pathKey => pathKey === formModel.value.dataKey) ||
       dataPathConfig.value.arrayPath?.[0]?.join('.')
-  const selectKeys = dataPathConfig.value.arrayPath?.map(path => path.join('.')).map(value => ({ value, label: value }))
-  if (selectKeys.length) {
-    selectKeys.unshift({ value: DEFAULT_ROOT, label: DEFAULT_ROOT })
-  }
   return [
     {
       labelKey: 'api.label.dataProperty',
       prop: 'dataKey',
       type: 'select',
       value: defaultDataKey,
-      children: selectKeys,
+      children: selectKeys.value,
       style: getStyleGrow(6),
       attrs: {
         clearable: true,
@@ -128,16 +141,96 @@ const formOptions = computed(() => {
       type: 'select',
       prop: 'columns',
       children: tableColumns.value,
-      style: getStyleGrow(9),
+      style: {
+        ...getStyleGrow(6),
+        alignItems: 'center'
+      },
       attrs: {
         multiple: true,
         clearable: true,
         filterable: true,
         allowCreate: true
       }
+    }, {
+      labelKey: 'api.label.savedParams',
+      type: 'select',
+      prop: 'name',
+      enabled: !props.manual,
+      children: savedConfigs.value?.map(item => {
+        return {
+          value: item.name,
+          slots: {
+            default: () => {
+              return <>
+                <span>{ item.name }</span>
+                <ElLink class="float-right margin-top2" underline="never" type="danger"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
+                            .then(() => jsonTableConfigStore.deleteTableConfig(item.name))
+                        }}>
+                  <CommonIcon size={18} icon="Delete"/>
+                </ElLink>
+              </>
+            }
+          }
+        }
+      }),
+      style: {
+        ...getStyleGrow(4),
+        alignItems: 'center'
+      },
+      attrs: {
+        clearable: true,
+        filterable: true
+      },
+      change (name) {
+        const savedConfig = jsonTableConfigStore.getTableConfig(name)
+        if (savedConfig) {
+          formModel.value = cloneDeep(savedConfig)
+        } else {
+          formModel.value = {}
+        }
+      }
     }
   ]
 })
+const emit = defineEmits(['saveTableConfig'])
+const savedConfigs = computed(() => {
+  if (!props.manual) {
+    return (Object.values(jsonTableConfigStore.jsonTableConfigs) || []).filter(config => {
+      if (!config.dataKey && selectKeys.value?.length) {
+        return false
+      }
+      const savedTableData = calcTableData(config.dataKey)
+      let isValid = !!config.name && savedTableData?.length
+      if (isValid && savedTableData?.length && config.columns?.length) {
+        isValid = config.columns.some(column => checkShowColumn(savedTableData, column))
+      }
+      return isValid
+    })
+  }
+  return []
+})
+const saveTableConfig = () => {
+  if (props.manual) {
+    emit('saveTableConfig', formModel.value)
+  } else {
+    formSaveModel.value = cloneDeep(formModel.value)
+    showSaveWindow.value = true
+  }
+}
+const formSaveModel = ref()
+const showSaveWindow = ref(false)
+const saveFormOptions = [{
+  labelKey: 'common.label.name',
+  prop: 'name',
+  placeholder: $i18nKey('common.msg.commonInput', 'common.label.name'),
+  required: true
+}]
+const saveStorageTableConfig = async () => {
+  jsonTableConfigStore.saveTableConfig(formSaveModel.value)
+}
 const customPageAttrs = {
   layout: 'total, sizes, prev, pager, next',
   pageSizes: [5, 10, 20, 50],
@@ -155,6 +248,13 @@ const customPageAttrs = {
       :show-buttons="false"
     />
     <el-container class="flex-center margin-bottom2">
+      <el-button
+        v-if="formModel.dataKey||formModel.columns?.length"
+        type="primary"
+        @click="saveTableConfig"
+      >
+        {{ $t('common.label.save') }}
+      </el-button>
       <el-button
         type="success"
         @click="showCodeWindow(vModel, {language: 'json'})"
@@ -178,6 +278,14 @@ const customPageAttrs = {
       :page-attrs="customPageAttrs"
       frontend-paging
       @row-dblclick="showCodeWindow(JSON.stringify($event), {language: 'json', viewAsTable: true})"
+    />
+    <simple-edit-window
+      v-model="formSaveModel"
+      v-model:show-edit-window="showSaveWindow"
+      width="500px"
+      :form-options="saveFormOptions"
+      :title="$i18nKey('common.label.commonSave', 'api.label.params')"
+      :save-current-item="saveStorageTableConfig"
     />
   </el-container>
 </template>

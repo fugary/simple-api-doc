@@ -1,5 +1,5 @@
 <script setup lang="js">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import SimpleJsonDataTable from '@/views/components/utils/SimpleJsonDataTable.vue'
 import { xml2Json } from '@/api/ApiProjectApi'
 import { isXml } from '@/services/api/ApiCommonService'
@@ -9,26 +9,28 @@ defineProps({
   title: {
     type: String,
     default: ''
+  },
+  manual: {
+    type: Boolean,
+    default: false
   }
 })
 const vModel = defineModel({ type: String, default: '' })
 const tableConfig = defineModel('tableConfig', { type: Object, default: () => ({}) })
+defineEmits(['update:tableConfig'])
 
 const formModel = ref({})
 const xmlContent = ref()
 const showJsonDataWindow = async (data) => {
-  formModel.value = cloneDeep(tableConfig.value)
   xmlContent.value = null
   if (isXml(data)) {
     xmlContent.value = data
     data = await xml2Json({ keyword: data }).then(data => data.resultData)
   }
   vModel.value = data
+  formModel.value = cloneDeep(tableConfig.value)
   showWindow.value = true
 }
-watch(formModel, () => {
-  tableConfig.value = formModel.value
-}, { deep: true })
 defineExpose({
   showJsonDataWindow
 })
@@ -49,7 +51,9 @@ defineExpose({
     <simple-json-data-table
       v-model:table-config="formModel"
       v-model="vModel"
+      :manual="manual"
       :xml-content="xmlContent"
+      @save-table-config="tableConfig=cloneDeep(formModel)"
     />
   </common-window>
 </template>
