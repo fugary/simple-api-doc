@@ -7,6 +7,7 @@ import { ElMessage, ElButton } from 'element-plus'
 import { calcSuggestionsFunc, concatValueSuggestions } from '@/services/api/ApiCommonService'
 import { isFunction, cloneDeep } from 'lodash-es'
 import { useRenderKey, useSortableParams } from '@/hooks/CommonHooks'
+import { useTabFocus } from '@/hooks/useTabFocus'
 
 const props = defineProps({
   formProp: {
@@ -68,10 +69,6 @@ const props = defineProps({
   fileFlag: {
     type: Boolean,
     default: false
-  },
-  baseTabIndex: {
-    type: Number,
-    default: 0
   }
 })
 
@@ -158,7 +155,7 @@ const calcSuggestions = (key = 'name') => {
 const paramsOptions = computed(() => {
   const nameSuggestions = calcSuggestions('name')
   const valueSuggestions = calcSuggestions('value')
-  return params.value.map((param, index) => {
+  return params.value.map(param => {
     const nvSpan = props.showEnableSwitch ? 8 : 10
     const paramValueSuggestions = concatValueSuggestions(param.valueSuggestions, valueSuggestions)
     return defineFormOptions([{
@@ -177,8 +174,7 @@ const paramsOptions = computed(() => {
       type: nameSuggestions ? 'autocomplete' : 'input',
       attrs: {
         fetchSuggestions: nameSuggestions,
-        triggerOnFocus: false,
-        tabindex: props.baseTabIndex + index * 2 + 1
+        triggerOnFocus: false
       },
       dynamicOption: (item, ...args) => {
         if (isFunction(item.dynamicOption)) {
@@ -213,8 +209,7 @@ const paramsOptions = computed(() => {
       type: paramValueSuggestions ? 'autocomplete' : 'input',
       attrs: {
         fetchSuggestions: paramValueSuggestions,
-        triggerOnFocus: true,
-        tabindex: props.baseTabIndex + 100 + index * 2 + 2
+        triggerOnFocus: true
       },
       dynamicOption: (item, ...args) => {
         if (isFunction(item.dynamicOption)) {
@@ -246,6 +241,8 @@ const paramsOptions = computed(() => {
 const { sortableRef, hoverIndex, dragging } = useSortableParams(params, '.common-params-item')
 
 const { renderKey } = useRenderKey()
+
+useTabFocus(sortableRef)
 
 </script>
 
