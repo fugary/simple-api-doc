@@ -6,6 +6,8 @@ import { getPathUrl, isAdminUser, joinPath } from '@/utils'
 
 const dbUrl = getPathUrl(joinPath(BASE_URL, '/h2-console'), true)
 const editorContent = ref('')
+const originalContent = ref('')
+const modifiedContent = ref('')
 export const ALL_MENUS = [
   {
     id: 1,
@@ -137,7 +139,13 @@ export const ALL_MENUS = [
         title: $i18nBundle('api.label.compare'),
         diffEditor: true,
         readOnly: false,
-        closeOnClickModal: false
+        closeOnClickModal: false,
+        originalContent: originalContent.value,
+        modifiedContent: modifiedContent.value,
+        change (ori, mod) {
+          originalContent.value = ori
+          modifiedContent.value = mod
+        }
       })
     }
   }
