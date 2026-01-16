@@ -413,7 +413,10 @@ export const isTreeNodeFirstFolder = (treeNode) => {
   return treeNode.parent.childNodes.find(node => !node.isDoc) === treeNode
 }
 
-export const useInitShareDocTheme = (shareId) => {
+export const useInitShareDocTheme = (shareId, init = true) => {
+  if (!shareId) {
+    return
+  }
   const shareDarkTheme = useDark({
     storageKey: `__${shareId}__vueuse-color-scheme_share`,
     selector: `html:has(.share-${shareId})`
@@ -424,7 +427,7 @@ export const useInitShareDocTheme = (shareId) => {
         shareDoc?.defaultTheme || 'dark'
     shareDarkTheme.value = themeName === 'dark'
   }
-  checkDarkTheme()
+  init && checkDarkTheme()
   return {
     shareDarkTheme,
     checkDarkTheme

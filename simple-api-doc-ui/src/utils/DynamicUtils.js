@@ -29,12 +29,13 @@ export const showUserInfo = async (id) => {
   vnode.component?.exposed?.showUserInfo(id)
 }
 
-export const previewApiRequest = async (...args) => {
+export const previewApiRequest = async (projectInfo, apiDoc, changeForceShowWindowFunc, ...args) => {
   const dynamicHelper = new DynamicHelper()
   const vnode = await dynamicHelper.createAndRender(ApiRequestPreviewWindow, {
-    onClosed: () => dynamicHelper.destroy()
+    onClosed: () => dynamicHelper.destroy(),
+    apiDocDetail: apiDoc
   })
-  vnode.component?.exposed?.toPreviewRequest(...args)
+  vnode.component?.exposed?.toPreviewRequest(projectInfo, apiDoc, changeForceShowWindowFunc, ...args)
 }
 
 export const toEditGroupEnvParams = async (...args) => {

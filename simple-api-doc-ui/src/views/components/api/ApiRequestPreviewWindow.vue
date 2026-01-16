@@ -3,6 +3,14 @@ import { ref, nextTick, onUnmounted } from 'vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import emitter from '@/vendors/emitter'
 import { useMediaQuery } from '@vueuse/core'
+import { useInitShareDocTheme } from '@/services/api/ApiFolderService'
+
+const props = defineProps({
+  apiDocDetail: {
+    type: Object,
+    default: null
+  }
+})
 
 const showWindow = ref(false)
 const loading = ref(true)
@@ -33,6 +41,7 @@ defineExpose({
   toPreviewRequest
 })
 const verySmallWindow = useMediaQuery('(max-width: 1000px)')
+useInitShareDocTheme(props.apiDocDetail?.apiShare?.shareId, false)
 </script>
 
 <template>
