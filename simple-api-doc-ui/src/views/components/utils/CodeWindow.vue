@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed, isRef, toRaw, watch } from 'vue'
-import { processPasteCode, useMonacoEditorOptions, useMonacoDiffEditorOptions } from '@/vendors/monaco-editor'
+import { processPasteCode, useMonacoEditorOptions, useMonacoDiffEditorOptions, $checkLang } from '@/vendors/monaco-editor'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { showCodeWindow as dynamicShowCodeWindow, showJsonDataWindow } from '@/utils/DynamicUtils'
@@ -11,7 +11,7 @@ import { isJson, isXml } from '@/services/api/ApiCommonService'
 const showWindow = ref(false)
 const { contentRef: codeText, languageRef, languageModel, languageSelectOption, normalLanguageSelectOption, formatDocument, editorRef, monacoEditorOptions } = useMonacoEditorOptions()
 
-const { gotoDiffPosition, diffOptions, diffChanged, handleMount, originalContent, modifiedContent } = useMonacoDiffEditorOptions()
+const { gotoDiffPosition, diffOptions, diffChanged, handleMount, originalContent, modifiedContent, diffFormatDocument } = useMonacoDiffEditorOptions()
 
 /**
  * @typedef {{copyAndClose?: boolean, showCopy?: boolean, width?: string, title?: string, height?: string, closeOnClickModal?: boolean, readOnly?: boolean}} CodeWindowConfig
@@ -25,6 +25,7 @@ const codeConfig = reactive({
   readOnly: true,
   showSelectButton: false,
   diffEditor: false,
+  showDiffLanguage: false,
   showCopy: true,
   showCancel: false,
   copyAndClose: false,
@@ -163,6 +164,9 @@ watch([codeText, languageRef], ([text, lang]) => {
 watch([originalContent, modifiedContent], ([original, modified]) => {
   if (codeConfig.diffEditor) {
     codeConfig.change(original, modified)
+    if (!languageModel.value.language && (original || modified)) {
+      languageModel.value.language = $checkLang(original) || $checkLang(modified)
+    }
   }
 })
 
@@ -213,12 +217,13 @@ watch([originalContent, modifiedContent], ([original, modified]) => {
     </template>
     <el-container class="flex-column">
       <common-form-control
-        v-if="!codeConfig.diffEditor"
+        v-if="!codeConfig.diffEditor||codeConfig.showDiffLanguage"
         :model="languageModel"
         :option="langOption"
       >
         <template #childAfter>
           <url-copy-link
+            v-if="!codeConfig.diffEditor"
             :content="codeText"
             :tooltip="$i18nKey('common.label.commonCopy', 'common.label.code')"
           />
@@ -227,7 +232,7 @@ watch([originalContent, modifiedContent], ([original, modified]) => {
             type="primary"
             underline="never"
             class="margin-left3"
-            @click="formatDocument"
+            @click="codeConfig.diffEditor?diffFormatDocument():formatDocument()"
           >
             <common-icon
               :size="18"
@@ -252,7 +257,7 @@ watch([originalContent, modifiedContent], ([original, modified]) => {
       <vue-monaco-diff-editor
         v-if="codeConfig.diffEditor"
         theme="vs-dark"
-        :language="codeConfig.language"
+        :language="languageModel.language"
         :original="originalContent"
         :modified="modifiedContent"
         :options="diffOptions"
