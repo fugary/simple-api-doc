@@ -19,7 +19,6 @@ const defaultConfig = {
   scrollbar: {
     alwaysConsumeMouseWheel: false
   },
-  theme: 'vs-dark',
   wordWrap: 'on',
   readOnly: true,
   language: 'javascript',

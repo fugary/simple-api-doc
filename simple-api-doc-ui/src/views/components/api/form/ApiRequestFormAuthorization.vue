@@ -6,6 +6,7 @@ import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { useFormItem } from 'element-plus'
 import { isFunction } from 'lodash-es'
+import { useShareDocTheme } from '@/services/api/ApiFolderService'
 
 const props = defineProps({
   formProp: {
@@ -81,7 +82,7 @@ languageRef.value = 'json'
 if (!vModel.value.payload) {
   vModel.value.payload = '{}'
 }
-
+const { monacoTheme } = useShareDocTheme()
 const jwtPayloadOption = {
   label: 'Payload',
   type: 'vue-monaco-editor',
@@ -95,6 +96,7 @@ const jwtPayloadOption = {
     },
     language: languageRef.value,
     height: '100px',
+    theme: monacoTheme.value,
     options: monacoEditorOptions
   }
 }

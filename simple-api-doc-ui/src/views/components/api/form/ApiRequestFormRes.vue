@@ -16,6 +16,7 @@ import {
 } from '@/services/api/ApiDocPreviewService'
 import { calcContentLanguage } from '@/consts/ApiConstants'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
+import { useShareDocTheme } from '@/services/api/ApiFolderService'
 
 const props = defineProps({
   responseTarget: {
@@ -134,6 +135,7 @@ const requestInfo = computed(() => {
 })
 
 const codeHeight = '300px'
+const { monacoTheme } = useShareDocTheme()
 </script>
 
 <template>
@@ -305,6 +307,7 @@ const codeHeight = '300px'
               :height="codeHeight"
               :options="monacoEditorOptions"
               class="common-resize-vertical"
+              :theme="monacoTheme"
               @mount="editorRef=$event"
             />
           </template>

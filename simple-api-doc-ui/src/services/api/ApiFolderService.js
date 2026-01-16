@@ -433,9 +433,11 @@ export const useInitShareDocTheme = (shareId) => {
 
 export const useShareDocTheme = (sharePreference) => {
   const shareDarkTheme = inject(CURRENT_SHARE_THEME_KEY, null)
-  const isDarkTheme = computed(() => sharePreference && shareDarkTheme ? shareDarkTheme.value : useGlobalConfigStore().isDarkTheme)
+  const isDarkTheme = computed(() => shareDarkTheme ? shareDarkTheme.value : useGlobalConfigStore().isDarkTheme)
+  const monacoTheme = computed(() => isDarkTheme.value ? 'vs-dark' : 'vs')
   return {
     isDarkTheme,
+    monacoTheme,
     toggleTheme: () => {
       if (shareDarkTheme) {
         console.log('====================shareDarkTheme', sharePreference, shareDarkTheme?.value)

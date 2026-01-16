@@ -33,6 +33,7 @@ import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
 import { extendCurlParams } from '@/services/api/CurlProcessService'
+import { useShareDocTheme } from '@/services/api/ApiFolderService'
 
 const props = defineProps({
   showAuthorization: {
@@ -238,6 +239,8 @@ const processCurlWindow = () => {
   })
 }
 
+const { monacoTheme } = useShareDocTheme()
+
 </script>
 
 <template>
@@ -426,6 +429,7 @@ const processCurlWindow = () => {
           v-model:value="contentRef"
           :language="languageRef"
           :height="codeHeight"
+          :theme="monacoTheme"
           :options="monacoEditorOptions"
           class="common-resize-vertical"
           @mount="editorRef=$event"
