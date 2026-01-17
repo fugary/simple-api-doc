@@ -23,6 +23,7 @@ import { useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
 import ApiDocSecurityRequirements from '@/views/components/api/doc/comp/ApiDocSecurityRequirements.vue'
+import { cloneDeep } from 'lodash-es'
 
 const props = defineProps({
   shareDoc: {
@@ -53,12 +54,12 @@ const envConfigs = ref([])
 const paramTargetId = calcPreferenceId(props.projectItem, props.shareDoc)
 const sharePreference = shareConfigStore.sharePreferenceView[paramTargetId]
 const getAuthContentModel = () => {
-  return {
+  return cloneDeep({
     ...sharePreference?.defaultAuthModel || {
       authType: AUTH_TYPE.NONE,
       authModels: []
     }
-  }
+  })
 }
 let lastParamTarget = reactive({})
 const securitySchemas = ref()
@@ -138,15 +139,21 @@ defineEmits(['toDebugApi', 'updateHistory', 'toEditSecuritySchemas'])
 
 const showAuthorizationWindow = ref(false)
 const toEditAuthorization = () => {
+  if (sharePreference.defaultAuthModel) {
+    authContentModel.value = getAuthContentModel()
+  }
   showAuthorizationWindow.value = true
+}
+const saveAuthModel = (model) => {
+  if (sharePreference) {
+    sharePreference.defaultAuthModel = model ? cloneDeep(model) : undefined
+    lastParamTarget.hasInheritAuth = !!sharePreference.defaultAuthModel
+  }
 }
 const saveAuthorization = ({ form }) => {
   form.validate(valid => {
     if (valid) {
-      if (sharePreference) {
-        sharePreference.defaultAuthModel = { ...authContentModel.value }
-        lastParamTarget.hasInheritAuth = !!sharePreference.defaultAuthModel
-      }
+      saveAuthModel(authContentModel.value)
       showAuthorizationWindow.value = false
     }
   })
@@ -172,6 +179,18 @@ const docContent = computed(() => {
   return apiDocDetail.value?.docContent || apiDocDetail.value?.description
 })
 const { isSmallContainer, containerRef } = useContainerCheck()
+const authButtons = [{
+  labelKey: 'common.label.clear',
+  type: 'success',
+  click () {
+    calcAuthModelBySchemas(authContentModel.value = {
+      authType: AUTH_TYPE.NONE,
+      authModels: []
+    }, securitySchemas.value)
+    saveAuthModel()
+    showAuthorizationWindow.value = false
+  }
+}]
 </script>
 
 <template>
@@ -295,6 +314,7 @@ const { isSmallContainer, containerRef } = useContainerCheck()
       v-model="showAuthorizationWindow"
       :title="$t('api.label.authorization')"
       :ok-click="saveAuthorization"
+      :buttons="authButtons"
     >
       <el-container class="flex-column">
         <el-tabs v-model="authContentModel.authKeyName">
