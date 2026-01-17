@@ -48,9 +48,10 @@ export const generateSchemaSample = (schemaBody, type) => {
  *
  * @param requestsSchema
  * @param componentMap
+ * @param config
  * @returns {Promise<void>}
  */
-export const showGenerateSchemaSample = async (requestsSchema, componentMap) => {
+export const showGenerateSchemaSample = async (requestsSchema, componentMap, config) => {
   let sampleStr = ''
   if (requestsSchema.examples) {
     const examples = JSON.parse(requestsSchema.examples)
@@ -64,7 +65,7 @@ export const showGenerateSchemaSample = async (requestsSchema, componentMap) => 
     }
   }
   if (sampleStr) {
-    return showCodeWindow(sampleStr, { readOnly: false })
+    return showCodeWindow(sampleStr, { readOnly: false, viewAsTable: true, ...config })
   }
 }
 

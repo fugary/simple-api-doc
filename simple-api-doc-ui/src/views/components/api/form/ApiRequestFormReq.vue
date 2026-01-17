@@ -204,13 +204,13 @@ const proxyModeOption = computed(() => {
 
 const viewSchemaBody = () => {
   if (isString(props.schemaBody)) {
-    showCodeWindow(props.schemaBody)
+    showCodeWindow(props.schemaBody, { theme: monacoTheme.value })
   } else {
     let calcSchemaBody = props.schemaBody
     if (isArray(props.schemaBody) && props.schemaBody.length === 1) {
       calcSchemaBody = props.schemaBody[0]
     }
-    showCodeWindow(JSON.stringify(calcSchemaBody))
+    showCodeWindow(JSON.stringify(calcSchemaBody), { theme: monacoTheme.value })
   }
 }
 
@@ -231,6 +231,7 @@ const processCurlWindow = () => {
     showCancel: true,
     readOnly: false,
     language: 'shell',
+    theme: monacoTheme.value,
     okLabel: $i18nBundle('common.label.confirm'),
     ok (str) {
       extendCurlParams(paramTarget, str)
@@ -361,6 +362,7 @@ const { monacoTheme } = useShareDocTheme()
             <new-window-edit-link
               v-if="newWindowEdit&&!isSpecialLang"
               v-model="contentRef"
+              :theme="monacoTheme"
               class="margin-left3"
             />
             <el-link

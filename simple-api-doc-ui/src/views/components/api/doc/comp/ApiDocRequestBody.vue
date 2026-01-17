@@ -13,6 +13,10 @@ defineProps({
     type: String,
     default: 'dark'
   },
+  monacoTheme: {
+    type: String,
+    default: undefined
+  },
   editable: {
     type: Boolean,
     default: false
@@ -80,7 +84,7 @@ const toEditRequestSchema = (requestsSchema) => {
               v-if="requestsSchema.schemaContent"
               class="margin-left1"
               type="primary"
-              @click="showGenerateSchemaSample(requestsSchema, componentMap)"
+              @click="showGenerateSchemaSample(requestsSchema, componentMap, {theme:monacoTheme})"
             >
               <common-icon
                 :size="18"

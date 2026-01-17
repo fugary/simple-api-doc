@@ -10,6 +10,10 @@ defineProps({
     type: String,
     default: ''
   },
+  theme: {
+    type: String,
+    default: undefined
+  },
   manual: {
     type: Boolean,
     default: false
@@ -51,6 +55,7 @@ defineExpose({
     <simple-json-data-table
       v-model:table-config="formModel"
       v-model="vModel"
+      :theme="theme"
       :manual="manual"
       :xml-content="xmlContent"
       @save-table-config="tableConfig=cloneDeep(formModel)"

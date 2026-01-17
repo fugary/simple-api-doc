@@ -26,6 +26,10 @@ const props = defineProps({
   language: {
     type: String,
     default: undefined
+  },
+  theme: {
+    type: String,
+    default: undefined
   }
 })
 
@@ -39,7 +43,8 @@ const newWindowEdit = () => {
     readOnly: props.readOnly,
     closeOnClickModal: props.closeOnClickModal,
     fullEditor: props.fullEditor,
-    language: props.language
+    language: props.language,
+    theme: props.theme
   })
 }
 

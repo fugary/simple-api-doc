@@ -122,6 +122,7 @@ const jsonResponseData = computed(() => isJson(props.responseTarget?.data) || is
 const toShowJsonDataWindow = () => {
   paramTarget.value.tableConfig = paramTarget.value.tableConfig || {}
   return showJsonDataWindow(props.responseTarget?.data, {
+    theme: monacoTheme,
     manual: true,
     tableConfig: paramTarget.value.tableConfig,
     'onUpdate:tableConfig': (value) => {
@@ -261,6 +262,7 @@ const { monacoTheme } = useShareDocTheme()
                   :tooltip="$t('common.label.view')"
                   full-editor
                   read-only
+                  :theme="monacoTheme"
                 />
                 <el-link
                   v-common-tooltip="$i18nKey('common.label.commonFormat', 'api.label.responseBody')"

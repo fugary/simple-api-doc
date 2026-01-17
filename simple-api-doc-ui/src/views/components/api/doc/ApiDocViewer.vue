@@ -131,7 +131,7 @@ watch(() => globalConfigStore.currentLocale, loadDocDetail)
 watch(() => authContentModel.value.authKeyName, (authKey) => {
   authContentModel.value.authType = securitySchemas.value?.[authKey]?.authType || AUTH_TYPE.NONE
 })
-const { isDarkTheme } = useShareDocTheme(sharePreference)
+const { isDarkTheme, monacoTheme } = useShareDocTheme(sharePreference)
 const theme = computed(() => isDarkTheme.value ? 'dark' : 'light')
 const { isMobile } = useScreenCheck()
 
@@ -253,6 +253,7 @@ const authButtons = [{
           v-if="apiDocDetail?.requestsSchemas?.length||(editable&&!isGetMethod(apiDocDetail.method))"
           v-model="apiDocDetail"
           :theme="theme"
+          :monaco-theme="monacoTheme"
           :editable="editable"
           @schema-updated="loadDocDetail"
         />
@@ -260,6 +261,7 @@ const authButtons = [{
           v-if="apiDocDetail?.responsesSchemas?.length||editable"
           v-model="apiDocDetail"
           :theme="theme"
+          :monaco-theme="monacoTheme"
           :editable="editable"
           @schema-updated="loadDocDetail"
         />

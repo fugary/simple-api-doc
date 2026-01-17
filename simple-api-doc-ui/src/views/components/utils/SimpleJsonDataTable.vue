@@ -12,6 +12,10 @@ import { ElLink } from 'element-plus'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 
 const props = defineProps({
+  theme: {
+    type: String,
+    default: undefined
+  },
   manual: {
     type: Boolean,
     default: false
@@ -102,7 +106,7 @@ const tableButtons = computed(() => {
     labelKey: 'common.label.view',
     type: 'primary',
     click: item => {
-      showCodeWindow(JSON.stringify(item), { language: 'json', viewAsTable: true })
+      showCodeWindow(JSON.stringify(item), { language: 'json', viewAsTable: true, theme: props.theme })
     }
   }]
 })
@@ -260,14 +264,14 @@ const customPageAttrs = {
       </el-button>
       <el-button
         type="success"
-        @click="showCodeWindow(vModel, {language: 'json'})"
+        @click="showCodeWindow(vModel, {language: 'json', theme})"
       >
         {{ $i18nBundle('common.label.commonView', [$i18nConcat('JSON', $i18nBundle('common.label.originalContent'))]) }}
       </el-button>
       <el-button
         v-if="xmlContent"
         type="success"
-        @click="showCodeWindow(xmlContent, {language: 'xml'})"
+        @click="showCodeWindow(xmlContent, {language: 'xml', theme})"
       >
         {{ $i18nBundle('common.label.commonView', [$i18nConcat('XML', $i18nBundle('common.label.originalContent'))]) }}
       </el-button>
@@ -280,7 +284,7 @@ const customPageAttrs = {
       :frontend-page-size="5"
       :page-attrs="customPageAttrs"
       frontend-paging
-      @row-dblclick="showCodeWindow(JSON.stringify($event), {language: 'json', viewAsTable: true})"
+      @row-dblclick="showCodeWindow(JSON.stringify($event), {language: 'json', viewAsTable: true, theme})"
     />
     <simple-edit-window
       v-model="formSaveModel"

@@ -132,7 +132,7 @@ const calcButtons = computed(() => {
     type: 'success',
     enabled: codeConfig.viewAsTable && !codeConfig.diffEditor && isJsonOrXmlContent.value,
     click () {
-      showJsonDataWindow(codeText.value)
+      showJsonDataWindow(codeText.value, { theme: codeConfig.theme })
     }
   }, {
     label: $i18nKey('common.label.commonCopy', 'common.label.originalContent'),
@@ -242,11 +242,11 @@ watch([originalContent, modifiedContent], ([original, modified]) => {
           </el-link>
           <el-link
             v-if="codeConfig.viewAsTable && !codeConfig.diffEditor && isJsonOrXmlContent"
-            v-common-tooltip="$t('mock.label.viewAsTable')"
+            v-common-tooltip="$t('api.label.viewAsTable')"
             type="primary"
             underline="never"
             class="margin-left3"
-            @click="showJsonDataWindow(codeText)"
+            @click="showJsonDataWindow(codeText,{theme: codeConfig.theme})"
           >
             <common-icon
               :size="18"
@@ -257,7 +257,7 @@ watch([originalContent, modifiedContent], ([original, modified]) => {
       </common-form-control>
       <vue-monaco-diff-editor
         v-if="codeConfig.diffEditor"
-        :theme="useGlobalConfigStore().monacoTheme"
+        :theme="codeConfig.theme||useGlobalConfigStore().monacoTheme"
         :language="languageModel.language"
         :original="originalContent"
         :modified="modifiedContent"
@@ -271,7 +271,7 @@ watch([originalContent, modifiedContent], ([original, modified]) => {
       <vue-monaco-editor
         v-else
         v-model:value="codeText"
-        :theme="useGlobalConfigStore().monacoTheme"
+        :theme="codeConfig.theme||useGlobalConfigStore().monacoTheme"
         :language="languageRef"
         :height="codeHeight"
         :options="monacoEditorOptions"
