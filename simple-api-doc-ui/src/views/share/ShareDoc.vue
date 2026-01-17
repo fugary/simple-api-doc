@@ -35,8 +35,12 @@ const currentDoc = ref(null)
 const errorHandler = (err) => {
   if (err.data?.code === 401) {
     useShareConfigStore().clearShareToken(shareId)
-    showPassWindow.value = true
-    projectItem.value = null
+    if (projectShare.value?.needPassword) {
+      showPassWindow.value = true
+      projectItem.value = null
+    } else {
+      window.location.reload()
+    }
   }
 }
 emitter.on('share-doc-error', errorHandler)

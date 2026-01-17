@@ -39,6 +39,8 @@ public class ApiDocConstants {
 
     public static final String SIMPLE_API_DEBUG_HEADER = "simple-api-debug";
 
+    public static final String SIMPLE_SHARE_ERROR_HEADER = "simple-share-error";
+
     public static final String SIMPLE_API_META_DATA_REQ = "simple-api-meta-req";
 
     public static final String SIMPLE_API_ACCESS_TOKEN_HEADER = "simple-api-access-token";

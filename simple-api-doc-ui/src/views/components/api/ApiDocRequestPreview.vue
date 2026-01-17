@@ -15,6 +15,7 @@ import { joinPath, toGetParams } from '@/utils'
 import {
   AUTH_TYPE,
   SIMPLE_API_ACCESS_TOKEN_HEADER,
+  SIMPLE_SHARE_ERROR_HEADER,
   SIMPLE_API_TARGET_URL_HEADER
 } from '@/consts/ApiConstants'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
@@ -126,7 +127,7 @@ const doDataPreview = async () => {
 
 const calcResponse = (response) => {
   responseTarget.value = processResponse(response)
-  if (response.status === 200 && response.data?.includes?.('{"code":401')) {
+  if (response.status === 200 && response.headers[SIMPLE_SHARE_ERROR_HEADER]) {
     console.log('===============================responseTarget', responseTarget.value)
     emitter.emit('preview-401-error', {
       data: JSON.parse(responseTarget.value?.data)

@@ -61,6 +61,7 @@ public class ShareSecurityInterceptor implements HandlerInterceptor {
         response.setStatus(HttpStatus.OK.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader(ApiDocConstants.SIMPLE_SHARE_ERROR_HEADER, "1");
         try (PrintWriter out = response.getWriter()) {
             out.write(JsonUtils.toJson(userResult));
             out.flush();
