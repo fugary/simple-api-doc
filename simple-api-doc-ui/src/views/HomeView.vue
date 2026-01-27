@@ -4,13 +4,14 @@ import TopNav from '@/layout/TopNav.vue'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { useTabsViewStore } from '@/stores/TabsViewStore'
 import { GlobalLayoutMode } from '@/consts/GlobalConstants'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import GlobalSettings from '@/views/components/global/GlobalSettings.vue'
 import { useMenuConfigStore } from '@/stores/MenuConfigStore'
 import { useBreadcrumbConfigStore } from '@/stores/BreadcrumbConfigStore'
 import { useTabModeScrollSaver, getParentRootKey } from '@/route/RouteUtils'
 import { useRoute } from 'vue-router'
 import { useCopyRight } from '@/services/api/ApiCommonService'
+import { onKeyStroke } from '@vueuse/core'
 
 const route = useRoute()
 const globalConfigStore = useGlobalConfigStore()
@@ -22,6 +23,16 @@ const showLeftMenu = computed(() => {
 useTabModeScrollSaver()
 useMenuConfigStore().loadBusinessMenus()
 const copyRight = useCopyRight()
+const isMainMaximized = ref(false)
+const toggleMainFullscreen = () => {
+  isMainMaximized.value = !isMainMaximized.value
+}
+onKeyStroke('Escape', (e) => {
+  if (isMainMaximized.value) {
+    e.preventDefault()
+    isMainMaximized.value = false
+  }
+})
 </script>
 
 <template>
@@ -54,7 +65,19 @@ const copyRight = useCopyRight()
       >
         <common-tabs-view />
       </el-header>
-      <el-main class="home-main">
+      <el-main
+        class="home-main"
+        :class="{ 'is-maximized': isMainMaximized }"
+      >
+        <div
+          class="fullscreen-btn"
+          @click="toggleMainFullscreen"
+        >
+          <common-icon
+            :icon="isMainMaximized ? 'FullscreenExitFilled' : 'FullscreenFilled'"
+            :size="20"
+          />
+        </div>
         <router-view v-slot="{ Component, route }">
           <transition
             :name="route.meta?.transition!==false?'slide-fade':''"
