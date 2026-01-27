@@ -94,10 +94,11 @@ const checkChange = debounce(() => {
 
 const filterNode = (keyword, data) => {
   if (!keyword) return true
+  keyword = keyword.toLowerCase()
   if (data.isDoc) {
     return data.docName?.toLowerCase().includes(keyword) || data.url?.toLowerCase().includes(keyword)
   }
-  return data.label?.toLowerCase()?.includes(keyword.toLowerCase())
+  return data.label?.toLowerCase()?.includes(keyword)
 }
 
 </script>
