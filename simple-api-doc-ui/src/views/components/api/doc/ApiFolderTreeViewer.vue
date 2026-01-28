@@ -253,6 +253,16 @@ const allowDrop = (draggingNode, dropNode, type) => {
 const allowDrag = (draggingNode) => {
   return props.editable && !draggingNode?.data?.rootFlag
 }
+const dragState = {
+  oldParent: null,
+  oldNextSibling: null
+}
+
+const handleDragStart = (node) => {
+  dragState.oldParent = node.parent
+  dragState.oldNextSibling = node.nextSibling
+}
+
 const handleDragEnd = (draggingNode, dropNode, type) => {
   if (!dropNode) {
     return
@@ -262,7 +272,14 @@ const handleDragEnd = (draggingNode, dropNode, type) => {
       const sortParam = calcTreeNodeChildNodes(dropNode, draggingNode, type)
       updateFolderSorts(sortParam).then(() => refreshProjectItem())
     }).catch(() => {
-      refreshProjectItem()
+      const data = draggingNode.data
+      const node = treeRef.value.getNode(data)
+      treeRef.value.remove(node)
+      if (dragState.oldNextSibling) {
+        treeRef.value.insertBefore(data, dragState.oldNextSibling)
+      } else {
+        treeRef.value.append(data, dragState.oldParent)
+      }
     })
 }
 
@@ -402,6 +419,7 @@ defineExpose(handlerData)
           :allow-drag="allowDrag"
           :allow-drop="allowDrop"
           :draggable="editable"
+          @node-drag-start="handleDragStart"
           @node-drag-end="handleDragEnd"
           @node-click="showDocDetails($event, false)"
           @node-expand="expandOrCollapse($event, true)"
