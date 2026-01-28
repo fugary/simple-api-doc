@@ -120,8 +120,8 @@ defineEmits(['updateHistory'])
     <el-backtop
       v-common-tooltip="$t('common.label.backtop')"
       target=".md-editor-preview-wrapper"
-      :right="70"
-      :bottom="70"
+      :right="40"
+      :bottom="40"
     />
   </el-container>
 </template>

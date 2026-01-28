@@ -20,8 +20,8 @@ useRoutePopStateEvent()
   </el-config-provider>
   <el-backtop
     v-common-tooltip="$t('common.label.backtop')"
-    :right="70"
-    :bottom="70"
+    :right="40"
+    :bottom="40"
   />
 </template>
 

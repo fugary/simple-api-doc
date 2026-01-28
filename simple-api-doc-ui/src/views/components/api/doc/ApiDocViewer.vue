@@ -301,15 +301,15 @@ const authButtons = [{
         v-if="viewAsMarkdown"
         v-common-tooltip="$t('common.label.backtop')"
         target=".md-editor-preview-wrapper"
-        :right="70"
-        :bottom="70"
+        :right="40"
+        :bottom="40"
       />
       <el-backtop
         v-else
         v-common-tooltip="$t('common.label.backtop')"
         target=".api-doc-viewer .el-scrollbar__wrap"
-        :right="70"
-        :bottom="70"
+        :right="40"
+        :bottom="40"
       />
     </template>
     <common-window
