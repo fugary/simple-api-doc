@@ -10,7 +10,7 @@ import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import MoreActionsLink from '@/views/components/utils/MoreActionsLink.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import {
   useFolderDropdown,
@@ -32,7 +32,7 @@ import { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep, debounce } from 'lodash-es'
-import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
 
@@ -254,11 +254,16 @@ const allowDrag = (draggingNode) => {
   return props.editable && !draggingNode?.data?.rootFlag
 }
 const handleDragEnd = (draggingNode, dropNode, type) => {
-  if (dropNode) {
-    const sortParam = calcTreeNodeChildNodes(dropNode, draggingNode, type)
-    updateFolderSorts(sortParam)
-      .then(() => refreshProjectItem())
+  if (!dropNode) {
+    return
   }
+  $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.move'))
+    .then(() => {
+      const sortParam = calcTreeNodeChildNodes(dropNode, draggingNode, type)
+      updateFolderSorts(sortParam).then(() => refreshProjectItem())
+    }).catch(() => {
+      refreshProjectItem()
+    })
 }
 
 const isDeletable = computed(() => props.deletable)
