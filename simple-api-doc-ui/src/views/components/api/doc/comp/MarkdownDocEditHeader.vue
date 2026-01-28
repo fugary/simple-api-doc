@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { ElMessage } from 'element-plus'
@@ -56,10 +56,14 @@ const saveApiDoc = (form) => {
     }
   })
 }
+const showAffixBtn = inject('showAffixBtn', null)
 </script>
 
 <template>
-  <el-header style="min-height: var(--el-header-height);height:auto;">
+  <el-header
+    style="min-height: var(--el-header-height);height:auto;"
+    :style="showAffixBtn?'padding-left: 50px;':''"
+  >
     <el-breadcrumb
       v-if="folderPaths.length>1"
       class="margin-bottom3"

@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
 import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl } from '@/utils'
-import { ref, watch, computed, onActivated, onMounted } from 'vue'
+import { ref, watch, computed, onActivated, onMounted, provide } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
@@ -16,6 +16,7 @@ import { useInitLoadOnce } from '@/hooks/CommonHooks'
 import { toEditEnvConfigs } from '@/utils/DynamicUtils'
 import { $i18nKey } from '@/messages'
 import ApiProjectSecuritySchemaEdit from '@/views/components/api/doc/comp/edit/ApiProjectSecuritySchemaEdit.vue'
+import { useScreenCheck } from '@/services/api/ApiCommonService'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -25,6 +26,7 @@ const { goBack, backUrl } = useBackUrl('/api/projects')
 const { projectItem, loading, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false })
 
 const folderTreeRef = ref()
+const drawerFolderTreeRef = ref()
 const currentDoc = ref(null)
 const savedApiDoc = (newDoc) => {
   if (folderTreeRef.value?.sharePreference) {
@@ -37,6 +39,7 @@ const savedApiDoc = (newDoc) => {
 const lastDocInfo = ref()
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc?.id !== oldDoc?.id) {
+    showDrawerMenu.value = false
     hideDebugSplit()
     lastDocInfo.value = oldDoc
   }
@@ -67,6 +70,24 @@ const envConfigs = computed(() => {
 })
 
 const showSecurityEditWindow = ref(false)
+
+const splitRef = ref()
+const showDrawerMenu = ref(false)
+const { isMobile } = useScreenCheck()
+const showAffixBtn = computed(() => isMobile.value || splitRef.value?.elementSizes?.[0] < 50)
+provide('showAffixBtn', showAffixBtn)
+watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
+  const drawerRefresh = drawerVal?.refreshProjectItem
+  const folderRefresh = folderVal?.refreshProjectItem
+  if (drawerRefresh && folderRefresh) {
+    const newRefresh = () => {
+      folderRefresh()
+      drawerRefresh()
+    }
+    drawerFolderTreeRef.value.refreshProjectItem = newRefresh
+    folderTreeRef.value.refreshProjectItem = newRefresh
+  }
+})
 </script>
 
 <template>
@@ -185,8 +206,25 @@ const showSecurityEditWindow = ref(false)
       style="height: calc(100% - 60px);"
     >
       <div class="form-edit-width-100">
+        <el-affix
+          v-if="showAffixBtn"
+          :offset="80"
+          style="position: absolute;width: 70px;z-index: 100;"
+        >
+          <el-button
+            type="info"
+            class="margin-left3"
+            @click="showDrawerMenu=!showDrawerMenu"
+          >
+            <common-icon
+              icon="MenuFilled"
+              :size="20"
+            />
+          </el-button>
+        </el-affix>
         <common-split
           v-if="projectItem"
+          ref="splitRef"
           :sizes="splitSizes"
           :min-size="defaultMinSizes"
           :max-size="defaultMaxSizes"
@@ -282,6 +320,24 @@ const showSecurityEditWindow = ref(false)
           :project-item="projectItem"
           @save-security-schema="initLoadOnce().then(()=>savedApiDoc(currentDoc))"
         />
+        <el-drawer
+          v-model="showDrawerMenu"
+          style="min-width: 320px;"
+          :with-header="false"
+          direction="ltr"
+          append-to-body
+        >
+          <api-folder-tree-viewer
+            ref="drawerFolderTreeRef"
+            v-model="projectItem"
+            v-model:current-doc="currentDoc"
+            :project-item="projectItem"
+            :editable="isWritable"
+            :deletable="isDeletable"
+            :show-close="true"
+            @close-left="showDrawerMenu=false"
+          />
+        </el-drawer>
       </div>
     </el-container>
   </el-container>

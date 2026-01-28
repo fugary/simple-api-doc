@@ -395,6 +395,17 @@ defineExpose(handlerData)
           :icon-size="20"
           :handlers="shareTopHandlers"
         />
+        <el-link
+          v-if="showClose"
+          underline="never"
+          class="margin-left2"
+        >
+          <common-icon
+            icon="Close"
+            :size="20"
+            @click="$emit('closeLeft')"
+          />
+        </el-link>
       </el-header>
       <common-form-control
         style="margin-left: -10px;"
