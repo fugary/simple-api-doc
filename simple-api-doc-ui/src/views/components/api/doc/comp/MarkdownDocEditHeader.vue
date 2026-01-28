@@ -66,7 +66,7 @@ const showAffixBtn = inject('showAffixBtn', null)
   >
     <el-breadcrumb
       v-if="folderPaths.length>1"
-      class="margin-bottom3"
+      class="margin-bottom3 margin-top3"
     >
       <el-breadcrumb-item
         v-for="(folderPath, index) in folderPaths"
