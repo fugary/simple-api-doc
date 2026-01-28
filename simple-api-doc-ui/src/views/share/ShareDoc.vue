@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
@@ -128,6 +128,8 @@ const waterMarkContent = computed(() => {
   }
   return ''
 })
+const showAffixBtn = computed(() => isMobile.value || splitRef.value?.elementSizes?.[0] < 50)
+provide('showAffixBtn', showAffixBtn)
 </script>
 
 <template>
@@ -142,7 +144,7 @@ const waterMarkContent = computed(() => {
       :class="`share-${shareId}`"
     >
       <el-affix
-        v-if="isMobile||splitRef?.elementSizes?.[0]<50"
+        v-if="showAffixBtn"
         :offset="20"
         style="position: absolute;width: 70px;"
       >

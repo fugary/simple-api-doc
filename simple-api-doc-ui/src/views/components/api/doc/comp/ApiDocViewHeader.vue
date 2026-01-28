@@ -1,7 +1,6 @@
 <script setup lang="jsx">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
-import { useScreenCheck } from '@/services/api/ApiCommonService'
 import { showHistoryListWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
 import { $copyText } from '@/utils'
@@ -36,7 +35,6 @@ const folderPaths = computed(() => {
   }
   return []
 })
-const { isMobile } = useScreenCheck()
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
 const emit = defineEmits(['updateHistory'])
 const toShowHistoryWindow = (current) => {
@@ -135,12 +133,13 @@ const toShowHistoryWindow = (current) => {
     onUpdateHistory: data => emit('updateHistory', data)
   })
 }
+const showAffixBtn = inject('showAffixBtn', null)
 </script>
 
 <template>
   <el-header
     style="min-height: var(--el-header-height);height:auto;"
-    :style="isMobile?'padding-left: 50px;':''"
+    :style="showAffixBtn?'padding-left: 50px;':''"
   >
     <el-breadcrumb
       v-if="folderPaths.length>1"
