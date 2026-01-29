@@ -1,0 +1,291 @@
+.login-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: var(--el-bg-color);
+}
+
+/* Tools */
+.login-tools {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    z-index: 10;
+    --el-menu-bg-color: transparent;
+    --el-menu-border-color: transparent;
+    --el-menu-hover-bg-color: rgba(255, 255, 255, 0.1);
+    --el-menu-text-color: #ffffff;
+    --el-menu-hover-text-color: #ffffff;
+    --el-menu-active-color: #ffffff;
+}
+
+:deep(.el-menu--horizontal) {
+    border: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+:deep(.el-menu--horizontal > .el-menu-item),
+:deep(.el-menu--horizontal > .el-sub-menu .el-sub-menu__title) {
+    color: inherit !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+:deep(.el-menu--horizontal > .el-menu-item.is-active),
+:deep(.el-menu--horizontal > .el-sub-menu.is-active .el-sub-menu__title) {
+    border: none !important;
+    color: inherit !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+:deep(.el-menu--horizontal .el-menu-item:hover),
+:deep(.el-menu--horizontal .el-sub-menu__title:hover) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px;
+    color: inherit !important;
+}
+
+/* Left Branding (Mobile hidden) */
+.login-branding {
+    flex: 1;
+    /* New Deep Blue Gradient */
+    background: linear-gradient(135deg, #1c2e4a 0%, #2b4b7c 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative Circle */
+.branding-decoration {
+    position: absolute;
+    top: -20%;
+    left: -20%;
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(100, 149, 237, 0.15) 0%, rgba(100, 149, 237, 0) 70%);
+    border-radius: 50%;
+    filter: blur(60px);
+    animation: float 10s infinite ease-in-out;
+}
+
+@keyframes float {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    50% {
+        transform: translate(20px, 30px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+.branding-content {
+    text-align: center;
+    z-index: 2;
+    animation: fadeIn 1s ease-out;
+}
+
+.branding-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: -1px;
+}
+
+.branding-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+.branding-footer {
+    position: absolute;
+    bottom: 30px;
+    font-size: 0.85rem;
+    opacity: 0.6;
+}
+
+/* Right Form Section */
+.login-form-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background-color: var(--el-bg-color);
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 420px;
+    padding: 48px;
+    background: rgba(255, 255, 255, 1);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    animation: slideUp 0.8s ease-out;
+}
+
+.dark .branding-decoration {
+    background: radial-gradient(circle, rgba(100, 149, 237, 0.1) 0%, rgba(100, 149, 237, 0) 70%);
+}
+
+.dark .login-form-section {
+    /* Subtle grid pattern for dark mode */
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+.dark .form-wrapper {
+    background: #1e1e1e;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.form-header {
+    text-align: left;
+    margin-bottom: 2rem;
+}
+
+.form-header h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--el-text-color-primary);
+}
+
+.form-subtitle {
+    color: var(--el-text-color-secondary);
+    font-size: 0.95rem;
+}
+
+/* Form Styles */
+.modern-form {
+    margin-bottom: 1.5rem;
+}
+
+:deep(.el-form-item__label) {
+    font-weight: 600;
+}
+
+.form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.login-btn {
+    width: 100%;
+    font-size: 1.05rem;
+    font-weight: 500;
+    padding: 24px 0;
+    border-radius: 8px;
+    /* Primary Blue */
+    background: #3b82f6;
+    border: none;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+
+.login-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+.reset-btn {
+    width: 100%;
+    margin-top: 0;
+    margin-left: 0 !important;
+    border: none;
+    padding: 24px 0;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.reset-btn:hover {
+    background-color: var(--el-fill-color-light);
+    color: #3b82f6;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .login-container {
+        flex-direction: column;
+    }
+
+    .login-branding {
+        flex: 0 0 120px;
+        padding: 20px;
+    }
+
+    .branding-title {
+        font-size: 1.8rem;
+        margin-bottom: 0;
+    }
+
+    .branding-subtitle,
+    .branding-footer {
+        display: none;
+    }
+
+    .login-form-section {
+        padding-top: 40px;
+        align-items: flex-start;
+    }
+
+    .login-tools {
+        color: white;
+    }
+
+    .login-tools :deep(.el-sub-menu__title),
+    .login-tools :deep(.el-tooltip__trigger) {
+        color: white !important;
+    }
+}
