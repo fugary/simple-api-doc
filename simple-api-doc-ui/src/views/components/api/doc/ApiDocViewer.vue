@@ -75,7 +75,8 @@ const loadDocDetail = async () => {
   loading.value = true
   if (props.shareDoc?.shareId) {
     const shareId = props.shareDoc.shareId
-    apiDocDetail.value = await loadShareDoc({ shareId, docId: apiDoc.value.id, markdown: viewAsMarkdown.value })
+    apiDocDetail.value = await loadShareDoc({ shareId, docId: apiDoc.value.id, markdown: viewAsMarkdown.value }
+      , { showErrorMessage: false })
       .then(data => data.resultData)
       .catch(err => {
         emitter.emit('share-doc-error', err)

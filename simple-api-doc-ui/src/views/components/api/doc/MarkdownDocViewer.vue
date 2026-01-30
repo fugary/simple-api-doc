@@ -53,7 +53,7 @@ const loadCurrentDoc = (id) => {
     return loadMdDoc({
       shareId: props.shareDoc.shareId,
       docId: id
-    }).then(data => {
+    }, { showErrorMessage: false }).then(data => {
       Object.assign(currentDoc.value, data.resultData)
       $coreHideLoading()
     }).catch(err => {
