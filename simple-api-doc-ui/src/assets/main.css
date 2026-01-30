@@ -278,6 +278,42 @@ body,
     /* Ensure opaque background in fullscreen */
 }
 
+/* ... existing fullscreen styles ... */
+
+/* ========================================
+   LAYOUT STYLES (Ported from Reference)
+   ======================================== */
+.index-header {
+    box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+    z-index: 10;
+    position: relative;
+}
+
+.dark .index-header {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid var(--el-border-color-light);
+}
+
+.index-aside {
+    box-shadow: 2px 0 8px 0 rgba(29, 35, 41, 0.05);
+    transition: width 0.3s;
+    z-index: 9;
+}
+
+.dark .index-aside {
+    box-shadow: 2px 0 8px 0 rgba(0, 0, 0, 0.5);
+    border-right: 1px solid var(--el-border-color-light);
+}
+
+.breadcrumb-header {
+    background-color: #fff;
+    /* No border-bottom to avoid double lines */
+}
+
+.dark .breadcrumb-header {
+    background-color: var(--el-bg-color);
+}
+
 .el-dialog.is-fullscreen .el-dialog__body {
     flex: 1;
     overflow: auto;
