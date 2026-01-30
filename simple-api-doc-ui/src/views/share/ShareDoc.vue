@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="jsx">
 import { computed, onMounted, onUnmounted, ref, watch, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
@@ -8,6 +8,7 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { useFavicon, useTitle } from '@vueuse/core'
 import emitter from '@/vendors/emitter'
 import ShareDocRightViewer from '@/views/components/api/doc/ShareDocRightViewer.vue'
+import CommonIcon from '@/components/common-icon/index.vue'
 import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vue'
 import { useApiDocDebugConfig } from '@/services/api/ApiDocPreviewService'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
@@ -92,13 +93,13 @@ const passwordOptions = [{
   required: true,
   placeholder: $i18nKey('common.msg.commonInput', 'api.label.accessPassword'),
   attrs: {
-    showPassword: true
+    showPassword: true,
+    size: 'large'
+  },
+  slots: {
+    prefix: () => <CommonIcon icon="Lock" size={18} />
   }
 }]
-const toAccessDocs = ({ form }) => {
-  submitForm(form)
-  return false
-}
 
 const submitForm = form => {
   form.validate(valid => {
@@ -174,12 +175,11 @@ provide('showAffixBtn', showAffixBtn)
           width="500px"
           :show-close="false"
           :show-cancel="false"
+          :show-buttons="false"
           :title="projectShare?.shareName"
-          :ok-label="$t('api.label.accessDocs')"
-          :ok-click="toAccessDocs"
           :close-on-click-modal="false"
         >
-          <el-container class="flex-column">
+          <el-container class="flex-column password-dialog-body">
             <el-alert
               show-icon
               :description="$t('api.msg.docNeedPassword')"
@@ -192,8 +192,17 @@ provide('showAffixBtn', showAffixBtn)
               :model="shareParam"
               :show-submit="false"
               :show-buttons="false"
+              label-position="top"
               @submit-form="submitForm"
             />
+            <el-button
+              type="primary"
+              class="access-btn margin-top3"
+              :loading="loading"
+              @click="loadShareData(true)"
+            >
+              {{ $t('api.label.accessDocs') }}
+            </el-button>
           </el-container>
         </common-window>
         <el-container
@@ -289,5 +298,16 @@ provide('showAffixBtn', showAffixBtn)
 </template>
 
 <style scoped>
+.password-dialog-body {
+  padding: 20px 40px 40px 40px !important;
+}
 
+.access-btn {
+  width: 100%;
+  font-size: 1.05rem;
+  font-weight: 500;
+  padding: 20px 0;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+}
 </style>
