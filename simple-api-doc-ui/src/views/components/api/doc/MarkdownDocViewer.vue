@@ -9,6 +9,7 @@ import { loadMdDoc } from '@/api/SimpleShareApi'
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
 import { calcSharePreference, useShareDocTheme } from '@/services/api/ApiFolderService'
+import emitter from '@/vendors/emitter'
 
 const props = defineProps({
   scrollElement: {
@@ -55,7 +56,10 @@ const loadCurrentDoc = (id) => {
     }).then(data => {
       Object.assign(currentDoc.value, data.resultData)
       $coreHideLoading()
-    }).catch(() => $coreHideLoading())
+    }).catch(err => {
+      emitter.emit('share-doc-error', err)
+      $coreHideLoading()
+    })
   }
 }
 
