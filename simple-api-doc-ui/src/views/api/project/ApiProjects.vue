@@ -356,8 +356,7 @@ const pageAttrs = {
         >
           <el-card
             shadow="hover"
-            class="small-card operation-card pointer"
-            style="border-radius: 15px;"
+            class="small-card operation-card project-card pointer"
             :class="{'project-selected': project.selected}"
             @click="toEditProject(project)"
           >
@@ -386,36 +385,38 @@ const pageAttrs = {
                     </el-text>
                   </div>
                 </el-checkbox>
-                <el-button
-                  v-if="project.showOperations&&project.isWritable"
-                  v-common-tooltip="$t('common.label.edit')"
-                  type="primary"
-                  size="small"
-                  round
-                  @click="newOrEdit(project.id, $event)"
-                >
-                  <common-icon icon="Edit" />
-                </el-button>
-                <el-button
-                  v-if="project.showOperations&&project.isWritable"
-                  v-common-tooltip="$t('common.label.copy')"
-                  type="warning"
-                  size="small"
-                  round
-                  @click="toCopyProject(project, $event)"
-                >
-                  <common-icon icon="FileCopyFilled" />
-                </el-button>
-                <el-button
-                  v-if="project.showOperations&&project.isDeletable"
-                  v-common-tooltip="$t('common.label.delete')"
-                  type="danger"
-                  size="small"
-                  round
-                  @click="deleteProject(project, $event)"
-                >
-                  <common-icon icon="DeleteFilled" />
-                </el-button>
+                <div class="project-operations">
+                  <el-button
+                    v-if="project.showOperations&&project.isWritable"
+                    v-common-tooltip="$t('common.label.edit')"
+                    type="primary"
+                    size="small"
+                    round
+                    @click="newOrEdit(project.id, $event)"
+                  >
+                    <common-icon icon="Edit" />
+                  </el-button>
+                  <el-button
+                    v-if="project.showOperations&&project.isWritable"
+                    v-common-tooltip="$t('common.label.copy')"
+                    type="warning"
+                    size="small"
+                    round
+                    @click="toCopyProject(project, $event)"
+                  >
+                    <common-icon icon="FileCopyFilled" />
+                  </el-button>
+                  <el-button
+                    v-if="project.showOperations&&project.isDeletable"
+                    v-common-tooltip="$t('common.label.delete')"
+                    type="danger"
+                    size="small"
+                    round
+                    @click="deleteProject(project, $event)"
+                  >
+                    <common-icon icon="DeleteFilled" />
+                  </el-button>
+                </div>
               </div>
             </template>
             <common-descriptions
@@ -454,5 +455,79 @@ const pageAttrs = {
 </template>
 
 <style scoped>
+/* Project card base styling */
+.project-card {
+  border-radius: 12px;
+  transition: all 0.25s ease;
+  overflow: hidden;
+  /* Sync top border width with hover state to prevent layout shift
+     Use default border color initially so it looks connected */
+  border-top: 3px solid var(--el-border-color-lighter);
+}
 
+.dark .project-card {
+  border-top-color: var(--el-border-color-darker);
+}
+
+/* Hover effect */
+.project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border-top-color: var(--el-color-primary);
+}
+
+.dark .project-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Selected state */
+.project-selected {
+  border-color: var(--el-color-primary);
+  border-top-color: var(--el-color-primary);
+}
+
+/* Card header styling */
+.project-card :deep(.el-card__header) {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+/* Card body styling */
+.project-card :deep(.el-card__body) {
+  padding: 14px 16px;
+}
+
+/* Project title styling */
+.project-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Operation buttons */
+.project-operations {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.project-card:hover .project-operations {
+  opacity: 1;
+}
+
+/* Disabled project styling */
+.project-disabled {
+  opacity: 0.6;
+}
+
+.project-disabled:hover {
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* Description items styling */
+.project-card :deep(.el-descriptions__label) {
+  font-weight: 500;
+  color: var(--el-text-color-secondary);
+}
 </style>
