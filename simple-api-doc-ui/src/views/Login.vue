@@ -141,6 +141,4 @@ const copyRight = useCopyRight()
   </div>
 </template>
 
-<style>
-@import '@/assets/login.css';
-</style>
+<style scoped src="@/assets/login.css"></style>
