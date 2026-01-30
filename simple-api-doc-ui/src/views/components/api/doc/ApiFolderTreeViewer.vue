@@ -137,7 +137,7 @@ const shareTopHandlers = computed(() => {
     return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
       calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
       // calcDebugInWindowHandler(rootFolder.value, sharePreference),
-      ...calcShowCleanHandlers(rootFolder.value, sharePreference, handlerData)]
+      ...calcShowCleanHandlers(props.shareDoc, rootFolder.value, sharePreference, handlerData)]
   }
   return []
 })

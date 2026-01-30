@@ -60,7 +60,7 @@ export const calcDebugInWindowHandler = (folder, preference) => {
   }
 }
 
-export const calcShowCleanHandlers = (folder, preference, config = {}) => {
+export const calcShowCleanHandlers = (shareDoc, folder, preference, config = {}) => {
   return preference.preferenceId && config.hasApiDoc?.value
     ? [{
         enabled: !!folder.rootFlag,
@@ -72,6 +72,20 @@ export const calcShowCleanHandlers = (folder, preference, config = {}) => {
           if (preference?.preferenceId && isFunction(reload)) {
             $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.clearCachedData')).then(() => {
               useShareConfigStore().clearSharePreference(preference.preferenceId)
+              reload()
+            })
+          }
+        }
+      }, {
+        enabled: !!shareDoc.needPassword,
+        icon: 'LogOutFilled',
+        labelKey: 'common.label.logout',
+        type: 'danger',
+        handler: () => {
+          const { reload } = config
+          if (preference?.preferenceId && isFunction(reload)) {
+            $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.logout')).then(() => {
+              useShareConfigStore().clearShareToken(preference.preferenceId)
               reload()
             })
           }
@@ -424,7 +438,7 @@ export const useInitShareDocTheme = (shareId, init = true) => {
   provide(CURRENT_SHARE_THEME_KEY, shareDarkTheme)
   const checkDarkTheme = (shareDoc) => {
     const themeName = useShareConfigStore().sharePreferenceView[shareDoc?.shareId]?.defaultTheme ||
-        shareDoc?.defaultTheme || 'dark'
+      shareDoc?.defaultTheme || 'dark'
     shareDarkTheme.value = themeName === 'dark'
   }
   init && checkDarkTheme()
