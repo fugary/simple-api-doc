@@ -1,4 +1,4 @@
-import { computed, inject, provide, ref } from 'vue'
+import { computed, inject, provide, ref, nextTick } from 'vue'
 import ApiFolderApi, { clearFolder, loadAvailableFolders } from '@/api/ApiFolderApi'
 import { $coreConfirm, processTreeData } from '@/utils'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -441,14 +441,56 @@ export const useShareDocTheme = (sharePreference) => {
   return {
     isDarkTheme,
     monacoTheme,
-    toggleTheme: () => {
+    toggleTheme: (event) => {
       if (shareDarkTheme) {
         console.log('====================shareDarkTheme', sharePreference, shareDarkTheme?.value)
-        shareDarkTheme.value = !shareDarkTheme.value
-        if (sharePreference) {
-          sharePreference.defaultTheme = shareDarkTheme.value ? 'dark' : 'light'
-        }
+        handleShareThemeChange(shareDarkTheme, event, () => {
+          if (sharePreference) {
+            sharePreference.defaultTheme = shareDarkTheme.value ? 'dark' : 'light'
+          }
+        })
       }
     }
   }
+}
+
+const handleShareThemeChange = (shareDarkTheme, event, callback) => {
+  const isDark = shareDarkTheme.value
+  // Check if view transition is supported and event exists
+  if (!document.startViewTransition) {
+    shareDarkTheme.value = !isDark
+    callback && callback()
+    return
+  }
+
+  const x = event?.clientX ?? window.event?.clientX ?? window.innerWidth / 2
+  const y = event?.clientY ?? window.event?.clientY ?? window.innerHeight / 2
+  const endRadius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y)
+  )
+
+  const transition = document.startViewTransition(async () => {
+    shareDarkTheme.value = !isDark
+    callback && callback()
+    // Wait for Vue to update the DOM
+    await nextTick()
+  })
+
+  transition.ready.then(() => {
+    const clipPath = [
+      `circle(0px at ${x}px ${y}px)`,
+      `circle(${endRadius}px at ${x}px ${y}px)`
+    ]
+    document.documentElement.animate(
+      {
+        clipPath: isDark ? clipPath : clipPath.reverse()
+      },
+      {
+        duration: 400,
+        easing: 'ease-in',
+        pseudoElement: isDark ? '::view-transition-new(root)' : '::view-transition-old(root)'
+      }
+    )
+  })
 }
