@@ -134,6 +134,7 @@ const handleThemeChange = (globalConfigStore, event) => {
       {
         duration: 400,
         easing: 'ease-in',
+        fill: 'forwards',
         pseudoElement: isDark ? '::view-transition-new(root)' : '::view-transition-old(root)'
       }
     )

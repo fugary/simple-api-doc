@@ -1,0 +1,17 @@
+{
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "editor.formatOnSave": false,
+    "eslint.validate": [
+        "javascript",
+        "javascriptreact",
+        "vue"
+    ],
+    "eslint.workingDirectories": [
+        {
+            "directory": "./simple-api-doc-ui",
+            "changeProcessCWD": true
+        }
+    ]
+}
