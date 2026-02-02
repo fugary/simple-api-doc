@@ -53,6 +53,8 @@ const newSplitInstance = () => {
   // Clear previous size refs to avoid duplicates/leaks on re-init
   elementSizesRefs.value = []
 
+  if (props.disabled) return
+
   const elements = itemRefs.value.filter(el => el)
   if (elements.length === 0) return
 
