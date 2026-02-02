@@ -77,7 +77,7 @@ export const calcShowCleanHandlers = (shareDoc, folder, preference, config = {})
           }
         }
       }, {
-        enabled: !!shareDoc.needPassword,
+        enabled: !!shareDoc?.needPassword,
         icon: 'LogOutFilled',
         labelKey: 'common.label.logout',
         type: 'danger',
