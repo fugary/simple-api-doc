@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, useAttrs, watch, nextTick } from 'vue'
+import { onMounted, ref, useAttrs, shallowRef, watch, nextTick, computed } from 'vue'
 import Split from 'split.js'
 import { useElementSize } from '@vueuse/core'
 
@@ -39,38 +39,28 @@ const props = defineProps({
     default: false
   }
 })
+const elementSizesRefs = ref([])
 const itemRefs = ref([])
 const isDragging = ref(false)
-const splitRef = ref(null)
-// Keep useElementSize as requested
-const { width, height } = useElementSize(splitRef)
-const elementSizes = ref([])
 
 const attrs = useAttrs()
-let splitInstance = null
-
-const updateElementSizes = () => {
-  if (itemRefs.value) {
-    elementSizes.value = itemRefs.value.map(el => {
-      return {
-        width: el.offsetWidth,
-        height: el.offsetHeight
-      }
-    })
+const splitInstance = shallowRef()
+const newSplitInstance = () => {
+  if (splitInstance.value) {
+    splitInstance.value.destroy()
+    splitInstance.value = null
   }
-}
+  // Clear previous size refs to avoid duplicates/leaks on re-init
+  elementSizesRefs.value = []
 
-const initSplit = () => {
-  if (splitInstance) {
-    splitInstance.destroy()
-    splitInstance = null
-  }
-  if (props.disabled) {
-    updateElementSizes()
-    return
-  }
+  const elements = itemRefs.value.filter(el => el)
+  if (elements.length === 0) return
 
-  splitInstance = Split(itemRefs.value.map(itemRef => itemRef), {
+  splitInstance.value = Split(elements.map(itemRef => {
+    const { width, height } = useElementSize(itemRef)
+    elementSizesRefs.value.push(props.direction === 'vertical' ? height : width)
+    return itemRef
+  }), {
     sizes: props.sizes,
     minSize: props.minSize,
     maxSize: props.maxSize,
@@ -89,53 +79,36 @@ const initSplit = () => {
       if (attrs.onDragEnd) {
         attrs.onDragEnd(sizes)
       }
-      updateElementSizes()
-    },
-    onDrag: (sizes) => {
-      updateElementSizes()
-      if (attrs.onDrag) {
-        attrs.onDrag(sizes)
-      }
     }
   })
-  updateElementSizes()
 }
 
 onMounted(() => {
-  initSplit()
+  newSplitInstance()
 })
 
-onUnmounted(() => {
-  if (splitInstance) {
-    splitInstance.destroy()
-  }
+watch(() => props.sizes, () => {
+  nextTick(() => {
+    newSplitInstance()
+  })
 })
 
 watch(() => props.disabled, () => {
-  initSplit()
+  nextTick(() => {
+    newSplitInstance()
+  })
 })
 
-watch(() => props.sizes, (newSizes) => {
-  if (splitInstance) {
-    splitInstance.setSizes(newSizes)
-    nextTick(updateElementSizes)
-  }
-})
-
-// Update sizes when container resizes
-watch([width, height], () => {
-  updateElementSizes()
-})
+const elementSizes = computed(() => elementSizesRefs.value?.map(sizeRef => sizeRef.value))
 
 defineExpose({
-  elementSizes,
-  splitInstance
+  splitInstance,
+  elementSizes
 })
 </script>
 
 <template>
   <div
-    ref="splitRef"
     class="common-split"
     :class="{ 'is-disabled': disabled, 'is-dragging': isDragging }"
   >
