@@ -370,6 +370,7 @@ defineExpose(handlerData)
       <el-header
         v-if="editable"
         class="share-name-header"
+        :class="{'margin-bottom3':showClose}"
       >
         <img
           v-if="iconUrl"
