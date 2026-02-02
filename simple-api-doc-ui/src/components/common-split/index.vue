@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, useAttrs, shallowRef, watch, nextTick, computed } from 'vue'
+import { onMounted, ref, useAttrs, shallowRef, watch, computed } from 'vue'
 import Split from 'split.js'
 import { useElementSize } from '@vueuse/core'
 
@@ -89,16 +89,14 @@ onMounted(() => {
   newSplitInstance()
 })
 
-watch(() => props.sizes, () => {
-  nextTick(() => {
-    newSplitInstance()
-  })
+watch(() => props.sizes, (newSizes) => {
+  if (splitInstance.value) {
+    splitInstance.value.setSizes(newSizes)
+  }
 })
 
 watch(() => props.disabled, () => {
-  nextTick(() => {
-    newSplitInstance()
-  })
+  newSplitInstance()
 })
 
 const elementSizes = computed(() => elementSizesRefs.value?.map(sizeRef => sizeRef.value))
