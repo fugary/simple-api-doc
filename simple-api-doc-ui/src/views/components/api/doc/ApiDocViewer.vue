@@ -209,6 +209,7 @@ const authButtons = [{
       @update-history="$emit('updateHistory', $event)"
     />
     <api-doc-path-header
+      v-if="apiDocDetail"
       v-model="apiDocDetail"
       v-model:view-as-markdown="sharePreference.viewAsMarkdown"
       :env-configs="envConfigs"
