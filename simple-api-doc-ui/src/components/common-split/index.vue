@@ -70,6 +70,14 @@ const newSplitInstance = () => {
     gutterSize: 5,
     direction: props.direction,
     ...attrs,
+    gutter: (index, direction) => {
+      const gutter = document.createElement('div')
+      gutter.className = `gutter gutter-${direction}`
+      gutter.addEventListener('mousedown', () => {
+        gutter.classList.add('is-active')
+      })
+      return gutter
+    },
     onDragStart: (sizes) => {
       isDragging.value = true
       if (attrs.onDragStart) {
@@ -78,6 +86,12 @@ const newSplitInstance = () => {
     },
     onDragEnd: (sizes) => {
       isDragging.value = false
+      // remove is-active from all gutters
+      const container = itemRefs.value[0]?.parentNode
+      if (container) {
+        container.querySelectorAll('.gutter.is-active').forEach(el => el.classList.remove('is-active'))
+      }
+
       if (attrs.onDragEnd) {
         attrs.onDragEnd(sizes)
       }
@@ -89,15 +103,13 @@ onMounted(() => {
   newSplitInstance()
 })
 
-watch(() => props.sizes, (newSizes) => {
-  if (splitInstance.value) {
-    splitInstance.value.setSizes(newSizes)
-  }
-})
+watch(() => props.sizes, () => {
+  newSplitInstance()
+}, { flush: 'post' })
 
 watch(() => props.disabled, () => {
   newSplitInstance()
-})
+}, { flush: 'post' })
 
 const elementSizes = computed(() => elementSizesRefs.value?.map(sizeRef => sizeRef.value))
 
@@ -150,7 +162,7 @@ defineExpose({
   background-position: 50%;
 }
 /* Highlight when dragging (controlled by JS state) */
-.is-dragging > :deep(.gutter) {
+:deep(.gutter.is-active) {
   background-color: #409eff !important;
 }
 </style>
