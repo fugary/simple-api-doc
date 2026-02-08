@@ -73,6 +73,7 @@ const loadShareData = async (input) => {
   console.log('=====================projectShare', projectShare.value)
   if (projectShare.value?.shareToken) { // 验证成功
     showPassWindow.value = false
+    shareParam.value.password = null
     shareConfigStore.setShareToken(shareId, projectShare.value.shareToken)
     loadProject(shareId, { loading: true }).then(data => {
       projectItem.value = data.resultData
