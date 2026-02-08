@@ -1,11 +1,13 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { ElButton, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import { saveEnvConfigs } from '@/api/ApiProjectApi'
 import { defineFormOptions } from '@/components/utils'
 import { uniqBy } from 'lodash-es'
 import { $coreError } from '@/utils'
+import { useRenderKey, useSortableParams } from '@/hooks/CommonHooks'
+import { useTabFocus } from '@/hooks/useTabFocus'
 
 const showWindow = ref(false)
 const projectInfoItem = ref()
@@ -47,8 +49,13 @@ const saveInfoEnvConfigs = ({ form }) => {
   return false
 }
 
+const params = computed({
+  get: () => infoConfig.value.envConfigs,
+  set: (val) => (infoConfig.value.envConfigs = val)
+})
+
 const paramsOptions = computed(() => {
-  return infoConfig.value.envConfigs.map((config) => {
+  return params.value.map((config) => {
     return defineFormOptions([{
       labelWidth: '30px',
       prop: 'disabled',
@@ -88,6 +95,10 @@ const paramsOptions = computed(() => {
   })
 })
 
+const { sortableRef, hoverIndex, dragging } = useSortableParams(params, '.common-params-item')
+const { renderKey } = useRenderKey()
+useTabFocus(sortableRef)
+
 </script>
 
 <template>
@@ -109,61 +120,78 @@ const paramsOptions = computed(() => {
       :show-buttons="false"
       class="form-edit-width-100"
     >
-      <el-row
-        v-for="(item, index) in infoConfig.envConfigs"
-        :key="index"
-        class="padding-bottom2"
+      <div
+        ref="sortableRef"
+        class="common-params-edit"
       >
-        <template
-          v-for="option in paramsOptions[index]"
-          :key="`${index}_${option.prop}`"
+        <el-row
+          v-for="(item, index) in params"
+          :key="renderKey(item)"
+          class="padding-bottom2 common-params-item"
+          @mouseenter="hoverIndex=index"
+          @mouseleave="hoverIndex=-1"
         >
-          <el-col :span="option.colSpan">
-            <common-form-control
-              label-width="80px"
-              :model="item"
-              :option="option"
-              :prop="`envConfigs.${index}.${option.prop}`"
-            />
+          <template
+            v-for="(option, idx) in paramsOptions[index]"
+            :key="`${index}_${option.prop}`"
+          >
+            <el-col :span="option.colSpan">
+              <common-form-control
+                label-width="80px"
+                :model="item"
+                :option="option"
+                :prop="`envConfigs.${index}.${option.prop}`"
+              >
+                <template #beforeLabel>
+                  <common-icon
+                    v-if="idx===0&&hoverIndex===index&&!dragging"
+                    :size="20"
+                    class="margin-top1 move-indicator"
+                    icon="DragIndicatorFilled"
+                    style="cursor: move;"
+                  />
+                </template>
+              </common-form-control>
+            </el-col>
+          </template>
+          <el-col
+            :span="3"
+            class="padding-left2 padding-top1"
+          >
+            <el-button
+              v-if="item.manual"
+              type="danger"
+              size="small"
+              circle
+              @click="params.splice(index, 1)"
+            >
+              <common-icon icon="Delete" />
+            </el-button>
           </el-col>
-        </template>
-        <el-col
-          :span="3"
-          class="padding-left2 padding-top1"
+        </el-row>
+        <el-row
+          v-if="!params?.length"
+          class="margin-bottom3"
         >
-          <el-button
-            v-if="item.manual"
-            type="danger"
-            size="small"
-            circle
-            @click="infoConfig.envConfigs.splice(index, 1)"
-          >
-            <common-icon icon="Delete" />
-          </el-button>
-        </el-col>
-      </el-row>
-      <el-row
-        v-if="!infoConfig.envConfigs?.length"
-        class="margin-bottom3"
-      >
-        <el-col>
-          <el-text type="info">
-            {{ $t('common.msg.noData') }}
-          </el-text>
-        </el-col>
-      </el-row>
-      <el-row>
-        <el-col>
-          <el-button
-            type="primary"
-            size="small"
-            @click="infoConfig.envConfigs.push({manual: true})"
-          >
-            <common-icon icon="Plus" />
-            {{ $i18nKey('common.label.commonAdd1', 'api.label.environments') }}
-          </el-button>
-        </el-col>
-      </el-row>
+          <el-col>
+            <el-text type="info">
+              {{ $t('common.msg.noData') }}
+            </el-text>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-button
+              type="primary"
+              size="small"
+              @click="params.push({manual: true})"
+            >
+              <common-icon icon="Plus" />
+              {{ $i18nKey('common.label.commonAdd1', 'api.label.environments') }}
+            </el-button>
+          </el-col>
+        </el-row>
+      </div>
     </common-form>
   </common-window>
 </template>

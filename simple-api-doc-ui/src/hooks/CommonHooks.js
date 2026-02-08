@@ -139,28 +139,51 @@ export const useSortableParams = (params, selector, moveCls = '.move-indicator')
   const sortableRef = ref()
   const dragging = ref(false)
   const hoverIndex = ref(-1)
+
+  const initSortable = () => {
+    const el = sortableRef.value?.$el || sortableRef.value
+    if (el && !sortable) {
+      sortable = new Sortable(el, {
+        animation: 150,
+        draggable: selector,
+        handle: moveCls,
+        onStart () {
+          hoverIndex.value = -1
+          dragging.value = true
+        },
+        onEnd (event) {
+          const { oldIndex, newIndex } = event
+          params.value.splice(newIndex, 0, params.value.splice(oldIndex, 1)[0]) // 插入到 newIndex 位置
+          setTimeout(() => {
+            dragging.value = false
+            hoverIndex.value = newIndex
+          })
+        }
+      })
+    }
+  }
+
+  const destroySortable = () => {
+    if (sortable) {
+      sortable.destroy()
+      sortable = null
+    }
+  }
+
   onMounted(() => {
-    sortable = new Sortable(sortableRef.value.$el, {
-      animation: 150,
-      draggable: selector,
-      handle: moveCls,
-      onStart () {
-        hoverIndex.value = -1
-        dragging.value = true
-      },
-      onEnd (event) {
-        const { oldIndex, newIndex } = event
-        params.value.splice(newIndex, 0, params.value.splice(oldIndex, 1)[0]) // 插入到 newIndex 位置
-        setTimeout(() => {
-          dragging.value = false
-          hoverIndex.value = newIndex
-        })
-      }
-    })
+    initSortable()
   })
+
+  watch(() => sortableRef.value, (val) => {
+    if (val) {
+      initSortable()
+    } else {
+      destroySortable()
+    }
+  })
+
   onBeforeUnmount(() => {
-    sortable?.destroy()
-    sortable = null
+    destroySortable()
   })
   return {
     dragging,
