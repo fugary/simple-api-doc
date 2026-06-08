@@ -98,6 +98,13 @@
     animation: fadeIn 1s ease-out;
 }
 
+.branding-logo img {
+    width: 88px;
+    height: 88px;
+    margin-bottom: 22px;
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.28));
+}
+
 .branding-title {
     font-size: 3rem;
     font-weight: 700;
@@ -261,13 +268,19 @@
     }
 
     .login-branding {
-        flex: 0 0 120px;
+        flex: 0 0 150px;
         padding: 20px;
     }
 
     .branding-title {
         font-size: 1.8rem;
         margin-bottom: 0;
+    }
+
+    .branding-logo img {
+        width: 54px;
+        height: 54px;
+        margin-bottom: 8px;
     }
 
     .branding-subtitle,

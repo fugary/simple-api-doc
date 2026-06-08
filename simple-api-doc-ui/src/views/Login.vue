@@ -86,6 +86,12 @@ const copyRight = useCopyRight()
     <div class="login-branding">
       <div class="branding-decoration" />
       <div class="branding-content">
+        <div class="branding-logo">
+          <img
+            src="@/assets/logo.svg"
+            :alt="$t('common.label.title')"
+          >
+        </div>
         <h1 class="branding-title">
           {{ $t('common.label.title') }}
         </h1>
