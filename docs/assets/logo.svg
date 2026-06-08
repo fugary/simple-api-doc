@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="2 8 156 144" fill="none">
   <defs>
     <linearGradient id="aiMain" x1="18" y1="126" x2="142" y2="34" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#3b82f6"/>
-      <stop offset="0.52" stop-color="#2b4b7c"/>
-      <stop offset="1" stop-color="#1c2e4a"/>
+      <stop stop-color="#10b981"/>
+      <stop offset="0.5" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#2563eb"/>
     </linearGradient>
     <linearGradient id="aiWarm" x1="36" y1="122" x2="124" y2="38" gradientUnits="userSpaceOnUse">
       <stop stop-color="#f97316"/>

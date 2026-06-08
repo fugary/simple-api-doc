@@ -98,7 +98,7 @@ a {
 .brand img {
     width: 2.3rem;
     height: 2.3rem;
-    filter: drop-shadow(0 10px 20px rgba(100, 149, 237, 0.28));
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.28));
 }
 
 .nav-links {
@@ -494,6 +494,7 @@ pre code {
 .sidebar-title img {
     width: 1.85rem;
     height: 1.85rem;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.24));
 }
 
 .sidebar-section {
