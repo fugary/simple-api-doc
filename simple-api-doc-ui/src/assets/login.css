@@ -99,9 +99,9 @@
 }
 
 .branding-logo img {
-    width: 88px;
-    height: 88px;
-    margin-bottom: 22px;
+    width: 104px;
+    height: 104px;
+    margin-bottom: 24px;
     filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.28));
 }
 
@@ -278,8 +278,8 @@
     }
 
     .branding-logo img {
-        width: 54px;
-        height: 54px;
+        width: 60px;
+        height: 60px;
         margin-bottom: 8px;
     }
 

@@ -1,5 +1,9 @@
 # simple-api-doc
 
+### 文档网站
+
+项目文档网站位于 [docs/index.html](docs/index.html)，英文入口位于 [docs/index_en.html](docs/index_en.html)。
+
 最近使用新`OpenAPI`接口时发现自带的`SwaggerUI`界面不是很友好，一些开源的库，如`Knife4j`使用虽然很方便，不过对于比较大的`schema`支持不好，容易出现卡顿，目前做的比较好的是`ApiFox`，不过不能同步`Markdown`文件，而且私有化部署需要另外收费。
 
 其实`API`文档服务比较简单，没有太多功能，因此抽空自己开发一个简单的API文档系统

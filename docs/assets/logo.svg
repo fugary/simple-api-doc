@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 8 156 144" fill="none">
+  <defs>
+    <linearGradient id="aiMain" x1="18" y1="126" x2="142" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3b82f6"/>
+      <stop offset="0.52" stop-color="#2b4b7c"/>
+      <stop offset="1" stop-color="#1c2e4a"/>
+    </linearGradient>
+    <linearGradient id="aiWarm" x1="36" y1="122" x2="124" y2="38" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f97316"/>
+      <stop offset="1" stop-color="#facc15"/>
+    </linearGradient>
+  </defs>
+  <path d="M61 28c-22 0-33 12-33 31v10c0 7-5 11-15 11 10 0 15 4 15 11v10c0 19 11 31 33 31" stroke="url(#aiMain)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M99 28c22 0 33 12 33 31v10c0 7 5 11 15 11-10 0-15 4-15 11v10c0 19-11 31-33 31" stroke="url(#aiMain)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="80" cy="80" r="38" fill="#ffffff" stroke="#bfdbfe" stroke-width="5"/>
+  <text x="80" y="92" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="900" fill="#1e3a8a">API</text>
+  <path d="M42 132h28c10 0 10-20 23-20h26" stroke="url(#aiWarm)" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="42" cy="132" r="9" fill="#ffffff" stroke="#f97316" stroke-width="5"/>
+  <circle cx="119" cy="112" r="9" fill="#ffffff" stroke="#facc15" stroke-width="5"/>
+</svg>

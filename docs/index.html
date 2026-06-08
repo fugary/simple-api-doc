@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple API Doc - 轻量级 OpenAPI 文档协作系统</title>
+    <meta name="description" content="Simple API Doc 是基于 Spring Boot 和 Vue3 的轻量级 API 文档协作系统，支持 OpenAPI 导入、Markdown 文档、分享、调试、导出和自动同步。">
+    <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./assets/docs.css">
+</head>
+
+<body>
+    <div class="container">
+        <nav class="site-nav">
+            <a class="brand" href="index.html">
+                <img src="./assets/logo.svg" alt="Simple API Doc Logo">
+                <span>Simple API Doc</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">功能特性</a>
+                <a href="#workflow">使用流程</a>
+                <a href="guide.html">使用指南</a>
+                <a href="https://github.com/fugary/simple-api-doc">GitHub</a>
+                <a class="lang-pill" href="index_en.html">En</a>
+            </div>
+        </nav>
+
+        <header class="hero">
+            <div class="hero-kicker">OpenAPI 导入 + Markdown 补充 + 团队分享</div>
+            <h1><span class="gradient-text">把接口定义沉淀成可维护的团队文档</span></h1>
+            <p>Simple API Doc 提供一个可私有化部署的 API 文档工作台。它可以从 Swagger/OpenAPI 文档导入接口，结合 Markdown 说明、模型树、在线调试、分享权限和自动同步，帮助团队维护长期可读的接口资产。</p>
+            <div class="cta-row">
+                <a class="button primary" href="guide.html">查看使用指南</a>
+                <a class="button secondary" href="https://github.com/fugary/simple-api-doc/releases">下载发布包</a>
+                <a class="button secondary" href="#quick-start">Docker 快速启动</a>
+            </div>
+            <div class="pill-row" aria-label="技术栈">
+                <span class="pill">Spring Boot 2.7</span>
+                <span class="pill">Vue3 + Element Plus</span>
+                <span class="pill">Swagger2 / OpenAPI3</span>
+                <span class="pill">H2 / MySQL</span>
+                <span class="pill">Markdown + Mermaid</span>
+            </div>
+        </header>
+    </div>
+
+    <main>
+        <section class="section">
+            <div class="container">
+                <div class="value-grid">
+                    <div class="value-card">
+                        <strong>9089</strong>
+                        <p>默认服务端口，启动后访问 <code>http://localhost:9089/</code>。</p>
+                    </div>
+                    <div class="value-card">
+                        <strong>admin</strong>
+                        <p>默认账号为 <code>admin/12345678</code>，首次部署后建议立即修改密码。</p>
+                    </div>
+                    <div class="value-card">
+                        <strong>URL 同步</strong>
+                        <p>支持从 OpenAPI 地址导入并保存为定时任务，自动更新接口文档。</p>
+                    </div>
+                    <div class="value-card">
+                        <strong>私有部署</strong>
+                        <p>支持发布包、Docker、H2 单机和 MySQL 团队部署。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="section">
+            <div class="container">
+                <div class="section-head center">
+                    <p class="section-eyebrow">Features</p>
+                    <h2>面向接口文档维护的核心能力</h2>
+                    <p>不是只展示 Swagger UI，而是围绕导入、补充说明、调试、分享和版本维护建立完整闭环。</p>
+                </div>
+                <div class="feature-grid">
+                    <article class="feature-card">
+                        <div class="feature-icon">OAS</div>
+                        <h3>Swagger/OpenAPI 导入</h3>
+                        <p>支持从 JSON、YAML 文件或 URL 导入 Swagger2/OpenAPI3 文档，并保留接口、模型、认证和目录结构。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">TREE</div>
+                        <h3>多级目录和模型树</h3>
+                        <p>接口、文件夹、数据模型和组件集中管理，适合大型 schema 的分层阅读和团队维护。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">MD</div>
+                        <h3>Markdown 补充文档</h3>
+                        <p>在接口文档之外新增说明页，补充接入流程、鉴权规则、错误码、业务约束和 Mermaid 图表。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">DBG</div>
+                        <h3>在线调试接口</h3>
+                        <p>支持请求参数、请求头、请求体、认证信息和环境地址配置，浏览器发送或服务端代理发送可按场景选择。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">SHR</div>
+                        <h3>安全分享</h3>
+                        <p>分享链接可设置密码、有效期、版权、水印、可导出和可调试选项，只开放需要发布的文档范围。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">SYNC</div>
+                        <h3>自动导入任务</h3>
+                        <p>从 URL 导入时可保存同步任务，后续按固定频率或手动触发刷新文档，减少重复维护成本。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">HIS</div>
+                        <h3>历史版本和锁定</h3>
+                        <p>接口文档和模型支持历史版本查看、差异对比和恢复，关键文档可锁定，避免被导入任务覆盖。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">GEN</div>
+                        <h3>客户端代码生成</h3>
+                        <p>集成 OpenAPI Generator，支持按接口选择生成客户端代码，并通过代理方式适配受限网络环境。</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">ACL</div>
+                        <h3>多用户和项目分组</h3>
+                        <p>支持用户管理、项目分组和读写删权限控制，管理员可统一管理任务、日志和数据库连接池。</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="workflow" class="section">
+            <div class="container">
+                <div class="section-head">
+                    <p class="section-eyebrow">Workflow</p>
+                    <h2>从接口定义到团队文档的推荐流程</h2>
+                    <p>先导入机器可读的 OpenAPI，再补齐人可读的说明，最后通过分享和自动同步持续交付。</p>
+                </div>
+                <div class="steps">
+                    <div class="step">
+                        <h3>导入项目</h3>
+                        <p>在 API 项目中选择文件导入或 URL 导入，配置认证、重复策略和目录规则，生成项目、接口和模型。</p>
+                    </div>
+                    <div class="step">
+                        <h3>整理文档</h3>
+                        <p>通过文件夹、Markdown 文档、环境配置、认证配置和模型组件补充业务上下文，必要时锁定手工维护内容。</p>
+                    </div>
+                    <div class="step">
+                        <h3>调试验证</h3>
+                        <p>在接口详情中配置请求参数并发送请求，通过环境地址、JWT、Basic、Token 等认证方式验证接口可用性。</p>
+                    </div>
+                    <div class="step">
+                        <h3>发布分享</h3>
+                        <p>创建分享链接，限制文档范围和权限；对外只暴露需要查看、调试或导出的内容。</p>
+                    </div>
+                    <div class="step">
+                        <h3>持续同步</h3>
+                        <p>为 URL 来源创建自动导入任务，结合历史版本和锁定机制处理自动更新与人工说明之间的冲突。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quick-start" class="section">
+            <div class="container">
+                <div class="section-head center">
+                    <p class="section-eyebrow">Quick Start</p>
+                    <h2>一条命令启动私有 API 文档服务</h2>
+                    <p>默认使用 H2 文件数据库。团队长期部署时建议挂载数据目录或切换 MySQL。</p>
+                </div>
+                <div class="quick-grid">
+                    <div class="panel">
+                        <h3>Docker 启动</h3>
+                        <pre class="code-block"><code>docker run -d --name simple-api-doc \
+  -p 9089:9089 \
+  -v apidoc-data:/data \
+  fugary/simple-api-doc:latest</code></pre>
+                    </div>
+                    <div class="panel">
+                        <h3>登录信息</h3>
+                        <p>访问 <code>http://localhost:9089/</code>，默认账号为 <code>admin/12345678</code>。</p>
+                        <p>首次登录后请修改密码，并根据团队规模选择 H2 或 MySQL。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="guide.html">使用指南</a>
+            <a href="https://github.com/fugary/simple-api-doc">源码仓库</a>
+            <a href="https://github.com/fugary/simple-api-doc/releases">Releases</a>
+            <a href="https://fugary.com/?p=636">参考文章</a>
+        </div>
+        <div>Simple API Doc. Developed by Fugary.</div>
+    </footer>
+</body>
+
+</html>

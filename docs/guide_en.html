@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide - Simple API Doc</title>
+    <meta name="description" content="Simple API Doc guide covering deployment, import, project maintenance, sharing, debugging, export, scheduled synchronization, and operations.">
+    <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./assets/docs.css">
+</head>
+
+<body>
+    <div class="wide-container">
+        <nav class="site-nav">
+            <a class="brand" href="index_en.html">
+                <img src="./assets/logo.svg" alt="Simple API Doc Logo">
+                <span>Simple API Doc</span>
+            </a>
+            <div class="nav-links">
+                <a href="index_en.html#features">Features</a>
+                <a class="active" href="guide_en.html">Guide</a>
+                <a href="https://github.com/fugary/simple-api-doc">GitHub</a>
+                <a class="lang-pill" href="guide.html">中</a>
+            </div>
+            <button class="mobile-menu-btn" data-menu-button aria-label="Open menu">☰</button>
+        </nav>
+
+        <div class="guide-shell">
+            <aside class="sidebar" data-sidebar>
+                <div class="sidebar-title">
+                    <img src="./assets/logo.svg" alt="">
+                    <span>Guide</span>
+                    <button class="close-sidebar" data-close-sidebar aria-label="Close menu">×</button>
+                </div>
+                <div class="sidebar-section">
+                    <strong>Deployment</strong>
+                    <a href="#docker-run">Docker Quick Start</a>
+                    <a href="#release-run">Release Package</a>
+                    <a href="#mysql-config">MySQL Config</a>
+                    <a href="#source-build">Local Source Build</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>Getting Started</strong>
+                    <a href="#login-usage">Login and Home</a>
+                    <a href="#project-import">Create or Import Project</a>
+                    <a href="#project-structure">Project Structure</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>Documentation</strong>
+                    <a href="#api-docs">API Document View</a>
+                    <a href="#markdown-docs">Markdown Documents</a>
+                    <a href="#models">Data Models and Components</a>
+                    <a href="#history-lock">History and Locking</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>Collaboration</strong>
+                    <a href="#groups-auth">Project Group Permissions</a>
+                    <a href="#share-docs">Document Sharing</a>
+                    <a href="#debug-api">Online Debugging</a>
+                    <a href="#export-codegen">Export and Code Generation</a>
+                    <a href="#auto-import">Scheduled Import Tasks</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>Operations</strong>
+                    <a href="#data-logs">Data and Logs</a>
+                    <a href="#faq">FAQ</a>
+                </div>
+            </aside>
+            <div class="sidebar-overlay" data-sidebar-overlay></div>
+
+            <main class="content">
+                <h1><span class="gradient-text">Simple API Doc Guide</span></h1>
+                <p class="lead">This guide follows the practical usage path: deploy the service, import OpenAPI documents, then maintain Markdown, models, permissions, sharing, and scheduled synchronization. The default port is <code>9089</code>, and the default account is <code>admin/12345678</code>.</p>
+
+                <section id="docker-run" class="content-section">
+                    <h2>Docker Quick Start</h2>
+                    <p>H2 file storage is used by default. To avoid data loss after container recreation, mount <code>/data</code>.</p>
+                    <pre class="code-block"><code>docker run -d --name simple-api-doc \
+  -p 9089:9089 \
+  -v apidoc-data:/data \
+  fugary/simple-api-doc:latest</code></pre>
+                    <p>After startup, open <code>http://localhost:9089/</code>.</p>
+                    <div class="note">The default account is <code>admin/12345678</code>. Change the password immediately after the first production login.</div>
+                </section>
+
+                <section id="release-run" class="content-section">
+                    <h2>Release Package</h2>
+                    <p>Download the latest archive from GitHub Releases, extract it, enter the <code>bin</code> directory, and run the startup script.</p>
+                    <div class="split">
+                        <div>
+                            <h3>Windows</h3>
+                            <pre class="code-block"><code>bin\start.bat</code></pre>
+                        </div>
+                        <div>
+                            <h3>Linux</h3>
+                            <pre class="code-block"><code>chmod +x bin/start.sh
+bin/start.sh</code></pre>
+                        </div>
+                    </div>
+                    <p>The release package usually includes the executable Jar, <code>config/application.yml</code>, <code>bin</code> startup scripts, and runtime log directories.</p>
+                </section>
+
+                <section id="mysql-config" class="content-section">
+                    <h2>MySQL Config</h2>
+                    <p>For long-term team usage, MySQL is recommended. Docker deployments can override default database configuration with environment variables.</p>
+                    <pre class="code-block"><code>docker run -d --name simple-api-doc \
+  -p 9089:9089 \
+  -e DB_TYPE=mysql \
+  -e DB_MYSQL_SERVER=host.docker.internal \
+  -e DB_MYSQL_PORT=3306 \
+  -e DB_MYSQL_DBNAME=apidoc-db \
+  -e DB_USERNAME=root \
+  -e DB_PASSWORD=12345678 \
+  fugary/simple-api-doc:latest</code></pre>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Variable</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>DB_TYPE</code></td>
+                                    <td>Database type. Supports <code>h2</code> and <code>mysql</code>.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_DATA_DIR</code></td>
+                                    <td>H2 file database directory. Docker deployments should map it to <code>/data</code>.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_MYSQL_SERVER</code></td>
+                                    <td>MySQL host address.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_MYSQL_PORT</code></td>
+                                    <td>MySQL port. Default is <code>3306</code>.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_MYSQL_DBNAME</code></td>
+                                    <td>Database name. Default is <code>apidoc-db</code>.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_USERNAME</code> / <code>DB_PASSWORD</code></td>
+                                    <td>Database username and password.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="source-build" class="content-section">
+                    <h2>Local Source Build</h2>
+                    <p>The project contains a Vue3 frontend and a Spring Boot backend. Root scripts build the UI first, copy it into backend static resources, and then run Maven packaging.</p>
+                    <pre class="code-block"><code># Linux/macOS
+./build.sh
+
+# Windows
+build.bat</code></pre>
+                    <p>You can also execute the steps manually:</p>
+                    <pre class="code-block"><code>cd simple-api-doc-ui
+npm install
+npm run build
+cd ..
+mvn clean install -Dmaven.test.skip=true -Pproduction</code></pre>
+                </section>
+
+                <section id="login-usage" class="content-section">
+                    <h2>Login and Home</h2>
+                    <p>Open the service URL to enter the login page. The default account is <code>admin/12345678</code>. After login, the left menu includes API Management, System, and Tools.</p>
+                    <ul>
+                        <li><strong>API Management:</strong> API Projects, Share Management, Import Management, Project Groups.</li>
+                        <li><strong>System:</strong> User Management, Task Management, Log Management, Database Pool, H2 Database.</li>
+                        <li><strong>Tools:</strong> Icon Management, Code Editor, Diff Editor.</li>
+                    </ul>
+                </section>
+
+                <section id="project-import" class="content-section">
+                    <h2>Create or Import Project</h2>
+                    <p>After entering <code>API Projects</code>, you can create an empty project or import one from Swagger/OpenAPI.</p>
+                    <div class="steps">
+                        <div class="step">
+                            <h3>Select import type</h3>
+                            <p>File import and URL import are supported. Files are usually <code>.json</code> or <code>.yaml</code>.</p>
+                        </div>
+                        <div class="step">
+                            <h3>Configure authentication and source</h3>
+                            <p>URL import can configure Basic, Token, JWT, and other authentication data to fetch protected OpenAPI documents.</p>
+                        </div>
+                        <div class="step">
+                            <h3>Handle duplicate APIs</h3>
+                            <p>When importing into an existing project, choose overwrite, skip, or abort duplicate APIs based on your needs.</p>
+                        </div>
+                        <div class="step">
+                            <h3>Save automatic task</h3>
+                            <p>After a URL import succeeds, it can be saved as a scheduled import task for future synchronization.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="project-structure" class="content-section">
+                    <h2>Project Structure</h2>
+                    <p>An API project usually contains basic information, folders, API documents, Markdown documents, data models, environment URLs, and sharing configuration.</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Object</th>
+                                    <th>Purpose</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Project</td>
+                                    <td>The top-level container for a set of API docs, including project code, name, icon, and environment configuration.</td>
+                                </tr>
+                                <tr>
+                                    <td>Folder</td>
+                                    <td>Organizes APIs and Markdown documents. Nested trees are supported.</td>
+                                </tr>
+                                <tr>
+                                    <td>API Document</td>
+                                    <td>Interface path, method, request params, request body, response body, authentication requirements, and examples.</td>
+                                </tr>
+                                <tr>
+                                    <td>Markdown Document</td>
+                                    <td>Supplements business notes, onboarding guides, error codes, flow diagrams, and other non-field content.</td>
+                                </tr>
+                                <tr>
+                                    <td>Data Model</td>
+                                    <td>OpenAPI component model, supporting schema field inspection and example generation.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="api-docs" class="content-section">
+                    <h2>API Document View</h2>
+                    <p>The API detail page organizes fields by request and response. It supports path parameters, query parameters, headers, body, status codes, authentication information, examples, and schema tree viewing.</p>
+                    <p>For large schemas, use tree or table views and expand nodes gradually to avoid rendering too many fields at once.</p>
+                </section>
+
+                <section id="markdown-docs" class="content-section">
+                    <h2>Markdown Documents</h2>
+                    <p>Markdown documents are suitable for context outside API fields, such as authentication notes, business flows, error code tables, version changes, and onboarding FAQs.</p>
+                    <ul>
+                        <li>They can be placed in the same document tree as API documents and shared together.</li>
+                        <li>Markdown editing and preview are supported, which helps fill business semantics that OpenAPI cannot express.</li>
+                        <li>Additional Markdown files can be preserved through extension fields during import.</li>
+                    </ul>
+                </section>
+
+                <section id="models" class="content-section">
+                    <h2>Data Models and Components</h2>
+                    <p>Project components maintain OpenAPI schemas, authentication configuration, and security requirements. The system supports viewing model properties, enums, defaults, formats, patterns, length limits, array items, and references.</p>
+                    <p>When a model is reused by multiple APIs, maintain it as a component first and reference it in request or response bodies to avoid duplicate definitions.</p>
+                </section>
+
+                <section id="history-lock" class="content-section">
+                    <h2>History and Locking</h2>
+                    <p>API documents and data models support history lists, diff comparison, and recovery. For important manually adjusted content, use locking to prevent later automatic imports from overwriting it.</p>
+                    <div class="note">Recommended rule: let import tasks maintain generated fields, and keep manual Markdown notes and critical explanations locked or maintained as separate documents.</div>
+                </section>
+
+                <section id="groups-auth" class="content-section">
+                    <h2>Project Group Permissions</h2>
+                    <p>Project groups can assign different access levels to users, including forbidden, readable, writable, deletable, and full access. Admins can manage group members centrally.</p>
+                    <p>For multi-person collaboration, split project groups by business line or system domain, then assign projects to the corresponding groups.</p>
+                </section>
+
+                <section id="share-docs" class="content-section">
+                    <h2>Document Sharing</h2>
+                    <p>Share Management generates external documentation links. A share can limit both access scope and interaction capabilities.</p>
+                    <ul>
+                        <li>Set access password and expiration time.</li>
+                        <li>Share all documents or selected documents only.</li>
+                        <li>Control whether export and debugging are allowed.</li>
+                        <li>Configure copyright, watermark, tree icons, and child node display count.</li>
+                    </ul>
+                    <p>Share URLs usually follow <code>/share/{shareId}</code>.</p>
+                </section>
+
+                <section id="debug-api" class="content-section">
+                    <h2>Online Debugging</h2>
+                    <p>API detail pages and share pages can enable request debugging. Debugging supports environment URLs, authentication methods, headers, query parameters, path parameters, body, and response preview.</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Send Mode</th>
+                                    <th>Use Case</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Browser Send</td>
+                                    <td>Use when the target API supports CORS and the request can be sent directly by the browser.</td>
+                                </tr>
+                                <tr>
+                                    <td>Server Send</td>
+                                    <td>Use when the target API does not support CORS or needs to be accessed through server-side proxying.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="export-codegen" class="content-section">
+                    <h2>Export and Code Generation</h2>
+                    <p>Projects and shared documents support export, which is useful for offline delivery or archiving. The system also integrates OpenAPI Generator and can generate client or server code by language or framework.</p>
+                    <p>Code generation depends on OpenAPI structure quality. Before generation, check schema references, authentication configuration, and the selected API scope.</p>
+                </section>
+
+                <section id="auto-import" class="content-section">
+                    <h2>Scheduled Import Tasks</h2>
+                    <p>URL imports can be saved as project tasks. Later, tasks can automatically fetch source OpenAPI documents and update the project. Tasks support manual trigger, stop, disable, and execution status viewing.</p>
+                    <p>Admins can view running task instances, execution status, and exception information in System Task Management.</p>
+                </section>
+
+                <section id="data-logs" class="content-section">
+                    <h2>Data and Logs</h2>
+                    <ul>
+                        <li>The default H2 data directory can be configured through <code>DB_DATA_DIR</code>. Docker deployments should mount it to <code>/data</code>.</li>
+                        <li>Logs are written to <code>logs/simple-api-doc</code> by default and can be overridden with <code>LOG_DIR</code>.</li>
+                        <li>Admins can view operation logs in Log Management and connection status in Database Pool.</li>
+                        <li>The H2 console can be enabled with <code>DB_H2_CONSOLE=true</code>. Use it only in controlled environments.</li>
+                    </ul>
+                </section>
+
+                <section id="faq" class="content-section">
+                    <h2>FAQ</h2>
+                    <h3>What if imported APIs are too many and hard to read?</h3>
+                    <p>Use the directory tree to split business modules, and maintain entry explanations with Markdown documents. Large schemas can be viewed progressively through model trees.</p>
+                    <h3>Will scheduled imports overwrite manual changes?</h3>
+                    <p>The import strategy decides how duplicate APIs are handled. For content that must not be overwritten, maintain it as separate Markdown or lock key documents.</p>
+                    <h3>Can a share page allow external users to debug APIs?</h3>
+                    <p>Yes. Enable debugging in share configuration and configure environment URLs. If the target API has CORS restrictions, use server send.</p>
+                    <h3>Why did data disappear after recreating a Docker container?</h3>
+                    <p>H2 file database data must be persisted through <code>/data</code>. If no volume is mounted, the data is deleted together with the container.</p>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="index_en.html">Home</a>
+            <a href="https://github.com/fugary/simple-api-doc">Source Code</a>
+            <a href="https://github.com/fugary/simple-api-doc/releases">Releases</a>
+        </div>
+        <div>Simple API Doc. Developed by Fugary.</div>
+    </footer>
+
+    <script src="./assets/docs.js"></script>
+</body>
+
+</html>

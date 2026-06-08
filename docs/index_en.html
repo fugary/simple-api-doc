@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple API Doc - Lightweight OpenAPI Documentation Workspace</title>
+    <meta name="description" content="Simple API Doc is a lightweight API documentation workspace based on Spring Boot and Vue3, with OpenAPI import, Markdown docs, sharing, debugging, export, and scheduled sync.">
+    <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./assets/docs.css">
+</head>
+
+<body>
+    <div class="container">
+        <nav class="site-nav">
+            <a class="brand" href="index_en.html">
+                <img src="./assets/logo.svg" alt="Simple API Doc Logo">
+                <span>Simple API Doc</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#workflow">Workflow</a>
+                <a href="guide_en.html">Guide</a>
+                <a href="https://github.com/fugary/simple-api-doc">GitHub</a>
+                <a class="lang-pill" href="index.html">中</a>
+            </div>
+        </nav>
+
+        <header class="hero">
+            <div class="hero-kicker">OpenAPI import + Markdown notes + team sharing</div>
+            <h1><span class="gradient-text">Turn API definitions into maintainable team documentation</span></h1>
+            <p>Simple API Doc provides a self-hosted API documentation workspace. It imports interfaces from Swagger/OpenAPI specs and combines Markdown notes, schema trees, online debugging, sharing permissions, and scheduled synchronization to help teams maintain readable long-term API assets.</p>
+            <div class="cta-row">
+                <a class="button primary" href="guide_en.html">Read Guide</a>
+                <a class="button secondary" href="https://github.com/fugary/simple-api-doc/releases">Download Release</a>
+                <a class="button secondary" href="#quick-start">Docker Quick Start</a>
+            </div>
+            <div class="pill-row" aria-label="Tech stack">
+                <span class="pill">Spring Boot 2.7</span>
+                <span class="pill">Vue3 + Element Plus</span>
+                <span class="pill">Swagger2 / OpenAPI3</span>
+                <span class="pill">H2 / MySQL</span>
+                <span class="pill">Markdown + Mermaid</span>
+            </div>
+        </header>
+    </div>
+
+    <main>
+        <section class="section">
+            <div class="container">
+                <div class="value-grid">
+                    <div class="value-card">
+                        <strong>9089</strong>
+                        <p>Default service port. Open <code>http://localhost:9089/</code> after startup.</p>
+                    </div>
+                    <div class="value-card">
+                        <strong>admin</strong>
+                        <p>Default account is <code>admin/12345678</code>. Change it immediately after first deployment.</p>
+                    </div>
+                    <div class="value-card">
+                        <strong>URL Sync</strong>
+                        <p>Import from OpenAPI URLs and save them as scheduled tasks to update API docs automatically.</p>
+                    </div>
+                    <div class="value-card">
+                        <strong>Private Deploy</strong>
+                        <p>Supports release packages, Docker, single-node H2, and team-oriented MySQL deployments.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="section">
+            <div class="container">
+                <div class="section-head center">
+                    <p class="section-eyebrow">Features</p>
+                    <h2>Core capabilities for API documentation maintenance</h2>
+                    <p>It is not just a Swagger UI replacement. It builds a complete loop around import, explanation, debugging, sharing, and version maintenance.</p>
+                </div>
+                <div class="feature-grid">
+                    <article class="feature-card">
+                        <div class="feature-icon">OAS</div>
+                        <h3>Swagger/OpenAPI Import</h3>
+                        <p>Import Swagger2/OpenAPI3 documents from JSON, YAML files, or URLs while preserving APIs, models, auth, and folder structure.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">TREE</div>
+                        <h3>Nested Folders and Model Trees</h3>
+                        <p>Manage APIs, folders, data models, and components together. Suitable for layered reading and maintenance of large schemas.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">MD</div>
+                        <h3>Markdown Supplementary Docs</h3>
+                        <p>Add pages beyond API fields, such as onboarding flows, authentication rules, error codes, business constraints, and Mermaid diagrams.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">DBG</div>
+                        <h3>Online API Debugging</h3>
+                        <p>Configure request params, headers, body, authentication, and environment URLs. Choose browser sending or server proxy sending by scenario.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">SHR</div>
+                        <h3>Secure Sharing</h3>
+                        <p>Share links can define password, expiration, copyright, watermark, export permission, and debug permission, exposing only the intended docs.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">SYNC</div>
+                        <h3>Scheduled Import Tasks</h3>
+                        <p>URL imports can be saved as sync tasks and refreshed later by fixed frequency or manual trigger, reducing repetitive maintenance.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">HIS</div>
+                        <h3>History and Locking</h3>
+                        <p>API docs and models support history viewing, diff comparison, and recovery. Important docs can be locked to avoid task overwrites.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">GEN</div>
+                        <h3>Client Code Generation</h3>
+                        <p>Integrates OpenAPI Generator, supports selected API code generation, and can use proxy mode for restricted network environments.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon">ACL</div>
+                        <h3>Users and Project Groups</h3>
+                        <p>Supports user management, project groups, and read/write/delete permissions. Admins can manage tasks, logs, and DB pools centrally.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="workflow" class="section">
+            <div class="container">
+                <div class="section-head">
+                    <p class="section-eyebrow">Workflow</p>
+                    <h2>Recommended workflow from API definitions to team docs</h2>
+                    <p>Import machine-readable OpenAPI first, add human-readable explanations next, then publish and continuously sync through sharing and tasks.</p>
+                </div>
+                <div class="steps">
+                    <div class="step">
+                        <h3>Import a project</h3>
+                        <p>Choose file import or URL import in API Projects, configure authentication, duplicate strategy, and folder rules, then generate projects, APIs, and models.</p>
+                    </div>
+                    <div class="step">
+                        <h3>Organize documentation</h3>
+                        <p>Use folders, Markdown docs, environment configs, authentication configs, and model components to add business context. Lock manual content when necessary.</p>
+                    </div>
+                    <div class="step">
+                        <h3>Debug and verify</h3>
+                        <p>Configure request parameters in API details and send requests with environment URLs, JWT, Basic, Token, and other authentication methods.</p>
+                    </div>
+                    <div class="step">
+                        <h3>Publish shares</h3>
+                        <p>Create share links and restrict document scope and permissions. Expose only the content that should be viewed, debugged, or exported.</p>
+                    </div>
+                    <div class="step">
+                        <h3>Keep synchronized</h3>
+                        <p>Create scheduled import tasks for URL sources and combine history with locking to handle conflicts between automatic updates and manual notes.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quick-start" class="section">
+            <div class="container">
+                <div class="section-head center">
+                    <p class="section-eyebrow">Quick Start</p>
+                    <h2>Start a private API documentation service with one command</h2>
+                    <p>H2 file storage is used by default. For long-term team deployment, mount the data directory or switch to MySQL.</p>
+                </div>
+                <div class="quick-grid">
+                    <div class="panel">
+                        <h3>Docker Startup</h3>
+                        <pre class="code-block"><code>docker run -d --name simple-api-doc \
+  -p 9089:9089 \
+  -v apidoc-data:/data \
+  fugary/simple-api-doc:latest</code></pre>
+                    </div>
+                    <div class="panel">
+                        <h3>Login</h3>
+                        <p>Open <code>http://localhost:9089/</code>. The default account is <code>admin/12345678</code>.</p>
+                        <p>Change the password after first login and choose H2 or MySQL based on team size.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="guide_en.html">Guide</a>
+            <a href="https://github.com/fugary/simple-api-doc">Source Code</a>
+            <a href="https://github.com/fugary/simple-api-doc/releases">Releases</a>
+            <a href="https://fugary.com/?p=636">Reference Article</a>
+        </div>
+        <div>Simple API Doc. Developed by Fugary.</div>
+    </footer>
+</body>
+
+</html>

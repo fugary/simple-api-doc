@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用指南 - Simple API Doc</title>
+    <meta name="description" content="Simple API Doc 使用指南，包含部署、导入、项目维护、分享、调试、导出、自动同步和运维配置。">
+    <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./assets/docs.css">
+</head>
+
+<body>
+    <div class="wide-container">
+        <nav class="site-nav">
+            <a class="brand" href="index.html">
+                <img src="./assets/logo.svg" alt="Simple API Doc Logo">
+                <span>Simple API Doc</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html#features">功能特性</a>
+                <a class="active" href="guide.html">使用指南</a>
+                <a href="https://github.com/fugary/simple-api-doc">GitHub</a>
+                <a class="lang-pill" href="guide_en.html">En</a>
+            </div>
+            <button class="mobile-menu-btn" data-menu-button aria-label="打开目录">☰</button>
+        </nav>
+
+        <div class="guide-shell">
+            <aside class="sidebar" data-sidebar>
+                <div class="sidebar-title">
+                    <img src="./assets/logo.svg" alt="">
+                    <span>文档目录</span>
+                    <button class="close-sidebar" data-close-sidebar aria-label="关闭目录">×</button>
+                </div>
+                <div class="sidebar-section">
+                    <strong>部署启动</strong>
+                    <a href="#docker-run">Docker 快速启动</a>
+                    <a href="#release-run">发布包运行</a>
+                    <a href="#mysql-config">MySQL 配置</a>
+                    <a href="#source-build">本地源码构建</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>初始使用</strong>
+                    <a href="#login-usage">登录和首页</a>
+                    <a href="#project-import">创建或导入项目</a>
+                    <a href="#project-structure">项目结构</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>文档维护</strong>
+                    <a href="#api-docs">API 文档查看</a>
+                    <a href="#markdown-docs">Markdown 文档</a>
+                    <a href="#models">数据模型和组件</a>
+                    <a href="#history-lock">历史版本和锁定</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>协作发布</strong>
+                    <a href="#groups-auth">项目分组权限</a>
+                    <a href="#share-docs">分享文档</a>
+                    <a href="#debug-api">在线调试</a>
+                    <a href="#export-codegen">导出和代码生成</a>
+                    <a href="#auto-import">自动导入任务</a>
+                </div>
+                <div class="sidebar-section">
+                    <strong>运维</strong>
+                    <a href="#data-logs">数据和日志</a>
+                    <a href="#faq">常见问题</a>
+                </div>
+            </aside>
+            <div class="sidebar-overlay" data-sidebar-overlay></div>
+
+            <main class="content">
+                <h1><span class="gradient-text">Simple API Doc 使用指南</span></h1>
+                <p class="lead">本文档按实际使用路径组织：先部署启动，再导入 OpenAPI 文档，随后维护 Markdown、模型、权限、分享和自动同步。系统默认端口为 <code>9089</code>，默认账号为 <code>admin/12345678</code>。</p>
+
+                <section id="docker-run" class="content-section">
+                    <h2>Docker 快速启动</h2>
+                    <p>默认使用 H2 文件数据库。为了避免容器重建后数据丢失，建议挂载 <code>/data</code>。</p>
+                    <pre class="code-block"><code>docker run -d --name simple-api-doc \
+  -p 9089:9089 \
+  -v apidoc-data:/data \
+  fugary/simple-api-doc:latest</code></pre>
+                    <p>启动后访问 <code>http://localhost:9089/</code>。</p>
+                    <div class="note">默认账号密码为 <code>admin/12345678</code>。生产环境首次登录后应立即修改密码。</div>
+                </section>
+
+                <section id="release-run" class="content-section">
+                    <h2>发布包运行</h2>
+                    <p>从 GitHub Releases 下载最新压缩包并解压，进入 <code>bin</code> 目录运行启动脚本。</p>
+                    <div class="split">
+                        <div>
+                            <h3>Windows</h3>
+                            <pre class="code-block"><code>bin\start.bat</code></pre>
+                        </div>
+                        <div>
+                            <h3>Linux</h3>
+                            <pre class="code-block"><code>chmod +x bin/start.sh
+bin/start.sh</code></pre>
+                        </div>
+                    </div>
+                    <p>发布包内通常包含可执行 Jar、<code>config/application.yml</code>、<code>bin</code> 启动脚本和运行日志目录。</p>
+                </section>
+
+                <section id="mysql-config" class="content-section">
+                    <h2>MySQL 配置</h2>
+                    <p>团队长期使用时建议切换 MySQL。Docker 部署可通过环境变量覆盖默认数据库配置。</p>
+                    <pre class="code-block"><code>docker run -d --name simple-api-doc \
+  -p 9089:9089 \
+  -e DB_TYPE=mysql \
+  -e DB_MYSQL_SERVER=host.docker.internal \
+  -e DB_MYSQL_PORT=3306 \
+  -e DB_MYSQL_DBNAME=apidoc-db \
+  -e DB_USERNAME=root \
+  -e DB_PASSWORD=12345678 \
+  fugary/simple-api-doc:latest</code></pre>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>变量</th>
+                                    <th>说明</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>DB_TYPE</code></td>
+                                    <td>数据库类型，支持 <code>h2</code> 和 <code>mysql</code>。</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_DATA_DIR</code></td>
+                                    <td>H2 文件数据库目录，Docker 默认建议映射到 <code>/data</code>。</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_MYSQL_SERVER</code></td>
+                                    <td>MySQL 主机地址。</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_MYSQL_PORT</code></td>
+                                    <td>MySQL 端口，默认 <code>3306</code>。</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_MYSQL_DBNAME</code></td>
+                                    <td>数据库名称，默认 <code>apidoc-db</code>。</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DB_USERNAME</code> / <code>DB_PASSWORD</code></td>
+                                    <td>数据库账号和密码。</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="source-build" class="content-section">
+                    <h2>本地源码构建</h2>
+                    <p>项目由 Vue3 前端和 Spring Boot 后端组成。根目录脚本会先构建 UI，再复制到后端静态资源目录，最后执行 Maven 打包。</p>
+                    <pre class="code-block"><code># Linux/macOS
+./build.sh
+
+# Windows
+build.bat</code></pre>
+                    <p>也可以分步执行：</p>
+                    <pre class="code-block"><code>cd simple-api-doc-ui
+npm install
+npm run build
+cd ..
+mvn clean install -Dmaven.test.skip=true -Pproduction</code></pre>
+                </section>
+
+                <section id="login-usage" class="content-section">
+                    <h2>登录和首页</h2>
+                    <p>访问服务地址后进入登录页，默认账号为 <code>admin/12345678</code>。登录后左侧菜单包含 API 管理、系统管理和常用工具。</p>
+                    <ul>
+                        <li><strong>API 管理：</strong>API 项目、分享管理、导入管理、项目分组。</li>
+                        <li><strong>系统管理：</strong>用户管理、任务管理、日志管理、数据库连接池、H2 数据库。</li>
+                        <li><strong>常用工具：</strong>图标管理、代码编辑器、差异对比编辑器。</li>
+                    </ul>
+                </section>
+
+                <section id="project-import" class="content-section">
+                    <h2>创建或导入项目</h2>
+                    <p>进入 <code>API 项目</code> 后，可以新建空项目，也可以从 Swagger/OpenAPI 导入。</p>
+                    <div class="steps">
+                        <div class="step">
+                            <h3>选择导入方式</h3>
+                            <p>支持文件导入和 URL 导入，文件通常为 <code>.json</code> 或 <code>.yaml</code>。</p>
+                        </div>
+                        <div class="step">
+                            <h3>配置认证和来源</h3>
+                            <p>URL 导入可配置 Basic、Token、JWT 等认证信息，用于拉取受保护的 OpenAPI 文档。</p>
+                        </div>
+                        <div class="step">
+                            <h3>处理重复接口</h3>
+                            <p>导入已有项目时，根据需要选择覆盖、跳过或中止重复 API。</p>
+                        </div>
+                        <div class="step">
+                            <h3>保存自动任务</h3>
+                            <p>URL 导入成功后可保存为自动导入任务，后续按配置频率同步。</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="project-structure" class="content-section">
+                    <h2>项目结构</h2>
+                    <p>一个 API 项目通常包含基础信息、文件夹、接口文档、Markdown 文档、数据模型、环境地址和分享配置。</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>对象</th>
+                                    <th>用途</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>项目</td>
+                                    <td>一组接口文档的顶层容器，包含项目编码、名称、图标和环境配置。</td>
+                                </tr>
+                                <tr>
+                                    <td>文件夹</td>
+                                    <td>用于组织接口和 Markdown 文档，支持多级树。</td>
+                                </tr>
+                                <tr>
+                                    <td>API 文档</td>
+                                    <td>接口路径、方法、请求参数、请求体、响应体、认证要求和示例。</td>
+                                </tr>
+                                <tr>
+                                    <td>Markdown 文档</td>
+                                    <td>补充业务说明、接入指南、错误码、流程图等非接口字段内容。</td>
+                                </tr>
+                                <tr>
+                                    <td>数据模型</td>
+                                    <td>OpenAPI 组件模型，支持 schema 字段查看和示例生成。</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="api-docs" class="content-section">
+                    <h2>API 文档查看</h2>
+                    <p>接口详情页按请求和响应组织字段，支持路径参数、Query 参数、Header、Body、状态码、认证信息、示例和 schema 树查看。</p>
+                    <p>对于大型 schema，建议使用树形或表格视图逐层展开，减少一次性渲染过多节点造成的阅读压力。</p>
+                </section>
+
+                <section id="markdown-docs" class="content-section">
+                    <h2>Markdown 文档</h2>
+                    <p>Markdown 文档适合维护接口之外的上下文信息，例如鉴权说明、业务流程、错误码表、版本变更和接入 FAQ。</p>
+                    <ul>
+                        <li>可与 API 文档放在同一目录树中统一分享。</li>
+                        <li>支持 Markdown 编辑和预览，适合补齐 OpenAPI 无法表达的业务语义。</li>
+                        <li>导入文档时可结合扩展字段保留附加 Markdown 文件。</li>
+                    </ul>
+                </section>
+
+                <section id="models" class="content-section">
+                    <h2>数据模型和组件</h2>
+                    <p>项目组件用于维护 OpenAPI schema、认证配置和安全要求。系统支持查看模型属性、枚举、默认值、格式、正则、长度限制、数组子项和引用关系。</p>
+                    <p>当模型被多个接口复用时，建议优先维护组件模型，再在接口请求体或响应体中引用，避免重复定义。</p>
+                </section>
+
+                <section id="history-lock" class="content-section">
+                    <h2>历史版本和锁定</h2>
+                    <p>API 文档和数据模型支持历史版本列表、差异对比和恢复。对于手工调整过的重要内容，可以使用锁定功能，避免后续自动导入覆盖。</p>
+                    <div class="note">推荐规则：自动生成字段交给导入任务维护，人工补充的 Markdown 和关键说明使用锁定或单独文档维护。</div>
+                </section>
+
+                <section id="groups-auth" class="content-section">
+                    <h2>项目分组权限</h2>
+                    <p>项目分组可以为用户配置不同访问能力，包括禁止访问、可读、可写、可删除和完全访问。管理员可以统一管理分组成员。</p>
+                    <p>多人协作时，建议按业务线或系统域拆分项目分组，再把项目归属到对应分组中。</p>
+                </section>
+
+                <section id="share-docs" class="content-section">
+                    <h2>分享文档</h2>
+                    <p>分享管理用于生成对外文档链接。分享可以限制访问范围和交互能力。</p>
+                    <ul>
+                        <li>可设置访问密码和过期时间。</li>
+                        <li>可选择分享全部文档或指定文档。</li>
+                        <li>可控制是否允许导出、是否允许调试。</li>
+                        <li>可配置版权信息、水印、树图标和子节点展示数量。</li>
+                    </ul>
+                    <p>分享地址格式通常为 <code>/share/{shareId}</code>。</p>
+                </section>
+
+                <section id="debug-api" class="content-section">
+                    <h2>在线调试</h2>
+                    <p>接口详情和分享页可启用请求调试。调试支持环境地址、认证方式、请求头、Query、Path、Body 和响应预览。</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>发送方式</th>
+                                    <th>适用场景</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>浏览器发送</td>
+                                    <td>目标接口支持 CORS 时使用，响应直接由浏览器发起。</td>
+                                </tr>
+                                <tr>
+                                    <td>服务端发送</td>
+                                    <td>目标接口不支持跨域或需要通过服务端代理访问时使用。</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="export-codegen" class="content-section">
+                    <h2>导出和代码生成</h2>
+                    <p>项目和分享文档支持导出，适合离线交付或沉淀归档。系统也集成 OpenAPI Generator，可按语言或框架生成客户端/服务端代码。</p>
+                    <p>代码生成依赖 OpenAPI 结构质量。生成前建议先检查 schema 引用、认证配置和接口选择范围。</p>
+                </section>
+
+                <section id="auto-import" class="content-section">
+                    <h2>自动导入任务</h2>
+                    <p>URL 导入可以保存为项目任务，后续自动拉取源 OpenAPI 文档并更新项目。任务支持手动触发、停止、禁用和查看执行状态。</p>
+                    <p>管理员可在系统任务管理中查看运行中的任务实例、执行状态和异常信息。</p>
+                </section>
+
+                <section id="data-logs" class="content-section">
+                    <h2>数据和日志</h2>
+                    <ul>
+                        <li>H2 默认数据目录可通过 <code>DB_DATA_DIR</code> 配置，Docker 推荐挂载到 <code>/data</code>。</li>
+                        <li>日志默认输出到 <code>logs/simple-api-doc</code>，也可通过 <code>LOG_DIR</code> 覆盖。</li>
+                        <li>管理员可以在日志管理中查看操作日志，在数据库连接池中查看连接状态。</li>
+                        <li>H2 控制台可通过 <code>DB_H2_CONSOLE=true</code> 开启，仅建议在受控环境使用。</li>
+                    </ul>
+                </section>
+
+                <section id="faq" class="content-section">
+                    <h2>常见问题</h2>
+                    <h3>导入的接口太多，页面阅读困难怎么办？</h3>
+                    <p>优先使用目录树拆分业务模块，并通过 Markdown 文档维护入口说明。大型 schema 可按模型树逐层查看。</p>
+                    <h3>自动导入会覆盖手工修改吗？</h3>
+                    <p>导入策略决定重复接口如何处理。对于不能覆盖的内容，建议使用 Markdown 独立维护或锁定关键文档。</p>
+                    <h3>分享页能否允许对方调试接口？</h3>
+                    <p>可以。在分享配置中开启调试权限，并配置环境地址。若目标接口存在跨域限制，使用服务端发送。</p>
+                    <h3>为什么 Docker 容器重建后数据不见了？</h3>
+                    <p>H2 文件数据库需要持久化 <code>/data</code>。未挂载数据卷时，数据会随容器删除而丢失。</p>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="index.html">首页</a>
+            <a href="https://github.com/fugary/simple-api-doc">源码仓库</a>
+            <a href="https://github.com/fugary/simple-api-doc/releases">Releases</a>
+        </div>
+        <div>Simple API Doc. Developed by Fugary.</div>
+    </footer>
+
+    <script src="./assets/docs.js"></script>
+</body>
+
+</html>
