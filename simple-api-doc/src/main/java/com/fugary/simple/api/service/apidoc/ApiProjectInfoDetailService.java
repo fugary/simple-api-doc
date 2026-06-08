@@ -10,6 +10,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -191,6 +192,14 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
      * @return
      */
     boolean deleteByDoc(Integer docId);
+
+    /**
+     * 按照doc批量删除
+     *
+     * @param docIds
+     * @return
+     */
+    boolean deleteByDocs(Collection<Integer> docIds);
 
     /**
      * 从历史复制数据

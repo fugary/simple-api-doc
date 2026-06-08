@@ -62,7 +62,7 @@ simple:
   api:
     jwt-password: ${API_JWT_PASSWORD:}
     jwt-expire: ${API_JWT_EXPIRE:7}
-    project-version: @project.version@
+    project-version: '@project.version@'
 dbs:
   type: ${DB_TYPE:h2}
   h2:
@@ -76,6 +76,6 @@ dbs:
     server: ${DB_MYSQL_SERVER:localhost}
     port: ${DB_MYSQL_PORT:3306}
     dbname: ${DB_MYSQL_DBNAME:api-db}
-    url: jdbc:mysql://${dbs.mysql.server}:${dbs.mysql.port}/${dbs.mysql.dbname}?characterEncoding=utf8&useUnicode=true&serverTimezone=UTC
+    url: jdbc:mysql://${dbs.mysql.server}:${dbs.mysql.port}/${dbs.mysql.dbname}?characterEncoding=utf8&useUnicode=true&serverTimezone=UTC&rewriteBatchedStatements=true
     username: root
     password: 12345678

@@ -164,6 +164,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             if (folder != null) {
                 folderId = folder.getId();
             }
+            Map<Integer, ApiDocDetailVo> existsDocDetailMap = loadExistsDocDetailMap(projectInfo, docs, existsDocMap);
             // 保存folder docs
             for (ExportApiDocVo apiDocVo : docs) {
                 Pair<String, ApiDoc> existsDocPair = existsDocMap.get(calcDocKey(projectInfo.getId(), apiDocVo));
@@ -184,8 +185,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     processModifiedApiDoc(apiDocVo, existsDoc);
                     locked = Boolean.TRUE.equals(existsDoc.getLocked());
                     if (!locked) {
-                        existsDocDetail = apiDocSchemaService.loadDetailVo(apiDocVo);
-                        apiDocSchemaService.deleteByDoc(apiDocVo.getId());
+                        existsDocDetail = existsDocDetailMap.get(apiDocVo.getId());
                     }
                 }
                 if (ApiDocConstants.DOC_TYPE_API.equals(apiDocVo.getDocType())) {
@@ -201,6 +201,25 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         }
     }
 
+    protected Map<Integer, ApiDocDetailVo> loadExistsDocDetailMap(ApiProjectInfo projectInfo, List<ExportApiDocVo> docs,
+                                                                  Map<String, Pair<String, ApiDoc>> existsDocMap) {
+        List<ApiDoc> existsDocs = docs.stream()
+                .map(apiDocVo -> existsDocMap.get(calcDocKey(projectInfo.getId(), apiDocVo)))
+                .filter(Objects::nonNull)
+                .map(Pair::getValue)
+                .filter(Objects::nonNull)
+                .filter(doc -> !Boolean.TRUE.equals(doc.getLocked()))
+                .collect(Collectors.toMap(ApiDoc::getId, Function.identity(), (existing, replacement) -> existing, LinkedHashMap::new))
+                .values().stream().collect(Collectors.toList());
+        if (existsDocs.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Integer, ApiDocDetailVo> detailMap = apiDocSchemaService.loadDetailList(existsDocs).stream()
+                .collect(Collectors.toMap(ApiDocDetailVo::getId, Function.identity(), (existing, replacement) -> existing));
+        apiDocSchemaService.deleteByDocs(existsDocs.stream().map(ApiDoc::getId).collect(Collectors.toList()));
+        return detailMap;
+    }
+
     protected void processModifiedApiDoc(ExportApiDocVo apiDocVo, ApiDoc existsDoc) {
         if (existsDoc != null && ApiDocConstants.DOC_TYPE_API.equals(existsDoc.getDocType())) {
             if (!StringUtils.equals(existsDoc.getDocName(), existsDoc.getSummary())) { // 修改过docName
@@ -213,24 +232,23 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     }
 
     protected void saveApiDocSchemas(ExportApiDocVo apiDocVo) {
+        List<ApiProjectInfoDetail> docSchemas = new ArrayList<>();
         if (apiDocVo.getSecurityRequirements() != null) {
-            setApiDocInfo(apiDocVo.getSecurityRequirements(), apiDocVo);
-            apiDocSchemaService.save(SimpleModelUtils.addAuditInfo(apiDocVo.getSecurityRequirements()));
+            docSchemas.add(apiDocVo.getSecurityRequirements());
         }
         if (apiDocVo.getParametersSchema() != null) {
-            setApiDocInfo(apiDocVo.getParametersSchema(), apiDocVo);
-            apiDocSchemaService.save(SimpleModelUtils.addAuditInfo(apiDocVo.getParametersSchema()));
+            docSchemas.add(apiDocVo.getParametersSchema());
         }
         if (!CollectionUtils.isEmpty(apiDocVo.getRequestsSchemas())) {
-            apiDocSchemaService.saveBatch(apiDocVo.getRequestsSchemas().stream().map(requestSchema -> {
-                setApiDocInfo(requestSchema, apiDocVo);
-                return SimpleModelUtils.addAuditInfo(requestSchema);
-            }).collect(Collectors.toList()));
+            docSchemas.addAll(apiDocVo.getRequestsSchemas());
         }
         if (!CollectionUtils.isEmpty(apiDocVo.getResponsesSchemas())) {
-            apiDocSchemaService.saveBatch(apiDocVo.getResponsesSchemas().stream().map(responseSchema -> {
-                setApiDocInfo(responseSchema, apiDocVo);
-                return SimpleModelUtils.addAuditInfo(responseSchema);
+            docSchemas.addAll(apiDocVo.getResponsesSchemas());
+        }
+        if (!docSchemas.isEmpty()) {
+            apiDocSchemaService.saveBatch(docSchemas.stream().map(docSchema -> {
+                setApiDocInfo(docSchema, apiDocVo);
+                return SimpleModelUtils.addAuditInfo(docSchema);
             }).collect(Collectors.toList()));
         }
     }

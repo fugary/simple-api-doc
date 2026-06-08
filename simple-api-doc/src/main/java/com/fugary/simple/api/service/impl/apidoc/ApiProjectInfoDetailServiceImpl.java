@@ -78,6 +78,8 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         types.add(ApiDocConstants.PROJECT_SCHEMA_TYPE_CONTENT);
         List<ApiProjectInfoDetail> infoDetails = loadByProjectAndInfo(apiProject.getId(), apiProjectInfo.getId(), types);
         Map<String, ApiProjectInfoDetail> detailsMap = infoDetails.stream().collect(Collectors.toMap(ApiDocParseUtils::getProjectInfoDetailKey, Function.identity(), (existing, replacement) -> replacement));
+        List<ApiProjectInfoDetail> historyDetails = new ArrayList<>();
+        List<ApiProjectInfoDetail> toSaveDetails = new ArrayList<>();
         projectInfoDetails.forEach(projectInfoDetailVo -> {
             projectInfoDetailVo.setProjectId(apiProject.getId());
             projectInfoDetailVo.setInfoId(apiProjectInfo.getId());
@@ -85,25 +87,35 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
             ApiProjectInfoDetail toSaveInfoDetail = infoDetailPair.getLeft();
             ApiProjectInfoDetail existsInfoDetail = infoDetailPair.getRight();
             if (existsInfoDetail != null) {
-                saveApiHistory(existsInfoDetail);
+                historyDetails.add(toApiHistory(existsInfoDetail));
             }
             if (toSaveInfoDetail != null) {
-                saveOrUpdate(SimpleModelUtils.addAuditInfo(toSaveInfoDetail));
+                toSaveDetails.add(SimpleModelUtils.addAuditInfo(toSaveInfoDetail));
             }
         });
+        if (!historyDetails.isEmpty()) {
+            saveBatch(historyDetails);
+        }
+        if (!toSaveDetails.isEmpty()) {
+            saveOrUpdateBatch(toSaveDetails);
+        }
     }
 
     @Override
     public boolean saveApiHistory(ApiProjectInfoDetail infoDetail) {
         if (infoDetail != null) {
-            ApiProjectInfoDetail infoHistory = SimpleModelUtils.copy(infoDetail, ApiProjectInfoDetail.class);
-            infoHistory.setId(null);
-            infoHistory.setModifyFrom(infoDetail.getId());
-            infoHistory.setCreator(StringUtils.defaultIfBlank(infoDetail.getModifier(), infoDetail.getCreator()));
-            infoHistory.setCreateDate(Objects.requireNonNullElse(infoDetail.getModifyDate(), infoDetail.getCreateDate()));
-            return this.save(infoHistory);
+            return this.save(toApiHistory(infoDetail));
         }
         return true;
+    }
+
+    protected ApiProjectInfoDetail toApiHistory(ApiProjectInfoDetail infoDetail) {
+        ApiProjectInfoDetail infoHistory = SimpleModelUtils.copy(infoDetail, ApiProjectInfoDetail.class);
+        infoHistory.setId(null);
+        infoHistory.setModifyFrom(infoDetail.getId());
+        infoHistory.setCreator(StringUtils.defaultIfBlank(infoDetail.getModifier(), infoDetail.getCreator()));
+        infoHistory.setCreateDate(Objects.requireNonNullElse(infoDetail.getModifyDate(), infoDetail.getCreateDate()));
+        return infoHistory;
     }
 
     @Override
@@ -282,6 +294,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public List<ApiDocDetailVo> loadDetailList(List<ApiDoc> apiDocs) {
         List<Integer> docIds = apiDocs.stream().map(ApiDoc::getId).collect(Collectors.toList());
+        if (docIds.isEmpty()) {
+            return Collections.emptyList();
+        }
         Map<Integer, List<ApiProjectInfoDetail>> schemaMap = this.list(Wrappers.<ApiProjectInfoDetail>query()
                         .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                         .in("doc_id", docIds)).stream()
@@ -302,6 +317,14 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public boolean deleteByDoc(Integer docId) {
         return this.remove(Wrappers.<ApiProjectInfoDetail>query().eq("doc_id", docId));
+    }
+
+    @Override
+    public boolean deleteByDocs(Collection<Integer> docIds) {
+        if (docIds == null || docIds.isEmpty()) {
+            return true;
+        }
+        return this.remove(Wrappers.<ApiProjectInfoDetail>query().in("doc_id", docIds));
     }
 
     @Override
