@@ -2,12 +2,18 @@ package com.fugary.simple.api.config;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
+import com.fugary.simple.api.tasks.ApiLogCleanupTask;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
+import com.fugary.simple.api.tasks.SimpleTaskWrapper;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +22,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.config.IntervalTask;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -32,6 +39,9 @@ public class TaskScheduleConfig {
 
     @Autowired
     private ProjectAutoImportInvoker projectAutoImportInvoker;
+
+    @Autowired
+    private ApiLogService apiLogService;
 
     @Autowired
     private SimpleApiConfigProperties simpleApiConfigProperties;
@@ -67,10 +77,23 @@ public class TaskScheduleConfig {
                             projectAutoImportInvoker, simpleApiConfigProperties));
                 }
             }
+            if (simpleApiConfigProperties.getApiLogRetentionDays() > 0) {
+                scheduledTaskRegistrar.addCronTask(new ApiLogCleanupTask(
+                        new SimpleTaskWrapper<>(ApiLogCleanupTask.TASK_ID, ApiLogCleanupTask.TASK_NAME,
+                                SecurityUtils.ADMIN_USER),
+                        this::cleanupExpiredApiLogs));
+            }
 //            scheduledTaskRegistrar.addFixedRateTask(new SimpleTestTask(
 //                    new SimpleTaskWrapper<>("simple-test", "简单测试任务", null),
 //                    () -> log.info("简单测试....")));
         }
         return scheduledTaskRegistrar;
+    }
+
+    private void cleanupExpiredApiLogs() {
+        int retentionDays = simpleApiConfigProperties.getApiLogRetentionDays();
+        Date expiredDate = DateUtils.addDays(new Date(), -retentionDays);
+        apiLogService.remove(Wrappers.<ApiLog>query().lt("create_date", expiredDate));
+        log.info("API log cleanup completed, retention days: {}, expired date: {}", retentionDays, expiredDate);
     }
 }

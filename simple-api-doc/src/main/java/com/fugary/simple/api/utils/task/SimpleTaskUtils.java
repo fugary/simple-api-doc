@@ -129,6 +129,8 @@ public class SimpleTaskUtils {
                 taskVo.setProjectCode(project.getProjectCode());
                 taskVo.setUserName(project.getUserName());
             }
+        } else if (taskWrapper.getData() instanceof String) {
+            taskVo.setUserName((String) taskWrapper.getData());
         }
         if (autoTask instanceof CronTask) {
             CronTask cronTask = (CronTask) autoTask;

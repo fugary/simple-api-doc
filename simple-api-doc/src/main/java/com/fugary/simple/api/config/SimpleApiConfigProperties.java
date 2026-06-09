@@ -36,4 +36,9 @@ public class SimpleApiConfigProperties {
      * 记录数据库日志开关
      */
     private boolean apiLogEnabled = true;
+
+    /**
+     * API log retention days. Values less than or equal to 0 disable automatic cleanup.
+     */
+    private int apiLogRetentionDays = 180;
 }

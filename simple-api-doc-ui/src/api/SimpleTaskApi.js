@@ -20,4 +20,11 @@ export const removeAndDisable = function ({ taskId, tid }, config) {
   }, config)).then(response => response.data)
 }
 
+export const triggerSimpleTask = function (taskId, config) {
+  return $http(Object.assign({
+    url: `${BASE_URL}/${taskId}/trigger`,
+    method: 'post'
+  }, config)).then(response => response.data)
+}
+
 export default SimpleTaskApi

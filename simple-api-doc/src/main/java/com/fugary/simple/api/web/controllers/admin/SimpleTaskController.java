@@ -88,6 +88,19 @@ public class SimpleTaskController {
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
     }
 
+    @PostMapping("/{taskId}/trigger")
+    public SimpleResult<Boolean> triggerNow(@PathVariable(name = "taskId") String taskId) {
+        if (!SecurityUtils.isAdmin()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(taskId);
+        if (autoTask != null) {
+            autoTask.triggerNow();
+            return SimpleResultUtils.createSimpleResult(true);
+        }
+        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+    }
+
     @DeleteMapping("/{taskId}")
     public SimpleResult<Boolean> removeTask(@PathVariable(name = "taskId") String taskId) {
         simpleTaskManager.removeAutoTask(taskId);

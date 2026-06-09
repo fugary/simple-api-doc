@@ -65,6 +65,7 @@ simple:
     project-version: '@project.version@'
     task-enabled: ${API_TASK_ENABLED:true}
     task-pool-size: ${API_TASK_POOL_SIZE:10}
+    api-log-retention-days: ${API_LOG_RETENTION_DAYS:180}
 dbs:
   type: ${DB_TYPE:h2}
   h2:

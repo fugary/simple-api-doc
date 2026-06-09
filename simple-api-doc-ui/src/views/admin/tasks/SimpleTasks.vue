@@ -2,14 +2,13 @@
 import { computed, onActivated, onMounted } from 'vue'
 import { $coreAlert, $coreConfirm, $goto, isAdminUser } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
-import SimpleTaskApi, { removeAndDisable } from '@/api/SimpleTaskApi'
-import { $i18nBundle, $i18nKey } from '@/messages'
+import SimpleTaskApi, { removeAndDisable, triggerSimpleTask } from '@/api/SimpleTaskApi'
+import { $i18nKey } from '@/messages'
 import { TASK_STATUS_MAPPING } from '@/consts/ApiConstants'
 import { ElTag } from 'element-plus'
 import dayjs from 'dayjs'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { useRoute } from 'vue-router'
-import { triggerTask } from '@/api/ApiProjectTaskApi'
 
 const route = useRoute()
 
@@ -73,14 +72,14 @@ const columns = [{
 
 const buttons = computed(() => {
   return [{
-    labelKey: 'api.label.importNow',
+    labelKey: 'api.label.manualImportData1',
     type: 'success',
     click: item => {
-      $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.importNow'))
-        .then(() => triggerTask(item.tid, { loading: true, timeout: 60000 })
+      $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.manualImportData1'))
+        .then(() => triggerSimpleTask(item.taskId, { loading: true, timeout: 60000 })
           .then((data) => {
             if (data.success) {
-              $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+              $coreAlert(data.message)
               loadSimpleTasks()
             }
           }))
