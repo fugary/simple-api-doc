@@ -62,7 +62,7 @@ const formOptions = computed(() => {
   }, {
     labelKey: 'common.label.password',
     prop: 'userPassword',
-    required: true,
+    required: !userAccount.value?.id,
     attrs: {
       showPassword: true
     },
