@@ -37,6 +37,8 @@ public class ApiDocConstants {
 
     public static final String SIMPLE_API_TARGET_URL_HEADER = "simple-api-target-url";
 
+    public static final String SIMPLE_API_PROJECT_ID_HEADER = "simple-api-project-id";
+
     public static final String SIMPLE_API_DEBUG_HEADER = "simple-api-debug";
 
     public static final String SIMPLE_SHARE_ERROR_HEADER = "simple-share-error";

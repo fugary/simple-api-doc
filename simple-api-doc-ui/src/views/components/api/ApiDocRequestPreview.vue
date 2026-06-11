@@ -16,6 +16,7 @@ import {
   AUTH_TYPE,
   SIMPLE_API_ACCESS_TOKEN_HEADER,
   SIMPLE_SHARE_ERROR_HEADER,
+  SIMPLE_API_PROJECT_ID_HEADER,
   SIMPLE_API_TARGET_URL_HEADER
 } from '@/consts/ApiConstants'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
@@ -87,6 +88,7 @@ const doDataPreview = async () => {
   let targetUrl = paramTarget.value?.targetUrl
   if (serverSend) {
     headers[SIMPLE_API_TARGET_URL_HEADER] = targetUrl
+    apiDocDetail.value?.projectId && (headers[SIMPLE_API_PROJECT_ID_HEADER] = apiDocDetail.value.projectId)
     headers[SIMPLE_API_ACCESS_TOKEN_HEADER] = useLoginConfigStore().accessToken
     targetUrl = '/admin/proxy' // 服务端代理发送
     if (apiDocDetail.value?.apiShare) {

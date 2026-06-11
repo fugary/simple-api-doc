@@ -43,38 +43,40 @@ public class ApiProxyUrlResolver {
     private ApiGroupService apiGroupService;
 
     public boolean isAllowedTargetUrl(String targetUrl) {
+        return resolveProjectId(targetUrl, null) != null;
+    }
+
+    public Integer resolveProjectId(String targetUrl, Integer projectId) {
         if (StringUtils.isBlank(targetUrl)) {
-            return false;
+            return null;
         }
         String shareId = SecurityUtils.getLoginShareId();
         return StringUtils.isNotBlank(shareId)
-                ? isAllowedShareTargetUrl(shareId, targetUrl)
-                : isAllowedAdminTargetUrl(targetUrl);
+                ? resolveShareProjectId(shareId, targetUrl, projectId)
+                : resolveAdminProjectId(targetUrl, projectId);
     }
 
-    protected boolean isAllowedAdminTargetUrl(String targetUrl) {
+    protected Integer resolveAdminProjectId(String targetUrl, Integer projectId) {
         ApiUserVo loginUser = SecurityUtils.getLoginUser();
-        if (loginUser == null) {
-            return false;
-        }
-        List<ApiProject> projects = apiProjectService.list(Wrappers.<ApiProject>query()
-                .isNotNull("env_content"));
-        return projects.stream()
+        return loginUser == null ? null : apiProjectService.list(Wrappers.<ApiProject>query()
+                .eq(projectId != null, "id", projectId)
+                .isNotNull("env_content")).stream()
                 .filter(project -> apiGroupService.checkProjectAccess(loginUser, project, ApiGroupAuthority.READABLE))
-                .anyMatch(project -> containsEnvUrl(project.getEnvContent(), targetUrl));
+                .filter(project -> containsEnvUrl(project.getEnvContent(), targetUrl))
+                .map(ApiProject::getId)
+                .findFirst().orElse(null);
     }
 
-    protected boolean isAllowedShareTargetUrl(String shareId, String targetUrl) {
+    protected Integer resolveShareProjectId(String shareId, String targetUrl, Integer projectId) {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         if (apiShare == null) {
-            return false;
+            return null;
         }
         ApiProject apiProject = apiProjectService.getById(apiShare.getProjectId());
-        if (apiProject == null || !containsEnvUrl(apiProject.getEnvContent(), targetUrl)) {
-            return false;
-        }
-        return StringUtils.isBlank(apiShare.getEnvContent())
-                || containsEnvUrl(apiShare.getEnvContent(), targetUrl);
+        return apiProject != null && (projectId == null || projectId.equals(apiShare.getProjectId()))
+                && containsEnvUrl(apiProject.getEnvContent(), targetUrl)
+                && (StringUtils.isBlank(apiShare.getEnvContent()) || containsEnvUrl(apiShare.getEnvContent(), targetUrl))
+                ? apiShare.getProjectId() : null;
     }
 
     protected boolean containsEnvUrl(String envContent, String targetUrl) {

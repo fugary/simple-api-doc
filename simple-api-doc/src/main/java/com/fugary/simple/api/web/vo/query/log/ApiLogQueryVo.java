@@ -15,6 +15,7 @@ import java.util.Date;
 public class ApiLogQueryVo extends SimpleQueryVo {
 
     private static final long serialVersionUID = -2076599168736875601L;
+    private Integer projectId;
     private String logName;
     private String logType;
     private String logResult;

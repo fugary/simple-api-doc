@@ -3,6 +3,7 @@ import { computed, onActivated, onMounted, ref } from 'vue'
 import { checkShowColumn, formatDate, getSingleSelectOptions, isAdminUser } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useAllUsers } from '@/api/ApiUserApi'
+import { useSelectProjects } from '@/api/ApiProjectApi'
 import ApiLogApi from '@/api/ApiLogApi'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { ElText, ElTag } from 'element-plus'
@@ -24,11 +25,13 @@ const dateParam = ref({
   createDates: []
 })
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
+const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
   if (isAdminUser()) {
     await loadUsersAndRefreshOptions(false)
   }
+  await loadProjectsAndRefreshOptions()
   await loadApiLogs()
 })
 
@@ -41,6 +44,13 @@ const columns = computed(() => {
     labelKey: 'common.label.user',
     prop: 'creator',
     enabled: checkShowColumn(tableData.value, 'creator')
+  }, {
+    labelKey: 'api.label.project',
+    prop: 'projectId',
+    enabled: checkShowColumn(tableData.value, 'projectId'),
+    formatter (data) {
+      return projectOptions.value.find(project => `${project.value}` === `${data.projectId}`)?.label || data.projectId
+    }
   }, {
     labelKey: 'api.label.logName',
     prop: 'logName',
@@ -145,6 +155,17 @@ const searchFormOptions = computed(() => {
     type: 'select',
     enabled: isAdminUser(),
     children: userOptions.value,
+    async change () {
+      searchParam.value.projectId = null
+      await loadProjectsAndRefreshOptions()
+      loadApiLogs()
+    }
+  }, {
+    labelKey: 'api.label.project',
+    prop: 'projectId',
+    type: 'select',
+    enabled: !!projectOptions.value.length,
+    children: projectOptions.value,
     change () {
       loadApiLogs()
     }

@@ -8,6 +8,8 @@ export const BEARER_KEY = 'Bearer'
 
 export const SIMPLE_API_TARGET_URL_HEADER = 'simple-api-target-url'
 
+export const SIMPLE_API_PROJECT_ID_HEADER = 'simple-api-project-id'
+
 export const SIMPLE_API_ACCESS_TOKEN_HEADER = 'simple-api-access-token'
 
 export const CURRENT_SHARE_THEME_KEY = 'simple-api-share-theme'

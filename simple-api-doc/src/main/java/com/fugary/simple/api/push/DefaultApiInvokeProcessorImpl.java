@@ -11,6 +11,7 @@ import com.fugary.simple.api.web.vo.NameValue;
 import com.fugary.simple.api.web.vo.query.ApiParamsVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -50,9 +51,12 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
             return ResponseEntity.ok(SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404));
         }
         ApiParamsVo apiParams = SimpleModelUtils.toApiParams(request);
-        if (!apiProxyUrlResolver.isAllowedTargetUrl(apiParams.getTargetUrl())) {
+        int headerProjectId = NumberUtils.toInt(request.getHeader(ApiDocConstants.SIMPLE_API_PROJECT_ID_HEADER));
+        Integer projectId = apiProxyUrlResolver.resolveProjectId(apiParams.getTargetUrl(), headerProjectId > 0 ? headerProjectId : null);
+        if (projectId == null) {
             return ResponseEntity.ok(SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403));
         }
+        SimpleLogUtils.addLogData(logBuilder -> logBuilder.projectId(String.valueOf(projectId)));
         String acceptHeader = request.getHeader(HttpHeaders.ACCEPT);
         if (StringUtils.contains(acceptHeader, MediaType.TEXT_EVENT_STREAM_VALUE)) {
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
