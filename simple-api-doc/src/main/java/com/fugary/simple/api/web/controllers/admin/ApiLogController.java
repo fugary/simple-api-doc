@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.log.ApiLogQueryVo;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +36,9 @@ public class ApiLogController {
     public SimpleResult<List<ApiLog>> search(@ModelAttribute ApiLogQueryVo queryVo) {
         Page<ApiLog> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
+        String userName = SecurityUtils.isAdmin() ? queryVo.getUserName() : SecurityUtils.getLoginUserName();
         QueryWrapper<ApiLog> queryWrapper = Wrappers.<ApiLog>query()
-                .eq(StringUtils.isNotBlank(queryVo.getUserName()), "user_name", queryVo.getUserName())
+                .eq(StringUtils.isNotBlank(userName), "user_name", userName)
                 .eq(StringUtils.isNotBlank(queryVo.getLogType()), "log_type", StringUtils.trimToEmpty(queryVo.getLogType()))
                 .eq(StringUtils.isNotBlank(queryVo.getLogResult()), "log_result", StringUtils.trimToEmpty(queryVo.getLogResult()))
                 .eq(StringUtils.isNotBlank(queryVo.getIpAddress()), "ip_address", StringUtils.trimToEmpty(queryVo.getIpAddress()))
