@@ -107,8 +107,9 @@ public class ApiFolderController {
 
     @PostMapping
     public SimpleResult<ApiFolder> saveFolder(@RequestBody ApiFolder apiFolder) {
+        ApiFolder existsFolder = null;
         if (apiFolder.getId() != null) {
-            ApiFolder existsFolder = apiFolderService.getById(apiFolder.getId());
+            existsFolder = apiFolderService.getById(apiFolder.getId());
             if (existsFolder == null) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
             }
@@ -124,6 +125,9 @@ public class ApiFolderController {
         }
         if (!apiProjectAccessService.canAccessFolder(apiFolder, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (existsFolder != null && SimpleModelUtils.isSameData(apiFolder, existsFolder)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsFolder);
         }
         if (apiFolderService.existsApiFolder(apiFolder)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);

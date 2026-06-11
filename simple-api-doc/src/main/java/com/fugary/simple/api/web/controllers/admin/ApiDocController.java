@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Create date 2024/9/27<br>
@@ -111,8 +112,9 @@ public class ApiDocController {
 
     @PostMapping
     public SimpleResult<ApiDoc> saveDoc(@RequestBody ApiDoc apiDoc) {
+        ApiDoc existsDoc = null;
         if (apiDoc.getId() != null) {
-            ApiDoc existsDoc = apiDocService.getById(apiDoc.getId());
+            existsDoc = apiDocService.getById(apiDoc.getId());
             if (existsDoc == null) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
             }
@@ -127,9 +129,6 @@ public class ApiDocController {
         if (!apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        if (apiDocService.existsApiDoc(apiDoc)) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
-        }
         if (apiDoc.getInfoId() == null) {
             ApiProjectInfo projectInfo = apiProjectService.findOrCreateProjectInfo(apiDoc);
             if (projectInfo != null) {
@@ -140,8 +139,28 @@ public class ApiDocController {
         if (apiDoc.getVersion() == null) {
             apiDoc.setVersion(1);
         }
-        apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDoc), null);
+        normalizeApiDoc(apiDoc, existsDoc);
+        if (existsDoc != null && SimpleModelUtils.isSameData(apiDoc, existsDoc, "sortId")) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsDoc);
+        }
+        if (apiDocService.existsApiDoc(apiDoc)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
+        }
+        apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDoc), existsDoc);
         return SimpleResultUtils.createSimpleResult(apiDoc);
+    }
+
+    protected void normalizeApiDoc(ApiDoc apiDoc, ApiDoc existsDoc) {
+        if (existsDoc == null) {
+            return;
+        }
+        if (!Boolean.TRUE.equals(apiDoc.getLocked()) && !Boolean.TRUE.equals(existsDoc.getLocked())) {
+            apiDoc.setLocked(existsDoc.getLocked());
+        }
+        if (ApiDocConstants.DOC_TYPE_API.equals(apiDoc.getDocType()) && StringUtils.isBlank(existsDoc.getDocContent())
+                && StringUtils.equals(apiDoc.getDocContent(), existsDoc.getDescription())) {
+            apiDoc.setDocContent(existsDoc.getDocContent());
+        }
     }
 
     @PostMapping("/updateApiDoc")
@@ -152,6 +171,10 @@ public class ApiDocController {
         }
         if (!apiProjectAccessService.canAccessDoc(existsDoc, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (Objects.equals(apiDoc.getStatus(), existsDoc.getStatus())
+                && Objects.equals(apiDoc.getLocked(), existsDoc.getLocked())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsDoc);
         }
         if (apiDoc.getVersion() == null) {
             apiDoc.setVersion(1);

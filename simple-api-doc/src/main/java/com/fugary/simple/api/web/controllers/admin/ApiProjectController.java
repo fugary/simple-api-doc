@@ -205,11 +205,12 @@ public class ApiProjectController {
     @PostMapping
     public SimpleResult save(@RequestBody ApiProject project) {
         ApiUser loginUser = getLoginUser();
+        ApiProject existsProject = null;
         if (StringUtils.isBlank(project.getUserName()) && loginUser != null) {
             project.setUserName(loginUser.getUserName());
         }
         if (project.getId() != null) {
-            ApiProject existsProject = apiProjectService.getById(project.getId());
+            existsProject = apiProjectService.getById(project.getId());
             if (existsProject == null) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
             }
@@ -226,10 +227,13 @@ public class ApiProjectController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         project.setProjectCode(StringUtils.defaultIfBlank(project.getProjectCode(), SimpleModelUtils.uuid()));
+        project.setPrivateFlag(ObjectUtils.defaultIfNull(project.getPrivateFlag(), true));
+        if (existsProject != null && SimpleModelUtils.isSameData(project, existsProject)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsProject);
+        }
         if (apiProjectService.existsApiProject(project)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
-        project.setPrivateFlag(ObjectUtils.defaultIfNull(project.getPrivateFlag(), true));
         return SimpleResultUtils.createSimpleResult(apiProjectService.saveProject(SimpleModelUtils.addAuditInfo(project)));
     }
 

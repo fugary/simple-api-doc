@@ -163,15 +163,15 @@ public class ApiProjectInfoDetailController {
         if (!apiProjectAccessService.canAccessProject(infoDetail.getProjectId(), ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        if (existsInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, existsInfoDetail, "schemaContent")
-                && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), existsInfoDetail.getSchemaContent())) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
-        }
         if (infoDetail.getInfoId() == null) {
             ApiProjectInfo projectInfo = apiProjectService.findOrCreateProjectInfo(infoDetail.getProjectId());
             if (projectInfo != null) {
                 infoDetail.setInfoId(projectInfo.getId());
             }
+        }
+        if (existsInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, existsInfoDetail, "schemaContent")
+                && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), existsInfoDetail.getSchemaContent())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsInfoDetail);
         }
         if (apiProjectInfoDetailService.existsInfoDetail(infoDetail)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
