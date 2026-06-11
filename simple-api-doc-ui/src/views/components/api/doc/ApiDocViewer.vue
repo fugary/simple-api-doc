@@ -142,6 +142,7 @@ const showAuthorizationWindow = ref(false)
 const toEditAuthorization = () => {
   if (sharePreference.defaultAuthModel) {
     authContentModel.value = getAuthContentModel()
+    calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
   }
   showAuthorizationWindow.value = true
 }
@@ -355,10 +356,10 @@ const authButtons = [{
         >
           <template
             v-for="(authModel, index) in supportedAuthModels"
-            :key="authModel.authType"
+            :key="authModel.authKeyName"
           >
             <ApiRequestFormAuthorization
-              v-if="authContentModel.authType===authModel.authType"
+              v-if="authContentModel.authKeyName===authModel.authKeyName"
               :model-value="authModel"
               :form-prop="`authModels[${index}]`"
               :show-auth-types="false"

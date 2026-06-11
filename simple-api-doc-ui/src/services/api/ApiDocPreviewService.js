@@ -791,22 +791,25 @@ export const calcDefaultAuthModel = (authContentModel, authSchema) => {
 export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
   // 找到匹配的模式，优先考虑 authType 相同的模式
   if (securitySchemas) {
-    const authModelsMap = Object.fromEntries((authContentModel.authModels || []).map(authModel => [authModel.authType, authModel]))
+    const authModelsMap = Object.fromEntries((authContentModel.authModels || []).flatMap(authModel => [
+      [authModel.authType, authModel],
+      [authModel.authKeyName, authModel]
+    ]).filter(([key]) => key))
     const secSchemas = Object.values(securitySchemas).filter(authSchema => authSchema.isSupported)
     authContentModel.authModels = secSchemas.map(secSchema => {
       const authModel = calcDefaultAuthModel({}, secSchema)
       // 从已保存数据复制
-      Object.assign(authModel, authModelsMap[authModel.authType] || {})
+      Object.assign(authModel, authModelsMap[secSchema.authKeyName] || authModelsMap[authModel.authType] || {})
       authModel.isSupported = secSchema.isSupported
       authModel.authKeyName = secSchema.authKeyName
       secSchema.authModel = authModel
       return authModel
     })
-    if (authContentModel.authType === AUTH_TYPE.NONE) {
-      const firstModel = authContentModel.authModels?.find(authModel => authModel.isSupported)
-      authContentModel.authType = firstModel?.authType || AUTH_TYPE.NONE
-      authContentModel.authKeyName = firstModel?.authKeyName
-    }
+    const selectedModel = authContentModel.authModels?.find(authModel => authModel.isSupported && authModel.authKeyName === authContentModel.authKeyName) ||
+      authContentModel.authModels?.find(authModel => authModel.isSupported && authModel.authType === authContentModel.authType) ||
+      authContentModel.authModels?.find(authModel => authModel.isSupported)
+    authContentModel.authType = selectedModel?.authType || AUTH_TYPE.NONE
+    authContentModel.authKeyName = selectedModel?.authKeyName
     console.log('================================authModels', authContentModel)
   }
 }
