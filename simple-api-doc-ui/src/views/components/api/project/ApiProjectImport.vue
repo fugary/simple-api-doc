@@ -194,7 +194,7 @@ const formOptions = computed(() => {
     slots: {
       default: ({ node }) => <TreeIconLabel node={node} iconLeaf="Folder">
         {node.label} {importFolders.value?.includes(node.data?.id) ? <ElText type="success">({$i18nBundle('api.label.importFolder')})</ElText> : ''}
-        {node.data?.rootFlag ? <CommonIcon icon="Refresh" v-common-tooltip={$i18nBundle('common.label.refresh')} size={14} class="pointer margin-left2" onClick={() => loadValidFolders(importModel.value?.projectId)}/> : ''}
+        {node.data?.rootFlag ? <CommonIcon icon="Refresh" v-common-tooltip={$i18nBundle('common.label.refresh')} size={14} class="pointer margin-left2" onClick={() => loadValidFolders(props.project?.id)}/> : ''}
       </TreeIconLabel>
     },
     tooltip: $i18nKey('common.label.commonAdd', 'api.label.folder'),

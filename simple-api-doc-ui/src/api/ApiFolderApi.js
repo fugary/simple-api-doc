@@ -14,8 +14,10 @@ export const clearFolder = (id, config) => {
 }
 
 export const loadAvailableFolders = (projectId) => {
-  return ApiFolderApi.search({ projectId, page: useDefaultPage(200) })
-    .then(data => data?.resultData?.filter(folder => folder.enabled) || [])
+  return projectId
+    ? ApiFolderApi.search({ projectId, page: useDefaultPage(200) })
+      .then(data => data?.resultData?.filter(folder => folder.enabled) || [])
+    : Promise.resolve([])
 }
 
 export const updateFolderSorts = (param, config) => {
