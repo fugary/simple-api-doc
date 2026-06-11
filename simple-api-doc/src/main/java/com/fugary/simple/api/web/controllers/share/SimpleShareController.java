@@ -136,6 +136,9 @@ public class SimpleShareController {
         if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
         }
+        if (!Boolean.TRUE.equals(apiShare.getExportEnabled())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         Set<Integer> shareDocIds = SimpleModelUtils.getShareDocIds(apiShare.getShareDocs());
         if (CollectionUtils.isEmpty(downloadVo.getDocIds())) {
             downloadVo.setDocIds(new ArrayList<>(shareDocIds));
@@ -153,6 +156,13 @@ public class SimpleShareController {
                                                                   @PathVariable("uuid") String uuid,
                                                                   HttpServletRequest request) throws IOException {
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
+        if (apiShare == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!Boolean.TRUE.equals(apiShare.getExportEnabled()) || !StringUtils.equals(shareId, SecurityUtils.getLoginShareId())
+                || !StringUtils.startsWith(uuid, apiShare.getProjectId() + "-")) {
+            return ResponseEntity.status(403).build();
+        }
         String fileName = uuid + "." + type;
         return SimpleResultUtils.downloadTempExportFile(request, applicationName, apiShare.getShareName(), fileName);
     }

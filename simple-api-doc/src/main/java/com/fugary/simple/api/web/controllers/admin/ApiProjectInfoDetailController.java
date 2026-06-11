@@ -6,10 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
-import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
-import com.fugary.simple.api.service.apidoc.ApiGroupService;
+import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
@@ -32,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
-
 /**
  * Create date 2025/7/8<br>
  *
@@ -54,10 +51,13 @@ public class ApiProjectInfoDetailController {
     private ApiProjectService apiProjectService;
 
     @Autowired
-    private ApiGroupService apiGroupService;
+    private ApiProjectAccessService apiProjectAccessService;
 
     @GetMapping
     public SimpleResult<List<ApiProjectInfoDetail>> search(@ModelAttribute ProjectComponentQueryVo queryVo) {
+        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         Page<ApiProjectInfoDetail> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
@@ -78,6 +78,9 @@ public class ApiProjectInfoDetailController {
 
     @PostMapping("/loadInfoDetails")
     public SimpleResult<List<ApiProjectInfoDetail>> loadInfoDetails(@RequestBody ProjectComponentQueryVo queryVo) {
+        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
                 .eq("project_id", queryVo.getProjectId())
                 .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
@@ -88,12 +91,18 @@ public class ApiProjectInfoDetailController {
 
     @PostMapping("/loadInfoDetail")
     public SimpleResult<ApiProjectInfoDetail> loadInfoDetail(@RequestBody ProjectComponentQueryVo queryVo) {
+        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
                 .eq("project_id", queryVo.getProjectId())
                 .eq("info_id", queryVo.getInfoId())
                 .eq("schema_name", queryVo.getSchemaName())
                 .eq("body_type", queryVo.getBodyType());
         ApiProjectInfoDetail infoDetail = apiProjectInfoDetailService.getOne(queryWrapper);
+        if (infoDetail == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
         List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.findRelatedInfoDetails(infoDetail);
         return SimpleResultUtils.createSimpleResult(infoDetail)
                 .add("components", (Serializable) infoDetails);
@@ -104,6 +113,9 @@ public class ApiProjectInfoDetailController {
         ApiProjectInfoDetail infoDetail = apiProjectInfoDetailService.getById(id);
         if (infoDetail == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessInfoDetail(infoDetail, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.findRelatedInfoDetails(infoDetail);
         long historyCount = apiProjectInfoDetailService.count(Wrappers.<ApiProjectInfoDetail>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, id));
@@ -118,8 +130,7 @@ public class ApiProjectInfoDetailController {
         if (infoDetail == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        ApiProject project = apiProjectService.getById(infoDetail.getProjectId());
-        if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.DELETABLE)) {
+        if (!apiProjectAccessService.canAccessInfoDetail(infoDetail, ApiGroupAuthority.DELETABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.removeById(id));
@@ -129,9 +140,8 @@ public class ApiProjectInfoDetailController {
     public SimpleResult<Boolean> removeByIds(@PathVariable("ids") List<Integer> ids) {
         List<ApiProjectInfoDetail> infoDetails = apiProjectInfoDetailService.listByIds(ids);
         List<Integer> projectIds = infoDetails.stream().map(ApiProjectInfoDetail::getProjectId).distinct().collect(Collectors.toList());
-        List<ApiProject> apiProjects = apiProjectService.listByIds(projectIds);
-        for (ApiProject apiProject : apiProjects) {
-            if (!apiGroupService.checkProjectAccess(getLoginUser(), apiProject, ApiGroupAuthority.DELETABLE)) {
+        for (Integer projectId : projectIds) {
+            if (!apiProjectAccessService.canAccessProject(projectId, ApiGroupAuthority.DELETABLE)) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
             }
         }
@@ -140,17 +150,22 @@ public class ApiProjectInfoDetailController {
 
     @PostMapping
     public SimpleResult<ApiProjectInfoDetail> save(@RequestBody ApiProjectInfoDetail infoDetail) {
-        ApiProject project = apiProjectService.getById(infoDetail.getProjectId());
-        if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.WRITABLE)) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
-        }
         ApiProjectInfoDetail existsInfoDetail = null;
         if (infoDetail.getId() != null) {
             existsInfoDetail = apiProjectInfoDetailService.getById(infoDetail.getId());
-            if (existsInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, existsInfoDetail, "schemaContent")
-                    && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), existsInfoDetail.getSchemaContent())) {
-                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
+            if (existsInfoDetail == null) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
             }
+            if (!apiProjectAccessService.canAccessInfoDetail(existsInfoDetail, ApiGroupAuthority.WRITABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+        }
+        if (!apiProjectAccessService.canAccessProject(infoDetail.getProjectId(), ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (existsInfoDetail != null && SimpleModelUtils.isSameData(infoDetail, existsInfoDetail, "schemaContent")
+                && ApiSchemaContentUtils.isSameSchemaContent(infoDetail.getSchemaContent(), existsInfoDetail.getSchemaContent())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
         }
         if (infoDetail.getInfoId() == null) {
             ApiProjectInfo projectInfo = apiProjectService.findOrCreateProjectInfo(infoDetail.getProjectId());
@@ -188,6 +203,9 @@ public class ApiProjectInfoDetailController {
         if (currentDoc == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiProjectAccessService.canAccessInfoDetail(currentDoc, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.page(page, Wrappers.<ApiProjectInfoDetail>query()
                         .eq(ApiDocConstants.DB_MODIFY_FROM_KEY, infoDetailId)
                         .orderByDesc("data_version")))
@@ -205,6 +223,12 @@ public class ApiProjectInfoDetailController {
         Integer id = queryVo.getQueryId();
         Integer maxVersion = queryVo.getVersion();
         ApiProjectInfoDetail modified = apiProjectInfoDetailService.getById(id);
+        if (modified == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessInfoDetail(modified, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         Page<ApiProjectInfoDetail> page = new Page<>(1, 2);
         apiProjectInfoDetailService.page(page, Wrappers.<ApiProjectInfoDetail>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, ObjectUtils.defaultIfNull(modified.getModifyFrom(), modified.getId()))
                 .le(maxVersion != null, "data_version", maxVersion)
@@ -232,6 +256,9 @@ public class ApiProjectInfoDetailController {
         if (history == null || target == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiProjectAccessService.canAccessInfoDetail(target, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         ApiProjectInfoDetail apiInfoDetail = apiProjectInfoDetailService.copyFromHistory(history, target);
         return this.save(apiInfoDetail); // 更新
     }
@@ -242,7 +269,7 @@ public class ApiProjectInfoDetailController {
         if (infoDetail == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (!apiProjectService.validateUserProject(infoDetail.getProjectId())) {
+        if (!apiProjectAccessService.canAccessInfoDetail(infoDetail, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return apiProjectInfoDetailService.copyApiModel(infoDetail);

@@ -2,8 +2,10 @@ package com.fugary.simple.api.web.controllers.admin;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.tasks.SimpleAutoTask;
@@ -42,6 +44,9 @@ public class SimpleTaskController {
     private ApiProjectService apiProjectService;
 
     @Autowired
+    private ApiProjectAccessService apiProjectAccessService;
+
+    @Autowired
     private ApiProjectTaskService apiProjectTaskService;
 
     @GetMapping
@@ -50,6 +55,7 @@ public class SimpleTaskController {
         List<SimpleAutoTask<?>> autoTasks = simpleTaskManager.loadAutoTasks();
         List<SimpleTaskVo> taskList = autoTasks.stream()
                 .map(this::getSimpleTaskVo)
+                .filter(taskVo -> apiProjectAccessService.canAccessSimpleTask(taskVo, ApiGroupAuthority.READABLE))
                 .filter(taskVo -> {
                     boolean result = true;
                     if (StringUtils.isNotBlank(keyword)) {
@@ -83,7 +89,11 @@ public class SimpleTaskController {
     public SimpleResult<SimpleTaskVo> getById(@PathVariable(name = "taskId") String taskId) {
         SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(taskId);
         if (autoTask != null) {
-            return SimpleResultUtils.createSimpleResult(getSimpleTaskVo(autoTask));
+            SimpleTaskVo taskVo = getSimpleTaskVo(autoTask);
+            if (!apiProjectAccessService.canAccessSimpleTask(taskVo, ApiGroupAuthority.READABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+            return SimpleResultUtils.createSimpleResult(taskVo);
         }
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
     }
@@ -103,6 +113,13 @@ public class SimpleTaskController {
 
     @DeleteMapping("/{taskId}")
     public SimpleResult<Boolean> removeTask(@PathVariable(name = "taskId") String taskId) {
+        SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(taskId);
+        if (autoTask == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessSimpleTask(getSimpleTaskVo(autoTask), ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         simpleTaskManager.removeAutoTask(taskId);
         return SimpleResultUtils.createSimpleResult(true);
     }
@@ -115,11 +132,12 @@ public class SimpleTaskController {
         if (apiTask == null || (apiProject = apiProjectService.getById(apiTask.getProjectId())) == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (!SecurityUtils.validateUserUpdate(apiProject.getUserName())) {
+        if (!apiProjectAccessService.canAccessProject(apiProject, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         simpleTaskManager.removeAutoTask(taskId);
         apiTask.setStatus(ApiDocConstants.STATUS_DISABLED);
         return SimpleResultUtils.createSimpleResult(apiProjectTaskService.updateById(apiTask));
     }
+
 }

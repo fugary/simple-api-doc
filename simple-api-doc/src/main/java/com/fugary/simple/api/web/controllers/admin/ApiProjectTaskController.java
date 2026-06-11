@@ -7,13 +7,11 @@ import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
-import com.fugary.simple.api.entity.api.ApiGroup;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
-import com.fugary.simple.api.service.apidoc.ApiGroupService;
+import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
-import com.fugary.simple.api.service.apidoc.ApiUserService;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.SimpleAutoTask;
 import com.fugary.simple.api.tasks.SimpleTaskManager;
@@ -24,7 +22,6 @@ import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.project.ApiProjectTaskVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
-import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.config.ScheduledTask;
@@ -34,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
 
 /**
  * Create date 2024/9/27<br>
@@ -53,10 +48,7 @@ public class ApiProjectTaskController {
     private ApiProjectService apiProjectService;
 
     @Autowired
-    private ApiGroupService apiGroupService;
-
-    @Autowired
-    private ApiUserService apiUserService;
+    private ApiProjectAccessService apiProjectAccessService;
 
     @Autowired
     private ProjectAutoImportInvoker projectAutoImportInvoker;
@@ -73,8 +65,7 @@ public class ApiProjectTaskController {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         String groupCode = StringUtils.trimToEmpty(queryVo.getGroupCode());
-        if (StringUtils.isNotBlank(groupCode)
-                && !apiGroupService.checkGroupAccess(getLoginUser(), groupCode, ApiGroupAuthority.READABLE)) {
+        if (!apiProjectAccessService.canAccessGroup(groupCode, ApiGroupAuthority.READABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         QueryWrapper<ApiProjectTask> queryWrapper = Wrappers.<ApiProjectTask>query()
@@ -122,9 +113,7 @@ public class ApiProjectTaskController {
         if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
             queryWrapper.exists("select 1 from t_api_project p where p.id = t_api_project_task.project_id and p.group_code={0}", queryVo.getGroupCode());
         } else {
-            ApiUserVo apiUser = apiUserService.loadUser(userName);
-            String groupCodesStr = apiUser.getGroups().stream().map(ApiGroup::getGroupCode)
-                    .filter(StringUtils::isNotBlank).collect(Collectors.joining("','"));
+            String groupCodesStr = apiProjectAccessService.loadReadableGroupCodesSql(userName);
             queryWrapper.and(wrapper -> wrapper.exists(StringUtils.isNotBlank(groupCodesStr), "select 1 from t_api_project p where p.id = t_api_project_task.project_id and p.group_code in ('" + groupCodesStr + "')")
                     .or().exists("select 1 from t_api_project p where p.id = t_api_project_task.project_id and p.user_name={0} and (p.group_code is null or p.group_code = '')", userName));
         }
@@ -132,27 +121,41 @@ public class ApiProjectTaskController {
 
     @GetMapping("/{id}")
     public SimpleResult<ApiProjectTask> get(@PathVariable("id") Integer id) {
-        return SimpleResultUtils.createSimpleResult(apiProjectTaskService.getById(id));
+        ApiProjectTask apiTask = apiProjectTaskService.getById(id);
+        if (apiTask == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessTask(apiTask, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        return SimpleResultUtils.createSimpleResult(apiTask);
     }
 
     @DeleteMapping("/{id}")
     public SimpleResult<Boolean> remove(@PathVariable("id") Integer id) {
         ApiProjectTask apiTask = apiProjectTaskService.getById(id);
-        if (!validateOperateUser(apiTask)) {
+        if (apiTask == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessTask(apiTask, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        if (apiTask != null) {
-            simpleTaskManager.removeAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId()));
-        }
+        simpleTaskManager.removeAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId()));
         return SimpleResultUtils.createSimpleResult(apiProjectTaskService.removeById(id));
     }
 
     @PostMapping
     public SimpleResult<Boolean> save(@RequestBody ApiProjectTask apiTask) {
-        if (!validateOperateUser(apiTask)) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        if (apiTask.getId() != null) {
+            ApiProjectTask existsTask = apiProjectTaskService.getById(apiTask.getId());
+            if (existsTask == null) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+            }
+            if (!apiProjectAccessService.canAccessTask(existsTask, ApiGroupAuthority.WRITABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
         }
-        if (!validateOperateUser(apiTask)) {
+        if (!apiProjectAccessService.canAccessTask(apiTask, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         boolean saved = apiProjectTaskService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiTask));
@@ -175,7 +178,7 @@ public class ApiProjectTaskController {
         if (apiTask == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (!validateOperateUser(apiTask)) {
+        if (!apiProjectAccessService.canAccessTask(apiTask, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         SimpleResult<ApiProject> result = projectAutoImportInvoker.importProject(apiTask);
@@ -194,8 +197,7 @@ public class ApiProjectTaskController {
         if (projectTask == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        ApiProject apiProject = apiProjectService.getById(projectTask.getProjectId());
-        if (!apiGroupService.checkProjectAccess(getLoginUser(), apiProject, ApiGroupAuthority.WRITABLE)) {
+        if (!apiProjectAccessService.canAccessTask(projectTask, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         SimpleResult<ApiProjectTask> simpleResult = apiProjectTaskService.copyProjectTask(projectTask);
@@ -207,13 +209,6 @@ public class ApiProjectTaskController {
             }
         }
         return simpleResult;
-    }
-
-    protected boolean validateOperateUser(ApiProjectTask projectTask) {
-        if (projectTask != null) {
-            return apiProjectService.validateUserProject(projectTask.getProjectId());
-        }
-        return true;
     }
 
 }

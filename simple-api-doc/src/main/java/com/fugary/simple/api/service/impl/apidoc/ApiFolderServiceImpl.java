@@ -392,6 +392,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         List<ApiFolder> apiFolders;
         if (!CollectionUtils.isEmpty(docSortMap.keySet())) {
             apiDocs = apiDocService.listByIds(docSortMap.keySet());
+            if (apiDocs.stream().anyMatch(apiDoc -> !Objects.equals(apiDoc.getProjectId(), parentFolder.getProjectId()))) {
+                return false;
+            }
             apiDocs.forEach(apiDoc -> {
                 ApiDocSortVo sortVo = docSortMap.get(apiDoc.getId());
                 if (sortVo != null) {
@@ -403,6 +406,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         }
         if (!CollectionUtils.isEmpty(folderSortMap.keySet())) {
             apiFolders = listByIds(folderSortMap.keySet());
+            if (apiFolders.stream().anyMatch(apiFolder -> !Objects.equals(apiFolder.getProjectId(), parentFolder.getProjectId()))) {
+                return false;
+            }
             apiFolders.forEach(apiFolder -> {
                 ApiDocSortVo sortVo = folderSortMap.get(apiFolder.getId());
                 if (sortVo != null) {

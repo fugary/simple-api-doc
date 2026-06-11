@@ -204,15 +204,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Override
     public boolean validateUserProject(Integer projectId) {
-        if (projectId != null) {
-            ApiProject project = getById(projectId);
-            if (project != null) {
-                if (!apiGroupService.checkProjectAccess(getLoginUser(), project, ApiGroupAuthority.WRITABLE)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return validateUserProject(projectId, ApiGroupAuthority.WRITABLE);
+    }
+
+    @Override
+    public boolean validateUserProject(Integer projectId, ApiGroupAuthority apiAuthority) {
+        ApiProject project = projectId == null ? null : getById(projectId);
+        return apiGroupService.checkProjectAccess(getLoginUser(), project, apiAuthority);
     }
 
     @Override

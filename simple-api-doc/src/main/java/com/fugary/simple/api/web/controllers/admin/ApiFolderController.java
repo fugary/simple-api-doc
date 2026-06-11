@@ -4,11 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiFolder;
+import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
-import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
@@ -39,13 +40,16 @@ public class ApiFolderController {
     private ApiDocService apiDocService;
 
     @Autowired
-    private ApiProjectService apiProjectService;
+    private ApiProjectAccessService apiProjectAccessService;
 
     @Autowired
     private ApiProjectInfoService apiProjectInfoService;
 
     @GetMapping
     public SimpleResult<List<ApiFolder>> searchFolder(@ModelAttribute ProjectQueryVo queryVo) {
+        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         Page<ApiFolder> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         QueryWrapper<ApiFolder> queryWrapper = Wrappers.<ApiFolder>query()
@@ -56,7 +60,14 @@ public class ApiFolderController {
 
     @GetMapping("/{id}")
     public SimpleResult<ApiFolder> getFolder(@PathVariable("id") Integer id) {
-        return SimpleResultUtils.createSimpleResult(apiFolderService.getById(id));
+        ApiFolder apiFolder = apiFolderService.getById(id);
+        if (apiFolder == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessFolder(apiFolder, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        return SimpleResultUtils.createSimpleResult(apiFolder);
     }
 
     private SimpleResult<Boolean> removeFolder(Integer id, boolean clear) {
@@ -67,7 +78,7 @@ public class ApiFolderController {
         if (!clear && BooleanUtils.isTrue(apiFolder.getRootFlag())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2007);
         }
-        if (!validateUserProject(apiFolder)) {
+        if (!apiProjectAccessService.canAccessFolder(apiFolder, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         List<ApiFolder> folders = apiFolderService.loadSubFolders(id);
@@ -96,13 +107,22 @@ public class ApiFolderController {
 
     @PostMapping
     public SimpleResult<ApiFolder> saveFolder(@RequestBody ApiFolder apiFolder) {
+        if (apiFolder.getId() != null) {
+            ApiFolder existsFolder = apiFolderService.getById(apiFolder.getId());
+            if (existsFolder == null) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+            }
+            if (!apiProjectAccessService.canAccessFolder(existsFolder, ApiGroupAuthority.WRITABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+        }
         if (apiFolder.getParentId() != null) {
             ApiFolder parent = apiFolderService.getById(apiFolder.getParentId());
             if (parent == null || !parent.getProjectId().equals(apiFolder.getProjectId())) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
             }
         }
-        if (!validateUserProject(apiFolder)) {
+        if (!apiProjectAccessService.canAccessFolder(apiFolder, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         if (apiFolderService.existsApiFolder(apiFolder)) {
@@ -121,14 +141,11 @@ public class ApiFolderController {
         if (apiFolder == null || !apiFolder.getProjectId().equals(sortsVo.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        return SimpleResultUtils.createSimpleResult(apiFolderService.updateSorts(sortsVo, apiFolder));
-    }
-
-    protected boolean validateUserProject(ApiFolder apiFolder) {
-        if (apiFolder != null) {
-            return apiProjectService.validateUserProject(apiFolder.getProjectId());
+        if (!apiProjectAccessService.canAccessFolder(apiFolder, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        return true;
+        boolean updated = apiFolderService.updateSorts(sortsVo, apiFolder);
+        return updated ? SimpleResultUtils.createSimpleResult(true) : SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
     }
 
 }

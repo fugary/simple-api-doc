@@ -2,7 +2,9 @@ package com.fugary.simple.api.web.controllers.admin;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
@@ -52,6 +54,9 @@ public class ApiProjectImportController {
     private ApiProjectService apiProjectService;
 
     @Autowired
+    private ApiProjectAccessService apiProjectAccessService;
+
+    @Autowired
     private ApiProjectTaskService apiProjectTaskService;
 
     @SneakyThrows
@@ -98,6 +103,9 @@ public class ApiProjectImportController {
     @SneakyThrows
     @PostMapping("/importProject")
     public SimpleResult<ApiProject> importProject(@ModelAttribute ApiProjectImportVo importVo, HttpServletRequest request){
+        if (!apiProjectAccessService.canAccessImportGroup(importVo.getGroupCode(), ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         SimpleResult<ExportApiProjectVo> parseResult = parseProject(importVo, request);
         if (parseResult.isSuccess()) {
             return apiProjectTaskService.saveUrlImportAsTask(importVo, apiProjectService.importNewProject(parseResult.getResultData(), importVo));
@@ -113,6 +121,9 @@ public class ApiProjectImportController {
         ApiProject apiProject = apiProjectService.getById(importVo.getProjectId());
         if (apiProject == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessProject(apiProject, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         SimpleResult<ExportApiProjectVo> parseResult = parseProject(importVo, request);
         if (parseResult.isSuccess()) {

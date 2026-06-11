@@ -198,7 +198,7 @@ public class SimpleResultUtils {
                                               ExportDownloadVo downloadVo,
                                               String applicationName,
                                               Integer projectId) {
-        String uuid = SimpleModelUtils.uuid();
+        String uuid = projectId + "-" + SimpleModelUtils.uuid();
         String type = StringUtils.defaultIfBlank(downloadVo.getType(), "json");
         String content;
         if (StringUtils.equals(type, "json")) {

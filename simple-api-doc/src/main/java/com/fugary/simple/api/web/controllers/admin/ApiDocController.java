@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
@@ -51,6 +52,9 @@ public class ApiDocController {
     private ApiProjectService apiProjectService;
 
     @Autowired
+    private ApiProjectAccessService apiProjectAccessService;
+
+    @Autowired
     private ApiProjectInfoDetailService apiDocSchemaService;
 
     @Autowired
@@ -64,6 +68,9 @@ public class ApiDocController {
 
     @GetMapping
     public SimpleResult<List<ApiDoc>> searchDoc(@ModelAttribute ProjectQueryVo queryVo) {
+        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         Page<ApiDoc> page = SimpleResultUtils.toPage(queryVo);
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
         QueryWrapper<ApiDoc> queryWrapper = Wrappers.<ApiDoc>query()
@@ -83,6 +90,9 @@ public class ApiDocController {
         if (apiDoc == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         SimpleResult<ApiDoc> result = SimpleResultUtils.createSimpleResult(apiDoc);
         if (ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType())) {
             result.add("historyCount", apiDocService.count(Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, id)));
@@ -92,8 +102,8 @@ public class ApiDocController {
 
     @DeleteMapping("/{id}")
     public SimpleResult<Boolean> removeDoc(@PathVariable("id") Integer id) {
-        ApiDoc ApiDoc = apiDocService.getById(id);
-        if (!validateUserProject(ApiDoc)) {
+        ApiDoc apiDoc = apiDocService.getById(id);
+        if (!apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiDocService.deleteDoc(id));
@@ -101,11 +111,20 @@ public class ApiDocController {
 
     @PostMapping
     public SimpleResult<ApiDoc> saveDoc(@RequestBody ApiDoc apiDoc) {
+        if (apiDoc.getId() != null) {
+            ApiDoc existsDoc = apiDocService.getById(apiDoc.getId());
+            if (existsDoc == null) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+            }
+            if (!apiProjectAccessService.canAccessDoc(existsDoc, ApiGroupAuthority.WRITABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+        }
         ApiFolder folder = apiFolderService.getById(apiDoc.getFolderId());
         if (folder == null || !folder.getProjectId().equals(apiDoc.getProjectId())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (!validateUserProject(apiDoc)) {
+        if (!apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         if (apiDocService.existsApiDoc(apiDoc)) {
@@ -127,14 +146,17 @@ public class ApiDocController {
 
     @PostMapping("/updateApiDoc")
     public SimpleResult<ApiDoc> updateApiDoc(@RequestBody ApiDoc apiDoc) {
-        if (!validateUserProject(apiDoc)) {
+        ApiDoc existsDoc = apiDocService.getById(apiDoc.getId());
+        if (existsDoc == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessDoc(existsDoc, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        ApiDoc existsDoc = apiDocService.getById(apiDoc.getId());
         if (apiDoc.getVersion() == null) {
             apiDoc.setVersion(1);
         }
-        if (existsDoc != null && existsDoc.getVersion() != null) {
+        if (existsDoc.getVersion() != null) {
             apiDoc.setVersion(existsDoc.getVersion() + 1);
         }
         apiDocService.saveByApiDoc(existsDoc);
@@ -153,6 +175,12 @@ public class ApiDocController {
                                                         required = false,
                                                         defaultValue = "false") Boolean markdown) {
         ApiDoc apiDoc = apiDocService.getById(docId);
+        if (apiDoc == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);
         ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDocVo.getInfoId());
         if (apiInfo == null || !apiDocVo.getProjectId().equals(apiInfo.getProjectId())) {
@@ -186,6 +214,9 @@ public class ApiDocController {
         if (currentDoc == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiProjectAccessService.canAccessDoc(currentDoc, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         return SimpleResultUtils.createSimpleResult(apiDocService.page(page, Wrappers.<ApiDoc>query()
                         .eq(ApiDocConstants.DB_MODIFY_FROM_KEY, docId)
                         .orderByDesc("doc_version")))
@@ -203,6 +234,12 @@ public class ApiDocController {
         Integer id = queryVo.getQueryId();
         Integer maxVersion = queryVo.getVersion();
         ApiDoc modified = apiDocService.getById(id);
+        if (modified == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessDoc(modified, ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         Page<ApiDoc> page = new Page<>(1, 2);
         apiDocService.page(page, Wrappers.<ApiDoc>query().eq(ApiDocConstants.DB_MODIFY_FROM_KEY, ObjectUtils.defaultIfNull(modified.getModifyFrom(), modified.getId()))
                 .le(maxVersion != null, "doc_version", maxVersion)
@@ -230,6 +267,9 @@ public class ApiDocController {
         if (history == null || target == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
+        if (!apiProjectAccessService.canAccessDoc(target, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
         ApiDoc apiDoc = apiDocService.copyFromHistory(history, target);
         apiDocService.saveApiDoc(apiDoc, target); // 更新
         return SimpleResultUtils.createSimpleResult(apiDoc);
@@ -241,18 +281,11 @@ public class ApiDocController {
         if (apiDoc == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        if (!validateUserProject(apiDoc)) {
+        if (!apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         ApiFolder folder = apiFolderService.getById(apiDoc.getFolderId());
         return apiDocService.copyApiDoc(apiDoc, folder);
-    }
-
-    protected boolean validateUserProject(ApiDoc apiDoc) {
-        if (apiDoc != null) {
-            return apiProjectService.validateUserProject(apiDoc.getProjectId());
-        }
-        return true;
     }
 
 }

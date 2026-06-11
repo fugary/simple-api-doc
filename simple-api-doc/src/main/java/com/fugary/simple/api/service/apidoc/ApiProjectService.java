@@ -1,6 +1,7 @@
 package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
@@ -59,6 +60,8 @@ public interface ApiProjectService extends IService<ApiProject> {
      * @return
      */
     boolean validateUserProject(Integer projectId);
+
+    boolean validateUserProject(Integer projectId, ApiGroupAuthority apiAuthority);
 
     /**
      * 保存ApiProject
