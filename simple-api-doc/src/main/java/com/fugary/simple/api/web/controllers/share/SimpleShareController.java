@@ -1,5 +1,6 @@
 package com.fugary.simple.api.web.controllers.share;
 
+import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.exports.ApiDocExporter;
@@ -162,6 +163,9 @@ public class SimpleShareController {
                                                      @RequestParam(value = "md",
                                                              required = false,
                                                              defaultValue = "false") Boolean markdown) {
+        if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
+        }
         ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         ApiDoc apiDoc = apiDocService.getById(docId);
         if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())) {
@@ -191,9 +195,16 @@ public class SimpleShareController {
 
     @GetMapping("/loadMdDoc/{docId}")
     public SimpleResult<ApiDoc> loadMdDoc(@PathVariable("docId") Integer docId) {
+        String shareId = SecurityUtils.getLoginShareId();
+        ApiProjectShare apiShare = apiProjectShareService.loadByShareId(shareId);
         ApiDoc apiDoc = apiDocService.getById(docId);
-        if (apiDoc == null) {
+        if (apiShare == null || apiDoc == null || !apiShare.getProjectId().equals(apiDoc.getProjectId())
+                || !StringUtils.equals(ApiDocConstants.DOC_TYPE_MD, apiDoc.getDocType())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        Set<Integer> docIds = SimpleModelUtils.getShareDocIds(apiShare.getShareDocs());
+        if (!docIds.isEmpty() && !docIds.contains(docId)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiDoc);
     }
