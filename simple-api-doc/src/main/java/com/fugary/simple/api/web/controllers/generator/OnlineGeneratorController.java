@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -130,10 +129,8 @@ public class OnlineGeneratorController {
         String specContent;
         if (request.getSpec() != null && !request.getSpec().isEmpty()) {
             specContent = new ObjectMapper().writeValueAsString(request.getSpec());
-        } else if (request.getOpenAPIUrl() != null) {
-            specContent = new String(new URL(request.getOpenAPIUrl()).openStream().readAllBytes(), StandardCharsets.UTF_8);
         } else {
-            throw new IllegalArgumentException("必须提供 spec 或 openAPIUrl");
+            throw new IllegalArgumentException("必须提供 spec");
         }
         Path tempSpecFile = Files.createTempFile("gen-temp-spec-", ".json");
         Files.write(tempSpecFile, specContent.getBytes(StandardCharsets.UTF_8));
