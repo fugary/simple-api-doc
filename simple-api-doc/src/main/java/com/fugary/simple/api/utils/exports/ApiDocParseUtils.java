@@ -196,6 +196,8 @@ public class ApiDocParseUtils {
                                                 ExportApiProjectInfoDetailVo projectInfoDetailVo, boolean isV31) {
         ApiProjectInfoDetail existsInfoDetail = detailsMap.get(ApiDocParseUtils.getProjectInfoDetailKey(projectInfoDetailVo));
         if (existsInfoDetail != null) {
+            projectInfoDetailVo.setVersion(existsInfoDetail.getVersion());
+            projectInfoDetailVo.setId(existsInfoDetail.getId());
             boolean isSameInfoDetail = SimpleModelUtils.isSameData(projectInfoDetailVo, existsInfoDetail, "schemaContent")
                     && ApiSchemaContentUtils.isSameSchemaContent(projectInfoDetailVo.getSchemaContent(), existsInfoDetail.getSchemaContent());
             if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(existsInfoDetail.getBodyType())) {
@@ -206,9 +208,9 @@ public class ApiDocParseUtils {
                     projectInfoDetailVo.setLocked(existsInfoDetail.getLocked());
                 }
             }
-            projectInfoDetailVo.setVersion(existsInfoDetail.getVersion());
-            projectInfoDetailVo.setId(existsInfoDetail.getId()); // 存在的话更新对应的ID
-            SimpleModelUtils.mergeAuditInfo(projectInfoDetailVo, existsInfoDetail);
+            if (!isSameInfoDetail) {
+                SimpleModelUtils.mergeAuditInfo(projectInfoDetailVo, existsInfoDetail);
+            }
             if (isSameInfoDetail) { // 数据相同不更新
                 return Pair.of(null, null);
             }
