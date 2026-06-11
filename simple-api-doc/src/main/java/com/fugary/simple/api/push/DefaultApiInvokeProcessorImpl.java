@@ -40,18 +40,25 @@ public class DefaultApiInvokeProcessorImpl implements ApiInvokeProcessor {
     @Autowired
     private ApiSseInvokeProcessor apiSseInvokeProcessor;
 
+    @Autowired
+    private ApiProxyUrlResolver apiProxyUrlResolver;
+
     @Override
     public Object invoke(HttpServletRequest request, HttpServletResponse response) {
         String targetUrl = request.getHeader(ApiDocConstants.SIMPLE_API_TARGET_URL_HEADER);
         if (StringUtils.isBlank(targetUrl)) {
             return ResponseEntity.ok(SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404));
         }
+        ApiParamsVo apiParams = SimpleModelUtils.toApiParams(request);
+        if (!apiProxyUrlResolver.isAllowedTargetUrl(apiParams.getTargetUrl())) {
+            return ResponseEntity.ok(SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403));
+        }
         String acceptHeader = request.getHeader(HttpHeaders.ACCEPT);
         if (StringUtils.contains(acceptHeader, MediaType.TEXT_EVENT_STREAM_VALUE)) {
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-            return apiSseInvokeProcessor.processSseProxy(SimpleModelUtils.toApiParams(request));
+            return apiSseInvokeProcessor.processSseProxy(apiParams);
         }
-        ResponseEntity<byte[]> responseEntity = invoke(SimpleModelUtils.toApiParams(request));
+        ResponseEntity<byte[]> responseEntity = invoke(apiParams);
         List<NameValue> requestHeaders = HttpRequestUtils.getRequestHeaders(request);
         response.addHeader(ApiDocConstants.SIMPLE_API_META_DATA_REQ, JsonUtils.toJson(requestHeaders));
         return responseEntity;
