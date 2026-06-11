@@ -10,6 +10,10 @@ defineProps({
   projectItem: {
     type: Object,
     default: undefined
+  },
+  errorMessage: {
+    type: String,
+    default: ''
   }
 })
 
@@ -24,23 +28,34 @@ defineEmits(['toDebugApi'])
 
 <template>
   <div class="height100">
-    <markdown-doc-viewer
-      v-if="currentDoc?.docType==='md'"
-      v-model="currentDoc"
-      :share-doc="projectShare"
-      :project-item="projectItem"
-      scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
+    <el-empty
+      v-if="errorMessage"
+      class="share-doc-error height100"
+      :description="errorMessage"
     />
-    <api-doc-viewer
-      v-if="currentDoc?.docType==='api'"
-      v-model="currentDoc"
-      :share-doc="projectShare"
-      :project-item="projectItem"
-      @to-debug-api="(...args)=>$emit('toDebugApi', ...args)"
-    />
+    <template v-else>
+      <markdown-doc-viewer
+        v-if="currentDoc?.docType==='md'"
+        v-model="currentDoc"
+        :share-doc="projectShare"
+        :project-item="projectItem"
+        scroll-element=".markdown-doc-viewer .md-editor-preview-wrapper"
+      />
+      <api-doc-viewer
+        v-if="currentDoc?.docType==='api'"
+        v-model="currentDoc"
+        :share-doc="projectShare"
+        :project-item="projectItem"
+        @to-debug-api="(...args)=>$emit('toDebugApi', ...args)"
+      />
+    </template>
   </div>
 </template>
 
 <style scoped>
-
+.share-doc-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 </style>

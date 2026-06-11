@@ -28,6 +28,7 @@ const shareParam = ref({
 const loading = ref(false)
 const projectShare = ref()
 const errorMessage = ref()
+const docErrorMessage = ref()
 const showPassWindow = ref(false)
 const { shareDarkTheme, checkDarkTheme } = useInitShareDocTheme(shareId)
 //= ====================项目数据=====================
@@ -35,6 +36,7 @@ const projectItem = ref()
 const currentDoc = ref(null)
 const errorHandler = (err) => {
   if (err.data?.code === 401) {
+    docErrorMessage.value = ''
     useShareConfigStore().clearShareToken(shareId)
     if (projectShare.value?.needPassword) {
       showPassWindow.value = true
@@ -42,6 +44,8 @@ const errorHandler = (err) => {
     } else {
       window.location.reload()
     }
+  } else if (err.data?.message) {
+    docErrorMessage.value = err.data.message
   }
 }
 emitter.on('share-doc-error', errorHandler)
@@ -114,6 +118,7 @@ const showDrawerMenu = ref(true)
 const { isMobile } = useScreenCheck()
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc?.id !== oldDoc?.id) {
+    docErrorMessage.value = ''
     showDrawerMenu.value = false
     hideDebugSplit()
   }
@@ -231,6 +236,7 @@ provide('showAffixBtn', showAffixBtn)
                 v-model="currentDoc"
                 :project-share="projectShare"
                 :project-item="projectItem"
+                :error-message="docErrorMessage"
                 @to-debug-api="toDebugApi"
               />
             </template>
@@ -275,6 +281,7 @@ provide('showAffixBtn', showAffixBtn)
               v-model="currentDoc"
               :project-share="projectShare"
               :project-item="projectItem"
+              :error-message="docErrorMessage"
             />
           </el-container>
           <el-drawer
