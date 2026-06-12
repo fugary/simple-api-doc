@@ -37,6 +37,7 @@ const loadUserAccount = id => {
 loadUserAccount(userId)
 
 const formOptions = computed(() => {
+  const edit = !!userAccount.value?.id
   return defineFormOptions([{
     labelKey: 'common.label.username',
     prop: 'userName',
@@ -62,20 +63,34 @@ const formOptions = computed(() => {
   }, {
     labelKey: 'common.label.password',
     prop: 'userPassword',
-    required: !userAccount.value?.id,
+    required: !edit,
+    disabled: edit && !userAccount.value?.userPasswordEditable,
+    tooltips: edit
+      ? [{
+          tooltip: $i18nBundle('common.msg.changePasswordTip'),
+          tooltipFunc: () => {
+            if (userAccount.value) {
+              userAccount.value.userPasswordEditable = !userAccount.value.userPasswordEditable
+            }
+          }
+        }]
+      : undefined,
     attrs: {
-      showPassword: true
+      showPassword: true,
+      autocomplete: 'new-password'
     },
-    slots: {
-      append () {
-        const generatePass = () => {
-          userAccount.value.userPassword = $randomStr(8)
-        }
-        return <ElButton type="primary" onClick={generatePass}>
+    slots: !edit || userAccount.value?.userPasswordEditable
+      ? {
+          append () {
+            const generatePass = () => {
+              userAccount.value.userPassword = $randomStr(8)
+            }
+            return <ElButton type="primary" onClick={generatePass}>
           {$i18nBundle('common.label.generate')}
         </ElButton>
-      }
-    }
+          }
+        }
+      : undefined
   }])
 })
 
