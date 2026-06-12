@@ -115,8 +115,9 @@ public class ApiProjectShareController {
 
     @PostMapping
     public SimpleResult save(@RequestBody ApiProjectShare apiShare) {
+        ApiProjectShare existsShare = null;
         if (apiShare.getId() != null) {
-            ApiProjectShare existsShare = apiProjectShareService.getById(apiShare.getId());
+            existsShare = apiProjectShareService.getById(apiShare.getId());
             if (existsShare == null) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
             }
@@ -128,6 +129,9 @@ public class ApiProjectShareController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         apiShare.setShareId(StringUtils.defaultIfBlank(apiShare.getShareId(), SimpleModelUtils.uuid()));
+        if (existsShare != null && SimpleModelUtils.isSameData(apiShare, existsShare)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsShare);
+        }
         return SimpleResultUtils.createSimpleResult(apiProjectShareService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiShare)));
     }
 

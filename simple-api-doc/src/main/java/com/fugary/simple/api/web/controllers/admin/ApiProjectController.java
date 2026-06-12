@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
@@ -245,6 +246,11 @@ public class ApiProjectController {
         ApiProject project = apiProjectService.getById(projectId);
         if (!apiProjectAccessService.canAccessProject(project, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        List<ExportEnvConfigVo> existsEnvConfigs = StringUtils.isBlank(project.getEnvContent())
+                ? List.of() : JsonUtils.fromJson(project.getEnvContent(), new TypeReference<>() {});
+        if (envConfigs.equals(ObjectUtils.defaultIfNull(existsEnvConfigs, List.of()))) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
         }
         return SimpleResultUtils.createSimpleResult(apiProjectService.saveEnvConfigs(project, envConfigs));
     }

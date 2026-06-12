@@ -243,7 +243,7 @@ const newOrEdit = async (id) => {
           currentModel.value.authContentModel = JSON.parse(currentModel.value.authContent)
         }
         if (!inProject) {
-          changeProjectLoader(currentModel.value.projectId)
+          changeProjectLoader(currentModel.value.projectId, false)
         }
       }
     })
@@ -271,10 +271,12 @@ const filteredProjectOptions = computed(() => projectOptions.value.map((project)
   project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
   return project
 }).filter(project => project.isWritable))
-const changeProjectLoader = async (projectId) => {
+const changeProjectLoader = async (projectId, resetFolder = true) => {
   await loadValidFolders(projectId)
   await loadFormProjectItem(filteredProjectOptions.value.find(option => option.value === projectId)?.projectCode)
-  currentModel.value.toFolder = getToFolder(formProjectItem.value?.infoList?.[0]?.folderId)
+  if (resetFolder) {
+    currentModel.value.toFolder = getToFolder(formProjectItem.value?.infoList?.[0]?.folderId)
+  }
 }
 const editFormOptions = computed(() => {
   let authOptions = AUTH_OPTION_CONFIG[currentModel.value?.authType]?.options || []

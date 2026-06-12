@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -89,7 +90,22 @@ public class ApiGroupController {
         if (!SecurityUtils.validateUserUpdate(apiGroup.getUserName())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
+        if (toUserGroupKeys(apiGroup.getGroupCode(), apiGroupService.loadGroupUsers(apiGroup.getGroupCode()))
+                .equals(toUserGroupKeys(apiGroup.getGroupCode(), userGroupVo.getUserGroups()))) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
+        }
         return SimpleResultUtils.createSimpleResult(apiGroupService.saveUserGroups(userGroupVo));
+    }
+
+    protected List<String> toUserGroupKeys(String groupCode, List<ApiUserGroup> userGroups) {
+        return (userGroups == null ? List.<ApiUserGroup>of() : userGroups).stream().map(userGroup -> {
+            String authorities = Arrays.stream(StringUtils.defaultString(userGroup.getAuthorities()).split("\\s*,\\s*"))
+                    .filter(StringUtils::isNotBlank)
+                    .sorted()
+                    .collect(Collectors.joining(","));
+            return StringUtils.join(Arrays.asList(userGroup.getUserId(),
+                    StringUtils.defaultIfBlank(userGroup.getGroupCode(), groupCode), authorities), ":");
+        }).sorted().collect(Collectors.toList());
     }
 
     @GetMapping
@@ -146,6 +162,16 @@ public class ApiGroupController {
 
     @PostMapping
     public SimpleResult<Boolean> save(@RequestBody ApiGroup group) {
+        ApiGroup existsGroup = null;
+        if (group.getId() != null) {
+            existsGroup = apiGroupService.getById(group.getId());
+            if (existsGroup == null) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+            }
+            if (!SecurityUtils.validateUserUpdate(existsGroup.getUserName())) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+        }
         if (apiGroupService.existsGroup(group)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
@@ -154,6 +180,9 @@ public class ApiGroupController {
         }
         if (StringUtils.isBlank(group.getGroupCode())) {
             group.setGroupCode(SimpleModelUtils.uuid());
+        }
+        if (existsGroup != null && SimpleModelUtils.isSameData(group, existsGroup)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
         }
         return SimpleResultUtils.createSimpleResult(apiGroupService.saveOrUpdate(SimpleModelUtils.addAuditInfo(group)));
     }

@@ -146,8 +146,9 @@ public class ApiProjectTaskController {
 
     @PostMapping
     public SimpleResult<Boolean> save(@RequestBody ApiProjectTask apiTask) {
+        ApiProjectTask existsTask = null;
         if (apiTask.getId() != null) {
-            ApiProjectTask existsTask = apiProjectTaskService.getById(apiTask.getId());
+            existsTask = apiProjectTaskService.getById(apiTask.getId());
             if (existsTask == null) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
             }
@@ -157,6 +158,9 @@ public class ApiProjectTaskController {
         }
         if (!apiProjectAccessService.canAccessTask(apiTask, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (existsTask != null && SimpleModelUtils.isSameData(apiTask, existsTask)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
         }
         boolean saved = apiProjectTaskService.saveOrUpdate(SimpleModelUtils.addAuditInfo(apiTask));
         if (apiTask.getId() != null) {
