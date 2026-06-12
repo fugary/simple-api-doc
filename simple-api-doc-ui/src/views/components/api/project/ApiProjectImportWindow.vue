@@ -15,9 +15,21 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  defaultUser: {
+    type: String,
+    default: ''
+  },
   groupOptions: {
     type: Array,
     default: () => []
+  },
+  userOptions: {
+    type: Array,
+    default: () => []
+  },
+  saveProjectGroup: {
+    type: Function,
+    default: null
   }
 })
 const showWindow = defineModel('modelValue', { type: Boolean, default: false })
@@ -43,8 +55,11 @@ defineEmits(['import-success'])
     <api-project-import
       ref="importRef"
       :project="project"
+      :default-user="defaultUser"
       :default-group-code="defaultGroupCode"
       :group-options="groupOptions"
+      :user-options="userOptions"
+      :save-project-group="saveProjectGroup"
       @import-success="$emit('import-success', $event)"
     />
   </common-window>

@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, ref, useTemplateRef } from 'vue'
-import { $coreAlert, $coreError, getStyleGrow } from '@/utils'
+import { $coreAlert, $coreError, getStyleGrow, isAdminUser, useCurrentUserName } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
 import {
   IMPORT_AUTH_TYPES,
@@ -21,6 +21,9 @@ import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
+import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
+import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
+import ApiProjectGroupApi from '@/api/ApiProjectGroupApi'
 
 const props = defineProps({
   project: {
@@ -31,6 +34,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  defaultUser: {
+    type: String,
+    default: ''
+  },
   defaultGroupCode: {
     type: String,
     default: ''
@@ -38,6 +45,14 @@ const props = defineProps({
   groupOptions: {
     type: Array,
     default: () => []
+  },
+  userOptions: {
+    type: Array,
+    default: () => []
+  },
+  saveProjectGroup: {
+    type: Function,
+    default: null
   }
 })
 
@@ -48,6 +63,30 @@ const importModel = ref({
   overwriteMode: IMPORT_DUPLICATE_STRATEGY[0].value,
   authContentModel: {}
 })
+const calcUserOptions = computed(() => props.userOptions)
+const groupEditModel = computed(() => ({ userName: props.defaultUser || useCurrentUserName() }))
+const {
+  showEditWindow: showEditGroupWindow,
+  currentGroup,
+  newOrEditGroup,
+  editFormOptions: editGroupFormOptions
+} = useProjectGroupEditHook(groupEditModel, calcUserOptions)
+const currentProjectGroup = computed(() => props.groupOptions.find(group => group.value === importModel.value.groupCode))
+const canEditCurrentGroup = computed(() => {
+  const group = currentProjectGroup.value
+  return !!group?.id && (isAdminUser() || group.userName === useCurrentUserName())
+})
+const toEditCurrentGroup = (event) => {
+  event?.preventDefault()
+  if (canEditCurrentGroup.value) {
+    newOrEditGroup(currentProjectGroup.value.id, event)
+  }
+}
+const saveProjectGroupItem = (item) => {
+  return props.saveProjectGroup
+    ? props.saveProjectGroup(item, importModel)
+    : ApiProjectGroupApi.saveOrUpdate(item)
+}
 const authOptions = computed(() => {
   let options = []
   if (importModel.value.importType === 'url') {
@@ -213,12 +252,32 @@ const formOptions = computed(() => {
       event.preventDefault()
     }
   }, {
-    enabled: !props.project?.id && !!props.groupOptions.length,
+    enabled: !props.project?.id,
     labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     value: props.defaultGroupCode,
     type: 'select',
-    children: props.groupOptions
+    children: props.groupOptions,
+    tooltips: [canEditCurrentGroup.value
+      ? {
+          tooltip: $i18nKey('common.label.commonEdit', 'api.label.projectGroups1'),
+          tooltipIcon: 'EditPen',
+          tooltipLinkAttrs: {
+            type: 'primary'
+          },
+          tooltipFunc: toEditCurrentGroup
+        }
+      : null, {
+      tooltip: $i18nKey('common.label.commonAdd', 'api.label.projectGroups1'),
+      tooltipIcon: 'CirclePlusFilled',
+      tooltipLinkAttrs: {
+        type: 'primary'
+      },
+      tooltipFunc (event) {
+        newOrEditGroup(null, event)
+        event?.preventDefault()
+      }
+    }].filter(Boolean)
   }]).map(option => {
     const style = { ...getStyleGrow(10), ...option.style || {} }
     return {
@@ -274,6 +333,15 @@ defineExpose({
       class-name="common-form-auto"
       v-bind="$attrs"
       @submit-form="doImportProject()"
+    />
+    <simple-edit-window
+      v-model="currentGroup"
+      v-model:show-edit-window="showEditGroupWindow"
+      inline-auto-mode
+      :form-options="editGroupFormOptions"
+      :name="$t('api.label.projectGroups1')"
+      :save-current-item="saveProjectGroupItem"
+      label-width="130px"
     />
   </el-container>
 </template>

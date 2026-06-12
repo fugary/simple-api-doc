@@ -16,8 +16,9 @@ import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import { ElMessage, ElUpload, ElText } from 'element-plus'
-import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import ApiProjectGroupApi, { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
+import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
 
 const { width } = useWindowSize()
 
@@ -42,7 +43,7 @@ const loadApiProjects = (pageNumber) => {
   return searchMethod(pageNumber)
 }
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
-const { projectCheckAccess, projectGroupOptions, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
+const { projectGroups, projectCheckAccess, projectGroupOptions, loadSelectGroups, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
   await loadUsersAndRefreshOptions()
@@ -106,6 +107,12 @@ const editProjectGroupOptions = computed(() => projectGroupOptions.value
   .filter(item => projectCheckAccess(item.value, AUTHORITY_TYPE.WRITABLE) || projectCheckAccess(item.value, AUTHORITY_TYPE.DELETABLE)))
 const showEditWindow = ref(false)
 const currentProject = ref()
+const {
+  showEditWindow: showEditGroupWindow,
+  currentGroup,
+  newOrEditGroup,
+  editFormOptions: editGroupFormOptions
+} = useProjectGroupEditHook(currentProject, userOptions)
 const newOrEdit = async (id, $event) => {
   $event?.stopPropagation()
   if (id) {
@@ -121,9 +128,60 @@ const newOrEdit = async (id, $event) => {
   }
   showEditWindow.value = true
 }
+const currentProjectGroup = computed(() => projectGroups.value.find(group => group.groupCode === currentProject.value?.groupCode))
+const canEditCurrentProjectGroup = computed(() => {
+  const group = currentProjectGroup.value
+  return !!group?.id && (isAdminUser() || group.userName === currentUserName)
+})
+const canCreateProjectGroup = computed(() => isAdminUser() ||
+    !currentProject.value?.userName || currentProject.value.userName === currentUserName)
+const toEditCurrentProjectGroup = (event) => {
+  event?.preventDefault()
+  if (canEditCurrentProjectGroup.value) {
+    newOrEditGroup(currentProjectGroup.value.id, event)
+  }
+}
+const reloadProjectGroupsAndSelectGroup = async (item, targetModel = currentProject) => {
+  const model = targetModel?.value || targetModel
+  const userName = item.userName || model?.userName || searchParam.value?.userName || currentUserName
+  await loadSelectGroups({ userName })
+  const group = projectGroups.value.find(group => group.id === item.id || group.groupCode === item.groupCode) ||
+      projectGroups.value.find(group => group.userName === userName && group.groupName === item.groupName)
+  if (group && model) {
+    model.groupCode = group.groupCode
+  }
+}
+const saveProjectGroupItem = (item, targetModel) => {
+  return ApiProjectGroupApi.saveOrUpdate(item).then(() => reloadProjectGroupsAndSelectGroup(item, targetModel))
+}
 const editFormOptions = computed(() => {
-  const isWritable = projectCheckAccess(currentProject.value?.groupCode, AUTHORITY_TYPE.WRITABLE) ||
-      projectCheckAccess(currentProject.value?.groupCode, AUTHORITY_TYPE.DELETABLE)
+  const groupCode = currentProject.value?.groupCode
+  const isWritable = groupCode
+    ? projectCheckAccess(groupCode, AUTHORITY_TYPE.WRITABLE) || projectCheckAccess(groupCode, AUTHORITY_TYPE.DELETABLE)
+    : canCreateProjectGroup.value
+  const groupName = $i18nBundle('api.label.projectGroups1')
+  const groupTooltips = [canEditCurrentProjectGroup.value
+    ? {
+        tooltip: $i18nBundle('common.label.commonEdit', [groupName]),
+        tooltipIcon: 'EditPen',
+        tooltipLinkAttrs: {
+          type: 'primary'
+        },
+        tooltipFunc: toEditCurrentProjectGroup
+      }
+    : null, canCreateProjectGroup.value
+    ? {
+        tooltip: $i18nBundle('common.label.commonAdd', [groupName]),
+        tooltipIcon: 'CirclePlusFilled',
+        tooltipLinkAttrs: {
+          type: 'primary'
+        },
+        tooltipFunc (event) {
+          newOrEditGroup(null, event)
+          event?.preventDefault()
+        }
+      }
+    : null].filter(Boolean)
   return defineFormOptions([{
     labelKey: 'common.label.user',
     prop: 'userName',
@@ -167,13 +225,17 @@ const editFormOptions = computed(() => {
       }
     }
   }, useFormStatus(), {
-    enabled: !!editProjectGroupOptions.value?.length,
+    enabled: true,
     labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     value: isWritable ? searchParam.value?.groupCode : '',
     type: 'select',
     children: editProjectGroupOptions.value,
-    disabled: !isWritable
+    disabled: !isWritable,
+    attrs: {
+      filterable: true
+    },
+    tooltips: groupTooltips
   }, {
     labelKey: 'common.label.version',
     prop: 'apiVersion'
@@ -444,11 +506,23 @@ const pageAttrs = {
       :save-current-item="saveProjectItem"
       label-width="130px"
     />
+    <simple-edit-window
+      v-model="currentGroup"
+      v-model:show-edit-window="showEditGroupWindow"
+      inline-auto-mode
+      :form-options="editGroupFormOptions"
+      :name="$t('api.label.projectGroups1')"
+      :save-current-item="saveProjectGroupItem"
+      label-width="130px"
+    />
     <api-project-import-window
       v-model="showImportWindow"
       :auto-alert="false"
+      :default-user="searchParam.userName"
       :default-group-code="searchParam.groupCode"
       :group-options="editProjectGroupOptions"
+      :user-options="userOptions"
+      :save-project-group="saveProjectGroupItem"
       @import-success="importSuccessCallback"
     />
   </el-container>

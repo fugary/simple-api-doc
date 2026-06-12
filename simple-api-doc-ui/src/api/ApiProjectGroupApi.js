@@ -46,7 +46,13 @@ export const useSelectProjectGroups = (searchParam) => {
   const loadSelectGroups = (data, config) => {
     return loadProjectGroups(data, config).then(result => {
       projectGroups.value = result || []
-      projectGroupOptions.value = projectGroups.value.map(group => ({ label: `${group.groupName}-${group.userName}`, value: group.groupCode }))
+      projectGroupOptions.value = projectGroups.value.map(group => ({
+        id: group.id,
+        label: `${group.groupName}-${group.userName}`,
+        value: group.groupCode,
+        userName: group.userName,
+        status: group.status
+      }))
     })
   }
   const loadGroupsAndRefreshOptions = async () => {
