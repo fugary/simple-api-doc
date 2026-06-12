@@ -17,7 +17,7 @@ import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
 import ApiGroupAuthorityList from '@/views/components/api/project/ApiGroupAuthorityList.vue'
-import { ElMessage, ElText, ElUpload } from 'element-plus'
+import { ElLink, ElMessage, ElText, ElUpload } from 'element-plus'
 import ApiProjectGroupApi, { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
@@ -43,6 +43,10 @@ const loadApiProjects = (pageNumber) => {
     searchParam.value.page.pageSize = Math.floor(10 / colSize.value) * colSize.value
   }
   return searchMethod(pageNumber)
+}
+const selectGroup = (groupCode) => {
+  searchParam.value.groupCode = groupCode
+  loadApiProjects(1)
 }
 const { users, userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectGroups, projectCheckAccess, projectGroupOptions, loadSelectGroups, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
@@ -155,12 +159,18 @@ const reloadProjectGroupsAndSelectGroup = async (item, targetModel = currentProj
   }
 }
 const saveProjectGroupItem = (item, targetModel) => {
-  return ApiProjectGroupApi.saveOrUpdate(item).then(() => reloadProjectGroupsAndSelectGroup(item, targetModel))
+  return ApiProjectGroupApi.saveOrUpdate(item)
+    .then(() => reloadProjectGroupsAndSelectGroup(item, targetModel))
+    .then(() => reloadProjectGroupsAndProjects())
 }
 const groupUsersConfigRef = ref()
 const toConfigProjectGroup = (project, $event) => {
   $event?.stopPropagation()
   groupUsersConfigRef.value?.toConfigGroupUsers(project.groupCode)
+}
+const toEditProjectGroup = (project, $event) => {
+  $event?.stopPropagation()
+  newOrEditGroup(project.projectGroup?.id, $event)
 }
 const reloadProjectGroupsAndProjects = async () => {
   await loadGroupsAndRefreshOptions()
@@ -322,17 +332,31 @@ const tableProjectItems = computed(() => {
         labelKey: 'api.label.projectGroups1',
         formatter () {
           return <span class="project-group-title">
-            <ElText type="primary">{project.projectGroupLabel}</ElText>
-            {project.canConfigGroupUsers && <el-button
-              v-common-tooltip={$i18nBundle('api.label.projectGroupUsers')}
-              style="margin-left: 6px"
-              type="success"
-              size="small"
-              circle
-              onClick={event => toConfigProjectGroup(project, event)}
-            >
-              <CommonIcon icon="ManageAccountsFilled" size={14}/>
-            </el-button>}
+            <ElLink type="primary" onClick={() => selectGroup(project.groupCode)}>
+              {project.projectGroupLabel}
+            </ElLink>
+            {project.canConfigGroupUsers && <>
+              <el-button
+                v-common-tooltip={$i18nBundle('common.label.commonEdit', [$i18nBundle('api.label.projectGroups1')])}
+                style="margin-left: 6px"
+                type="primary"
+                size="small"
+                circle
+                onClick={event => toEditProjectGroup(project, event)}
+              >
+                <CommonIcon icon="Edit" size={14}/>
+              </el-button>
+              <el-button
+                v-common-tooltip={$i18nBundle('api.label.projectGroupUsers')}
+                style="margin-left: 6px"
+                type="success"
+                size="small"
+                circle
+                onClick={event => toConfigProjectGroup(project, event)}
+              >
+                <CommonIcon icon="ManageAccountsFilled" size={14}/>
+              </el-button>
+            </>}
           </span>
         }
       }, {
