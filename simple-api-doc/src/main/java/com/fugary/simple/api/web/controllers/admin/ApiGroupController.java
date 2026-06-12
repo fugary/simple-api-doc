@@ -65,7 +65,15 @@ public class ApiGroupController {
                     .filter(apiGroupVo -> apiGroupService.checkGroupAccess(userVo, apiGroupVo.getGroupCode(), ApiGroupAuthority.READABLE))
                     .collect(Collectors.toList());
         }
+        fillGroupUsers(apiGroups);
         return SimpleResultUtils.createSimpleResult(apiGroups);
+    }
+
+    protected void fillGroupUsers(List<ApiGroupVo> apiGroups) {
+        List<String> groupCodes = apiGroups.stream().map(ApiGroup::getGroupCode).distinct().collect(Collectors.toList());
+        Map<String, List<ApiUserGroup>> groupUsersMap = apiGroupService.loadGroupUsers(groupCodes).stream()
+                .collect(Collectors.groupingBy(ApiUserGroup::getGroupCode));
+        apiGroups.forEach(apiGroup -> apiGroup.setUserGroups(groupUsersMap.getOrDefault(apiGroup.getGroupCode(), new ArrayList<>())));
     }
 
     @PostMapping("/loadGroupUsers/{groupCode}")

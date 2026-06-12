@@ -15,7 +15,9 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
-import { ElMessage, ElUpload, ElText } from 'element-plus'
+import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
+import ApiGroupAuthorityList from '@/views/components/api/project/ApiGroupAuthorityList.vue'
+import { ElMessage, ElText, ElUpload } from 'element-plus'
 import ApiProjectGroupApi, { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
@@ -42,7 +44,7 @@ const loadApiProjects = (pageNumber) => {
   }
   return searchMethod(pageNumber)
 }
-const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
+const { users, userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { projectGroups, projectCheckAccess, projectGroupOptions, loadSelectGroups, loadGroupsAndRefreshOptions } = useSelectProjectGroups(searchParam)
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
@@ -129,6 +131,7 @@ const newOrEdit = async (id, $event) => {
   showEditWindow.value = true
 }
 const currentProjectGroup = computed(() => projectGroups.value.find(group => group.groupCode === currentProject.value?.groupCode))
+const findProjectGroup = project => projectGroups.value.find(group => group.groupCode === project?.groupCode)
 const canEditCurrentProjectGroup = computed(() => {
   const group = currentProjectGroup.value
   return !!group?.id && (isAdminUser() || group.userName === currentUserName)
@@ -153,6 +156,15 @@ const reloadProjectGroupsAndSelectGroup = async (item, targetModel = currentProj
 }
 const saveProjectGroupItem = (item, targetModel) => {
   return ApiProjectGroupApi.saveOrUpdate(item).then(() => reloadProjectGroupsAndSelectGroup(item, targetModel))
+}
+const groupUsersConfigRef = ref()
+const toConfigProjectGroup = (project, $event) => {
+  $event?.stopPropagation()
+  groupUsersConfigRef.value?.toConfigGroupUsers(project.groupCode)
+}
+const reloadProjectGroupsAndProjects = async () => {
+  await loadGroupsAndRefreshOptions()
+  return loadApiProjects()
 }
 const editFormOptions = computed(() => {
   const groupCode = currentProject.value?.groupCode
@@ -252,7 +264,6 @@ const saveProjectItem = (item) => {
 }
 
 const colSize = computed(() => {
-  console.log('====================================', width.value, Math.floor(width.value / 400) || 1)
   return Math.floor(width.value / 420) || 1
 })
 const minWidth = '100px'
@@ -260,6 +271,10 @@ const minWidth = '100px'
 const tableProjectItems = computed(() => {
   return tableData.value.map(project => {
     project.iconUrl = calcProjectIconUrl(project.iconUrl)
+    const group = findProjectGroup(project)
+    project.canConfigGroupUsers = !!group?.id && (isAdminUser() || group.userName === currentUserName)
+    project.projectGroup = group
+    project.projectGroupLabel = projectGroupOptions.value?.find(group => group.value === project.groupCode)?.label || project.groupCode
     return {
       project,
       projectItems: [{
@@ -267,19 +282,6 @@ const tableProjectItems = computed(() => {
         formatter () {
           return <DelFlagTag v-model={project.status} clickToToggle={project.isWritable}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
-        }
-      }, {
-        labelFormatter () {
-          return <ElText type="primary" tag="b">
-            {$i18nBundle('api.label.projectGroups1')}
-          </ElText>
-        },
-        enabled: !!project.groupCode,
-        formatter () {
-          const groupOption = projectGroupOptions.value?.find(group => group.value === project.groupCode)
-          return <ElText type="primary">
-            {groupOption?.label || project.projectCode}
-          </ElText>
         }
       }, {
         enabled: project.userName !== currentUserName,
@@ -315,6 +317,31 @@ const tableProjectItems = computed(() => {
         labelKey: 'common.label.description',
         value: project.description,
         enabled: !!project.description
+      }],
+      projectGroupItems: [{
+        labelKey: 'api.label.projectGroups1',
+        formatter () {
+          return <span class="project-group-title">
+            <ElText type="primary">{project.projectGroupLabel}</ElText>
+            <el-button
+              v-if={project.canConfigGroupUsers}
+              v-common-tooltip={$i18nBundle('api.label.projectGroupUsers')}
+              style="margin-left: 6px"
+              type="success"
+              size="small"
+              circle
+              onClick={event => toConfigProjectGroup(project, event)}
+            >
+              <CommonIcon icon="ManageAccountsFilled" size={14}/>
+            </el-button>
+          </span>
+        }
+      }, {
+        labelKey: 'api.label.projectGroupUsers1',
+        enabled: !!project.projectGroup?.userGroups?.length,
+        formatter () {
+          return <ApiGroupAuthorityList userGroups={project.projectGroup.userGroups} users={users.value}/>
+        }
       }]
     }
   })
@@ -410,7 +437,7 @@ const pageAttrs = {
         :class="{'margin-top2': index>0}"
       >
         <el-col
-          v-for="{project, projectItems} in dataRow"
+          v-for="{project, projectItems, projectGroupItems} in dataRow"
           :key="project.id"
           :span="Math.floor(24/colSize)"
           @mouseenter="project.showOperations=true"
@@ -486,6 +513,17 @@ const pageAttrs = {
               :min-width="minWidth"
               :items="projectItems"
             />
+            <div
+              v-if="project.projectGroup"
+              class="project-group-panel"
+              @click.stop
+            >
+              <common-descriptions
+                :column="1"
+                :min-width="minWidth"
+                :items="projectGroupItems"
+              />
+            </div>
           </el-card>
         </el-col>
       </el-row>
@@ -524,6 +562,10 @@ const pageAttrs = {
       :user-options="userOptions"
       :save-project-group="saveProjectGroupItem"
       @import-success="importSuccessCallback"
+    />
+    <api-group-users-config-window
+      ref="groupUsersConfigRef"
+      @saved-group-users="reloadProjectGroupsAndProjects()"
     />
   </el-container>
 </template>
@@ -603,5 +645,17 @@ const pageAttrs = {
 .project-card :deep(.el-descriptions__label) {
   font-weight: 500;
   color: var(--el-text-color-secondary);
+}
+
+.project-group-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--el-border-color);
+}
+
+.project-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

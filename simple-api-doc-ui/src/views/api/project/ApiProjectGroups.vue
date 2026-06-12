@@ -10,9 +10,8 @@ import { defineFormOptions } from '@/components/utils'
 import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
-import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
-import { ElTag } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
+import ApiGroupAuthorityList from '@/views/components/api/project/ApiGroupAuthorityList.vue'
 
 const apiUsers = ref([])
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
@@ -37,26 +36,7 @@ onMounted(initLoadOnce)
 
 onActivated(initLoadOnce)
 
-const AUTHORITY_ITEMS = {
-  [AUTHORITY_TYPE.READABLE]: ['R', 'api.label.authority_readable'],
-  [AUTHORITY_TYPE.WRITABLE]: ['W', 'api.label.authority_writable'],
-  [AUTHORITY_TYPE.DELETABLE]: ['D', 'api.label.authority_deletable']
-}
-const authValues = Object.keys(AUTHORITY_ITEMS)
-
-const parseAuthorities = authorities => (authorities || '').split(/\s*,\s*/)
-  .filter(authority => authValues.includes(authority))
-  .sort((key1, key2) => authValues.indexOf(key1) - authValues.indexOf(key2))
-
-const getAuthorityCode = authorities => authorities.map(authority => AUTHORITY_ITEMS[authority][0]).join('')
-
-const getAuthorityTooltip = authorities => authorities.map(authority => {
-  const item = AUTHORITY_ITEMS[authority]
-  return `${item[0]}: ${$i18nBundle(item[1])}`
-}).join('<br/>')
-
 const columns = computed(() => {
-  const apiUserMap = Object.fromEntries(apiUsers.value.map(apiUser => [apiUser.id, apiUser]))
   return [{
     labelKey: 'api.label.projectGroupName',
     prop: 'groupName',
@@ -73,23 +53,7 @@ const columns = computed(() => {
   }, {
     labelKey: 'api.label.projectGroupUsers1',
     formatter (data) {
-      const groupUsers = (data.userGroups || []).map(userGroup => ({
-        apiUser: apiUserMap[userGroup.userId],
-        authorities: parseAuthorities(userGroup.authorities)
-      })).filter(({ apiUser, authorities }) => apiUser && authorities.length)
-      const groupComps = groupUsers.map(({ apiUser, authorities }, index) => {
-        return <>
-          <span class="group-authority-inline">
-            <span class="group-authority-inline__name">{apiUser.userName}</span>
-            <ElTag v-common-tooltip={getAuthorityTooltip(authorities)}
-                   size="small" type="primary" effect="plain" class="group-authority-inline__tag">
-              {getAuthorityCode(authorities)}
-            </ElTag>
-          </span>
-          {index < groupUsers.length - 1 ? <span class="group-authority-inline__separator">, </span> : ''}
-        </>
-      })
-      return groupComps.length ? <div class="group-authority-list">{groupComps}</div> : ''
+      return <ApiGroupAuthorityList userGroups={data.userGroups} users={apiUsers.value}/>
     },
     minWidth: '180px'
   }, {
@@ -238,40 +202,3 @@ const saveProjectGroup = (data) => {
     />
   </el-container>
 </template>
-
-<style scoped>
-.group-authority-list {
-  display: -webkit-box;
-  overflow: hidden;
-  line-height: 24px;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.group-authority-inline {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  vertical-align: middle;
-}
-
-.group-authority-inline__name {
-  display: inline-block;
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
-}
-
-.group-authority-inline__tag {
-  margin-left: 4px;
-  cursor: pointer;
-  vertical-align: middle;
-}
-
-.group-authority-inline__separator {
-  margin-right: 4px;
-  color: var(--el-text-color-secondary);
-}
-</style>
