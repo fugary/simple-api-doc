@@ -127,6 +127,23 @@ class UserControllerTest {
     }
 
     @Test
+    void saveUserReturnsCode2000WhenNoChanges() {
+        loginAs(2, "alice");
+        ApiUser existsUser = user(2, "alice");
+        existsUser.setStatus(ApiDocConstants.STATUS_ENABLED);
+        existsUser.setUserPassword("old-hash");
+        when(apiUserService.getById(2)).thenReturn(existsUser);
+
+        ApiUser updateUser = user(2, "alice");
+        updateUser.setStatus(ApiDocConstants.STATUS_ENABLED);
+        updateUser.setUserPassword("");
+        SimpleResult<Boolean> result = userController.save(updateUser);
+
+        assertThat(result.getCode()).isEqualTo(SystemErrorConstants.CODE_2000);
+        verify(apiUserService, never()).saveOrUpdate(any());
+    }
+
+    @Test
     void userPasswordIsWriteOnlyInJson() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         ApiUser user = user(2, "alice");

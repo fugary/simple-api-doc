@@ -94,6 +94,9 @@ public class UserController {
         } else if (existUser == null || !StringUtils.equalsIgnoreCase(existUser.getUserPassword(), user.getUserPassword())) {
             user.setUserPassword(apiUserService.encryptPassword(user.getUserPassword()));
         }
+        if (existUser != null && SimpleModelUtils.isSameData(user, existUser)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000);
+        }
         SimpleModelUtils.mergeCreateInfo(user, existUser);
         boolean saveResult = apiUserService.saveOrUpdate(SimpleModelUtils.addAuditInfo(user));
         apiUserService.updateUserName(user, existUser);
