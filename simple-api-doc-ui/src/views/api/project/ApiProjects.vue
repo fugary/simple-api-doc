@@ -323,8 +323,7 @@ const tableProjectItems = computed(() => {
         formatter () {
           return <span class="project-group-title">
             <ElText type="primary">{project.projectGroupLabel}</ElText>
-            <el-button
-              v-if={project.canConfigGroupUsers}
+            {project.canConfigGroupUsers && <el-button
               v-common-tooltip={$i18nBundle('api.label.projectGroupUsers')}
               style="margin-left: 6px"
               type="success"
@@ -333,7 +332,7 @@ const tableProjectItems = computed(() => {
               onClick={event => toConfigProjectGroup(project, event)}
             >
               <CommonIcon icon="ManageAccountsFilled" size={14}/>
-            </el-button>
+            </el-button>}
           </span>
         }
       }, {
