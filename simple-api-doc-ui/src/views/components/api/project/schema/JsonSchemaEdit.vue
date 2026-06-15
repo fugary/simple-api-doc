@@ -438,7 +438,8 @@ defineExpose({
         </template>
         <div
           v-if="basicOptions.length"
-          class="common-subform el-form--inline"
+          class="common-subform el-form--inline flex-center-col"
+          style="flex-wrap: nowrap;"
         >
           <common-form-control
             v-for="(option, optIdx) in basicOptions"

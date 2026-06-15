@@ -62,12 +62,17 @@ const toggleExpandKey = (data, expand) => {
   }
 }
 
+const isAddingInline = ref(false)
 const showTree = ref(false)
 watch([schemaModel, () => props.rootName], () => {
   showTree.value = false
   nextTick(() => {
     showTree.value = true
-    currentModel.value = null
+    if (isAddingInline.value) {
+      isAddingInline.value = false
+    } else {
+      currentModel.value = null
+    }
   })
 }, { immediate: true, deep: true })
 
@@ -336,6 +341,42 @@ const saveInlineEditSchemaData = (form, data, parent) => {
   })
 }
 
+const addPropertyInline = (node) => {
+  const parentData = node.data
+  if (!defaultExpandedKeys.value.includes(parentData.id)) {
+    defaultExpandedKeys.value.push(parentData.id)
+  }
+  const parentSchema = parentData.path ? get(schemaModel.value, parentData.path) : schemaModel.value
+  const targetSchema = (parentSchema?.type === 'array' && parentSchema.items) ? parentSchema.items : parentSchema
+  targetSchema.properties = targetSchema.properties || {}
+  if (targetSchema.properties[''] === undefined) {
+    targetSchema.properties[''] = { type: 'string' }
+  }
+  const newPath = (parentData.path ? `${parentData.path}.properties` : 'properties') + '.'
+  const newData = {
+    id: newPath,
+    name: '',
+    path: newPath,
+    parentPath: parentData.path,
+    schema: { type: 'string' }
+  }
+  currentModel.value = initEditData(newData)
+  isAddingInline.value = true
+  schemaModel.value = cloneDeep(schemaModel.value)
+}
+
+const cancelInlineEdit = (data) => {
+  currentModel.value = null
+  if (data && data.name === '') {
+    const parentModel = data.parentPath ? get(schemaModel.value, data.parentPath) : schemaModel.value
+    const targetSchema = (parentModel?.type === 'array' && parentModel.items) ? parentModel.items : parentModel
+    if (targetSchema?.properties) {
+      delete targetSchema.properties['']
+      schemaModel.value = cloneDeep(schemaModel.value)
+    }
+  }
+}
+
 defineEmits(['gotoComponent'])
 
 </script>
@@ -416,7 +457,7 @@ defineEmits(['gotoComponent'])
                 v-common-tooltip="$t('common.label.cancel')"
                 size="small"
                 round
-                @click.stop="currentModel=null"
+                @click.stop="cancelInlineEdit(data)"
               >
                 <common-icon
                   icon="CloseBold"
@@ -435,7 +476,7 @@ defineEmits(['gotoComponent'])
               type="primary"
               size="small"
               round
-              @click.stop="newOrEdit(null, data)"
+              @click.stop="addPropertyInline(node)"
             >
               <common-icon
                 icon="Plus"
