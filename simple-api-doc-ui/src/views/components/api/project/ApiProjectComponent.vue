@@ -2,6 +2,7 @@
 import { $i18nBundle, $i18nKey, $i18nMsg } from '@/messages'
 import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElTag, ElText } from 'element-plus'
 import { $copyText, $coreConfirm, $coreError, getSingleSelectOptions, getStyleGrow } from '@/utils'
@@ -494,6 +495,7 @@ defineExpose({
             v-model:value="contentRef"
             :language="languageRef"
             :height="codeHeight"
+            :theme="useGlobalConfigStore().monacoTheme"
             :options="monacoEditorOptions"
             class="common-resize-vertical"
             @mount="editorRef=$event"
