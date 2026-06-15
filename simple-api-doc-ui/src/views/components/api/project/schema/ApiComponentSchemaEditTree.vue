@@ -236,21 +236,19 @@ const dereferenceSchema = data => {
 }
 
 const constructRefSchema = data => {
-  $coreConfirm($i18nBundle('api.label.constructRef')).then(() => {
-    const editSchema = data.path ? get(schemaModel.value, data.path) : schemaModel.value
-    toEditComponent({
-      projectId: props.currentInfoDetail.projectId,
-      infoId: props.currentInfoDetail.infoId,
-      schemaContent: JSON.stringify(editSchema),
-      bodyType: 'component'
-    }, {
-      onSaveComponent: (newData) => {
-        console.log('==================================', data, newData)
-        loadComponents(props.currentInfoDetail).then(() => {
-          saveToSchemaModel(data, { $ref: `${SCHEMA_COMPONENT_PREFIX}${newData.schemaName}` })
-        })
-      }
-    })
+  const editSchema = data.path ? get(schemaModel.value, data.path) : schemaModel.value
+  toEditComponent({
+    projectId: props.currentInfoDetail.projectId,
+    infoId: props.currentInfoDetail.infoId,
+    schemaContent: JSON.stringify(editSchema),
+    bodyType: 'component'
+  }, {
+    onSaveComponent: (newData) => {
+      console.log('==================================', data, newData)
+      loadComponents(props.currentInfoDetail).then(() => {
+        saveToSchemaModel(data, { $ref: `${SCHEMA_COMPONENT_PREFIX}${newData.schemaName}` })
+      })
+    }
   })
 }
 
@@ -511,11 +509,24 @@ defineEmits(['gotoComponent'])
             </el-button>
             <el-button
               v-if="!checkGotoRef(node)&&data.schema?.type==='object'"
-              v-common-tooltip="$i18nBundle('api.label.constructRef')"
+              v-common-tooltip="$i18nBundle('api.label.constructRefNew')"
               type="success"
               size="small"
               round
-              @click.stop="constructRefSchema(data);"
+              @click.stop="constructRefSchema(data)"
+            >
+              <common-icon
+                icon="AddLinkFilled"
+                :size="18"
+              />
+            </el-button>
+            <el-button
+              v-if="!checkGotoRef(node)&&data.schema?.type==='object'"
+              v-common-tooltip="$i18nBundle('api.label.constructRefLink')"
+              type="success"
+              size="small"
+              round
+              @click.stop="newOrEdit(data, node.parent?.data, SCHEMA_SELECT_TYPE.REF)"
             >
               <common-icon
                 icon="LinkFilled"
