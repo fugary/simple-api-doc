@@ -17,7 +17,7 @@ import { useWindowSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
 import ApiGroupAuthorityList from '@/views/components/api/project/ApiGroupAuthorityList.vue'
-import { ElLink, ElMessage, ElText, ElUpload } from 'element-plus'
+import { ElButton, ElLink, ElMessage, ElText, ElUpload } from 'element-plus'
 import ApiProjectGroupApi, { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
@@ -336,7 +336,7 @@ const tableProjectItems = computed(() => {
               {project.projectGroupLabel}
             </ElLink>
             {project.canConfigGroupUsers && <>
-              <el-button
+              <ElButton
                 v-common-tooltip={$i18nBundle('common.label.commonEdit', [$i18nBundle('api.label.projectGroups1')])}
                 style="margin-left: 6px"
                 type="primary"
@@ -345,8 +345,8 @@ const tableProjectItems = computed(() => {
                 onClick={event => toEditProjectGroup(project, event)}
               >
                 <CommonIcon icon="Edit" size={14}/>
-              </el-button>
-              <el-button
+              </ElButton>
+              <ElButton
                 v-common-tooltip={$i18nBundle('api.label.projectGroupUsers')}
                 style="margin-left: 6px"
                 type="success"
@@ -355,7 +355,7 @@ const tableProjectItems = computed(() => {
                 onClick={event => toConfigProjectGroup(project, event)}
               >
                 <CommonIcon icon="ManageAccountsFilled" size={14}/>
-              </el-button>
+              </ElButton>
             </>}
           </span>
         }
