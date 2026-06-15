@@ -43,6 +43,8 @@ public class GlobalTransactionConfig {
         nameMatchSource.addTransactionalMethod("import*", requiredTransaction);
         nameMatchSource.addTransactionalMethod("mark*", requiredTransaction);
         nameMatchSource.addTransactionalMethod("copy*", requiredTransaction);
+        nameMatchSource.addTransactionalMethod("findOrCreate*", requiredTransaction);
+        nameMatchSource.addTransactionalMethod("getOrCreate*", requiredTransaction);
         // ReadOnly事务方法
         DefaultTransactionAttribute readonlyTransaction = new DefaultTransactionAttribute(TransactionDefinition.PROPAGATION_REQUIRED);
         readonlyTransaction.setReadOnly(true);
