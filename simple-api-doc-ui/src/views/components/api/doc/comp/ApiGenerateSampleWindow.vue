@@ -25,7 +25,8 @@ const formOptions = [
     children: [
       { label: 'openapi-sampler', value: 'openapi-sampler' },
       { label: 'Mock.js', value: 'mockjs' },
-      { label: 'json-schema-faker', value: 'json-schema-faker' }
+      { label: 'json-schema-faker', value: 'json-schema-faker' },
+      { label: 'AI Generator', value: 'ai' }
     ],
     attrs: {
       clearable: false

@@ -18,6 +18,7 @@ import { APP_VERSION } from '@/config'
 import { ref, h, computed } from 'vue'
 import { defineTableButtons } from '@/components/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
+import { aiGenerateSample } from '@/api/AiApi'
 
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems']
 const SCHEMA_OBJECT_KEYS = ['items', 'additionalProperties', 'contains', 'if', 'then', 'else', 'not', 'propertyNames']
@@ -171,7 +172,24 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
     }
 
     let json
-    if (mode === 'mockjs') {
+    if (mode === 'ai') {
+      try {
+        const res = await aiGenerateSample({ schemaContent: JSON.stringify(schema) }, { loading: true, timeout: 60000 })
+        if (res && res.resultData) {
+          try {
+            json = JSON.parse(res.resultData)
+          } catch (e) {
+            console.error('AI返回的格式不是合法的JSON', e)
+            json = { error: 'AI 生成失败或返回非法数据', details: res.resultData }
+          }
+        } else {
+          json = { error: 'AI 生成接口返回为空' }
+        }
+      } catch (err) {
+        console.error('AI接口调用异常', err)
+        json = { error: '调用 AI 接口失败', details: err?.data?.message || err?.message || '未知错误' }
+      }
+    } else if (mode === 'mockjs') {
       schema = injectMockExample(schema)
       json = sample(schema)
     } else if (mode === 'json-schema-faker') {
