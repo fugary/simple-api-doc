@@ -12,17 +12,67 @@ import { XMLBuilder } from 'fast-xml-parser'
 import { cloneDeep, isArray, isFunction, isObject, isString, isPlainObject } from 'lodash-es'
 import { ALL_CONTENT_TYPES, ALL_CONTENT_TYPES_LIST, CHARSET_LIST, LANGUAGE_LIST1 } from '@/consts/ApiConstants'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
-import { processSchemas, removeSchemaDeprecated } from '@/services/api/ApiDocPreviewService'
+import { processSchemas } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
 import { ref, h, computed } from 'vue'
 import { defineTableButtons } from '@/components/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 
+const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems']
+const SCHEMA_OBJECT_KEYS = ['items', 'additionalProperties', 'contains', 'if', 'then', 'else', 'not', 'propertyNames']
+const SCHEMA_CHILD_KEYS = ['properties', ...SCHEMA_ARRAY_KEYS, ...SCHEMA_OBJECT_KEYS]
+
+const removeSchemaChildren = (node) => {
+  const clone = { ...node }
+  SCHEMA_CHILD_KEYS.forEach(key => delete clone[key])
+  return clone
+}
+
+const removeSchemaRecursion = (node, ancestors = [], objectAncestors = []) => {
+  if (!node || typeof node !== 'object') return node
+  if (Array.isArray(node)) {
+    return node.map(child => removeSchemaRecursion(child, ancestors, objectAncestors))
+  }
+
+  const identifier = node.schema$ref || node.$ref || node.schemaName || node.name
+  const isRepeatedAncestor = identifier && ancestors.includes(identifier)
+
+  if (objectAncestors.includes(node) || isRepeatedAncestor) {
+    return removeSchemaChildren(node)
+  }
+
+  const nextAncestors = identifier ? [...ancestors, identifier] : ancestors
+  const nextObjectAncestors = [...objectAncestors, node]
+  const removeChildRecursion = child => removeSchemaRecursion(child, nextAncestors, nextObjectAncestors)
+  const clone = { ...node }
+
+  if (clone.properties) {
+    clone.properties = {}
+    for (const [key, value] of Object.entries(node.properties)) {
+      if (!value?.deprecated) {
+        clone.properties[key] = removeChildRecursion(value)
+      }
+    }
+  }
+  SCHEMA_ARRAY_KEYS.forEach(key => {
+    if (Array.isArray(node[key])) {
+      clone[key] = node[key].map(removeChildRecursion)
+    }
+  })
+  SCHEMA_OBJECT_KEYS.forEach(key => {
+    if (node[key] && typeof node[key] === 'object') {
+      clone[key] = removeChildRecursion(node[key])
+    }
+  })
+
+  return clone
+}
+
 export const generateSchemaSample = (schemaBody, type) => {
   return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
     .then(() => {
       let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
-      schema = removeSchemaDeprecated(schema)
+      schema = removeSchemaRecursion(schema)
       console.log('===========================schema', schema)
       const json = sample(schema)
       let resStr
