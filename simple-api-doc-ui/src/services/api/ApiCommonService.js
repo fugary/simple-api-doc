@@ -1,13 +1,14 @@
 import {
-  $coreConfirm,
   formatDate,
   getSingleSelectOptions,
   includesAnyIgnoreCase,
   isUserAdmin,
   useCurrentUserName
 } from '@/utils'
-import { $i18nKey } from '@/messages'
 import { sample } from 'openapi-sampler'
+import Mock from 'mockjs'
+import { generate } from 'json-schema-faker'
+import { fakerZH_CN as faker } from '@faker-js/faker'
 import { XMLBuilder } from 'fast-xml-parser'
 import { cloneDeep, isArray, isFunction, isObject, isString, isPlainObject } from 'lodash-es'
 import { ALL_CONTENT_TYPES, ALL_CONTENT_TYPES_LIST, CHARSET_LIST, LANGUAGE_LIST1 } from '@/consts/ApiConstants'
@@ -68,30 +69,124 @@ const removeSchemaRecursion = (node, ancestors = [], objectAncestors = []) => {
   return clone
 }
 
-export const generateSchemaSample = (schemaBody, type) => {
-  return $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.generateData'))
-    .then(() => {
-      let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
-      schema = removeSchemaRecursion(schema)
-      console.log('===========================schema', schema)
-      const json = sample(schema)
-      let resStr
-      if (type?.includes('xml')) {
-        const builder = new XMLBuilder({
-          ignoreAttributes: false,
-          format: true,
-          indentBy: '\t'
-        })
-        const rootName = schema.xml?.name || 'root'
-        const xml = {
-          [rootName]: json
-        }
-        resStr = builder.build(xml)
+const stripSchemaExamples = (node) => {
+  if (!node || typeof node !== 'object') return node
+
+  delete node.example
+  delete node.default
+
+  if (node.properties) {
+    for (const value of Object.values(node.properties)) {
+      stripSchemaExamples(value)
+    }
+  }
+
+  SCHEMA_ARRAY_KEYS.forEach(key => {
+    if (Array.isArray(node[key])) {
+      node[key].forEach(child => stripSchemaExamples(child))
+    }
+  })
+
+  SCHEMA_OBJECT_KEYS.forEach(key => {
+    if (node[key] && typeof node[key] === 'object') {
+      if (Array.isArray(node[key])) {
+        node[key].forEach(child => stripSchemaExamples(child))
       } else {
-        resStr = JSON.stringify(json)
+        stripSchemaExamples(node[key])
       }
-      return resStr
-    })
+    }
+  })
+
+  return node
+}
+
+const injectMockExample = (node) => {
+  if (!node || typeof node !== 'object') return node
+
+  if (node.type === 'string' && node.example === undefined && node.default === undefined && !node.enum) {
+    if (!node.format) {
+      node.example = Mock.mock('@ctitle(3, 8)')
+    }
+  } else if (node.type === 'number' || node.type === 'integer') {
+    if (node.example === undefined && node.default === undefined && !node.enum) {
+      node.example = Mock.mock('@integer(1, 999)')
+    }
+  } else if (node.type === 'boolean') {
+    if (node.example === undefined && node.default === undefined && !node.enum) {
+      node.example = Mock.mock('@boolean')
+    }
+  }
+
+  if (node.properties) {
+    for (const value of Object.values(node.properties)) {
+      injectMockExample(value)
+    }
+  }
+
+  SCHEMA_ARRAY_KEYS.forEach(key => {
+    if (Array.isArray(node[key])) {
+      node[key].forEach(child => injectMockExample(child))
+    }
+  })
+
+  SCHEMA_OBJECT_KEYS.forEach(key => {
+    if (node[key] && typeof node[key] === 'object') {
+      if (Array.isArray(node[key])) {
+        node[key].forEach(child => injectMockExample(child))
+      } else {
+        injectMockExample(node[key])
+      }
+    }
+  })
+
+  return node
+}
+
+export const generateSchemaSample = async (schemaBody, type) => {
+  const { showGenerateSampleWindow } = await import('@/utils/DynamicUtils')
+
+  return showGenerateSampleWindow(schemaBody, type).then(async (result) => {
+    const { mode, useExample } = result
+    let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
+    schema = removeSchemaRecursion(schema)
+
+    if (!useExample) {
+      stripSchemaExamples(schema)
+    }
+
+    let json
+    if (mode === 'mockjs') {
+      schema = injectMockExample(schema)
+      json = sample(schema)
+    } else if (mode === 'json-schema-faker') {
+      json = await generate(schema, {
+        alwaysFakeOptionals: true,
+        useExamplesValue: useExample,
+        useDefaultValue: useExample,
+        fillProperties: false,
+        extensions: { faker }
+      })
+    } else {
+      json = sample(schema)
+    }
+    console.log('===========================schema mode:', mode, schema)
+    let resStr
+    if (type?.includes('xml')) {
+      const builder = new XMLBuilder({
+        ignoreAttributes: false,
+        format: true,
+        indentBy: '\t'
+      })
+      const rootName = schema.xml?.name || 'root'
+      const xml = {
+        [rootName]: json
+      }
+      resStr = builder.build(xml)
+    } else {
+      resStr = JSON.stringify(json, null, 2)
+    }
+    return resStr
+  })
 }
 /**
  * 显示示例

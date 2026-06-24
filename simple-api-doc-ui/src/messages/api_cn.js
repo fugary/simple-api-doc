@@ -247,3 +247,6 @@ api.msg.apiDocLocked = '锁定后不支持通过导入方式自动更新'
 api.msg.recoverFromHistory = '是否要以此版本数据作为最新数据？'
 api.msg.checkImageAccept = '要测试图片/音频/视频/其他流响应，请设置请求头Accept为image/*、audio/*、video/*、application/*等'
 api.msg.previewStreamConfirm = '从Content-Type头信息判断此响应为数据流，响应下载为文件还是以文本方式预览？'
+
+api.label.generateEngine = '生成引擎'
+api.label.useExample = '优先使用Example'

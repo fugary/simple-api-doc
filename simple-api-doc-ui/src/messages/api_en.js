@@ -249,3 +249,6 @@ api.msg.apiDocLocked = 'Automatic updates via import are not supported after loc
 api.msg.recoverFromHistory = 'Would you like to use this version of the data as the latest one?'
 api.msg.checkImageAccept = 'To debug image/audio/video/stream response, set request header "Accept" to image/*、audio/*、video/*、application/zip etc.'
 api.msg.previewStreamConfirm = 'The Content-Type header indicates that this response is a data stream. Would you like to download it as a file or preview it as text?'
+
+api.label.generateEngine = 'Generate Engine'
+api.label.useExample = 'Prioritize Example'
