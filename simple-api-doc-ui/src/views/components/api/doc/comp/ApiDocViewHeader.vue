@@ -152,7 +152,7 @@ const showAffixBtn = inject('showAffixBtn', null)
         {{ folderPath }}
       </el-breadcrumb-item>
     </el-breadcrumb>
-    <h2 class="margin-bottom2">
+    <h2 class="margin-bottom1">
       {{ currentDoc?.docName || currentDoc?.url }}
       <el-button
         v-if="editable"

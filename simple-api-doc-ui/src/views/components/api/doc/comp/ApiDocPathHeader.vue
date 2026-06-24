@@ -132,6 +132,6 @@ const requestUrl = computed(() => {
 <style scoped>
 .doc-path-header {
   display: flex;
-  margin-top: 10px;
+  margin-top: 5px;
 }
 </style>

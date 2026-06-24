@@ -373,5 +373,14 @@ const authButtons = [{
 </template>
 
 <style scoped>
-
+.api-doc-viewer :deep(h3) {
+  margin-block-start: 8px;
+  margin-block-end: 8px;
+}
+.api-doc-viewer :deep(.md-editor-preview-wrapper) {
+  padding: 5px 0;
+}
+.api-doc-viewer :deep(.md-editor) {
+  --md-bk-color: transparent;
+}
 </style>

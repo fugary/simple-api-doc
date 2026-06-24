@@ -105,7 +105,7 @@ const toEditDocSecuritySchemas = () => {
         >
           {{ security.description }}
         </el-text>
-        <pre />
+        <div class="margin-bottom1" />
       </template>
     </div>
     <el-container v-else>
