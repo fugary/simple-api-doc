@@ -252,3 +252,4 @@ api.msg.previewStreamConfirm = 'The Content-Type header indicates that this resp
 
 api.label.generateEngine = 'Generate Engine'
 api.label.useExample = 'Prioritize Example'
+api.label.useDescription = 'Description as Value'

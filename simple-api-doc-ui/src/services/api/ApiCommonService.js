@@ -69,84 +69,96 @@ const removeSchemaRecursion = (node, ancestors = [], objectAncestors = []) => {
   return clone
 }
 
-const stripSchemaExamples = (node) => {
+const walkSchemaNode = (node, propName = '', processor) => {
   if (!node || typeof node !== 'object') return node
-
-  delete node.example
-  delete node.default
+  processor(node, propName)
 
   if (node.properties) {
-    for (const value of Object.values(node.properties)) {
-      stripSchemaExamples(value)
+    for (const [key, value] of Object.entries(node.properties)) {
+      walkSchemaNode(value, key, processor)
     }
   }
-
   SCHEMA_ARRAY_KEYS.forEach(key => {
     if (Array.isArray(node[key])) {
-      node[key].forEach(child => stripSchemaExamples(child))
+      node[key].forEach(child => walkSchemaNode(child, propName, processor))
     }
   })
-
   SCHEMA_OBJECT_KEYS.forEach(key => {
     if (node[key] && typeof node[key] === 'object') {
       if (Array.isArray(node[key])) {
-        node[key].forEach(child => stripSchemaExamples(child))
+        node[key].forEach(child => walkSchemaNode(child, propName, processor))
       } else {
-        stripSchemaExamples(node[key])
+        walkSchemaNode(node[key], propName, processor)
       }
     }
   })
-
   return node
 }
 
+const stripSchemaExamples = (node) => {
+  return walkSchemaNode(node, '', (n) => {
+    delete n.example
+    delete n.default
+  })
+}
+
 const injectMockExample = (node) => {
-  if (!node || typeof node !== 'object') return node
-
-  if (node.type === 'string' && node.example === undefined && node.default === undefined && !node.enum) {
-    if (!node.format) {
-      node.example = Mock.mock('@ctitle(3, 8)')
-    }
-  } else if (node.type === 'number' || node.type === 'integer') {
-    if (node.example === undefined && node.default === undefined && !node.enum) {
-      node.example = Mock.mock('@integer(1, 999)')
-    }
-  } else if (node.type === 'boolean') {
-    if (node.example === undefined && node.default === undefined && !node.enum) {
-      node.example = Mock.mock('@boolean')
-    }
-  }
-
-  if (node.properties) {
-    for (const value of Object.values(node.properties)) {
-      injectMockExample(value)
-    }
-  }
-
-  SCHEMA_ARRAY_KEYS.forEach(key => {
-    if (Array.isArray(node[key])) {
-      node[key].forEach(child => injectMockExample(child))
+  return walkSchemaNode(node, '', (n, propName) => {
+    if (n.example !== undefined || n.default !== undefined || n.enum) return
+    const name = propName.toLowerCase()
+    if (n.type === 'string' && !n.format) {
+      if (name.includes('email')) n.example = Mock.mock('@email')
+      else if (name.includes('phone') || name.includes('mobile')) n.example = Mock.mock(/^1[345789]\d{9}$/)
+      else if (name.includes('url')) n.example = Mock.mock('@url')
+      else if (name.includes('ip')) n.example = Mock.mock('@ip')
+      else if (name.includes('id') || name.includes('code') || name.includes('no')) n.example = Mock.mock('@string("upper", 8, 16)')
+      else if (name.includes('date') || name.includes('time')) n.example = Mock.mock('@datetime')
+      else if (name.includes('company')) n.example = Mock.mock('@ctitle(4, 10)') + '公司'
+      else if (name.includes('name')) n.example = Mock.mock('@cname')
+      else if (name.includes('type') || name.includes('status')) n.example = Mock.mock('@integer(0, 3)').toString()
+      else n.example = Mock.mock('@ctitle(3, 8)')
+    } else if (n.type === 'number' || n.type === 'integer') {
+      if (name.includes('type') || name.includes('status')) n.example = Mock.mock('@integer(0, 3)')
+      else if (name.includes('price') || name.includes('amount') || name.includes('fee')) n.example = Mock.mock('@float(10, 1000, 2, 2)')
+      else n.example = Mock.mock('@integer(1, 999)')
+    } else if (n.type === 'boolean') {
+      n.example = Mock.mock('@boolean')
     }
   })
+}
 
-  SCHEMA_OBJECT_KEYS.forEach(key => {
-    if (node[key] && typeof node[key] === 'object') {
-      if (Array.isArray(node[key])) {
-        node[key].forEach(child => injectMockExample(child))
-      } else {
-        injectMockExample(node[key])
-      }
+const injectDescriptionExample = (node) => {
+  return walkSchemaNode(node, '', (n) => {
+    if (n.example !== undefined || n.default !== undefined || n.enum) return
+    if (n.description && n.type === 'string' && !n.format) {
+      n.example = n.description
     }
   })
+}
 
-  return node
+const injectFakerKeywords = (node) => {
+  return walkSchemaNode(node, '', (n, propName) => {
+    if (n.example !== undefined || n.default !== undefined || n.enum) return
+    const name = propName.toLowerCase()
+    if (n.type === 'string' && !n.format && !n.faker) {
+      if (name.includes('email')) n.faker = 'internet.email'
+      else if (name.includes('phone') || name.includes('mobile')) n.faker = 'phone.number'
+      else if (name.includes('url')) n.faker = 'internet.url'
+      else if (name.includes('ip')) n.faker = 'internet.ipv4'
+      else if (name.includes('id') || name.includes('code') || name.includes('no')) n.faker = 'string.alphanumeric({ length: 10 })'
+      else if (name.includes('date') || name.includes('time')) n.faker = 'date.past'
+      else if (name.includes('company')) n.faker = 'company.name'
+      else if (name.includes('name')) n.faker = 'person.fullName'
+      else if (name.includes('type') || name.includes('status')) n.faker = 'string.numeric({ length: 1 })'
+    }
+  })
 }
 
 export const generateSchemaSample = async (schemaBody, type) => {
   const { showGenerateSampleWindow } = await import('@/utils/DynamicUtils')
 
   return showGenerateSampleWindow(schemaBody, type).then(async (result) => {
-    const { mode, useExample } = result
+    const { mode, useExample, useDescription } = result
     let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
     schema = removeSchemaRecursion(schema)
 
@@ -154,11 +166,16 @@ export const generateSchemaSample = async (schemaBody, type) => {
       stripSchemaExamples(schema)
     }
 
+    if (useDescription) {
+      injectDescriptionExample(schema)
+    }
+
     let json
     if (mode === 'mockjs') {
       schema = injectMockExample(schema)
       json = sample(schema)
     } else if (mode === 'json-schema-faker') {
+      schema = injectFakerKeywords(schema)
       json = await generate(schema, {
         alwaysFakeOptionals: true,
         useExamplesValue: useExample,

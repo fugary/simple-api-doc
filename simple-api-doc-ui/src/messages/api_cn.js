@@ -250,3 +250,4 @@ api.msg.previewStreamConfirm = '从Content-Type头信息判断此响应为数据
 
 api.label.generateEngine = '生成引擎'
 api.label.useExample = '优先使用Example'
+api.label.useDescription = '描述作为值'

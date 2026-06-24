@@ -4,7 +4,8 @@ import { ref, reactive } from 'vue'
 const showDialog = ref(false)
 const formData = reactive({
   provider: 'openapi-sampler',
-  useExample: true
+  useExample: true,
+  useDescription: false
 })
 const schemaData = ref(null)
 const schemaType = ref('')
@@ -30,6 +31,11 @@ const formOptions = [
     labelKey: 'api.label.useExample',
     prop: 'useExample',
     type: 'switch'
+  },
+  {
+    labelKey: 'api.label.useDescription',
+    prop: 'useDescription',
+    type: 'switch'
   }
 ]
 
@@ -45,7 +51,7 @@ const showGenerateSampleWindow = (schemaBody, type) => {
 
 const handleOk = () => {
   if (promiseResolve) {
-    promiseResolve({ mode: formData.provider, useExample: formData.useExample })
+    promiseResolve({ mode: formData.provider, useExample: formData.useExample, useDescription: formData.useDescription })
   }
   return true
 }
@@ -72,7 +78,7 @@ defineExpose({ showGenerateSampleWindow })
     <common-form
       :model="formData"
       :options="formOptions"
-      label-width="140px"
+      label-width="160px"
       class="form-edit-width-100"
       :show-buttons="false"
     />
