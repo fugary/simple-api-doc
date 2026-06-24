@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
-import { calcShowMergeAllOf } from '@/services/api/ApiFolderService'
+import { calcShowMergeAllOf, calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { MdPreview } from 'md-editor-v3'
@@ -31,6 +31,7 @@ const projectInfoDetail = computed(() => {
   return apiDocDetail.value.projectInfoDetail
 })
 const showMergeAllOf = computed(() => calcShowMergeAllOf(apiDocDetail.value))
+const preferenceId = computed(() => calcDetailPreferenceId(apiDocDetail.value))
 const componentMap = computed(() => calcComponentMap(projectInfoDetail.value.componentSchemas))
 const emit = defineEmits(['schemaUpdated'])
 const toEditRequestSchema = (requestsSchema) => {
@@ -84,7 +85,7 @@ const toEditRequestSchema = (requestsSchema) => {
               v-if="requestsSchema.schemaContent"
               class="margin-left1"
               type="primary"
-              @click="showGenerateSchemaSample(requestsSchema, componentMap, {theme:monacoTheme})"
+              @click="showGenerateSchemaSample(requestsSchema, componentMap, {theme:monacoTheme, preferenceId})"
             >
               <common-icon
                 :size="18"

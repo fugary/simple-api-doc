@@ -1,7 +1,10 @@
 <script setup>
 import { ref, reactive } from 'vue'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 
 const showDialog = ref(false)
+const shareConfigStore = useShareConfigStore()
+
 const formData = reactive({
   provider: 'openapi-sampler',
   useExample: true,
@@ -9,6 +12,7 @@ const formData = reactive({
 })
 const schemaData = ref(null)
 const schemaType = ref('')
+const currentPreferenceId = ref('')
 
 let promiseResolve = null
 let promiseReject = null
@@ -39,9 +43,18 @@ const formOptions = [
   }
 ]
 
-const showGenerateSampleWindow = (schemaBody, type) => {
+const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
   schemaData.value = schemaBody
   schemaType.value = type
+  currentPreferenceId.value = preferenceId
+  if (preferenceId) {
+    Object.assign(formData, {
+      provider: 'openapi-sampler',
+      useExample: true,
+      useDescription: false,
+      ...shareConfigStore.sharePreferenceView[preferenceId]?.apiGenerateSampleConfig
+    })
+  }
   showDialog.value = true
   return new Promise((resolve, reject) => {
     promiseResolve = resolve
@@ -50,6 +63,11 @@ const showGenerateSampleWindow = (schemaBody, type) => {
 }
 
 const handleOk = () => {
+  if (currentPreferenceId.value) {
+    const preference = shareConfigStore.sharePreferenceView[currentPreferenceId.value] || {}
+    preference.apiGenerateSampleConfig = { ...formData }
+    shareConfigStore.sharePreferenceView[currentPreferenceId.value] = preference
+  }
   if (promiseResolve) {
     promiseResolve({ mode: formData.provider, useExample: formData.useExample, useDescription: formData.useDescription })
   }

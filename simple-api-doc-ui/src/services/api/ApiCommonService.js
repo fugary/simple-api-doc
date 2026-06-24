@@ -154,10 +154,10 @@ const injectFakerKeywords = (node) => {
   })
 }
 
-export const generateSchemaSample = async (schemaBody, type) => {
+export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
   const { showGenerateSampleWindow } = await import('@/utils/DynamicUtils')
 
-  return showGenerateSampleWindow(schemaBody, type).then(async (result) => {
+  return showGenerateSampleWindow(schemaBody, type, preferenceId).then(async (result) => {
     const { mode, useExample, useDescription } = result
     let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
     schema = removeSchemaRecursion(schema)
@@ -223,7 +223,7 @@ export const showGenerateSchemaSample = async (requestsSchema, componentMap, con
     const generateSchema = processSchemas(requestsSchema, componentMap, true)
     console.log('===================generateSchema', generateSchema)
     if (generateSchema[0]?.schema) {
-      sampleStr = await generateSchemaSample(generateSchema[0].schema, requestsSchema.contentType)
+      sampleStr = await generateSchemaSample(generateSchema[0].schema, requestsSchema.contentType, config?.preferenceId)
     }
   }
   if (sampleStr) {

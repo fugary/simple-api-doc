@@ -17,12 +17,12 @@ const MarkdownWindow = () => import('@/views/components/utils/MarkdownWindow.vue
 const SimpleJsonDataWindow = () => import('@/views/components/utils/SimpleJsonDataWindow.vue')
 const ApiGenerateSampleWindow = () => import('@/views/components/api/doc/comp/ApiGenerateSampleWindow.vue')
 
-export const showGenerateSampleWindow = async (schemaBody, type) => {
+export const showGenerateSampleWindow = async (schemaBody, type, preferenceId) => {
   const dynamicHelper = new DynamicHelper()
   const vnode = await dynamicHelper.createAndRender(ApiGenerateSampleWindow, {
     onClosed: () => dynamicHelper.destroy()
   })
-  return vnode.component?.exposed?.showGenerateSampleWindow(schemaBody, type)
+  return vnode.component?.exposed?.showGenerateSampleWindow(schemaBody, type, preferenceId)
 }
 
 export const closeAllOnRouteChange = () => {
