@@ -17,7 +17,7 @@ import { processSchemas } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
 import { ref, h, computed } from 'vue'
 import { defineTableButtons } from '@/components/utils'
-import { showCodeWindow } from '@/utils/DynamicUtils'
+import { showCodeWindow, showGenerateSampleWindow } from '@/utils/DynamicUtils'
 import { aiGenerateSample } from '@/api/AiApi'
 
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems']
@@ -156,25 +156,45 @@ const injectFakerKeywords = (node) => {
 }
 
 export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
-  const { showGenerateSampleWindow } = await import('@/utils/DynamicUtils')
-
   return showGenerateSampleWindow(schemaBody, type, preferenceId).then(async (result) => {
     const { mode, useExample, useDescription } = result
     let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
     schema = removeSchemaRecursion(schema)
-
     if (!useExample) {
       stripSchemaExamples(schema)
     }
-
     if (useDescription) {
       injectDescriptionExample(schema)
     }
-
     let json
     if (mode === 'ai') {
       try {
-        const res = await aiGenerateSample({ schemaContent: JSON.stringify(schema) }, { loading: true, timeout: 60000, preferenceId })
+        const components = {}
+        const compressNode = (node) => {
+          if (!isObject(node)) return node
+          if (node.schema$ref) {
+            const ref = node.schema$ref
+            const name = ref.split('/').pop()
+            if (!components[name]) {
+              components[name] = {}
+              const copy = { ...node }; delete copy.schema$ref; delete copy.name; delete copy.isLeaf; delete copy.__contentType
+              components[name] = compressNode(copy)
+            }
+            return { $ref: ref }
+          }
+          if (isArray(node)) return node.map(compressNode)
+          const res = {}
+          for (const k in node) {
+            if (k === 'isLeaf' || k === '__contentType' || k === 'name') continue
+            res[k] = compressNode(node[k])
+          }
+          return res
+        }
+        const payload = JSON.stringify({
+          schema: compressNode(schema),
+          components: { schemas: components }
+        })
+        const res = await aiGenerateSample({ schemaContent: payload }, { loading: true, timeout: 125000, preferenceId })
         if (res && res.resultData) {
           try {
             json = JSON.parse(res.resultData)

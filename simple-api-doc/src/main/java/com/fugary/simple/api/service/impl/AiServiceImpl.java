@@ -47,11 +47,12 @@ public class AiServiceImpl implements AiService {
             throw new RuntimeException("AI 生成功能未开启或未配置 API Key");
         }
 
-        String systemPrompt = "你是一个专门用于生成模拟数据的接口开发助手。请根据用户提供的 JSON Schema 生成合理的示例 JSON 数据。规则：\n" +
+        String systemPrompt = "你是一个专门用于生成模拟数据的接口开发助手。请根据用户提供的 OpenAPI/JSON Schema 结构生成合理的示例 JSON 数据。规则：\n" +
                 "1. 必须只返回合法的纯 JSON 数据。\n" +
                 "2. 不要包含任何多余的解释文字、代码块标记（如 ```json）。\n" +
                 "3. 根据 Schema 中的 type、description、example 或 format，生成逼真的模拟数据。\n" +
-                "4. 尽量覆盖所有必要的属性。";
+                "4. 必须全面覆盖所有定义的属性（包括所有的嵌套对象和数组，以及 $ref 引用的组件），不能随意遗漏字段或简化数据结构，数组建议生成1-2条数据。\n" +
+                "5. 返回的结果必须是根据 `schema` 结构定义生成的实例数据对象。";
 
         String promptHash = DigestUtils.md5Hex(systemPrompt);
         String rawKey = aiConfigProperties.getModel() + ":" + promptHash + ":" + schemaContent;
@@ -127,7 +128,7 @@ public class AiServiceImpl implements AiService {
             throw new RuntimeException("生成示例数据失败，AI 返回格式无法解析");
         } catch (Exception e) {
             log.error("调用 AI 接口失败", e);
-            throw new RuntimeException("调用 AI 接口生成数据失败: " + e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
