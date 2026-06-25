@@ -146,6 +146,34 @@ bin/start.sh</code></pre>
                                     <td><code>DB_USERNAME</code> / <code>DB_PASSWORD</code></td>
                                     <td>Database username and password.</td>
                                 </tr>
+                                <tr>
+                                    <td><code>API_TASK_ENABLED</code></td>
+                                    <td>Enable background scheduled tasks (including log and cache cleanup). Default is <code>true</code>.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>API_LOG_RETENTION_DAYS</code></td>
+                                    <td>Access log retention days. Default is <code>180</code>. Set <=0 to disable auto cleanup.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>API_AI_ENABLED</code></td>
+                                    <td>Enable AI data generation capability. Default is <code>true</code>.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>API_AI_BASE_URL</code></td>
+                                    <td>AI Model Base URL.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>API_AI_API_KEY</code></td>
+                                    <td>AI Model API Key.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>API_AI_MODEL</code></td>
+                                    <td>AI Model name.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>API_AI_CACHE_RETENTION_DAYS</code></td>
+                                    <td>AI sample cache retention days. Default is <code>90</code>.</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>

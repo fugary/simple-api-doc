@@ -1,5 +1,7 @@
 package com.fugary.simple.api.web.controllers;
 
+import com.fugary.simple.api.config.AiConfigProperties;
+import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.service.AiService;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -21,6 +23,15 @@ public class AiController {
 
     @Autowired
     private AiService aiService;
+
+    @Autowired
+    private AiConfigProperties aiConfigProperties;
+
+    @org.springframework.web.bind.annotation.GetMapping("/status")
+    public SimpleResult<Boolean> getAiStatus() {
+        boolean enabled = aiConfigProperties.isEnabled() && StringUtils.isNotBlank(aiConfigProperties.getApiKey());
+        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_0, enabled);
+    }
 
     @PostMapping("/generate-sample")
     public SimpleResult<String> generateSample(@RequestBody Map<String, String> params) {

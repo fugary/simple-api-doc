@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import { getAiStatus } from '@/api/AiApi'
 
 const showDialog = ref(false)
 const shareConfigStore = useShareConfigStore()
@@ -17,16 +18,16 @@ const currentPreferenceId = ref('')
 let promiseResolve = null
 let promiseReject = null
 
-const formOptions = [
+const formOptions = reactive([
   {
     labelKey: 'api.label.generateEngine',
     prop: 'provider',
     type: 'select',
     children: [
       { label: 'openapi-sampler', value: 'openapi-sampler' },
-      { label: 'Mock.js', value: 'mockjs' },
+      { label: 'mock.js', value: 'mockjs' },
       { label: 'json-schema-faker', value: 'json-schema-faker' },
-      { label: 'AI Generator', value: 'ai' }
+      { label: 'ai-generator', value: 'ai' }
     ],
     attrs: {
       clearable: false
@@ -42,7 +43,7 @@ const formOptions = [
     prop: 'useDescription',
     type: 'switch'
   }
-]
+])
 
 const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
   schemaData.value = schemaBody
@@ -56,7 +57,18 @@ const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
       ...shareConfigStore.sharePreferenceView[preferenceId]?.apiGenerateSampleConfig
     })
   }
-  showDialog.value = true
+  const aiOption = formOptions[0].children.find(item => item.value === 'ai')
+  getAiStatus().then(res => {
+    if (res && res.success) {
+      if (aiOption) aiOption.disabled = !res.resultData
+      if (!res.resultData && formData.provider === 'ai') formData.provider = 'openapi-sampler'
+    }
+  }).catch(() => {
+    if (aiOption) aiOption.disabled = true
+    if (formData.provider === 'ai') formData.provider = 'openapi-sampler'
+  }).finally(() => {
+    showDialog.value = true
+  })
   return new Promise((resolve, reject) => {
     promiseResolve = resolve
     promiseReject = reject

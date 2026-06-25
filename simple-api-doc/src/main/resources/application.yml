@@ -66,6 +66,12 @@ simple:
     task-enabled: ${API_TASK_ENABLED:true}
     task-pool-size: ${API_TASK_POOL_SIZE:10}
     api-log-retention-days: ${API_LOG_RETENTION_DAYS:180}
+    ai-cache-retention-days: ${API_AI_CACHE_RETENTION_DAYS:90}
+    ai:
+      enabled: ${API_AI_ENABLED:true}
+      base-url: ${API_AI_BASE_URL:https://api.openai.com/v1}
+      api-key: ${API_AI_API_KEY:}
+      model: ${API_AI_MODEL:gpt-3.5-turbo}
 dbs:
   type: ${DB_TYPE:h2}
   h2:
