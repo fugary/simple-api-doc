@@ -1,9 +1,22 @@
 import { $httpPost, $httpGet } from '@/vendors/axios'
+import { getShareConfig } from '@/api/SimpleShareApi'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
+
+const getAiConfig = (config = {}) => {
+  console.log('===============================config', config)
+  const { preferenceId, ...restConfig } = config
+  const isShare = preferenceId && useShareConfigStore().getShareToken(preferenceId)
+  const baseUrl = isShare ? '/shares/ai' : '/api/ai'
+  const finalConfig = isShare ? Object.assign(getShareConfig(preferenceId), restConfig) : restConfig
+  return { baseUrl, finalConfig }
+}
 
 export const aiGenerateSample = (params, config) => {
-  return $httpPost('/api/ai/generate-sample', params, config)
+  const { baseUrl, finalConfig } = getAiConfig(config)
+  return $httpPost(`${baseUrl}/generate-sample`, params, finalConfig)
 }
 
 export const getAiStatus = (config) => {
-  return $httpGet('/api/ai/status', null, config)
+  const { baseUrl, finalConfig } = getAiConfig(config)
+  return $httpGet(`${baseUrl}/status`, finalConfig)
 }

@@ -174,7 +174,7 @@ const generateSample = async (schema) => {
     paramTarget.value[languageRef.value] = bodyFormOptions
     console.log('================================lang', languageRef.value, bodyFormOptions, paramTarget.value)
   } else {
-    contentRef.value = await generateSchemaSample(schema.schema, schema.type)
+    contentRef.value = await generateSchemaSample(schema.schema, schema.type, paramTarget.value.preferenceId)
     setTimeout(() => checkEditorLang())
   }
 }

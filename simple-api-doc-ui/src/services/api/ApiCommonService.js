@@ -174,7 +174,7 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
     let json
     if (mode === 'ai') {
       try {
-        const res = await aiGenerateSample({ schemaContent: JSON.stringify(schema) }, { loading: true, timeout: 60000 })
+        const res = await aiGenerateSample({ schemaContent: JSON.stringify(schema) }, { loading: true, timeout: 60000, preferenceId })
         if (res && res.resultData) {
           try {
             json = JSON.parse(res.resultData)

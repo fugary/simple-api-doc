@@ -58,7 +58,7 @@ const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
     })
   }
   const aiOption = formOptions[0].children.find(item => item.value === 'ai')
-  getAiStatus().then(res => {
+  getAiStatus({ preferenceId: currentPreferenceId.value }).then(res => {
     if (res && res.success) {
       if (aiOption) aiOption.disabled = !res.resultData
       if (!res.resultData && formData.provider === 'ai') formData.provider = 'openapi-sampler'
