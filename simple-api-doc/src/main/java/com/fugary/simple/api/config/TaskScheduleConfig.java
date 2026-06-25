@@ -6,11 +6,13 @@ import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
+import com.fugary.simple.api.tasks.AiCacheCleanupTask;
 import com.fugary.simple.api.tasks.ApiLogCleanupTask;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.SimpleTaskWrapper;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
+import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -45,6 +47,9 @@ public class TaskScheduleConfig {
 
     @Autowired
     private SimpleApiConfigProperties simpleApiConfigProperties;
+
+    @Autowired
+    private AiCacheMapper aiCacheMapper;
 
     /**
      * 自定义池
@@ -83,6 +88,12 @@ public class TaskScheduleConfig {
                                 SecurityUtils.ADMIN_USER),
                         this::cleanupExpiredApiLogs));
             }
+            if (simpleApiConfigProperties.getAiCacheRetentionDays() > 0) {
+                scheduledTaskRegistrar.addCronTask(new AiCacheCleanupTask(
+                        new SimpleTaskWrapper<>(AiCacheCleanupTask.TASK_ID, AiCacheCleanupTask.TASK_NAME,
+                                SecurityUtils.ADMIN_USER),
+                        this::cleanupExpiredAiCache));
+            }
 //            scheduledTaskRegistrar.addFixedRateTask(new SimpleTestTask(
 //                    new SimpleTaskWrapper<>("simple-test", "简单测试任务", null),
 //                    () -> log.info("简单测试....")));
@@ -95,5 +106,12 @@ public class TaskScheduleConfig {
         Date expiredDate = DateUtils.addDays(new Date(), -retentionDays);
         apiLogService.remove(Wrappers.<ApiLog>query().lt("create_date", expiredDate));
         log.info("API log cleanup completed, retention days: {}, expired date: {}", retentionDays, expiredDate);
+    }
+
+    private void cleanupExpiredAiCache() {
+        int retentionDays = simpleApiConfigProperties.getAiCacheRetentionDays();
+        Date aiCacheExpiredDate = DateUtils.addDays(new Date(), -retentionDays);
+        aiCacheMapper.delete(Wrappers.<com.fugary.simple.api.entity.api.AiCache>query().lt("created_at", aiCacheExpiredDate));
+        log.info("AI Cache cleanup completed, retention days: {}, expired date: {}", retentionDays, aiCacheExpiredDate);
     }
 }

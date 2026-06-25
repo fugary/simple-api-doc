@@ -41,4 +41,9 @@ public class SimpleApiConfigProperties {
      * API log retention days. Values less than or equal to 0 disable automatic cleanup.
      */
     private int apiLogRetentionDays = 180;
+
+    /**
+     * AI Cache retention days. Values less than or equal to 0 disable automatic cleanup.
+     */
+    private int aiCacheRetentionDays = 90;
 }
