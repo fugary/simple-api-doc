@@ -3,8 +3,11 @@ package com.fugary.simple.api.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
+import com.fugary.simple.api.entity.api.AiCache;
+import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.service.AiService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -30,6 +33,9 @@ public class AiServiceImpl implements AiService {
     private AiConfigProperties aiConfigProperties;
 
     @Autowired
+    private AiCacheMapper aiCacheMapper;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private static final Pattern MARKDOWN_JSON_PATTERN = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```");
@@ -39,6 +45,26 @@ public class AiServiceImpl implements AiService {
     public String generateSampleBySchema(String schemaContent) {
         if (!aiConfigProperties.isEnabled() || StringUtils.isBlank(aiConfigProperties.getApiKey())) {
             throw new RuntimeException("AI 生成功能未开启或未配置 API Key");
+        }
+
+        String systemPrompt = "你是一个专门用于生成模拟数据的接口开发助手。请根据用户提供的 JSON Schema 生成合理的示例 JSON 数据。规则：\n" +
+                "1. 必须只返回合法的纯 JSON 数据。\n" +
+                "2. 不要包含任何多余的解释文字、代码块标记（如 ```json）。\n" +
+                "3. 根据 Schema 中的 type、description、example 或 format，生成逼真的模拟数据。\n" +
+                "4. 尽量覆盖所有必要的属性。";
+
+        String promptHash = DigestUtils.md5Hex(systemPrompt);
+        String rawKey = aiConfigProperties.getModel() + ":" + promptHash + ":" + schemaContent;
+        String cacheKey = DigestUtils.sha256Hex(rawKey);
+
+        try {
+            AiCache cache = aiCacheMapper.selectById(cacheKey);
+            if (cache != null && StringUtils.isNotBlank(cache.getCacheValue())) {
+                log.info("AI 样本生成命中缓存, key: {}", cacheKey);
+                return cache.getCacheValue();
+            }
+        } catch (Exception e) {
+            log.error("读取 AI 缓存失败，将降级直接调用 AI", e);
         }
 
         RestTemplate restTemplate = new RestTemplate();
@@ -60,11 +86,7 @@ public class AiServiceImpl implements AiService {
         List<Map<String, String>> messages = new ArrayList<>();
         Map<String, String> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
-        systemMessage.put("content", "你是一个专门用于生成模拟数据的接口开发助手。请根据用户提供的 JSON Schema 生成合理的示例 JSON 数据。规则：\n" +
-                "1. 必须只返回合法的纯 JSON 数据。\n" +
-                "2. 不要包含任何多余的解释文字、代码块标记（如 ```json）。\n" +
-                "3. 根据 Schema 中的 type、description、example 或 format，生成逼真的模拟数据。\n" +
-                "4. 尽量覆盖所有必要的属性。");
+        systemMessage.put("content", systemPrompt);
         messages.add(systemMessage);
 
         Map<String, String> userMessage = new HashMap<>();
@@ -83,7 +105,21 @@ public class AiServiceImpl implements AiService {
                 if (choices.isArray() && choices.size() > 0) {
                     JsonNode messageNode = choices.get(0).path("message").path("content");
                     if (!messageNode.isMissingNode()) {
-                        return cleanGeneratedContent(messageNode.asText());
+                        String generatedSample = cleanGeneratedContent(messageNode.asText());
+                        if (StringUtils.isNotBlank(generatedSample)) {
+                            try {
+                                AiCache aiCache = new AiCache();
+                                aiCache.setCacheKey(cacheKey);
+                                aiCache.setCacheValue(generatedSample);
+                                aiCache.setModelName(aiConfigProperties.getModel());
+                                aiCache.setCreatedAt(new java.util.Date());
+                                aiCacheMapper.insert(aiCache);
+                                log.info("AI 样本生成成功，写入缓存, key: {}", cacheKey);
+                            } catch (Exception cacheEx) {
+                                log.error("写入 AI 缓存失败", cacheEx);
+                            }
+                        }
+                        return generatedSample;
                     }
                 }
             }
