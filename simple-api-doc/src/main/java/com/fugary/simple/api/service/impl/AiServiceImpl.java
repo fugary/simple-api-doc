@@ -94,6 +94,7 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             log.error("写入 AI 缓存状态失败", e);
         }
+        long startTime = System.currentTimeMillis();
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
         RestTemplate restTemplate = new RestTemplate();
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -140,6 +141,7 @@ public class AiServiceImpl implements AiService {
                                 aiCache.setCacheKey(cacheKey);
                                 aiCache.setCacheValue(generatedSample);
                                 aiCache.setStatus(1);
+                                aiCache.setCostTime(System.currentTimeMillis() - startTime);
                                 aiCacheMapper.updateById(aiCache);
                                 log.info("AI 样本生成成功，写入缓存, key: {}", cacheKey);
                             } catch (Exception cacheEx) {
@@ -162,6 +164,7 @@ public class AiServiceImpl implements AiService {
                     AiCache aiCache = new AiCache();
                     aiCache.setCacheKey(cacheKey);
                     aiCache.setStatus(2);
+                    aiCache.setCostTime(System.currentTimeMillis() - startTime);
                     aiCacheMapper.updateById(aiCache);
                 } catch (Exception ignore) {}
             }
@@ -170,7 +173,7 @@ public class AiServiceImpl implements AiService {
         try {
             return future.get(1, TimeUnit.MINUTES);
         } catch (TimeoutException e) {
-            throw new SimpleRuntimeException(202, "已加入请求队列，请稍后再次生成");
+            throw new SimpleRuntimeException(202);
         } catch (Exception e) {
             throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
         }

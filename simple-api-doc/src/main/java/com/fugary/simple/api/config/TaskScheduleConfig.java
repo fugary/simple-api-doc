@@ -4,22 +4,21 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
-import com.fugary.simple.api.tasks.AiCacheCleanupTask;
-import com.fugary.simple.api.tasks.ApiLogCleanupTask;
+import com.fugary.simple.api.tasks.GenericCronTask;
+import com.fugary.simple.api.tasks.GenericIntervalTask;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.SimpleTaskWrapper;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
-import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.config.IntervalTask;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
@@ -47,6 +46,9 @@ public class TaskScheduleConfig {
 
     @Autowired
     private SimpleApiConfigProperties simpleApiConfigProperties;
+
+    @Autowired
+    private AiConfigProperties aiConfigProperties;
 
     @Autowired
     private AiCacheMapper aiCacheMapper;
@@ -83,16 +85,22 @@ public class TaskScheduleConfig {
                 }
             }
             if (simpleApiConfigProperties.getApiLogRetentionDays() > 0) {
-                scheduledTaskRegistrar.addCronTask(new ApiLogCleanupTask(
-                        new SimpleTaskWrapper<>(ApiLogCleanupTask.TASK_ID, ApiLogCleanupTask.TASK_NAME,
+                scheduledTaskRegistrar.addCronTask(new GenericCronTask<>(
+                        new SimpleTaskWrapper<>("api-log-cleanup", "API log cleanup",
                                 SecurityUtils.ADMIN_USER),
-                        this::cleanupExpiredApiLogs));
+                        this::cleanupExpiredApiLogs, "0 0 3 * * ?"));
             }
             if (simpleApiConfigProperties.getAiCacheRetentionDays() > 0) {
-                scheduledTaskRegistrar.addCronTask(new AiCacheCleanupTask(
-                        new SimpleTaskWrapper<>(AiCacheCleanupTask.TASK_ID, AiCacheCleanupTask.TASK_NAME,
+                scheduledTaskRegistrar.addCronTask(new GenericCronTask<>(
+                        new SimpleTaskWrapper<>("ai-cache-cleanup", "AI cache cleanup",
                                 SecurityUtils.ADMIN_USER),
-                        this::cleanupExpiredAiCache));
+                        this::cleanupExpiredAiCache, "0 0 4 * * ?"));
+            }
+            if (aiConfigProperties.isEnabled()) {
+                scheduledTaskRegistrar.addFixedRateTask(new GenericIntervalTask<>(
+                        new SimpleTaskWrapper<>("ai-processing-cleanup", "AI processing cleanup",
+                                SecurityUtils.ADMIN_USER),
+                        this::cleanupProcessingAiCache, 5 * 60 * 1000L));
             }
 //            scheduledTaskRegistrar.addFixedRateTask(new SimpleTestTask(
 //                    new SimpleTaskWrapper<>("simple-test", "简单测试任务", null),
@@ -112,15 +120,17 @@ public class TaskScheduleConfig {
         int retentionDays = simpleApiConfigProperties.getAiCacheRetentionDays();
         Date aiCacheExpiredDate = DateUtils.addDays(new Date(), -retentionDays);
         aiCacheMapper.delete(Wrappers.<com.fugary.simple.api.entity.api.AiCache>query().lt("created_at", aiCacheExpiredDate));
-        
-        Date processingTimeoutDate = DateUtils.addHours(new Date(), -1);
+        log.info("AI Cache cleanup completed, retention days: {}, expired date: {}", retentionDays, aiCacheExpiredDate);
+    }
+
+    private void cleanupProcessingAiCache() {
+        long timeoutMs = aiConfigProperties.getTimeout() + 60000L; // 超时时间 + 1 分钟
+        Date processingTimeoutDate = new Date(System.currentTimeMillis() - timeoutMs);
         int deletedProcessing = aiCacheMapper.delete(Wrappers.<com.fugary.simple.api.entity.api.AiCache>query()
                 .eq("status", 0)
                 .lt("created_at", processingTimeoutDate));
         if (deletedProcessing > 0) {
             log.info("Cleaned up {} blocked AI cache processing tasks older than: {}", deletedProcessing, processingTimeoutDate);
         }
-        
-        log.info("AI Cache cleanup completed, retention days: {}, expired date: {}", retentionDays, aiCacheExpiredDate);
     }
 }

@@ -37,4 +37,9 @@ public class AiCache {
      * 状态（0:处理中, 1:成功, 2:失败）
      */
     private Integer status;
+
+    /**
+     * 生成耗费时间（毫秒）
+     */
+    private Long costTime;
 }

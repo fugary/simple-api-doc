@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted } from 'vue'
-import { $coreAlert, $coreConfirm, $goto, isAdminUser } from '@/utils'
+import { $coreAlert, $coreConfirm, $goto, isAdminUser, checkShowColumn } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import SimpleTaskApi, { removeAndDisable, triggerSimpleTask } from '@/api/SimpleTaskApi'
 import { $i18nKey } from '@/messages'
@@ -36,6 +36,7 @@ const columns = [{
   labelKey: 'api.label.projectName',
   prop: 'projectName',
   minWidth: '120px',
+  enabled: checkShowColumn(tableData.value, 'projectCode'),
   click (item) {
     if (item.projectCode) {
       $goto(`/api/projects/${item.projectCode}?backUrl=${route.fullPath}`)
