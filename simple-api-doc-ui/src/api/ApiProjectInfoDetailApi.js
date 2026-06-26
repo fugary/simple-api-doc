@@ -50,4 +50,8 @@ export const recoverFromHistory = function (param, config) {
   return $httpPost(`${BASE_URL}/recoverFromHistory`, param, config)
 }
 
+export const updateExamples = function (param, config) {
+  return $httpPost(`${BASE_URL}/updateExamples`, param, config)
+}
+
 export default ApiProjectInfoDetailApi

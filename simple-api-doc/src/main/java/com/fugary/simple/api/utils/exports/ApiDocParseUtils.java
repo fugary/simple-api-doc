@@ -164,6 +164,11 @@ public class ApiDocParseUtils {
     }
 
     private static boolean mergeApiDocSchema(ExportApiDocSchemaVo apiDocSchema, ApiProjectInfoDetail existsApiDocSchema) {
+        if (apiDocSchema != null && existsApiDocSchema != null) {
+            if (StringUtils.isBlank(apiDocSchema.getExamples()) && StringUtils.isNotBlank(existsApiDocSchema.getExamples())) {
+                apiDocSchema.setExamples(existsApiDocSchema.getExamples());
+            }
+        }
         boolean isChanged = isApiDocSchemaChanged(apiDocSchema, existsApiDocSchema);
         if (apiDocSchema != null && existsApiDocSchema != null) {
             if (isChanged) {

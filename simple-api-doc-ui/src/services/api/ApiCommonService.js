@@ -4,6 +4,8 @@ import {
   getSingleSelectOptions,
   includesAnyIgnoreCase,
   isUserAdmin,
+  $coreSuccess,
+  $corePrompt,
   useCurrentUserName
 } from '@/utils'
 import { sample } from 'openapi-sampler'
@@ -20,7 +22,9 @@ import { ref, h, computed } from 'vue'
 import { defineTableButtons } from '@/components/utils'
 import { showCodeWindow, showGenerateSampleWindow } from '@/utils/DynamicUtils'
 import { aiGenerateSample } from '@/api/AiApi'
-import { $i18nMsg } from '@/messages'
+import { $i18nMsg, $i18nBundle, $i18nKey } from '@/messages'
+
+import { updateExamples } from '@/api/ApiProjectInfoDetailApi'
 
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems']
 const SCHEMA_OBJECT_KEYS = ['items', 'additionalProperties', 'contains', 'if', 'then', 'else', 'not', 'propertyNames']
@@ -272,7 +276,44 @@ export const showGenerateSchemaSample = async (requestsSchema, componentMap, con
     }
   }
   if (sampleStr) {
-    return showCodeWindow(sampleStr, { readOnly: false, viewAsTable: true, ...config })
+    const windowConfig = { readOnly: false, viewAsTable: true, ...config }
+    if (!window.location.href.includes('/share') && requestsSchema.id) {
+      const currentContent = { value: sampleStr }
+      windowConfig.change = (text) => { currentContent.value = text }
+      windowConfig.buttons = [{
+        label: $i18nKey('common.label.commonSave', 'common.label.example'),
+        type: 'warning',
+        click () {
+          $corePrompt($i18nBundle('common.msg.commonInput', [$i18nBundle('common.label.example')]),
+            $i18nKey('common.label.commonSave', 'common.label.example'), {
+              inputValue: 'Custom Example'
+            }).then(({ value }) => {
+            if (!value) return
+            const newExamples = requestsSchema.examples ? cloneDeep(JSON.parse(requestsSchema.examples)) : []
+            const existingIndex = newExamples.findIndex(e => e.summary === value)
+            let exampleValue = currentContent.value
+            try {
+              exampleValue = JSON.parse(exampleValue)
+            } catch {
+              // Ignore invalid json
+            }
+            const newExample = { summary: value, value: exampleValue }
+            if (existingIndex >= 0) {
+              newExamples.splice(existingIndex, 1, newExample)
+            } else {
+              newExamples.push(newExample)
+            }
+            updateExamples({ id: requestsSchema.id, examples: JSON.stringify(newExamples) }).then(res => {
+              if (res.success) {
+                $coreSuccess($i18nBundle('common.msg.saveSuccess'))
+                requestsSchema.examples = JSON.stringify(newExamples)
+              }
+            })
+          }).catch(() => {})
+        }
+      }, ...(config.buttons || [])]
+    }
+    return showCodeWindow(sampleStr, windowConfig)
   }
 }
 

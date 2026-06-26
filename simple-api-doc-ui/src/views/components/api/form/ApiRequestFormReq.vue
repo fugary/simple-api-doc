@@ -20,15 +20,17 @@ import {
 } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import { getSingleSelectOptions } from '@/utils'
+import { getSingleSelectOptions, $coreConfirm, $corePrompt, $coreSuccess, $coreWarning } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
-import { isString, isArray } from 'lodash-es'
+import { isString, isArray, cloneDeep } from 'lodash-es'
 import {
   calcEnvSuggestions,
   calcHeaderSuggestions,
   generateFormSample,
   generateSchemaSample
 } from '@/services/api/ApiCommonService'
+import { updateExamples } from '@/api/ApiProjectInfoDetailApi'
+
 import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
@@ -216,7 +218,64 @@ const viewSchemaBody = () => {
 
 const supportedGenerates = computed(() => generateSampleCheckResults(props.schemaBody))
 
-const emit = defineEmits(['resetRequestForm'])
+const isShare = window.location.href.includes('/share')
+
+const emit = defineEmits(['resetRequestForm', 'updateExamples'])
+
+const getSchemaBodyId = () => {
+  const body = isArray(props.schemaBody) && props.schemaBody.length === 1 ? props.schemaBody[0] : props.schemaBody
+  return body?.id
+}
+
+const doSaveExamples = (newExamples) => {
+  const schemaId = getSchemaBodyId()
+  if (!schemaId) {
+    $coreWarning($i18nBundle('api.msg.saveExampleFailedNoId'))
+    return
+  }
+  updateExamples({ id: schemaId, examples: JSON.stringify(newExamples) }).then(res => {
+    if (res.success) {
+      $coreSuccess($i18nBundle('common.msg.saveSuccess'))
+      emit('updateExamples', newExamples)
+      if (paramTarget.value) {
+        paramTarget.value.requestExamples = [JSON.stringify(newExamples)]
+      }
+    }
+  })
+}
+
+const saveAsExample = () => {
+  $corePrompt($i18nBundle('common.msg.commonInput', [$i18nBundle('common.label.example')]),
+    $i18nKey('common.label.commonSave', 'common.label.example'), {
+      inputValue: 'Custom Example'
+    }).then(({ value }) => {
+    if (!value) return
+    const newExamples = cloneDeep(props.examples || [])
+    const existingIndex = newExamples.findIndex(e => e.summary === value)
+    let exampleValue = contentRef.value
+    try {
+      exampleValue = JSON.parse(exampleValue)
+    } catch {
+      // Ignore invalid json
+    }
+    const newExample = { summary: value, value: exampleValue }
+    if (existingIndex >= 0) {
+      newExamples.splice(existingIndex, 1, newExample)
+    } else {
+      newExamples.push(newExample)
+    }
+    doSaveExamples(newExamples)
+  }).catch(() => {})
+}
+
+const deleteExample = (example, index) => {
+  $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [example.summary])).then(() => {
+    const newExamples = cloneDeep(props.examples || [])
+    newExamples.splice(index, 1)
+    doSaveExamples(newExamples)
+  }).catch(() => {})
+}
+
 const resetRequestForm = () => {
   emit('resetRequestForm')
   setTimeout(() => {
@@ -414,8 +473,23 @@ const { monacoTheme } = useShareDocTheme()
             <api-data-example
               v-if="examples.length"
               :examples="examples"
+              :read-only="isShare"
               @select-example="selectExample"
+              @delete-example="deleteExample"
             />
+            <el-link
+              v-if="!isShare"
+              v-common-tooltip="$t('api.label.saveAsExample')"
+              type="primary"
+              underline="never"
+              class="margin-left3"
+              @click="saveAsExample"
+            >
+              <common-icon
+                :size="18"
+                icon="SaveFilled"
+              />
+            </el-link>
           </template>
         </common-form-control>
         <template v-if="isFormData || isFormUrlEncoded">

@@ -404,6 +404,21 @@ export const $coreConfirm = (message, title = $i18nBundle('common.label.reminder
     options)
 }
 
+export const $corePrompt = (message, title = $i18nBundle('common.label.reminder'), options = undefined) => {
+  if (isObject(title) && !options) {
+    options = title
+    title = null
+  }
+  options = Object.assign({
+    dangerouslyUseHTMLString: true,
+    draggable: true,
+    customClass: 'common-message-confirm'
+  }, options || {})
+  return ElMessageBox.prompt(message,
+    title || $i18nBundle('common.label.reminder'),
+    options)
+}
+
 export const $formatNumber = (value, format) => {
   return numeral(value).format(format)
 }

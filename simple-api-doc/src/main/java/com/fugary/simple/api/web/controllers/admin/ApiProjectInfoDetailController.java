@@ -190,6 +190,39 @@ public class ApiProjectInfoDetailController {
     }
 
     /**
+     * 更新Examples
+     *
+     * @param infoDetail
+     * @return
+     */
+    @PostMapping("/updateExamples")
+    public SimpleResult<Boolean> updateExamples(@RequestBody ApiProjectInfoDetail infoDetail) {
+        if (infoDetail.getId() == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_400);
+        }
+        ApiProjectInfoDetail existsInfoDetail = apiProjectInfoDetailService.getById(infoDetail.getId());
+        if (existsInfoDetail == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        if (!apiProjectAccessService.canAccessInfoDetail(existsInfoDetail, ApiGroupAuthority.WRITABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (StringUtils.equals(infoDetail.getExamples(), existsInfoDetail.getExamples())) {
+            return SimpleResultUtils.createSimpleResult(true);
+        }
+        if (existsInfoDetail.getVersion() == null) {
+            existsInfoDetail.setVersion(1);
+        }
+        apiProjectInfoDetailService.saveApiHistory(existsInfoDetail);
+
+        existsInfoDetail.setExamples(infoDetail.getExamples());
+        SimpleModelUtils.addAuditInfo(existsInfoDetail);
+
+        boolean result = apiProjectInfoDetailService.updateById(existsInfoDetail);
+        return SimpleResultUtils.createSimpleResult(result);
+    }
+
+    /**
      * 获取历史版本
      *
      * @param queryVo

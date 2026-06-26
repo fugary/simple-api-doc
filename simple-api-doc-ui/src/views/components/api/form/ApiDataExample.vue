@@ -9,9 +9,13 @@ defineProps({
   examples: {
     type: Array,
     default: () => []
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
   }
 })
-const emit = defineEmits(['selectExample'])
+const emit = defineEmits(['selectExample', 'deleteExample'])
 </script>
 
 <template>
@@ -34,7 +38,20 @@ const emit = defineEmits(['selectExample'])
           :key="index"
           @click="emit('selectExample', example)"
         >
-          {{ example.summary || example.description }}
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <span class="margin-right3">{{ example.summary || example.description }}</span>
+            <el-link
+              v-if="!readOnly"
+              type="danger"
+              :underline="false"
+              @click.stop="emit('deleteExample', example, index)"
+            >
+              <common-icon
+                icon="DeleteFilled"
+                :size="14"
+              />
+            </el-link>
+          </div>
         </el-dropdown-item>
       </el-dropdown-menu>
     </template>

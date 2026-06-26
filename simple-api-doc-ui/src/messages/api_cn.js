@@ -251,3 +251,5 @@ api.msg.previewStreamConfirm = '从Content-Type头信息判断此响应为数据
 api.label.generateEngine = '生成引擎'
 api.label.useExample = '优先使用Example'
 api.label.useDescription = '描述作为值'
+api.label.saveAsExample = '保存为示例'
+api.msg.saveExampleFailedNoId = '无法找到当前 Schema ID，请确认此接口已成功保存'
