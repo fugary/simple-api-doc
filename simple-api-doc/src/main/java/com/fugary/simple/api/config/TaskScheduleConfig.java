@@ -57,7 +57,7 @@ public class TaskScheduleConfig {
      * @return
      */
     @Bean
-    public TaskScheduler taskScheduler() {
+    public ThreadPoolTaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
         taskScheduler.setPoolSize(simpleApiConfigProperties.getTaskPoolSize());
         taskScheduler.setRemoveOnCancelPolicy(true);
@@ -112,6 +112,15 @@ public class TaskScheduleConfig {
         int retentionDays = simpleApiConfigProperties.getAiCacheRetentionDays();
         Date aiCacheExpiredDate = DateUtils.addDays(new Date(), -retentionDays);
         aiCacheMapper.delete(Wrappers.<com.fugary.simple.api.entity.api.AiCache>query().lt("created_at", aiCacheExpiredDate));
+        
+        Date processingTimeoutDate = DateUtils.addHours(new Date(), -1);
+        int deletedProcessing = aiCacheMapper.delete(Wrappers.<com.fugary.simple.api.entity.api.AiCache>query()
+                .eq("status", 0)
+                .lt("created_at", processingTimeoutDate));
+        if (deletedProcessing > 0) {
+            log.info("Cleaned up {} blocked AI cache processing tasks older than: {}", deletedProcessing, processingTimeoutDate);
+        }
+        
         log.info("AI Cache cleanup completed, retention days: {}, expired date: {}", retentionDays, aiCacheExpiredDate);
     }
 }

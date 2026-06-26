@@ -32,4 +32,9 @@ public class AiCache {
      * 创建时间
      */
     private Date createdAt;
+
+    /**
+     * 状态（0:处理中, 1:成功, 2:失败）
+     */
+    private Integer status;
 }

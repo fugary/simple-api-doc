@@ -1,3 +1,4 @@
+import { ElMessage } from 'element-plus'
 import {
   formatDate,
   getSingleSelectOptions,
@@ -194,8 +195,11 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
           schema: compressNode(schema),
           components: { schemas: components }
         })
-        const res = await aiGenerateSample({ schemaContent: payload }, { loading: true, timeout: 125000, preferenceId })
-        if (res && res.resultData) {
+        const res = await aiGenerateSample({ schemaContent: payload }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
+        if (res && res.code === 202) {
+          ElMessage.warning(res.message || '已加入请求队列，请稍后再次生成')
+          json = { message: res.message || '已加入请求队列，请稍后再次生成' }
+        } else if (res && res.resultData) {
           try {
             json = JSON.parse(res.resultData)
           } catch (e) {

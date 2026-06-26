@@ -2,9 +2,10 @@ package com.fugary.simple.api.web.controllers;
 
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.service.AiService;
-import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.web.vo.SimpleResult;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,8 @@ public class AiController {
         try {
             String sample = aiService.generateSampleBySchema(schemaContent);
             return SimpleResultUtils.createSimpleResult(sample);
+        } catch (SimpleRuntimeException e) {
+            return SimpleResultUtils.<String>createSimpleResult(e.getCode() != null ? e.getCode() : 500).toBuilder().message(e.getMessage()).build();
         } catch (Exception e) {
             return SimpleResultUtils.<String>createSimpleResult(500).toBuilder().message(e.getMessage()).build();
         }

@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.AiCache;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.service.AiService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,6 +24,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +43,10 @@ public class AiServiceImpl implements AiService {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    @Qualifier("taskScheduler")
+    private Executor taskExecutor;
 
     private static final Pattern MARKDOWN_JSON_PATTERN = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```");
     private static final Pattern MARKDOWN_GENERIC_PATTERN = Pattern.compile("```\\s*([\\s\\S]*?)\\s*```");
@@ -60,14 +70,31 @@ public class AiServiceImpl implements AiService {
 
         try {
             AiCache cache = aiCacheMapper.selectById(cacheKey);
-            if (cache != null && StringUtils.isNotBlank(cache.getCacheValue())) {
-                log.info("AI 样本生成命中缓存, key: {}", cacheKey);
-                return cache.getCacheValue();
+            if (cache != null) {
+                if (cache.getStatus() != null && cache.getStatus() == 1 && StringUtils.isNotBlank(cache.getCacheValue())) {
+                    log.info("AI 样本生成命中缓存, key: {}", cacheKey);
+                    return cache.getCacheValue();
+                } else if (cache.getStatus() != null && cache.getStatus() == 0) {
+                    throw new SimpleRuntimeException(202, "已加入请求队列，请稍后重试");
+                }
             }
+        } catch (SimpleRuntimeException e) {
+            throw e;
         } catch (Exception e) {
             log.error("读取 AI 缓存失败，将降级直接调用 AI", e);
         }
-
+        try {
+            AiCache aiCache = new AiCache();
+            aiCache.setCacheKey(cacheKey);
+            aiCache.setStatus(0);
+            aiCache.setCacheValue("");
+            aiCache.setModelName(aiConfigProperties.getModel());
+            aiCache.setCreatedAt(new java.util.Date());
+            aiCacheMapper.insert(aiCache);
+        } catch (Exception e) {
+            log.error("写入 AI 缓存状态失败", e);
+        }
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
         RestTemplate restTemplate = new RestTemplate();
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(aiConfigProperties.getTimeout());
@@ -112,9 +139,8 @@ public class AiServiceImpl implements AiService {
                                 AiCache aiCache = new AiCache();
                                 aiCache.setCacheKey(cacheKey);
                                 aiCache.setCacheValue(generatedSample);
-                                aiCache.setModelName(aiConfigProperties.getModel());
-                                aiCache.setCreatedAt(new java.util.Date());
-                                aiCacheMapper.insert(aiCache);
+                                aiCache.setStatus(1);
+                                aiCacheMapper.updateById(aiCache);
                                 log.info("AI 样本生成成功，写入缓存, key: {}", cacheKey);
                             } catch (Exception cacheEx) {
                                 log.error("写入 AI 缓存失败", cacheEx);
@@ -129,6 +155,24 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             log.error("调用 AI 接口失败", e);
             throw new RuntimeException(e);
+        }
+        }, taskExecutor).whenComplete((res, ex) -> {
+            if (ex != null) {
+                try {
+                    AiCache aiCache = new AiCache();
+                    aiCache.setCacheKey(cacheKey);
+                    aiCache.setStatus(2);
+                    aiCacheMapper.updateById(aiCache);
+                } catch (Exception ignore) {}
+            }
+        });
+
+        try {
+            return future.get(1, TimeUnit.MINUTES);
+        } catch (TimeoutException e) {
+            throw new SimpleRuntimeException(202, "已加入请求队列，请稍后再次生成");
+        } catch (Exception e) {
+            throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
         }
     }
 

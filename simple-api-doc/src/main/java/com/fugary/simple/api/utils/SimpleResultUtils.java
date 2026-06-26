@@ -174,7 +174,7 @@ public class SimpleResultUtils {
     public static String getErrorMsg(Integer code, Locale locale) {
         String messageKey = "simple.error.code." + code;
         if (messageSource != null) {
-            return messageSource.getMessage(messageKey, null, locale);
+            return messageSource.getMessage(messageKey, null, messageKey, locale);
         }
         return messageKey;
     }

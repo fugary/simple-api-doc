@@ -35,6 +35,6 @@ public class AiConfigProperties {
     /**
      * 调用超时时间（毫秒）
      */
-    private int timeout = 120000;
+    private int timeout = 300000;
 
 }

@@ -45,5 +45,5 @@ public class SimpleApiConfigProperties {
     /**
      * AI Cache retention days. Values less than or equal to 0 disable automatic cleanup.
      */
-    private int aiCacheRetentionDays = 90;
+    private int aiCacheRetentionDays = 180;
 }
