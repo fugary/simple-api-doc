@@ -20,6 +20,7 @@ import { ref, h, computed } from 'vue'
 import { defineTableButtons } from '@/components/utils'
 import { showCodeWindow, showGenerateSampleWindow } from '@/utils/DynamicUtils'
 import { aiGenerateSample } from '@/api/AiApi'
+import { $i18nMsg } from '@/messages'
 
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems']
 const SCHEMA_OBJECT_KEYS = ['items', 'additionalProperties', 'contains', 'if', 'then', 'else', 'not', 'propertyNames']
@@ -197,21 +198,23 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
         })
         const res = await aiGenerateSample({ schemaContent: payload }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
         if (res && res.code === 202) {
-          ElMessage.warning(res.message || '已加入请求队列，请稍后再次生成')
-          json = { message: res.message || '已加入请求队列，请稍后再次生成' }
+          ElMessage.warning(res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later'))
+          json = { message: res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later') }
+        } else if (res && res.success === false) {
+          json = { error: $i18nMsg('AI 生成失败', 'AI generation failed'), details: res.message || $i18nMsg('未知错误', 'Unknown error') }
         } else if (res && res.resultData) {
           try {
             json = JSON.parse(res.resultData)
           } catch (e) {
             console.error('AI返回的格式不是合法的JSON', e)
-            json = { error: 'AI 生成失败或返回非法数据', details: res.resultData }
+            json = { error: $i18nMsg('AI 生成失败或返回非法数据', 'AI generation failed or returned invalid data'), details: res.resultData }
           }
         } else {
-          json = { error: 'AI 生成接口返回为空' }
+          json = { error: $i18nMsg('AI 生成接口返回为空', 'AI generation interface returned empty'), details: res ? JSON.stringify(res) : $i18nMsg('无详细信息', 'No details') }
         }
       } catch (err) {
         console.error('AI接口调用异常', err)
-        json = { error: '调用 AI 接口失败', details: err?.data?.message || err?.message || '未知错误' }
+        json = { error: $i18nMsg('调用 AI 接口失败', 'Failed to call AI interface'), details: err?.data?.message || err?.message || $i18nMsg('未知错误', 'Unknown error') }
       }
     } else if (mode === 'mockjs') {
       schema = injectMockExample(schema)

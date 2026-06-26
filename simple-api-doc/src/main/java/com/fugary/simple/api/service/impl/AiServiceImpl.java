@@ -137,12 +137,11 @@ public class AiServiceImpl implements AiService {
                         String generatedSample = cleanGeneratedContent(messageNode.asText());
                         if (StringUtils.isNotBlank(generatedSample)) {
                             try {
-                                AiCache aiCache = new AiCache();
-                                aiCache.setCacheKey(cacheKey);
-                                aiCache.setCacheValue(generatedSample);
-                                aiCache.setStatus(1);
-                                aiCache.setCostTime(System.currentTimeMillis() - startTime);
-                                aiCacheMapper.updateById(aiCache);
+                                aiCacheMapper.update(null, com.baomidou.mybatisplus.core.toolkit.Wrappers.<AiCache>lambdaUpdate()
+                                        .set(AiCache::getCacheValue, generatedSample)
+                                        .set(AiCache::getStatus, 1)
+                                        .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
+                                        .eq(AiCache::getCacheKey, cacheKey));
                                 log.info("AI 样本生成成功，写入缓存, key: {}", cacheKey);
                             } catch (Exception cacheEx) {
                                 log.error("写入 AI 缓存失败", cacheEx);
@@ -161,11 +160,10 @@ public class AiServiceImpl implements AiService {
         }, taskExecutor).whenComplete((res, ex) -> {
             if (ex != null) {
                 try {
-                    AiCache aiCache = new AiCache();
-                    aiCache.setCacheKey(cacheKey);
-                    aiCache.setStatus(2);
-                    aiCache.setCostTime(System.currentTimeMillis() - startTime);
-                    aiCacheMapper.updateById(aiCache);
+                    aiCacheMapper.update(null, com.baomidou.mybatisplus.core.toolkit.Wrappers.<AiCache>lambdaUpdate()
+                            .set(AiCache::getStatus, 2)
+                            .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
+                            .eq(AiCache::getCacheKey, cacheKey));
                 } catch (Exception ignore) {}
             }
         });
