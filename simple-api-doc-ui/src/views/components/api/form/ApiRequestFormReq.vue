@@ -27,7 +27,8 @@ import {
   calcEnvSuggestions,
   calcHeaderSuggestions,
   generateFormSample,
-  generateSchemaSample
+  generateSchemaSample,
+  removeSchemaRecursion
 } from '@/services/api/ApiCommonService'
 import { updateExamples } from '@/api/ApiProjectInfoDetailApi'
 
@@ -212,7 +213,12 @@ const viewSchemaBody = () => {
     if (isArray(props.schemaBody) && props.schemaBody.length === 1) {
       calcSchemaBody = props.schemaBody[0]
     }
-    showCodeWindow(JSON.stringify(calcSchemaBody), { theme: monacoTheme.value })
+    calcSchemaBody = removeSchemaRecursion(calcSchemaBody)
+    const jsonStr = JSON.stringify(calcSchemaBody, (key, value) => {
+      const isInternal = key.startsWith('__') || ['schema$ref', 'name', 'isLeaf'].includes(key)
+      return isInternal ? undefined : value
+    }, 2)
+    showCodeWindow(jsonStr, { theme: monacoTheme.value })
   }
 }
 
@@ -224,7 +230,7 @@ const emit = defineEmits(['resetRequestForm', 'updateExamples'])
 
 const getSchemaBodyId = () => {
   const body = isArray(props.schemaBody) && props.schemaBody.length === 1 ? props.schemaBody[0] : props.schemaBody
-  return body?.id
+  return body?.__id
 }
 
 const doSaveExamples = (newExamples) => {

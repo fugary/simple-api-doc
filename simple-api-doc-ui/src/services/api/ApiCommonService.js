@@ -36,7 +36,7 @@ const removeSchemaChildren = (node) => {
   return clone
 }
 
-const removeSchemaRecursion = (node, ancestors = [], objectAncestors = []) => {
+export const removeSchemaRecursion = (node, ancestors = [], objectAncestors = []) => {
   if (!node || typeof node !== 'object') return node
   if (Array.isArray(node)) {
     return node.map(child => removeSchemaRecursion(child, ancestors, objectAncestors))
@@ -183,7 +183,7 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
             const name = ref.split('/').pop()
             if (!components[name]) {
               components[name] = {}
-              const copy = { ...node }; delete copy.schema$ref; delete copy.name; delete copy.isLeaf; delete copy.__contentType
+              const copy = { ...node }; delete copy.schema$ref; delete copy.name; delete copy.isLeaf; delete copy.__contentType; delete copy.__id
               components[name] = compressNode(copy)
             }
             return { $ref: ref }
@@ -191,7 +191,7 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
           if (isArray(node)) return node.map(compressNode)
           const res = {}
           for (const k in node) {
-            if (k === 'isLeaf' || k === '__contentType' || k === 'name') continue
+            if (k === 'isLeaf' || k === '__contentType' || k === 'name' || k === '__id') continue
             res[k] = compressNode(node[k])
           }
           return res

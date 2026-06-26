@@ -199,8 +199,12 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     sendType: REQUEST_SEND_MODES[0].value
   }
   if (apiDocDetail.requestsSchemas?.length) {
-    const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true))
-      .map(reqSchema => reqSchema.schema).filter(schema => !!schema)
+    const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true).map(reqSchema => {
+      if (reqSchema.schema) {
+        reqSchema.schema.__id = apiSchema.id
+      }
+      return reqSchema.schema
+    })).filter(schema => !!schema)
     target.requestBodySchema = requestSchemas
     target.requestExamples = apiDocDetail.requestsSchemas.filter(apiSchema => !!apiSchema.examples).map(apiSchema => apiSchema.examples)
   }
