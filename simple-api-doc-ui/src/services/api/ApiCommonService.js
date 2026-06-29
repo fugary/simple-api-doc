@@ -348,7 +348,7 @@ export const doDeleteExample = (schema, example, index) => {
     newExamples.splice(index, 1)
     updateExamples({ id: schema.id, examples: JSON.stringify(newExamples) }).then(res => {
       if (res.success) {
-        $coreSuccess($i18nBundle('common.msg.commonDeleteSuccess'))
+        $coreSuccess($i18nBundle('common.msg.deleteSuccess'))
         schema.examples = JSON.stringify(newExamples)
       }
     })
