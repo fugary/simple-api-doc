@@ -37,4 +37,8 @@ public class AiConfigProperties {
      */
     private int timeout = 600000;
 
+    /**
+     * 最大排队和处理中的任务数量限制
+     */
+    private int maxPendingTasks = 10;
 }

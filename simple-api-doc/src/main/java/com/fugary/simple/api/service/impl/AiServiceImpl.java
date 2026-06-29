@@ -1,5 +1,6 @@
 package com.fugary.simple.api.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
@@ -84,6 +85,10 @@ public class AiServiceImpl implements AiService {
             log.error("读取 AI 缓存失败，将降级直接调用 AI", e);
         }
         try {
+            Long pendingCount = aiCacheMapper.selectCount(Wrappers.<AiCache>lambdaQuery().eq(AiCache::getStatus, 0));
+            if (pendingCount != null && pendingCount >= aiConfigProperties.getMaxPendingTasks()) {
+                throw new SimpleRuntimeException(429, "当前排队中的 AI 请求过多，请稍后再试");
+            }
             AiCache aiCache = new AiCache();
             aiCache.setCacheKey(cacheKey);
             aiCache.setStatus(0);
@@ -91,6 +96,8 @@ public class AiServiceImpl implements AiService {
             aiCache.setModelName(aiConfigProperties.getModel());
             aiCache.setCreatedAt(new java.util.Date());
             aiCacheMapper.insert(aiCache);
+        } catch (SimpleRuntimeException e) {
+            throw e;
         } catch (Exception e) {
             log.error("写入 AI 缓存状态失败", e);
         }
@@ -175,6 +182,11 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
         }
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return aiConfigProperties.isEnabled() && StringUtils.isNotBlank(aiConfigProperties.getApiKey());
     }
 
     private String cleanGeneratedContent(String content) {

@@ -13,4 +13,10 @@ public interface AiService {
      */
     String generateSampleBySchema(String schemaContent);
 
+    /**
+     * 是否开启
+     *
+     * @return
+     */
+    boolean isEnabled();
 }
