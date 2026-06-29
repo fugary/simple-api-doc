@@ -50,4 +50,12 @@ export default [{
     icon: 'Grid',
     labelKey: 'api.label.projectGroups'
   }
+}, {
+  path: `${BASE_PATH}/ai/caches`,
+  name: 'AiCaches',
+  component: () => import('@/views/admin/ai/AiCacheList.vue'),
+  meta: {
+    icon: 'Cpu',
+    labelKey: 'api.label.aiCacheManagement'
+  }
 }]

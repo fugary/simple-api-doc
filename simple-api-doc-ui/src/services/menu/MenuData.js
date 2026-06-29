@@ -77,6 +77,14 @@ export const ALL_MENUS = [
     nameCn: '日志管理',
     nameEn: 'Log Management',
     menuUrl: '/admin/logs'
+  }, {
+    id: 55,
+    parentId: 5,
+    iconCls: 'Cpu',
+    nameCn: 'AI缓存管理',
+    nameEn: 'AI Cache',
+    menuUrl: '/admin/ai/caches',
+    checkEnabled: isAdminUser
   },
   {
     id: 54,
