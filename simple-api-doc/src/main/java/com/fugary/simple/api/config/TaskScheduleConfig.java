@@ -21,6 +21,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.config.IntervalTask;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
@@ -55,6 +56,7 @@ public class TaskScheduleConfig {
     @Autowired
     private AiCacheMapper aiCacheMapper;
 
+    @Lazy
     @Autowired
     private AiService aiService;
 
