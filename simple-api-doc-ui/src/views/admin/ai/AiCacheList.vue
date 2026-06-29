@@ -76,9 +76,9 @@ const showCacheDetail = item => {
 }
 
 const removeCache = async (item) => {
-  await $coreConfirm('common.msg.deleteConfirm')
-  await AiCacheApi.remove(item.cacheKey)
-  ElMessage.success('common.msg.deleteSuccess')
+  await $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
+  await AiCacheApi.deleteById(item.cacheKey)
+  ElMessage.success($i18nBundle('common.msg.deleteSuccess'))
   loadAiCaches()
 }
 
