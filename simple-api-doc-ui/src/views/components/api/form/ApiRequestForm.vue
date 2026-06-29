@@ -60,7 +60,15 @@ const sendRequest = (form) => {
 const requestExamples = computed(() => {
   const examples = paramTarget.value?.requestExamples
   if (examples?.length) {
-    return examples.map(example => JSON.parse(example))
+    return examples.flatMap(example => {
+      if (!example) return []
+      try {
+        const parsed = JSON.parse(example)
+        return Array.isArray(parsed) ? parsed : [parsed]
+      } catch {
+        return []
+      }
+    })
   }
   return []
 })

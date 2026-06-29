@@ -6,6 +6,7 @@ import {
   isUserAdmin,
   $coreSuccess,
   $corePrompt,
+  $coreConfirm,
   useCurrentUserName
 } from '@/utils'
 import { sample } from 'openapi-sampler'
@@ -264,9 +265,13 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
  */
 export const showGenerateSchemaSample = async (requestsSchema, componentMap, config) => {
   let sampleStr = ''
-  if (requestsSchema.examples) {
+  if (!config?.forceGenerate && requestsSchema.examples) {
     const examples = JSON.parse(requestsSchema.examples)
-    sampleStr = examples?.[0]?.value && JSON.stringify(examples[0].value)
+    if (config?.selectedExample) {
+      sampleStr = config.selectedExample.value && JSON.stringify(config.selectedExample.value, null, 2)
+    } else {
+      sampleStr = examples?.[0]?.value && JSON.stringify(examples[0].value, null, 2)
+    }
   }
   if (!sampleStr) {
     const generateSchema = processSchemas(requestsSchema, componentMap, true)
@@ -286,11 +291,19 @@ export const showGenerateSchemaSample = async (requestsSchema, componentMap, con
         click () {
           $corePrompt($i18nBundle('common.msg.commonInput', [$i18nBundle('common.label.example')]),
             $i18nKey('common.label.commonSave', 'common.label.example'), {
-              inputValue: 'Custom Example'
+              inputValue: config?.selectedExample?.summary || 'Custom Example'
             }).then(({ value }) => {
             if (!value) return
             const newExamples = requestsSchema.examples ? cloneDeep(JSON.parse(requestsSchema.examples)) : []
-            const existingIndex = newExamples.findIndex(e => e.summary === value)
+            // Try to find by original name first (if editing an existing example)
+            let existingIndex = -1
+            if (config?.selectedExample?.summary) {
+              existingIndex = newExamples.findIndex(e => e.summary === config.selectedExample.summary)
+            }
+            // If not found by original name (e.g. force generate), try to find by the new name
+            if (existingIndex < 0) {
+              existingIndex = newExamples.findIndex(e => e.summary === value)
+            }
             let exampleValue = currentContent.value
             try {
               exampleValue = JSON.parse(exampleValue)
@@ -315,6 +328,31 @@ export const showGenerateSchemaSample = async (requestsSchema, componentMap, con
     }
     return showCodeWindow(sampleStr, windowConfig)
   }
+}
+
+export const getParsedExamples = (schema) => {
+  if (schema?.examples) {
+    try {
+      const parsed = JSON.parse(schema.examples)
+      return Array.isArray(parsed) ? parsed : [parsed]
+    } catch {
+      // ignore
+    }
+  }
+  return []
+}
+
+export const doDeleteExample = (schema, example, index) => {
+  $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [example.summary])).then(() => {
+    const newExamples = cloneDeep(getParsedExamples(schema))
+    newExamples.splice(index, 1)
+    updateExamples({ id: schema.id, examples: JSON.stringify(newExamples) }).then(res => {
+      if (res.success) {
+        $coreSuccess($i18nBundle('common.msg.commonDeleteSuccess'))
+        schema.examples = JSON.stringify(newExamples)
+      }
+    })
+  }).catch(() => {})
 }
 
 export const generateFormSample = (schemaBody) => {

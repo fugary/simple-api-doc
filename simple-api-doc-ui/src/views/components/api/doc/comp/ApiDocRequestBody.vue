@@ -2,13 +2,14 @@
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
 import { calcShowMergeAllOf, calcDetailPreferenceId } from '@/services/api/ApiFolderService'
+import { showGenerateSchemaSample, getParsedExamples, doDeleteExample } from '@/services/api/ApiCommonService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
-import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
 import { MdPreview } from 'md-editor-v3'
 import { toEditComponent } from '@/utils/DynamicUtils'
 import { newDocInfoDetail } from '@/services/api/ApiDocEditService'
+import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 
-defineProps({
+const props = defineProps({
   theme: {
     type: String,
     default: 'dark'
@@ -81,11 +82,20 @@ const toEditRequestSchema = (requestsSchema) => {
             >
               {{ requestsSchema.contentType }}
             </el-text>
+            <api-data-example
+              v-if="getParsedExamples(requestsSchema).length"
+              :examples="getParsedExamples(requestsSchema)"
+              :read-only="!editable"
+              @select-example="showGenerateSchemaSample(requestsSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: $event })"
+              @edit-example="(example) => showGenerateSchemaSample(requestsSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: example })"
+              @delete-example="(example, idx) => doDeleteExample(requestsSchema, example, idx)"
+            />
             <el-link
               v-if="requestsSchema.schemaContent"
+              v-common-tooltip="$t('common.label.generateRequestData')"
               class="margin-left1"
               type="primary"
-              @click="showGenerateSchemaSample(requestsSchema, componentMap, {theme:monacoTheme, preferenceId})"
+              @click="showGenerateSchemaSample(requestsSchema, componentMap, {theme:monacoTheme, preferenceId, forceGenerate: true})"
             >
               <common-icon
                 :size="18"

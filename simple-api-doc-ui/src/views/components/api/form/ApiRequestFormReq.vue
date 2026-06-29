@@ -20,7 +20,7 @@ import {
 } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
-import { getSingleSelectOptions, $coreConfirm, $corePrompt, $coreSuccess, $coreWarning } from '@/utils'
+import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString, isArray, cloneDeep } from 'lodash-es'
 import {
@@ -274,14 +274,6 @@ const saveAsExample = () => {
   }).catch(() => {})
 }
 
-const deleteExample = (example, index) => {
-  $coreConfirm($i18nBundle('common.msg.commonDeleteConfirm', [example.summary])).then(() => {
-    const newExamples = cloneDeep(props.examples || [])
-    newExamples.splice(index, 1)
-    doSaveExamples(newExamples)
-  }).catch(() => {})
-}
-
 const resetRequestForm = () => {
   emit('resetRequestForm')
   setTimeout(() => {
@@ -455,6 +447,12 @@ const { monacoTheme } = useShareDocTheme()
                 icon="ContentPasteSearchFilled"
               />
             </el-link>
+            <api-data-example
+              v-if="examples.length"
+              :examples="examples"
+              :read-only="true"
+              @select-example="selectExample"
+            />
             <template v-if="supportedGenerates?.length">
               <api-generate-sample
                 v-if="supportedGenerates.length>1"
@@ -476,13 +474,7 @@ const { monacoTheme } = useShareDocTheme()
                 />
               </el-link>
             </template>
-            <api-data-example
-              v-if="examples.length"
-              :examples="examples"
-              :read-only="isShare"
-              @select-example="selectExample"
-              @delete-example="deleteExample"
-            />
+
             <el-link
               v-if="!isShare"
               v-common-tooltip="$t('api.label.saveAsExample')"

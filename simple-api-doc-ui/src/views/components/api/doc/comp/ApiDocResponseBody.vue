@@ -2,13 +2,15 @@
 import { computed } from 'vue'
 import ApiDocSchemaTree from '@/views/components/api/doc/comp/ApiDocSchemaTree.vue'
 import { calcShowMergeAllOf, calcDetailPreferenceId } from '@/services/api/ApiFolderService'
-import { showGenerateSchemaSample } from '@/services/api/ApiCommonService'
+import { showGenerateSchemaSample, getParsedExamples, doDeleteExample } from '@/services/api/ApiCommonService'
 import { calcComponentMap } from '@/services/api/ApiDocPreviewService'
 import { MdPreview } from 'md-editor-v3'
 import { toEditComponent } from '@/utils/DynamicUtils'
 import { newDocInfoDetail } from '@/services/api/ApiDocEditService'
+import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
+import { $i18nKey } from '@/messages'
 
-defineProps({
+const props = defineProps({
   theme: {
     type: String,
     default: 'dark'
@@ -104,11 +106,20 @@ const toEditResponseSchema = (responseSchema) => {
             >
               Content Type:
               <el-text>{{ responseSchema.contentType }}</el-text>
+              <api-data-example
+                v-if="getParsedExamples(responseSchema).length"
+                :examples="getParsedExamples(responseSchema)"
+                :read-only="!editable"
+                @select-example="showGenerateSchemaSample(responseSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: $event })"
+                @edit-example="(example) => showGenerateSchemaSample(responseSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: example })"
+                @delete-example="(example, idx) => doDeleteExample(responseSchema, example, idx)"
+              />
               <el-link
                 v-if="responseSchema.schemaContent"
+                v-common-tooltip="$i18nKey('common.label.commonGenerate', 'api.label.responseBody')"
                 class="margin-left1"
                 type="primary"
-                @click="showGenerateSchemaSample(responseSchema, componentMap, {theme:monacoTheme, preferenceId})"
+                @click="showGenerateSchemaSample(responseSchema, componentMap, {theme:monacoTheme, preferenceId, forceGenerate: true})"
               >
                 <common-icon
                   :size="18"
