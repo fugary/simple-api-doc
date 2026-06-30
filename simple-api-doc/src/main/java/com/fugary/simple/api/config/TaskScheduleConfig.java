@@ -6,7 +6,7 @@ import com.fugary.simple.api.entity.api.AiCache;
 import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
-import com.fugary.simple.api.service.AiService;
+import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.tasks.GenericCronTask;

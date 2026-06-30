@@ -2,7 +2,7 @@
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { formatDate, $coreConfirm } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
-import AiCacheApi from '@/api/AiCacheApi'
+import { AiCacheApi } from '@/api/AiCacheApi'
 import { showCodeWindow, showMarkdownWindow } from '@/utils/DynamicUtils'
 import { $i18nBundle } from '@/messages'
 import { ElText, ElTag, ElMessage } from 'element-plus'

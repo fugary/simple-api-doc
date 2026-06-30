@@ -1,4 +1,4 @@
-package com.fugary.simple.api.service.impl;
+package com.fugary.simple.api.service.ai.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -7,7 +7,7 @@ import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.AiCache;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
-import com.fugary.simple.api.service.AiService;
+import com.fugary.simple.api.service.ai.AiService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;

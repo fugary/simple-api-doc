@@ -22,7 +22,7 @@ import { APP_VERSION } from '@/config'
 import { ref, h, computed } from 'vue'
 import { defineTableButtons } from '@/components/utils'
 import { showCodeWindow, showGenerateSampleWindow } from '@/utils/DynamicUtils'
-import { aiGenerateSample } from '@/api/AiApi'
+import { aiGenerateSample } from '@/api/AiCacheApi'
 import { $i18nMsg, $i18nBundle, $i18nKey } from '@/messages'
 
 import { updateExamples } from '@/api/ApiProjectInfoDetailApi'

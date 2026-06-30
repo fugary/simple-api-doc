@@ -1,4 +1,4 @@
-package com.fugary.simple.api.service;
+package com.fugary.simple.api.service.ai;
 
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
 

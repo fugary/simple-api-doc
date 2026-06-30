@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { getAiStatus } from '@/api/AiApi'
+import { getAiStatus } from '@/api/AiCacheApi'
 
 const showDialog = ref(false)
 const shareConfigStore = useShareConfigStore()

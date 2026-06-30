@@ -3,7 +3,7 @@ package com.fugary.simple.api.web.controllers;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
-import com.fugary.simple.api.service.AiService;
+import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
 import com.fugary.simple.api.web.vo.SimpleResult;
