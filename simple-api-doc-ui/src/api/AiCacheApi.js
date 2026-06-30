@@ -6,7 +6,7 @@ const getAiConfig = (config = {}) => {
   console.log('===============================config', config)
   const { preferenceId, ...restConfig } = config
   const isShare = preferenceId && useShareConfigStore().getShareToken(preferenceId)
-  const baseUrl = isShare ? '/shares/ai' : '/api/ai'
+  const baseUrl = isShare ? '/shares/ai' : '/admin/ai'
   const finalConfig = isShare ? Object.assign(getShareConfig(preferenceId), restConfig) : restConfig
   return { baseUrl, finalConfig }
 }

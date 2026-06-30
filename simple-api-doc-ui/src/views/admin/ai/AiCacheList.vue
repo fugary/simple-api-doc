@@ -92,11 +92,11 @@ const showCacheDetail = item => {
   if (item.prompt) {
     detailStr += `### ${$i18nBundle('api.label.aiCachePrompt')}\n\`\`\`\n${item.prompt}\n\`\`\`\n\n`
   }
-  if (item.cacheValue) {
-    detailStr += `### ${$i18nBundle('api.label.aiCacheValue')}\n\`\`\`json\n${item.cacheValue}\n\`\`\`\n\n`
-  }
   if (item.rawResponse) {
     detailStr += `### ${$i18nBundle('api.label.aiCacheRawResponse')}\n\`\`\`json\n${item.rawResponse}\n\`\`\`\n\n`
+  }
+  if (item.cacheValue) {
+    detailStr += `### ${$i18nBundle('api.label.aiCacheValue')}\n\`\`\`json\n${item.cacheValue}\n\`\`\`\n\n`
   }
   if (item.errorMessage) {
     detailStr += `### ${$i18nBundle('api.label.aiCacheErrorMessage')}\n\`\`\`\n${item.errorMessage}\n\`\`\`\n\n`

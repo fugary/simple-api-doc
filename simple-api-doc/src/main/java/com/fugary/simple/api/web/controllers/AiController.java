@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  * AI 相关接口
  */
 @RestController
-@RequestMapping({"/api/ai", "/shares/ai"})
+@RequestMapping({"/admin/ai", "/shares/ai"})
 public class AiController {
 
     @Autowired

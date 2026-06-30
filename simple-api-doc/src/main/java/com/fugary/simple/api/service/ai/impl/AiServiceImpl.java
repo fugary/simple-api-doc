@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.entity.api.AiCache;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
+import com.fugary.simple.api.mapper.api.ApiProjectShareMapper;
 import com.fugary.simple.api.service.ai.AiService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -23,10 +25,8 @@ import org.springframework.web.client.RestTemplate;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +43,9 @@ public class AiServiceImpl implements AiService {
 
     @Autowired
     private AiCacheMapper aiCacheMapper;
+
+    @Autowired
+    private ApiProjectShareMapper apiProjectShareMapper;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -99,11 +102,23 @@ public class AiServiceImpl implements AiService {
             aiCache.setStatus(0);
             aiCache.setCacheValue("");
             aiCache.setModelName(aiConfigProperties.getModel());
-            aiCache.setCreatedAt(new java.util.Date());
+            aiCache.setCreatedAt(new Date());
             aiCache.setPrompt(systemPrompt + "\n" + schemaContent);
             aiCache.setProjectId(projectId);
             aiCache.setDocId(docId);
-            aiCache.setUserName(SecurityUtils.getLoginUserName());
+            String userName = SecurityUtils.getLoginUserName();
+            if (StringUtils.isBlank(userName)) {
+                String shareId = SecurityUtils.getLoginShareId();
+                if (StringUtils.isNotBlank(shareId)) {
+                    ApiProjectShare share = apiProjectShareMapper.selectOne(Wrappers.<ApiProjectShare>lambdaQuery().eq(ApiProjectShare::getShareId, shareId));
+                    if (share != null && StringUtils.isNotBlank(share.getCreator())) {
+                        userName = share.getCreator();
+                    } else {
+                        userName = shareId;
+                    }
+                }
+            }
+            aiCache.setUserName(userName);
             aiCache.setClientIp(HttpRequestUtils.getClientIp());
             aiCache.setCacheType("mock_data");
             aiCacheMapper.insert(aiCache);
