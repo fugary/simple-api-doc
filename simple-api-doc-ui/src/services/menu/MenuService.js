@@ -63,16 +63,20 @@ export const loadAndParseMenus = async () => {
    */
   // const menus = await $httpPost('/api/menus', param, config).then(data => data.resultData?.menuList || [])
   const loginConfigStore = useLoginConfigStore()
-  const menus = cloneDeep(ALL_MENUS).filter(menu => {
+  const allMenus = cloneDeep(ALL_MENUS)
+  const menus = []
+  for (const menu of allMenus) {
     let checkResult = true
     if (menu.dbConsole) {
       checkResult = loginConfigStore.consoleEnabled
     }
     if (checkResult && isFunction(menu.checkEnabled)) {
-      checkResult = menu.checkEnabled()
+      checkResult = await menu.checkEnabled()
     }
-    return checkResult
-  })
+    if (checkResult) {
+      menus.push(menu)
+    }
+  }
   return processMenus(menus)
 }
 /**

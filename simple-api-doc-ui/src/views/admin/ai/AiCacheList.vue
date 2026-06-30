@@ -41,10 +41,8 @@ onActivated(initLoadOnce)
 
 const columns = computed(() => {
   return [{
-    labelKey: 'api.label.userName',
-    label: '操作用户',
-    prop: 'userName',
-    enabled: isAdminUser()
+    labelKey: 'common.label.user',
+    prop: 'userName'
   }, {
     labelKey: 'api.label.project',
     prop: 'projectId',
@@ -78,7 +76,7 @@ const columns = computed(() => {
     property: 'createdAt',
     dateFormat: 'YYYY-MM-DD HH:mm:ss'
   }, {
-    label: '完成时间',
+    labelKey: 'common.label.modifyDate',
     property: 'updatedAt',
     dateFormat: 'YYYY-MM-DD HH:mm:ss'
   }, {

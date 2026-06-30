@@ -3,6 +3,7 @@ import { showCodeWindow } from '@/utils/DynamicUtils'
 import { ref } from 'vue'
 import { $i18nBundle } from '@/messages'
 import { getPathUrl, isAdminUser, joinPath } from '@/utils'
+import { getAiStatus } from '@/api/AiCacheApi'
 
 const dbUrl = getPathUrl(joinPath(BASE_URL, '/h2-console'), true)
 const editorContent = ref('')
@@ -84,7 +85,14 @@ export const ALL_MENUS = [
     nameCn: 'AI缓存管理',
     nameEn: 'AI Cache',
     menuUrl: '/admin/ai/caches',
-    checkEnabled: isAdminUser
+    checkEnabled: async () => {
+      try {
+        const res = await getAiStatus()
+        return res.success && res.resultData
+      } catch {
+        return false
+      }
+    }
   },
   {
     id: 54,
