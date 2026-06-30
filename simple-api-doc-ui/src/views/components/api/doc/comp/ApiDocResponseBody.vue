@@ -110,8 +110,8 @@ const toEditResponseSchema = (responseSchema) => {
                 v-if="getParsedExamples(responseSchema).length"
                 :examples="getParsedExamples(responseSchema)"
                 :read-only="!editable"
-                @select-example="showGenerateSchemaSample(responseSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: $event })"
-                @edit-example="(example) => showGenerateSchemaSample(responseSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: example })"
+                @select-example="showGenerateSchemaSample(responseSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: $event, isShare: !editable })"
+                @edit-example="(example) => showGenerateSchemaSample(responseSchema, componentMap, { theme: props.monacoTheme, preferenceId, selectedExample: example, isShare: !editable })"
                 @delete-example="(example, idx) => doDeleteExample(responseSchema, example, idx)"
               />
               <el-link
@@ -119,7 +119,7 @@ const toEditResponseSchema = (responseSchema) => {
                 v-common-tooltip="$i18nKey('common.label.commonGenerate', 'api.label.responseBody')"
                 class="margin-left1"
                 type="primary"
-                @click="showGenerateSchemaSample(responseSchema, componentMap, {theme:monacoTheme, preferenceId, forceGenerate: true})"
+                @click="showGenerateSchemaSample(responseSchema, componentMap, {theme:monacoTheme, preferenceId, forceGenerate: true, isShare: !editable})"
               >
                 <common-icon
                   :size="18"
