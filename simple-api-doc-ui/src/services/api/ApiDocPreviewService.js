@@ -184,6 +184,8 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   // const requestPath = `/mock/${groupItem.groupPath}${requestItem?.requestPath}`
   const componentMap = calcComponentMap(projectInfoDetail.componentSchemas)
   const target = {
+    projectId: apiDocDetail?.projectId,
+    docId: apiDocDetail?.id,
     preferenceId: calcDetailPreferenceId(apiDocDetail),
     pathParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'path'),
     requestParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap),

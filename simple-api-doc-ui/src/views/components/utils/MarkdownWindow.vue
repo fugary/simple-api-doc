@@ -1,6 +1,7 @@
 <script setup>
-import { MdEditor } from 'md-editor-v3'
+import { MdEditor, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
+import 'md-editor-v3/lib/preview.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { computed, ref } from 'vue'
 import { uploadFiles } from '@/api/ApiProjectApi'
@@ -44,7 +45,15 @@ defineExpose({
     :close-on-click-modal="false"
     :ok-label="$t('common.label.close')"
   >
+    <md-preview
+      v-if="contentConfig.previewOnly"
+      v-model="vModel"
+      :style="{height: editorHeight, overflow: 'auto'}"
+      :theme="theme"
+      class="markdown-doc-viewer"
+    />
     <md-editor
+      v-else
       v-model="vModel"
       :style="{height: editorHeight}"
       :theme="theme"

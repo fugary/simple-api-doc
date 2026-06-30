@@ -75,9 +75,11 @@ const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = sha
   defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName',
   showMergeAllOf: true,
   debugInWindow: false,
+  isShare: !!props.shareDoc?.shareId,
   preferenceId
 })
 sharePreference.preferenceId = preferenceId
+sharePreference.isShare = !!props.shareDoc?.shareId
 
 const treeNodes = ref([])
 

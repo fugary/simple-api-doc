@@ -162,7 +162,10 @@ const injectFakerKeywords = (node) => {
   })
 }
 
-export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
+export const generateSchemaSample = async (schemaBody, type, config) => {
+  const preferenceId = config?.preferenceId
+  const projectId = config?.projectId
+  const docId = config?.docId
   return showGenerateSampleWindow(schemaBody, type, preferenceId).then(async (result) => {
     const { mode, useExample, useDescription } = result
     let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
@@ -201,7 +204,7 @@ export const generateSchemaSample = async (schemaBody, type, preferenceId) => {
           schema: compressNode(schema),
           components: { schemas: components }
         })
-        const res = await aiGenerateSample({ schemaContent: payload }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
+        const res = await aiGenerateSample({ schemaContent: payload, projectId, docId }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
         if (res && res.code === 202) {
           ElMessage.warning(res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later'))
           json = { message: res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later') }
@@ -277,12 +280,16 @@ export const showGenerateSchemaSample = async (requestsSchema, componentMap, con
     const generateSchema = processSchemas(requestsSchema, componentMap, true)
     console.log('===================generateSchema', generateSchema)
     if (generateSchema[0]?.schema) {
-      sampleStr = await generateSchemaSample(generateSchema[0].schema, requestsSchema.contentType, config?.preferenceId)
+      sampleStr = await generateSchemaSample(generateSchema[0].schema, requestsSchema.contentType, {
+        preferenceId: config?.preferenceId,
+        projectId: requestsSchema.projectId,
+        docId: requestsSchema.docId || requestsSchema.id
+      })
     }
   }
   if (sampleStr) {
     const windowConfig = { readOnly: false, viewAsTable: true, ...config }
-    if (!window.location.href.includes('/share') && requestsSchema.id) {
+    if (!config?.isShare && requestsSchema.id) {
       const currentContent = { value: sampleStr }
       windowConfig.change = (text) => { currentContent.value = text }
       windowConfig.buttons = [{

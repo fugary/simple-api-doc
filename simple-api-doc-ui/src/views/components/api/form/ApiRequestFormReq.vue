@@ -20,6 +20,7 @@ import {
 } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString, isArray, cloneDeep } from 'lodash-es'
@@ -177,7 +178,11 @@ const generateSample = async (schema) => {
     paramTarget.value[languageRef.value] = bodyFormOptions
     console.log('================================lang', languageRef.value, bodyFormOptions, paramTarget.value)
   } else {
-    contentRef.value = await generateSchemaSample(schema.schema, schema.type, paramTarget.value.preferenceId)
+    contentRef.value = await generateSchemaSample(schema.schema, schema.type, {
+      preferenceId: paramTarget.value.preferenceId,
+      projectId: paramTarget.value.projectId,
+      docId: paramTarget.value.docId
+    })
     setTimeout(() => checkEditorLang())
   }
 }
@@ -224,7 +229,9 @@ const viewSchemaBody = () => {
 
 const supportedGenerates = computed(() => generateSampleCheckResults(props.schemaBody))
 
-const isShare = window.location.href.includes('/share')
+const isShare = computed(() => {
+  return !!useShareConfigStore().sharePreferenceView[paramTarget.value?.preferenceId]?.isShare
+})
 
 const emit = defineEmits(['resetRequestForm', 'updateExamples'])
 

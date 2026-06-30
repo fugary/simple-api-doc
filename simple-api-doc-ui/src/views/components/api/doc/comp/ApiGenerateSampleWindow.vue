@@ -57,7 +57,7 @@ const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
       ...shareConfigStore.sharePreferenceView[preferenceId]?.apiGenerateSampleConfig
     })
   }
-  const isShare = window.location.href.includes('/share')
+  const isShare = !!shareConfigStore.sharePreferenceView[preferenceId]?.isShare
   if (isShare) {
     formOptions[0].children = formOptions[0].children.filter(item => item.value !== 'ai')
   }

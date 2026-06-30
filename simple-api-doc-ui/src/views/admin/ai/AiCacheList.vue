@@ -3,7 +3,7 @@ import { computed, onActivated, onMounted, ref } from 'vue'
 import { formatDate, $coreConfirm } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import AiCacheApi from '@/api/AiCacheApi'
-import { showCodeWindow } from '@/utils/DynamicUtils'
+import { showCodeWindow, showMarkdownWindow } from '@/utils/DynamicUtils'
 import { $i18nBundle } from '@/messages'
 import { ElText, ElTag, ElMessage } from 'element-plus'
 import { useDefaultPage } from '@/config'
@@ -34,10 +34,24 @@ const columns = computed(() => {
   return [{
     labelKey: 'api.label.aiCacheKey',
     prop: 'cacheKey',
-    minWidth: '200px'
+    minWidth: '150px',
+    enabled: false
   }, {
     labelKey: 'api.label.aiCacheModelName',
+    minWidth: '150px',
     prop: 'modelName'
+  }, {
+    labelKey: 'api.label.projectId',
+    label: '项目ID',
+    prop: 'projectId'
+  }, {
+    labelKey: 'api.label.userName',
+    label: '操作用户',
+    prop: 'userName'
+  }, {
+    labelKey: 'api.label.totalTokens',
+    label: 'Tokens',
+    prop: 'totalTokens'
   }, {
     labelKey: 'api.label.aiCacheStatus',
     formatter (data) {
@@ -56,6 +70,10 @@ const columns = computed(() => {
     property: 'createdAt',
     dateFormat: 'YYYY-MM-DD HH:mm:ss'
   }, {
+    label: '完成时间',
+    property: 'updatedAt',
+    dateFormat: 'YYYY-MM-DD HH:mm:ss'
+  }, {
     labelKey: 'api.label.aiCacheValue',
     minWidth: '150px',
     formatter (data) {
@@ -70,8 +88,23 @@ const columns = computed(() => {
 })
 
 const showCacheDetail = item => {
-  showCodeWindow(item.cacheValue || JSON.stringify(item), {
-    title: item.cacheKey
+  let detailStr = ''
+  if (item.prompt) {
+    detailStr += `### ${$i18nBundle('api.label.aiCachePrompt')}\n\`\`\`\n${item.prompt}\n\`\`\`\n\n`
+  }
+  if (item.cacheValue) {
+    detailStr += `### ${$i18nBundle('api.label.aiCacheValue')}\n\`\`\`json\n${item.cacheValue}\n\`\`\`\n\n`
+  }
+  if (item.rawResponse) {
+    detailStr += `### ${$i18nBundle('api.label.aiCacheRawResponse')}\n\`\`\`json\n${item.rawResponse}\n\`\`\`\n\n`
+  }
+  if (item.errorMessage) {
+    detailStr += `### ${$i18nBundle('api.label.aiCacheErrorMessage')}\n\`\`\`\n${item.errorMessage}\n\`\`\`\n\n`
+  }
+  showMarkdownWindow({
+    content: detailStr,
+    title: $i18nBundle('common.label.info'),
+    previewOnly: true
   })
 }
 
@@ -99,6 +132,12 @@ const searchFormOptions = computed(() => {
   return [{
     labelKey: 'api.label.aiCacheModelName',
     prop: 'modelName'
+  }, {
+    label: '项目ID',
+    prop: 'projectId'
+  }, {
+    label: '操作用户',
+    prop: 'userName'
   }, {
     labelKey: 'api.label.aiCacheStatus',
     prop: 'status',
