@@ -34,4 +34,14 @@ public class AiCacheQueryVo extends SimpleQueryVo {
      */
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date endDate;
+
+    /**
+     * 项目ID
+     */
+    private Integer projectId;
+
+    /**
+     * 操作用户
+     */
+    private String userName;
 }

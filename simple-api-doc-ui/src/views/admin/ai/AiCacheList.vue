@@ -1,12 +1,14 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted, ref } from 'vue'
-import { formatDate, $coreConfirm } from '@/utils'
+import { formatDate, $coreConfirm, isAdminUser, checkShowColumn } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
+import { useAllUsers } from '@/api/ApiUserApi'
 import { AiCacheApi } from '@/api/AiCacheApi'
 import { showCodeWindow, showMarkdownWindow } from '@/utils/DynamicUtils'
 import { $i18nBundle } from '@/messages'
 import { ElText, ElTag, ElMessage } from 'element-plus'
 import { useDefaultPage } from '@/config'
+import { useSelectProjects } from '@/api/ApiProjectApi'
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -22,7 +24,14 @@ const dateParam = ref({
   createDates: []
 })
 
+const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
+const { projectOptions, loadProjectsAndRefreshOptions } = useSelectProjects(searchParam)
+
 const { initLoadOnce } = useInitLoadOnce(async () => {
+  if (isAdminUser()) {
+    await loadUsersAndRefreshOptions(false)
+  }
+  await loadProjectsAndRefreshOptions()
   await loadAiCaches()
 })
 
@@ -32,22 +41,21 @@ onActivated(initLoadOnce)
 
 const columns = computed(() => {
   return [{
-    labelKey: 'api.label.aiCacheKey',
-    prop: 'cacheKey',
-    minWidth: '150px',
-    enabled: false
+    labelKey: 'api.label.userName',
+    label: '操作用户',
+    prop: 'userName',
+    enabled: isAdminUser()
+  }, {
+    labelKey: 'api.label.project',
+    prop: 'projectId',
+    enabled: checkShowColumn(tableData.value, 'projectId'),
+    formatter (data) {
+      return projectOptions.value.find(project => `${project.value}` === `${data.projectId}`)?.label || data.projectId
+    }
   }, {
     labelKey: 'api.label.aiCacheModelName',
     minWidth: '150px',
     prop: 'modelName'
-  }, {
-    labelKey: 'api.label.projectId',
-    label: '项目ID',
-    prop: 'projectId'
-  }, {
-    labelKey: 'api.label.userName',
-    label: '操作用户',
-    prop: 'userName'
   }, {
     labelKey: 'api.label.totalTokens',
     label: 'Tokens',
@@ -130,14 +138,26 @@ const buttons = computed(() => {
 // ************搜索框**************//
 const searchFormOptions = computed(() => {
   return [{
+    labelKey: 'common.label.user',
+    prop: 'userName',
+    type: 'select',
+    enabled: isAdminUser(),
+    children: userOptions.value,
+    change () {
+      loadAiCaches()
+    }
+  }, {
+    labelKey: 'api.label.project',
+    prop: 'projectId',
+    type: 'select',
+    enabled: !!projectOptions.value.length,
+    children: projectOptions.value,
+    change () {
+      loadAiCaches()
+    }
+  }, {
     labelKey: 'api.label.aiCacheModelName',
     prop: 'modelName'
-  }, {
-    label: '项目ID',
-    prop: 'projectId'
-  }, {
-    label: '操作用户',
-    prop: 'userName'
   }, {
     labelKey: 'api.label.aiCacheStatus',
     prop: 'status',
