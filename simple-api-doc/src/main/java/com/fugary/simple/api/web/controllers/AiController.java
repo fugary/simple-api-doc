@@ -5,12 +5,11 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.service.AiService;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * AI 相关接口
@@ -32,13 +31,13 @@ public class AiController {
     }
 
     @PostMapping("/generate-sample")
-    public SimpleResult<String> generateSample(@RequestBody Map<String, String> params) {
-        String schemaContent = params.get("schemaContent");
+    public SimpleResult<String> generateSample(@RequestBody AiGenerateSampleReq req) {
+        String schemaContent = req.getSchemaContent();
         if (StringUtils.isBlank(schemaContent)) {
             return SimpleResultUtils.<String>createSimpleResult(500).toBuilder().message("Schema内容不能为空").build();
         }
         try {
-            String sample = aiService.generateSampleBySchema(schemaContent);
+            String sample = aiService.generateSampleBySchema(req);
             return SimpleResultUtils.createSimpleResult(sample);
         } catch (SimpleRuntimeException e) {
             return SimpleResultUtils.<String>createSimpleResult(e.getCode() != null ? e.getCode() : 500).toBuilder().message(e.getMessage()).build();

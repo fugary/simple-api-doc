@@ -20,7 +20,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
+import com.fugary.simple.api.utils.security.SecurityUtils;
+import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
+import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,10 +55,13 @@ public class AiServiceImpl implements AiService {
     private static final Pattern MARKDOWN_GENERIC_PATTERN = Pattern.compile("```\\s*([\\s\\S]*?)\\s*```");
 
     @Override
-    public String generateSampleBySchema(String schemaContent) {
-        if (!aiConfigProperties.isEnabled() || StringUtils.isBlank(aiConfigProperties.getApiKey())) {
+    public String generateSampleBySchema(AiGenerateSampleReq req) {
+        if (!isEnabled()) {
             throw new RuntimeException("AI 生成功能未开启或未配置 API Key");
         }
+        String schemaContent = req.getSchemaContent();
+        String projectId = req.getProjectId();
+        String docId = req.getDocId();
 
         String systemPrompt = "你是一个专门用于生成模拟数据的接口开发助手。请根据用户提供的 OpenAPI/JSON Schema 结构生成合理的示例 JSON 数据。规则：\n" +
                 "1. 必须只返回合法的纯 JSON 数据。\n" +
@@ -95,6 +100,12 @@ public class AiServiceImpl implements AiService {
             aiCache.setCacheValue("");
             aiCache.setModelName(aiConfigProperties.getModel());
             aiCache.setCreatedAt(new java.util.Date());
+            aiCache.setPrompt(systemPrompt + "\n" + schemaContent);
+            aiCache.setProjectId(projectId);
+            aiCache.setDocId(docId);
+            aiCache.setUserName(SecurityUtils.getLoginUserName());
+            aiCache.setClientIp(HttpRequestUtils.getClientIp());
+            aiCache.setCacheType("mock_data");
             aiCacheMapper.insert(aiCache);
         } catch (SimpleRuntimeException e) {
             throw e;
@@ -136,7 +147,8 @@ public class AiServiceImpl implements AiService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
             ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                JsonNode root = objectMapper.readTree(response.getBody());
+                String rawResponse = response.getBody();
+                JsonNode root = objectMapper.readTree(rawResponse);
                 JsonNode choices = root.path("choices");
                 if (choices.isArray() && choices.size() > 0) {
                     JsonNode messageNode = choices.get(0).path("message").path("content");
@@ -144,10 +156,22 @@ public class AiServiceImpl implements AiService {
                         String generatedSample = cleanGeneratedContent(messageNode.asText());
                         if (StringUtils.isNotBlank(generatedSample)) {
                             try {
+                                JsonNode usageNode = root.path("usage");
+                                Integer promptTokens = null, completionTokens = null, totalTokens = null;
+                                if (!usageNode.isMissingNode()) {
+                                    promptTokens = usageNode.path("prompt_tokens").asInt();
+                                    completionTokens = usageNode.path("completion_tokens").asInt();
+                                    totalTokens = usageNode.path("total_tokens").asInt();
+                                }
                                 aiCacheMapper.update(null, com.baomidou.mybatisplus.core.toolkit.Wrappers.<AiCache>lambdaUpdate()
                                         .set(AiCache::getCacheValue, generatedSample)
                                         .set(AiCache::getStatus, 1)
                                         .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
+                                        .set(AiCache::getRawResponse, rawResponse)
+                                        .set(AiCache::getUpdatedAt, new java.util.Date())
+                                        .set(promptTokens != null, AiCache::getPromptTokens, promptTokens)
+                                        .set(completionTokens != null, AiCache::getCompletionTokens, completionTokens)
+                                        .set(totalTokens != null, AiCache::getTotalTokens, totalTokens)
                                         .eq(AiCache::getCacheKey, cacheKey));
                                 log.info("AI 样本生成成功，写入缓存, key: {}", cacheKey);
                             } catch (Exception cacheEx) {
@@ -167,9 +191,15 @@ public class AiServiceImpl implements AiService {
         }, taskExecutor).whenComplete((res, ex) -> {
             if (ex != null) {
                 try {
-                    aiCacheMapper.update(null, com.baomidou.mybatisplus.core.toolkit.Wrappers.<AiCache>lambdaUpdate()
+                    String errorMessage = ex.getMessage();
+                    if (errorMessage != null && errorMessage.length() > 1000) {
+                        errorMessage = errorMessage.substring(0, 1000);
+                    }
+                    aiCacheMapper.update(null, Wrappers.<AiCache>lambdaUpdate()
                             .set(AiCache::getStatus, 2)
                             .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
+                            .set(AiCache::getUpdatedAt, new java.util.Date())
+                            .set(AiCache::getErrorMessage, errorMessage)
                             .eq(AiCache::getCacheKey, cacheKey));
                 } catch (Exception ignore) {}
             }
