@@ -1,4 +1,4 @@
-package com.fugary.simple.api.service.ai.impl;
+package com.fugary.simple.api.service.impl.ai;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
