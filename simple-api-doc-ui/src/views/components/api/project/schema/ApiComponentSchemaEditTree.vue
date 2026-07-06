@@ -23,9 +23,16 @@ import {
 } from '@/consts/ApiConstants'
 import { useComponentSchemas } from '@/services/api/ApiDocEditService'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
-import { generateDescriptions } from '@/api/AiCacheApi'
+import { generateDescriptions, getAiStatus } from '@/api/AiCacheApi'
 import { defineFormOptions } from '@/components/utils'
 import { ElMessage } from 'element-plus'
+
+const aiEnabled = ref(false)
+getAiStatus().then(res => {
+  if (res && res.success) {
+    aiEnabled.value = !!res.resultData
+  }
+}).catch(console.error)
 
 const props = defineProps({
   rootName: {
@@ -532,7 +539,7 @@ defineEmits(['gotoComponent'])
               />
             </el-button>
             <el-button
-              v-if="data.id === '_root'"
+              v-if="data.id === '_root' && aiEnabled"
               v-common-tooltip="$t('api.msg.aiGenerateDesc')"
               class="margin-left1"
               type="primary"
