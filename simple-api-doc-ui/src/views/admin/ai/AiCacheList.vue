@@ -55,6 +55,14 @@ const columns = computed(() => {
     minWidth: '150px',
     prop: 'modelName'
   }, {
+    labelKey: 'api.label.aiCacheType',
+    prop: 'cacheType',
+    formatter (data) {
+      if (data.cacheType === 'mock_data') return $i18nBundle('api.label.aiCacheTypeMockData')
+      if (data.cacheType === 'generate_desc') return $i18nBundle('api.label.aiCacheTypeGenerateDesc')
+      return data.cacheType || ''
+    }
+  }, {
     labelKey: 'api.label.totalTokens',
     label: 'Tokens',
     prop: 'totalTokens'
@@ -156,6 +164,17 @@ const searchFormOptions = computed(() => {
   }, {
     labelKey: 'api.label.aiCacheModelName',
     prop: 'modelName'
+  }, {
+    labelKey: 'api.label.aiCacheType',
+    prop: 'cacheType',
+    type: 'select',
+    children: [
+      { labelKey: 'api.label.aiCacheTypeMockData', value: 'mock_data' },
+      { labelKey: 'api.label.aiCacheTypeGenerateDesc', value: 'generate_desc' }
+    ],
+    change () {
+      loadAiCaches()
+    }
   }, {
     labelKey: 'api.label.aiCacheStatus',
     prop: 'status',
