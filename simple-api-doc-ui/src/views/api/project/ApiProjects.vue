@@ -13,7 +13,7 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { useRoute } from 'vue-router'
-import { useWindowSize } from '@vueuse/core'
+import { useElementSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
 import ApiGroupAuthorityList from '@/views/components/api/project/ApiGroupAuthorityList.vue'
@@ -22,7 +22,8 @@ import ApiProjectGroupApi, { useSelectProjectGroups } from '@/api/ApiProjectGrou
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
 
-const { width } = useWindowSize()
+const containerRef = ref()
+const { width } = useElementSize(containerRef)
 
 const route = useRoute()
 const currentUserName = useCurrentUserName()
@@ -274,7 +275,7 @@ const saveProjectItem = (item) => {
 }
 
 const colSize = computed(() => {
-  return Math.floor(width.value / 420) || 1
+  return Math.floor(width.value / 350) || 1
 })
 const minWidth = '100px'
 
@@ -411,6 +412,7 @@ const pageAttrs = {
 
 <template>
   <el-container
+    ref="containerRef"
     class="flex-column"
   >
     <common-form
