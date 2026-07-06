@@ -1,11 +1,19 @@
 package com.fugary.simple.api.service.ai;
 
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
+import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 
 /**
  * AI 生成服务
  */
 public interface AiService {
+
+    /**
+     * 执行通用 AI 任务 (例如生成缺失描述、Mock数据等)
+     * @param req 通用请求参数
+     * @return AI 生成的 JSON 内容
+     */
+    String executeGenericTask(AiGenericTaskReq req);
 
     /**
      * 根据 JSON Schema 生成示例数据

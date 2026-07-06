@@ -25,6 +25,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
+import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -58,30 +59,25 @@ public class AiServiceImpl implements AiService {
     private static final Pattern MARKDOWN_GENERIC_PATTERN = Pattern.compile("```\\s*([\\s\\S]*?)\\s*```");
 
     @Override
-    public String generateSampleBySchema(AiGenerateSampleReq req) {
+    public String executeGenericTask(AiGenericTaskReq req) {
         if (!isEnabled()) {
             throw new RuntimeException("AI 生成功能未开启或未配置 API Key");
         }
-        String schemaContent = req.getSchemaContent();
+        String systemPrompt = req.getSystemPrompt();
+        String userMessageContent = req.getUserMessage();
+        String cacheType = req.getCacheType();
         String projectId = req.getProjectId();
         String docId = req.getDocId();
 
-        String systemPrompt = "你是一个专门用于生成模拟数据的接口开发助手。请根据用户提供的 OpenAPI/JSON Schema 结构生成合理的示例 JSON 数据。规则：\n" +
-                "1. 必须只返回合法的纯 JSON 数据。\n" +
-                "2. 不要包含任何多余的解释文字、代码块标记（如 ```json）。\n" +
-                "3. 根据 Schema 中的 type、description、example 或 format，生成逼真的模拟数据。\n" +
-                "4. 必须全面覆盖所有定义的属性（包括所有的嵌套对象和数组，以及 $ref 引用的组件），不能随意遗漏字段或简化数据结构，数组建议生成1-2条数据。\n" +
-                "5. 返回的结果必须是根据 `schema` 结构定义生成的实例数据对象。";
-
         String promptHash = DigestUtils.md5Hex(systemPrompt);
-        String rawKey = aiConfigProperties.getModel() + ":" + promptHash + ":" + schemaContent;
+        String rawKey = aiConfigProperties.getModel() + ":" + promptHash + ":" + userMessageContent;
         String cacheKey = DigestUtils.sha256Hex(rawKey);
 
         try {
             AiCache cache = aiCacheMapper.selectById(cacheKey);
             if (cache != null) {
                 if (cache.getStatus() != null && cache.getStatus() == 1 && StringUtils.isNotBlank(cache.getCacheValue())) {
-                    log.info("AI 样本生成命中缓存, key: {}", cacheKey);
+                    log.info("AI {} 命中缓存, key: {}", cacheType, cacheKey);
                     return cache.getCacheValue();
                 } else if (cache.getStatus() != null && cache.getStatus() == 0) {
                     throw new SimpleRuntimeException(202, "已加入请求队列，请稍后重试");
@@ -103,7 +99,7 @@ public class AiServiceImpl implements AiService {
             aiCache.setCacheValue("");
             aiCache.setModelName(aiConfigProperties.getModel());
             aiCache.setCreatedAt(new Date());
-            aiCache.setPrompt(systemPrompt + "\n" + schemaContent);
+            aiCache.setPrompt(systemPrompt + "\n" + userMessageContent);
             aiCache.setProjectId(projectId);
             aiCache.setDocId(docId);
             String userName = SecurityUtils.getLoginUserName();
@@ -120,7 +116,7 @@ public class AiServiceImpl implements AiService {
             }
             aiCache.setUserName(userName);
             aiCache.setClientIp(HttpRequestUtils.getClientIp());
-            aiCache.setCacheType("mock_data");
+            aiCache.setCacheType(cacheType);
             aiCacheMapper.insert(aiCache);
         } catch (SimpleRuntimeException e) {
             throw e;
@@ -146,15 +142,15 @@ public class AiServiceImpl implements AiService {
         requestBody.put("temperature", 0.3);
 
         List<Map<String, String>> messages = new ArrayList<>();
-        Map<String, String> systemMessage = new HashMap<>();
-        systemMessage.put("role", "system");
-        systemMessage.put("content", systemPrompt);
-        messages.add(systemMessage);
+        Map<String, String> systemMessageObj = new HashMap<>();
+        systemMessageObj.put("role", "system");
+        systemMessageObj.put("content", systemPrompt);
+        messages.add(systemMessageObj);
 
-        Map<String, String> userMessage = new HashMap<>();
-        userMessage.put("role", "user");
-        userMessage.put("content", schemaContent);
-        messages.add(userMessage);
+        Map<String, String> userMessageObj = new HashMap<>();
+        userMessageObj.put("role", "user");
+        userMessageObj.put("content", userMessageContent);
+        messages.add(userMessageObj);
 
         requestBody.put("messages", messages);
 
@@ -188,7 +184,7 @@ public class AiServiceImpl implements AiService {
                                         .set(completionTokens != null, AiCache::getCompletionTokens, completionTokens)
                                         .set(totalTokens != null, AiCache::getTotalTokens, totalTokens)
                                         .eq(AiCache::getCacheKey, cacheKey));
-                                log.info("AI 样本生成成功，写入缓存, key: {}", cacheKey);
+                                log.info("AI {} 成功，写入缓存, key: {}", cacheType, cacheKey);
                             } catch (Exception cacheEx) {
                                 log.error("写入 AI 缓存失败", cacheEx);
                             }
@@ -198,7 +194,7 @@ public class AiServiceImpl implements AiService {
                 }
             }
             log.error("AI 接口返回格式异常或调用失败: {}", response.getBody());
-            throw new RuntimeException("生成示例数据失败，AI 返回格式无法解析");
+            throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
         } catch (Exception e) {
             log.error("调用 AI 接口失败", e);
             throw new RuntimeException(e);
@@ -227,6 +223,25 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
         }
+    }
+
+    @Override
+    public String generateSampleBySchema(AiGenerateSampleReq req) {
+        String systemPrompt = "你是一个专门用于生成模拟数据的接口开发助手。请根据用户提供的 OpenAPI/JSON Schema 结构生成合理的示例 JSON 数据。规则：\n" +
+                "1. 必须只返回合法的纯 JSON 数据。\n" +
+                "2. 不要包含任何多余的解释文字、代码块标记（如 ```json）。\n" +
+                "3. 根据 Schema 中的 type、description、example 或 format，生成逼真的模拟数据。\n" +
+                "4. 必须全面覆盖所有定义的属性（包括所有的嵌套对象和数组，以及 $ref 引用的组件），不能随意遗漏字段或简化数据结构，数组建议生成1-2条数据。\n" +
+                "5. 返回的结果必须是根据 `schema` 结构定义生成的实例数据对象。";
+                
+        AiGenericTaskReq genericReq = new AiGenericTaskReq();
+        genericReq.setSystemPrompt(systemPrompt);
+        genericReq.setUserMessage(req.getSchemaContent());
+        genericReq.setCacheType("mock_data");
+        genericReq.setProjectId(req.getProjectId());
+        genericReq.setDocId(req.getDocId());
+        
+        return executeGenericTask(genericReq);
     }
 
     @Override
