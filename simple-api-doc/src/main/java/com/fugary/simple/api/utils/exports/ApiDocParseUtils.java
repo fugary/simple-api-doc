@@ -211,6 +211,16 @@ public class ApiDocParseUtils {
                             projectInfoDetailVo.getSchemaContent(), isV31);
                     projectInfoDetailVo.setSchemaContent(mergedSchemaContent);
                     projectInfoDetailVo.setLocked(existsInfoDetail.getLocked());
+                } else {
+                    String retainedSchemaContent = ApiSchemaContentUtils.retainComponentSchemaDescription(existsInfoDetail.getSchemaContent(),
+                            projectInfoDetailVo.getSchemaContent(), isV31);
+                    projectInfoDetailVo.setSchemaContent(retainedSchemaContent);
+                }
+                if (StringUtils.isNotBlank(existsInfoDetail.getDescription())) {
+                    if (StringUtils.isBlank(projectInfoDetailVo.getDescription()) || 
+                            existsInfoDetail.getDescription().length() > projectInfoDetailVo.getDescription().length()) {
+                        projectInfoDetailVo.setDescription(existsInfoDetail.getDescription());
+                    }
                 }
             }
             if (!isSameInfoDetail) {

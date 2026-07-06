@@ -47,6 +47,21 @@ public class ApiSchemaContentUtils {
     }
 
     /**
+     * 保留旧Schema中的描述信息（用于未锁定的模型覆盖时）
+     *
+     * @param savedComponentSchemaContent
+     * @param componentSchemaContent
+     * @param isV31
+     * @return
+     */
+    public static String retainComponentSchemaDescription(String savedComponentSchemaContent, String componentSchemaContent, boolean isV31) {
+        Schema<?> savedSchema = SchemaJsonUtils.fromJson(savedComponentSchemaContent, Schema.class, isV31);
+        Schema<?> newSchema = SchemaJsonUtils.fromJson(componentSchemaContent, Schema.class, isV31);
+        retainSchemaDescription(savedSchema, newSchema);
+        return SchemaJsonUtils.toJson(newSchema, isV31);
+    }
+
+    /**
      * 合并schema，优先长度长的数据
      *
      * @param savedSchema
@@ -102,6 +117,46 @@ public class ApiSchemaContentUtils {
 
         // externalDocs
         mergeExternalDocs(savedSchema.getExternalDocs(), newSchema.getExternalDocs(), savedSchema);
+    }
+
+    /**
+     * 仅保留/合并schema的描述相关字段（description, title, example, default），不合并属性结构
+     *
+     * @param savedSchema
+     * @param newSchema
+     */
+    public static void retainSchemaDescription(Schema<?> savedSchema, Schema<?> newSchema) {
+        if (savedSchema == null || newSchema == null) {
+            return;
+        }
+        // properties
+        if (savedSchema.getProperties() != null && newSchema.getProperties() != null) {
+            for (Map.Entry<String, Schema> entry : newSchema.getProperties().entrySet()) {
+                String propName = entry.getKey();
+                Schema<?> newPropSchema = entry.getValue();
+                Schema<?> savedPropSchema = (Schema<?>) savedSchema.getProperties().get(propName);
+
+                if (savedPropSchema != null) {
+                    mergeStringField(newPropSchema::getDescription, newPropSchema::setDescription, savedPropSchema.getDescription());
+                    mergeStringField(newPropSchema::getTitle, newPropSchema::setTitle, savedPropSchema.getTitle());
+                    if (newPropSchema.getExample() == null && savedPropSchema.getExample() != null) {
+                        newPropSchema.setExample(savedPropSchema.getExample());
+                    }
+                    if (newPropSchema.getDefault() == null && savedPropSchema.getDefault() != null) {
+                        newPropSchema.setDefault(savedPropSchema.getDefault());
+                    }
+                }
+            }
+        }
+        // 顶层字段
+        mergeStringField(newSchema::getDescription, newSchema::setDescription, savedSchema.getDescription());
+        mergeStringField(newSchema::getTitle, newSchema::setTitle, savedSchema.getTitle());
+        if (newSchema.getExample() == null && savedSchema.getExample() != null) {
+            newSchema.setExample(savedSchema.getExample());
+        }
+        if (newSchema.getDefault() == null && savedSchema.getDefault() != null) {
+            newSchema.setDefault(savedSchema.getDefault());
+        }
     }
 
     private static void mergeRequired(Schema<?> savedSchema, Schema<?> newSchema) {
