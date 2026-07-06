@@ -22,7 +22,10 @@ import {
   SCHEMA_SELECT_TYPES
 } from '@/consts/ApiConstants'
 import { useComponentSchemas } from '@/services/api/ApiDocEditService'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import { generateDescriptions } from '@/api/AiCacheApi'
 import { defineFormOptions } from '@/components/utils'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   rootName: {
@@ -51,6 +54,53 @@ const schemaModel = defineModel({
   type: [Object, Array],
   default: () => ({})
 })
+
+const aiDialogVisible = ref(false)
+const aiFormModel = ref({ mode: 'missing' })
+const aiFormOptions = defineFormOptions([
+  {
+    prop: 'mode',
+    type: 'radio-group',
+    labelWidth: '1px',
+    children: [
+      { labelKey: 'api.msg.aiGenerateDesc', value: 'missing' },
+      { labelKey: 'api.msg.aiGenerateAllDesc', value: 'all' }
+    ]
+  }
+])
+const doGenerateDescriptions = async () => {
+  const mode = aiFormModel.value.mode
+  if (mode === 'all') {
+    try { await $coreConfirm($i18nBundle('api.msg.aiGenerateConfirm')) } catch { return false }
+  }
+  try {
+    const res = await generateDescriptions({
+      schemaContent: JSON.stringify(schemaModel.value),
+      projectId: props.currentInfoDetail.projectId,
+      lang: useGlobalConfigStore().currentLocale
+    }, { loading: true, timeout: 60000 })
+    if (res?.success && res.resultData) {
+      const jsonStr = res.resultData.replace(/^[^{]*/, '').replace(/[^}]*$/, '')
+      let count = 0
+      for (let [path, desc] of Object.entries(JSON.parse(jsonStr))) {
+        if (typeof desc !== 'string') continue
+        path = path.replace(/\.description$/, '')
+        path = (!path.startsWith('properties.') && !path.includes('items.')) ? `properties.${path}` : path
+        const targetPath = `${path}.description`
+        if (get(schemaModel.value, path) !== undefined && (mode === 'all' || !get(schemaModel.value, targetPath))) {
+          set(schemaModel.value, targetPath, desc)
+          count++
+        }
+      }
+      if (count > 0) schemaModel.value = cloneDeep(schemaModel.value)
+      ElMessage.success($i18nBundle('api.msg.aiGenerateSuccess', [count]))
+      aiDialogVisible.value = false
+    }
+  } catch (e) {
+    console.error(e)
+  }
+  return false
+}
 
 const defaultExpandedKeys = ref(['_root'])
 const toggleExpandKey = (data, expand) => {
@@ -482,6 +532,20 @@ defineEmits(['gotoComponent'])
               />
             </el-button>
             <el-button
+              v-if="data.id === '_root'"
+              v-common-tooltip="$t('api.msg.aiGenerateDesc')"
+              class="margin-left1"
+              type="primary"
+              size="small"
+              round
+              @click.stop="aiDialogVisible = true; aiFormModel.mode = 'missing'"
+            >
+              <common-icon
+                icon="MagicStick"
+                :size="18"
+              />
+            </el-button>
+            <el-button
               v-if="checkGotoRef(node)"
               v-common-tooltip="$i18nBundle('common.label.commonGoto', [$ref2Schema(getData$ref(data))||$t('api.label.typeRef')])"
               type="success"
@@ -564,6 +628,18 @@ defineEmits(['gotoComponent'])
       </template>
     </el-tree>
   </el-container>
+  <common-window
+    v-model="aiDialogVisible"
+    :title="$t('api.msg.aiGenerateDesc')"
+    width="400px"
+    :ok-click="doGenerateDescriptions"
+  >
+    <common-form
+      :model="aiFormModel"
+      :options="aiFormOptions"
+      :show-buttons="false"
+    />
+  </common-window>
 </template>
 
 <style scoped>

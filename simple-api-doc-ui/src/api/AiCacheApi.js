@@ -22,3 +22,8 @@ export const getAiStatus = (config) => {
 }
 
 export const AiCacheApi = useResourceApi('/admin/ai/caches')
+
+export const generateDescriptions = (data, config) => {
+  const { baseUrl, finalConfig } = getAiConfig(config)
+  return $httpPost(`${baseUrl}/caches/generate-descriptions`, data, finalConfig)
+}

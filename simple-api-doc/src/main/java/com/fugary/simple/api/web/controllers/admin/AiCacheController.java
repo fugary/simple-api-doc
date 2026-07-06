@@ -12,11 +12,13 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.ai.AiCacheQueryVo;
+import com.fugary.simple.api.service.ai.AiService;
+import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -28,6 +30,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/ai/caches")
 public class AiCacheController {
+
+    @Autowired
+    private AiService aiService;
 
     @Autowired
     private AiCacheMapper aiCacheMapper;
@@ -72,5 +77,32 @@ public class AiCacheController {
             }
         }
         return SimpleResultUtils.createSimpleResult(aiCacheMapper.deleteById(id) > 0);
+    }
+
+    @PostMapping("/generate-descriptions")
+    public SimpleResult<String> generateDescriptions(@RequestBody Map<String, Object> payload) {
+        Object schemaObj = payload.get("schemaContent");
+        String schemaContent = schemaObj != null ? String.valueOf(schemaObj) : null;
+        Object projectIdObj = payload.get("projectId");
+        String projectId = projectIdObj != null ? String.valueOf(projectIdObj) : null;
+        String lang = (String) payload.get("lang");
+        String languageDesc = "zh-CN".equalsIgnoreCase(lang) ? "中文" : "英文";
+        String systemPrompt = "你是一个资深的 API 文档专家。基于提供的 JSON Schema 结构，推断字段的业务含义，生成准确的" + languageDesc + "描述。\n" +
+                "规则：\n" +
+                "1. 严格返回 JSON 对象格式。\n" +
+                "2. Key 为 JSON Schema 中的层级路径（如 properties.username），Value 为生成的描述。\n" +
+                "3. 不要包含任何多余的解释文字或 markdown 格式，只返回纯 JSON。";
+        AiGenericTaskReq genericReq = new AiGenericTaskReq();
+        genericReq.setSystemPrompt(systemPrompt);
+        genericReq.setUserMessage(schemaContent);
+        genericReq.setCacheType("generate_desc");
+        genericReq.setProjectId(projectId);
+        try {
+            String result = aiService.executeGenericTask(genericReq);
+            return SimpleResultUtils.createSimpleResult(result);
+        } catch (Exception e) {
+            log.error("生成描述失败", e);
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_500, e.getMessage());
+        }
     }
 }
