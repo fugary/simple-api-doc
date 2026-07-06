@@ -75,8 +75,31 @@ const aiFormOptions = defineFormOptions([
     ]
   }
 ])
+const checkNeedGenerate = (schema, mode) => {
+  let hasProps = false
+  let hasMissing = false
+  const walk = (s) => {
+    if (s?.properties) {
+      Object.keys(s.properties).filter(k => k !== '').forEach(k => {
+        hasProps = true
+        const p = s.properties[k]
+        if (!p?.description && (!p?.properties || !Object.keys(p.properties).some(c => c !== ''))) hasMissing = true
+        walk(p)
+      })
+    }
+    if (s?.items) walk(s.items)
+  }
+  walk(schema)
+  return hasProps && (mode === 'all' || hasMissing)
+}
+
 const doGenerateDescriptions = async () => {
   const mode = aiFormModel.value.mode
+  if (!checkNeedGenerate(schemaModel.value, mode)) {
+    ElMessage.warning($i18nBundle('api.msg.aiNoMissingDesc'))
+    aiDialogVisible.value = false
+    return false
+  }
   if (mode === 'all') {
     try { await $coreConfirm($i18nBundle('api.msg.aiGenerateConfirm')) } catch { return false }
   }
