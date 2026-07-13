@@ -10,6 +10,8 @@ import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.mapper.api.ApiProjectShareMapper;
 import com.fugary.simple.api.service.ai.AiService;
+import com.fugary.simple.api.service.ai.AiConfigService;
+import com.fugary.simple.api.entity.api.AiConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,6 +45,9 @@ public class AiServiceImpl implements AiService {
     private AiConfigProperties aiConfigProperties;
 
     @Autowired
+    private AiConfigService aiConfigService;
+
+    @Autowired
     private AiCacheMapper aiCacheMapper;
 
     @Autowired
@@ -60,7 +65,8 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public String executeGenericTask(AiGenericTaskReq req) {
-        if (!isEnabled()) {
+        AiConfig currentAiConfig = aiConfigService.getDefaultAiConfig();
+        if (currentAiConfig == null || StringUtils.isBlank(currentAiConfig.getApiKey())) {
             throw new RuntimeException("AI 生成功能未开启或未配置 API Key");
         }
         String systemPrompt = req.getSystemPrompt();
@@ -70,7 +76,7 @@ public class AiServiceImpl implements AiService {
         String docId = req.getDocId();
 
         String promptHash = DigestUtils.md5Hex(systemPrompt);
-        String rawKey = aiConfigProperties.getModel() + ":" + promptHash + ":" + userMessageContent;
+        String rawKey = currentAiConfig.getDefaultModel() + ":" + promptHash + ":" + userMessageContent;
         String cacheKey = DigestUtils.sha256Hex(rawKey);
 
         try {
@@ -97,7 +103,7 @@ public class AiServiceImpl implements AiService {
             aiCache.setCacheKey(cacheKey);
             aiCache.setStatus(0);
             aiCache.setCacheValue("");
-            aiCache.setModelName(aiConfigProperties.getModel());
+            aiCache.setModelName(currentAiConfig.getDefaultModel());
             aiCache.setCreatedAt(new Date());
             aiCache.setPrompt(systemPrompt + "\n" + userMessageContent);
             aiCache.setProjectId(projectId);
@@ -131,14 +137,14 @@ public class AiServiceImpl implements AiService {
         requestFactory.setReadTimeout(aiConfigProperties.getTimeout());
         restTemplate.setRequestFactory(requestFactory);
 
-        String url = aiConfigProperties.getBaseUrl().replaceAll("/+$", "") + "/chat/completions";
+        String url = currentAiConfig.getBaseUrl().replaceAll("/+$", "") + "/chat/completions";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(aiConfigProperties.getApiKey());
+        headers.setBearerAuth(currentAiConfig.getApiKey());
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", aiConfigProperties.getModel());
+        requestBody.put("model", currentAiConfig.getDefaultModel());
         requestBody.put("temperature", 0.3);
 
         List<Map<String, String>> messages = new ArrayList<>();
@@ -246,7 +252,11 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public boolean isEnabled() {
-        return aiConfigProperties.isEnabled() && StringUtils.isNotBlank(aiConfigProperties.getApiKey());
+        if (!aiConfigProperties.isEnabled()) {
+            return false;
+        }
+        AiConfig config = aiConfigService.getDefaultAiConfig();
+        return config != null && StringUtils.isNotBlank(config.getApiKey());
     }
 
     private String cleanGeneratedContent(String content) {

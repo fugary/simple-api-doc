@@ -79,6 +79,14 @@ export const ALL_MENUS = [
     nameEn: 'Log Management',
     menuUrl: '/admin/logs'
   }, {
+    id: 54,
+    parentId: 5,
+    iconCls: 'Setting',
+    nameCn: 'AI配置管理',
+    nameEn: 'AI Configs',
+    menuUrl: '/admin/ai/configs',
+    checkEnabled: isAdminUser
+  }, {
     id: 55,
     parentId: 5,
     iconCls: 'Cpu',
@@ -95,7 +103,7 @@ export const ALL_MENUS = [
     }
   },
   {
-    id: 54,
+    id: 56,
     parentId: 5,
     iconCls: 'Coin',
     nameCn: '数据库连接池',

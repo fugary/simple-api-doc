@@ -58,4 +58,12 @@ export default [{
     icon: 'Cpu',
     labelKey: 'api.label.aiCacheManagement'
   }
+}, {
+  path: `${BASE_PATH}/ai/configs`,
+  name: 'AiConfigs',
+  component: () => import('@/views/admin/ai/AiConfigList.vue'),
+  meta: {
+    icon: 'Setting',
+    labelKey: 'api.label.aiConfigManagement'
+  }
 }]
