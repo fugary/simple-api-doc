@@ -16,6 +16,7 @@ const CodeWindow = () => import('@/views/components/utils/CodeWindow.vue')
 const MarkdownWindow = () => import('@/views/components/utils/MarkdownWindow.vue')
 const SimpleJsonDataWindow = () => import('@/views/components/utils/SimpleJsonDataWindow.vue')
 const ApiGenerateSampleWindow = () => import('@/views/components/api/doc/comp/ApiGenerateSampleWindow.vue')
+const ApiCompareWindow = () => import('@/views/components/utils/ApiCompareWindow.vue')
 
 export const showGenerateSampleWindow = async (schemaBody, type, preferenceId) => {
   const dynamicHelper = new DynamicHelper()
@@ -145,6 +146,15 @@ export const showJsonDataWindow = async (data, config) => {
     ...config
   })
   vnode.component?.exposed?.showJsonDataWindow(data)
+}
+
+export const showApiCompareWindow = async (config) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(ApiCompareWindow, {
+    onClosed: () => dynamicHelper.destroy(),
+    ...config
+  })
+  vnode.component?.exposed?.showApiCompareWindow()
 }
 
 /**

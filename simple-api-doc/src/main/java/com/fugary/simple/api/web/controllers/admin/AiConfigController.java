@@ -13,10 +13,13 @@ import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import com.fugary.simple.api.web.vo.query.ai.AiConfigQueryVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * AI Config 管理 Controller
@@ -110,5 +113,42 @@ public class AiConfigController {
             }
         }
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+    }
+
+    @PostMapping("/histories/{id}")
+    public SimpleResult<List<AiConfig>> histories(@RequestBody AiConfigQueryVo queryVo, @PathVariable Integer id) {
+        AiConfig currentData = aiConfigService.getById(id);
+        Page<AiConfig> page = SimpleResultUtils.toPage(queryVo);
+        QueryWrapper<AiConfig> queryWrapper = Wrappers.<AiConfig>query()
+                .eq("modify_from", id);
+        queryWrapper.orderByDesc("config_version");
+        return SimpleResultUtils.createSimpleResult(aiConfigService.page(page, queryWrapper))
+                .add("current", currentData);
+    }
+
+    @PostMapping("/loadHistoryDiff")
+    public SimpleResult<Map<String, AiConfig>> loadHistoryDiff(@RequestBody SimpleQueryVo queryVo) {
+        Integer id = queryVo.getQueryId();
+        AiConfig modified = aiConfigService.getById(id);
+        if (modified == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        Integer maxVersion = modified.getVersion();
+        Page<AiConfig> page = new Page<>(1, 2);
+        aiConfigService.page(page, Wrappers.<AiConfig>query()
+                .eq("modify_from", ObjectUtils.defaultIfNull(modified.getModifyFrom(), modified.getId()))
+                .le(maxVersion != null, "config_version", maxVersion)
+                .orderByDesc("config_version"));
+        if (page.getRecords().isEmpty()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        } else {
+            Map<String, AiConfig> map = new HashMap<>(2);
+            List<AiConfig> dataList = page.getRecords();
+            map.put("modified", modified);
+            dataList.stream().filter(data -> !data.getId().equals(modified.getId())).findFirst().ifPresent(data -> {
+                map.put("original", data);
+            });
+            return SimpleResultUtils.createSimpleResult(map);
+        }
     }
 }
