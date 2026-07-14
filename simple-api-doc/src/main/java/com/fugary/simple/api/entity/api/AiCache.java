@@ -99,6 +99,16 @@ public class AiCache {
     private Date updatedAt;
 
     /**
+     * AI Provider (OPENAI, ANTHROPIC, GEMINI)
+     */
+    private String provider;
+
+    /**
+     * AI API Base URL
+     */
+    private String baseUrl;
+
+    /**
      * 客户端请求 IP
      */
     private String clientIp;

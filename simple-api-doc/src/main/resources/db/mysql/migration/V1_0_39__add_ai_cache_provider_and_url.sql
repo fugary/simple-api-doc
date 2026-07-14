@@ -1,0 +1,2 @@
+ALTER TABLE t_ai_cache ADD COLUMN provider VARCHAR(50);
+ALTER TABLE t_ai_cache ADD COLUMN base_url VARCHAR(500);

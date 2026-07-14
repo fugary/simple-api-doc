@@ -51,6 +51,16 @@ const columns = computed(() => {
       return projectOptions.value.find(project => `${project.value}` === `${data.projectId}`)?.label || data.projectId
     }
   }, {
+    labelKey: 'api.label.provider',
+    prop: 'provider',
+    formatter (data) {
+      if (!data.provider) return ''
+      if (data.provider === 'OPENAI') return <ElTag type="success" disable-transitions>OpenAI</ElTag>
+      if (data.provider === 'ANTHROPIC') return <ElTag type="warning" disable-transitions>Anthropic</ElTag>
+      if (data.provider === 'GEMINI') return <ElTag type="primary" disable-transitions>Gemini</ElTag>
+      return <ElTag type="info" disable-transitions>{data.provider}</ElTag>
+    }
+  }, {
     labelKey: 'api.label.aiCacheModelName',
     minWidth: '150px',
     prop: 'modelName'
@@ -129,11 +139,19 @@ const removeCache = async (item) => {
   loadAiCaches()
 }
 
+const showJsonDetail = item => {
+  showCodeWindow(JSON.stringify(item, null, 2), { language: 'json' })
+}
+
 const buttons = computed(() => {
   return [{
     labelKey: 'common.label.view',
     type: 'primary',
     click: showCacheDetail
+  }, {
+    label: 'JSON',
+    type: 'info',
+    click: showJsonDetail
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
@@ -216,7 +234,7 @@ const searchFormOptions = computed(() => {
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'150px'}"
+      :buttons-column-attrs="{minWidth:'220px'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"

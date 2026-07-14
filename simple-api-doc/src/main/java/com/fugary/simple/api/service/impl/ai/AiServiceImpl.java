@@ -190,6 +190,8 @@ public class AiServiceImpl implements AiService {
         aiCache.setStatus(0);
         aiCache.setCacheValue("");
         aiCache.setModelName(currentAiConfig.getDefaultModel());
+        aiCache.setProvider(currentAiConfig.getProvider());
+        aiCache.setBaseUrl(currentAiConfig.getBaseUrl());
         aiCache.setCreatedAt(new Date());
         aiCache.setPrompt(systemPrompt + "\n" + userMessageContent);
         aiCache.setProjectId(projectId);
