@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, inject } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
-import { showHistoryListWindow } from '@/utils/DynamicUtils'
+import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
 import { $copyText } from '@/utils'
 import { $i18nBundle } from '@/messages'
@@ -9,7 +9,6 @@ import { ElText, ElTag } from 'element-plus'
 import CommonIcon from '@/components/common-icon/index.vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiDocApi'
-import { showCompareWindowNew } from '@/services/api/ApiDocEditService'
 import { getDocHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 const props = defineProps({
   editable: {
@@ -123,7 +122,7 @@ const toShowHistoryWindow = (current) => {
       } else {
         modified = target
       }
-      showCompareWindowNew({
+      showApiCompareWindow({
         modified,
         original,
         historyOptionsMethod: getDocHistoryViewOptions

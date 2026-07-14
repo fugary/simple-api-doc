@@ -15,10 +15,9 @@ import { useManagedArrayItems } from '@/hooks/CommonHooks'
 import {
   checkAndSaveDocInfoDetail,
   processProjectInfos,
-  showCompareWindowNew,
   useComponentSchemas
 } from '@/services/api/ApiDocEditService'
-import { showHistoryListWindow, showMarkdownWindow } from '@/utils/DynamicUtils'
+import { showHistoryListWindow, showMarkdownWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
 
 import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
@@ -328,7 +327,7 @@ const toShowHistoryWindow = (current) => {
       } else {
         modified = target
       }
-      showCompareWindowNew({
+      showApiCompareWindow({
         modified,
         original,
         historyOptionsMethod: getComponentHistoryViewOptions

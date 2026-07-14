@@ -4,9 +4,8 @@ import ApiProjectInfoDetailApi, { loadInfoDetails } from '@/api/ApiProjectInfoDe
 import { ElMessage } from 'element-plus'
 import { SCHEMA_SELECT_TYPE, SECURITY_OAUTH2_AUTH_TYPES } from '@/consts/ApiConstants'
 import { fromModelToSchema, hasXxxOf } from '@/services/api/ApiDocPreviewService'
-import { cloneDeep, isFunction } from 'lodash-es'
+import { cloneDeep } from 'lodash-es'
 import { ref } from 'vue'
-import { showCodeWindow } from '@/utils/DynamicUtils'
 
 /**
  * 模型初始化计算
@@ -221,28 +220,4 @@ export const useComponentSchemas = () => {
     componentSchemas,
     loadComponents
   }
-}
-
-export const calcHistoryContent = (historyOptionsMethod, doc, history) => {
-  const options = historyOptionsMethod(doc, history).filter(item => item.enabled !== false)
-  return options.map(option => {
-    const propValue = isFunction(option.prop) ? option.prop(doc, history) : doc[option.prop]
-    return `[${option.labelKey ? $i18nBundle(option.labelKey) : option.label}]
-${propValue ?? ''}`
-  }).join('\n\n')
-}
-
-export const showCompareWindowNew = ({ original, modified, historyOptionsMethod, ...config }) => {
-  const originalContent = calcHistoryContent(historyOptionsMethod, original, true)
-  const modifiedContent = calcHistoryContent(historyOptionsMethod, modified)
-  return showCodeWindow({
-    title: $i18nBundle('api.label.compare'),
-    language: 'markdown',
-    diffEditor: true,
-    readOnly: true,
-    closeOnClickModal: false,
-    originalContent,
-    modifiedContent,
-    ...config
-  })
 }
