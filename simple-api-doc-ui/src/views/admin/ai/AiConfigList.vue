@@ -69,10 +69,10 @@ const deleteConfig = (row) => {
 const historyColumns = defineTableColumns([{
   labelKey: 'common.label.version',
   prop: 'version',
-  width: '80',
+  width: '120',
   align: 'center',
   formatter: (data) => {
-    const currentFlag = data.current ? <ElTag type="success" size="small" round={true}>{$i18nBundle('api.label.current')}</ElTag> : ''
+    const currentFlag = data.current ? <ElTag type="success" size="small">{$i18nBundle('api.label.current')}</ElTag> : ''
     return <>
       <span class="margin-right2">{data.version}</span>
       {currentFlag}
@@ -167,7 +167,13 @@ const columns = computed(() => {
     width: '120',
     align: 'center',
     formatter (data) {
-      return <ElTag type="info">{data.provider}</ElTag>
+      const typeMap = {
+        OPENAI: 'success',
+        ANTHROPIC: 'warning',
+        GEMINI: '' // primary
+      }
+      const type = typeMap[data.provider] !== undefined ? typeMap[data.provider] : 'info'
+      return <ElTag type={type}>{data.provider}</ElTag>
     }
   }, {
     labelKey: 'api.label.defaultModel',
@@ -234,6 +240,26 @@ const searchFormOptions = computed(() => {
   }]
 })
 
+const PROVIDER_BASE_URL_HINTS = {
+  OPENAI: 'https://api.openai.com/v1',
+  ANTHROPIC: 'https://api.anthropic.com/v1',
+  GEMINI: 'https://generativelanguage.googleapis.com'
+}
+
+const queryBaseUrlSuggestions = (queryString, cb) => {
+  const provider = editForm.value.provider
+  const defaultUrl = PROVIDER_BASE_URL_HINTS[provider]
+  const suggestions = []
+  if (defaultUrl) {
+    suggestions.push({ value: defaultUrl })
+  }
+  // 如果用户输入了内容，也可以保留用户的输入作为建议，或者只显示默认的
+  if (queryString && queryString !== defaultUrl) {
+    suggestions.push({ value: queryString })
+  }
+  cb(suggestions)
+}
+
 // Edit Form Options
 const editFormOptions = computed(() => {
   return [{
@@ -252,7 +278,12 @@ const editFormOptions = computed(() => {
   }, {
     labelKey: 'api.label.baseUrl',
     prop: 'baseUrl',
-    required: true
+    type: 'autocomplete',
+    required: true,
+    attrs: {
+      fetchSuggestions: queryBaseUrlSuggestions,
+      clearable: true
+    }
   }, {
     labelKey: 'api.label.apiKey',
     prop: 'apiKey',
@@ -312,6 +343,7 @@ const editFormOptions = computed(() => {
       :columns="columns"
       :buttons="buttons"
       :loading="loading"
+      @row-dblclick="showEditDialog($event)"
       @page-size-change="searchMethod()"
       @current-page-change="searchMethod()"
     />
