@@ -69,6 +69,7 @@ simple:
     ai-cache-retention-days: ${API_AI_CACHE_RETENTION_DAYS:90}
     ai:
       enabled: ${API_AI_ENABLED:true}
+      provider: ${API_AI_PROVIDER:OPENAI}
       base-url: ${API_AI_BASE_URL:https://api.openai.com/v1}
       api-key: ${API_AI_API_KEY:}
       model: ${API_AI_MODEL:gpt-3.5-turbo}

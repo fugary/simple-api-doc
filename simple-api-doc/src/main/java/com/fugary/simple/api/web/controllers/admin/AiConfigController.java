@@ -62,7 +62,12 @@ public class AiConfigController {
             AiConfig existsConfig = aiConfigService.getById(aiConfig.getId());
             if (existsConfig != null) {
                 if ("system".equals(existsConfig.getCreator())) {
-                    return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403, existsConfig);
+                    // System configurations cannot modify core fields, but can modify isDefault and status
+                    aiConfig.setConfigName(existsConfig.getConfigName());
+                    aiConfig.setProvider(existsConfig.getProvider());
+                    aiConfig.setBaseUrl(existsConfig.getBaseUrl());
+                    aiConfig.setApiKey(existsConfig.getApiKey());
+                    aiConfig.setDefaultModel(existsConfig.getDefaultModel());
                 }
                 if (SimpleModelUtils.isSameData(aiConfig, existsConfig)) {
                     return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsConfig);

@@ -18,6 +18,11 @@ public class AiConfigProperties {
     private boolean enabled = true;
 
     /**
+     * AI Provider (OPENAI, ANTHROPIC, GEMINI)
+     */
+    private String provider = "OPENAI";
+
+    /**
      * AI 接口 Base URL
      */
     private String baseUrl = "https://api.openai.com/v1";

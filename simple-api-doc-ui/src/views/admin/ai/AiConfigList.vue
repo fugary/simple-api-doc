@@ -206,7 +206,6 @@ const buttons = computed(() => {
   return [{
     labelKey: 'common.label.edit',
     type: 'primary',
-    buttonIf: (row) => row.creator !== 'system',
     click: showEditDialog
   }, {
     labelKey: 'api.label.history',
@@ -243,7 +242,7 @@ const searchFormOptions = computed(() => {
 const PROVIDER_BASE_URL_HINTS = {
   OPENAI: 'https://api.openai.com/v1',
   ANTHROPIC: 'https://api.anthropic.com/v1',
-  GEMINI: 'https://generativelanguage.googleapis.com'
+  GEMINI: 'https://generativelanguage.googleapis.com/v1beta'
 }
 
 const queryBaseUrlSuggestions = (queryString, cb) => {
@@ -262,14 +261,17 @@ const queryBaseUrlSuggestions = (queryString, cb) => {
 
 // Edit Form Options
 const editFormOptions = computed(() => {
+  const isSystem = editForm.value.creator === 'system'
   return [{
     labelKey: 'api.label.configName',
     prop: 'configName',
-    required: true
+    required: true,
+    disabled: isSystem
   }, {
     labelKey: 'api.label.provider',
     prop: 'provider',
     type: 'select',
+    disabled: isSystem,
     children: [
       { label: 'OpenAI (含兼容模型)', value: 'OPENAI' },
       { label: 'Anthropic Claude', value: 'ANTHROPIC' },
@@ -280,6 +282,7 @@ const editFormOptions = computed(() => {
     prop: 'baseUrl',
     type: 'autocomplete',
     required: true,
+    disabled: isSystem,
     attrs: {
       fetchSuggestions: queryBaseUrlSuggestions,
       clearable: true
@@ -288,6 +291,7 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.apiKey',
     prop: 'apiKey',
     type: 'input',
+    disabled: isSystem,
     attrs: {
       type: 'password',
       showPassword: true
@@ -295,6 +299,7 @@ const editFormOptions = computed(() => {
   }, {
     labelKey: 'api.label.defaultModel',
     prop: 'defaultModel',
+    disabled: isSystem,
     required: true
   }, {
     labelKey: 'api.label.setDefault',

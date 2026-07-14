@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.Date;
 import java.util.Objects;
 
 /**
@@ -32,41 +33,29 @@ public class AiConfigServiceImpl extends ServiceImpl<AiConfigMapper, AiConfig> i
         AiConfig systemConfig = this.getOne(Wrappers.<AiConfig>query().eq("creator", "system").orderByAsc("id").last("limit 1"));
         if (systemConfig == null) {
             long count = this.count();
-            if (count == 0) {
-                AiConfig defaultConfig = new AiConfig();
-                defaultConfig.setConfigName("默认配置文件迁移");
-                defaultConfig.setBaseUrl(aiConfigProperties.getBaseUrl());
-                defaultConfig.setApiKey(aiConfigProperties.getApiKey());
-                defaultConfig.setDefaultModel(aiConfigProperties.getModel());
-                defaultConfig.setProvider("OPENAI");
-                defaultConfig.setIsDefault(1);
-                defaultConfig.setStatus(1);
-                SimpleModelUtils.addAuditInfo(defaultConfig);
-                defaultConfig.setCreator("system");
-                this.save(defaultConfig);
-            }
+            AiConfig defaultConfig = new AiConfig();
+            defaultConfig.setConfigName("默认配置文件迁移");
+            defaultConfig.setBaseUrl(aiConfigProperties.getBaseUrl());
+            defaultConfig.setApiKey(aiConfigProperties.getApiKey());
+            defaultConfig.setDefaultModel(aiConfigProperties.getModel());
+            defaultConfig.setProvider(aiConfigProperties.getProvider());
+            defaultConfig.setIsDefault(count == 0 ? 1 : 0);
+            defaultConfig.setStatus(1);
+            SimpleModelUtils.addAuditInfo(defaultConfig);
+            defaultConfig.setCreator("system");
+            this.save(defaultConfig);
         } else {
-            if (Integer.valueOf(1).equals(systemConfig.getVersion())) {
-                boolean changed = false;
-                if (!Objects.equals(systemConfig.getBaseUrl(), aiConfigProperties.getBaseUrl())) {
-                    systemConfig.setBaseUrl(aiConfigProperties.getBaseUrl());
-                    changed = true;
-                }
-                if (!Objects.equals(systemConfig.getApiKey(), aiConfigProperties.getApiKey())) {
-                    systemConfig.setApiKey(aiConfigProperties.getApiKey());
-                    changed = true;
-                }
-                if (!Objects.equals(systemConfig.getDefaultModel(), aiConfigProperties.getModel())) {
-                    systemConfig.setDefaultModel(aiConfigProperties.getModel());
-                    changed = true;
-                }
-                if (changed) {
-                    this.update(Wrappers.<AiConfig>update()
-                            .set("base_url", systemConfig.getBaseUrl())
-                            .set("api_key", systemConfig.getApiKey())
-                            .set("default_model", systemConfig.getDefaultModel())
-                            .eq("id", systemConfig.getId()));
-                }
+            AiConfig newConfig = SimpleModelUtils.copy(systemConfig, AiConfig.class);
+            newConfig.setBaseUrl(aiConfigProperties.getBaseUrl());
+            newConfig.setApiKey(aiConfigProperties.getApiKey());
+            newConfig.setDefaultModel(aiConfigProperties.getModel());
+            newConfig.setProvider(aiConfigProperties.getProvider());
+
+            if (!SimpleModelUtils.isSameData(newConfig, systemConfig)) {
+                this.saveByAiConfig(systemConfig);
+                newConfig.setModifier("system");
+                newConfig.setModifyDate(new Date());
+                this.updateById(newConfig);
             }
         }
     }
@@ -78,7 +67,7 @@ public class AiConfigServiceImpl extends ServiceImpl<AiConfigMapper, AiConfig> i
                 .eq("status", 1)
                 .orderByDesc("id")
                 .last("limit 1"));
-        
+
         if (dbConfig != null) {
             return dbConfig;
         }
@@ -89,7 +78,7 @@ public class AiConfigServiceImpl extends ServiceImpl<AiConfigMapper, AiConfig> i
         fallbackConfig.setBaseUrl(aiConfigProperties.getBaseUrl());
         fallbackConfig.setApiKey(aiConfigProperties.getApiKey());
         fallbackConfig.setDefaultModel(aiConfigProperties.getModel());
-        fallbackConfig.setProvider("OPENAI");
+        fallbackConfig.setProvider(aiConfigProperties.getProvider());
         fallbackConfig.setStatus(1);
         return fallbackConfig;
     }
