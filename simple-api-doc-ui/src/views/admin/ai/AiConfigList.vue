@@ -1,5 +1,6 @@
 <script setup lang="jsx">
 import { ref, onMounted, onActivated, computed } from 'vue'
+import { omit } from 'lodash-es'
 import { formatDate, $coreConfirm } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { AiConfigApi, recoverAiConfigFromHistory, loadHistoryDiff, searchHistories } from '@/api/AiConfigApi'
@@ -39,6 +40,16 @@ const showEditDialog = async (row) => {
     }
   }
   editDialogVisible.value = true
+}
+
+const copyConfig = async (row) => {
+  await showEditDialog(row)
+  const rest = omit(editForm.value, ['id', 'version', 'creator', 'createDate', 'modifier', 'modifyDate', 'modifyFrom'])
+  editForm.value = {
+    ...rest,
+    configName: `${rest.configName || ''}-copy`,
+    isDefault: 0
+  }
 }
 
 const saveConfig = async (data) => {
@@ -208,6 +219,10 @@ const buttons = computed(() => {
     type: 'primary',
     click: showEditDialog
   }, {
+    labelKey: 'common.label.copy',
+    type: 'warning',
+    click: copyConfig
+  }, {
     labelKey: 'api.label.history',
     type: 'info',
     buttonIf: (row) => row.version > 1,
@@ -344,7 +359,7 @@ const editFormOptions = computed(() => {
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{width:'220px'}"
+      :buttons-column-attrs="{minWidth:'280px'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"
