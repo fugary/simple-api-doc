@@ -62,25 +62,11 @@ public class AiConfigServiceImpl extends ServiceImpl<AiConfigMapper, AiConfig> i
 
     @Override
     public AiConfig getDefaultAiConfig() {
-        AiConfig dbConfig = this.getOne(Wrappers.<AiConfig>query()
+        return this.getOne(Wrappers.<AiConfig>query()
                 .eq("is_default", 1)
                 .eq("status", 1)
                 .orderByDesc("id")
                 .last("limit 1"));
-
-        if (dbConfig != null) {
-            return dbConfig;
-        }
-
-        // YAML Fallback
-        AiConfig fallbackConfig = new AiConfig();
-        fallbackConfig.setConfigName("配置文件兜底配置");
-        fallbackConfig.setBaseUrl(aiConfigProperties.getBaseUrl());
-        fallbackConfig.setApiKey(aiConfigProperties.getApiKey());
-        fallbackConfig.setDefaultModel(aiConfigProperties.getModel());
-        fallbackConfig.setProvider(aiConfigProperties.getProvider());
-        fallbackConfig.setStatus(1);
-        return fallbackConfig;
     }
 
     @Override
