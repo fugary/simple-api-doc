@@ -1,41 +1,34 @@
 package com.fugary.simple.api.service.impl.ai;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.entity.api.AiCache;
+import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.mapper.api.ApiProjectShareMapper;
 import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.service.ai.AiConfigService;
-import com.fugary.simple.api.entity.api.AiConfig;
+import com.fugary.simple.api.service.ai.provider.AiChatProvider;
+import com.fugary.simple.api.service.ai.provider.AiChatRequest;
+import com.fugary.simple.api.service.ai.provider.AiChatResponse;
+import com.fugary.simple.api.utils.security.SecurityUtils;
+import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
+import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
+import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import com.fugary.simple.api.utils.security.SecurityUtils;
-import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
-import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
-import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -54,14 +47,22 @@ public class AiServiceImpl implements AiService {
     private ApiProjectShareMapper apiProjectShareMapper;
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     @Qualifier("taskScheduler")
     private Executor taskExecutor;
 
-    private static final Pattern MARKDOWN_JSON_PATTERN = Pattern.compile("```json\\s*([\\s\\S]*?)\\s*```");
-    private static final Pattern MARKDOWN_GENERIC_PATTERN = Pattern.compile("```\\s*([\\s\\S]*?)\\s*```");
+    @Autowired
+    private List<AiChatProvider> chatProviders;
+
+    private AiChatProvider getChatProvider(String providerCode) {
+        String code = StringUtils.isBlank(providerCode) ? "OPENAI" : providerCode;
+        return chatProviders.stream()
+                .filter(p -> code.equalsIgnoreCase(p.getProviderCode()))
+                .findFirst()
+                .orElseGet(() -> chatProviders.stream()
+                        .filter(p -> "OPENAI".equalsIgnoreCase(p.getProviderCode()))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("No suitable AI provider found")));
+    }
 
     @Override
     public String executeGenericTask(AiGenericTaskReq req) {
@@ -79,9 +80,11 @@ public class AiServiceImpl implements AiService {
         String rawKey = currentAiConfig.getDefaultModel() + ":" + promptHash + ":" + userMessageContent;
         String cacheKey = DigestUtils.sha256Hex(rawKey);
 
+        boolean cacheExists = false;
         try {
             AiCache cache = aiCacheMapper.selectById(cacheKey);
             if (cache != null) {
+                cacheExists = true;
                 if (cache.getStatus() != null && cache.getStatus() == 1 && StringUtils.isNotBlank(cache.getCacheValue())) {
                     log.info("AI {} 命中缓存, key: {}", cacheType, cacheKey);
                     return cache.getCacheValue();
@@ -99,31 +102,7 @@ public class AiServiceImpl implements AiService {
             if (pendingCount != null && pendingCount >= aiConfigProperties.getMaxPendingTasks()) {
                 throw new SimpleRuntimeException(429, "当前排队中的 AI 请求过多，请稍后再试");
             }
-            AiCache aiCache = new AiCache();
-            aiCache.setCacheKey(cacheKey);
-            aiCache.setStatus(0);
-            aiCache.setCacheValue("");
-            aiCache.setModelName(currentAiConfig.getDefaultModel());
-            aiCache.setCreatedAt(new Date());
-            aiCache.setPrompt(systemPrompt + "\n" + userMessageContent);
-            aiCache.setProjectId(projectId);
-            aiCache.setDocId(docId);
-            String userName = SecurityUtils.getLoginUserName();
-            if (StringUtils.isBlank(userName)) {
-                String shareId = SecurityUtils.getLoginShareId();
-                if (StringUtils.isNotBlank(shareId)) {
-                    ApiProjectShare share = apiProjectShareMapper.selectOne(Wrappers.<ApiProjectShare>lambdaQuery().eq(ApiProjectShare::getShareId, shareId));
-                    if (share != null && StringUtils.isNotBlank(share.getCreator())) {
-                        userName = share.getCreator();
-                    } else {
-                        userName = shareId;
-                    }
-                }
-            }
-            aiCache.setUserName(userName);
-            aiCache.setClientIp(HttpRequestUtils.getClientIp());
-            aiCache.setCacheType(cacheType);
-            aiCacheMapper.insert(aiCache);
+            initAiCache(cacheKey, systemPrompt, userMessageContent, projectId, docId, cacheType, currentAiConfig, cacheExists);
         } catch (SimpleRuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -131,80 +110,33 @@ public class AiServiceImpl implements AiService {
         }
         long startTime = System.currentTimeMillis();
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-        RestTemplate restTemplate = new RestTemplate();
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(aiConfigProperties.getTimeout());
-        requestFactory.setReadTimeout(aiConfigProperties.getTimeout());
-        restTemplate.setRequestFactory(requestFactory);
+            AiChatProvider provider = getChatProvider(currentAiConfig.getProvider());
+            AiChatRequest chatRequest = new AiChatRequest();
+            chatRequest.setSystemPrompt(systemPrompt);
+            chatRequest.setUserMessage(userMessageContent);
+            chatRequest.setTemperature(0.3); // Default temperature as per original logic
 
-        String url = currentAiConfig.getBaseUrl().replaceAll("/+$", "") + "/chat/completions";
+            AiChatResponse chatResponse = provider.chat(currentAiConfig, chatRequest);
+            String generatedSample = chatResponse.getContent();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(currentAiConfig.getApiKey());
-
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", currentAiConfig.getDefaultModel());
-        requestBody.put("temperature", 0.3);
-
-        List<Map<String, String>> messages = new ArrayList<>();
-        Map<String, String> systemMessageObj = new HashMap<>();
-        systemMessageObj.put("role", "system");
-        systemMessageObj.put("content", systemPrompt);
-        messages.add(systemMessageObj);
-
-        Map<String, String> userMessageObj = new HashMap<>();
-        userMessageObj.put("role", "user");
-        userMessageObj.put("content", userMessageContent);
-        messages.add(userMessageObj);
-
-        requestBody.put("messages", messages);
-
-        try {
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                String rawResponse = response.getBody();
-                JsonNode root = objectMapper.readTree(rawResponse);
-                JsonNode choices = root.path("choices");
-                if (choices.isArray() && choices.size() > 0) {
-                    JsonNode messageNode = choices.get(0).path("message").path("content");
-                    if (!messageNode.isMissingNode()) {
-                        String generatedSample = cleanGeneratedContent(messageNode.asText());
-                        if (StringUtils.isNotBlank(generatedSample)) {
-                            try {
-                                JsonNode usageNode = root.path("usage");
-                                Integer promptTokens = null, completionTokens = null, totalTokens = null;
-                                if (!usageNode.isMissingNode()) {
-                                    promptTokens = usageNode.path("prompt_tokens").asInt();
-                                    completionTokens = usageNode.path("completion_tokens").asInt();
-                                    totalTokens = usageNode.path("total_tokens").asInt();
-                                }
-                                aiCacheMapper.update(null, com.baomidou.mybatisplus.core.toolkit.Wrappers.<AiCache>lambdaUpdate()
-                                        .set(AiCache::getCacheValue, generatedSample)
-                                        .set(AiCache::getStatus, 1)
-                                        .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
-                                        .set(AiCache::getRawResponse, rawResponse)
-                                        .set(AiCache::getUpdatedAt, new java.util.Date())
-                                        .set(promptTokens != null, AiCache::getPromptTokens, promptTokens)
-                                        .set(completionTokens != null, AiCache::getCompletionTokens, completionTokens)
-                                        .set(totalTokens != null, AiCache::getTotalTokens, totalTokens)
-                                        .eq(AiCache::getCacheKey, cacheKey));
-                                log.info("AI {} 成功，写入缓存, key: {}", cacheType, cacheKey);
-                            } catch (Exception cacheEx) {
-                                log.error("写入 AI 缓存失败", cacheEx);
-                            }
-                        }
-                        return generatedSample;
-                    }
+            if (StringUtils.isNotBlank(generatedSample)) {
+                try {
+                    aiCacheMapper.update(null, com.baomidou.mybatisplus.core.toolkit.Wrappers.<AiCache>lambdaUpdate()
+                            .set(AiCache::getCacheValue, generatedSample)
+                            .set(AiCache::getStatus, 1)
+                            .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
+                            .set(AiCache::getRawResponse, chatResponse.getRawResponse())
+                            .set(AiCache::getUpdatedAt, new java.util.Date())
+                            .set(chatResponse.getPromptTokens() != null, AiCache::getPromptTokens, chatResponse.getPromptTokens())
+                            .set(chatResponse.getCompletionTokens() != null, AiCache::getCompletionTokens, chatResponse.getCompletionTokens())
+                            .set(chatResponse.getTotalTokens() != null, AiCache::getTotalTokens, chatResponse.getTotalTokens())
+                            .eq(AiCache::getCacheKey, cacheKey));
+                    log.info("AI {} 成功，写入缓存, key: {}", cacheType, cacheKey);
+                } catch (Exception cacheEx) {
+                    log.error("写入 AI 缓存失败", cacheEx);
                 }
             }
-            log.error("AI 接口返回格式异常或调用失败: {}", response.getBody());
-            throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
-        } catch (Exception e) {
-            log.error("调用 AI 接口失败", e);
-            throw new RuntimeException(e);
-        }
+            return generatedSample;
         }, taskExecutor).whenComplete((res, ex) -> {
             if (ex != null) {
                 try {
@@ -250,6 +182,37 @@ public class AiServiceImpl implements AiService {
         return executeGenericTask(genericReq);
     }
 
+    private void initAiCache(String cacheKey, String systemPrompt, String userMessageContent, 
+                             String projectId, String docId, String cacheType, 
+                             AiConfig currentAiConfig, boolean cacheExists) {
+        AiCache aiCache = new AiCache();
+        aiCache.setCacheKey(cacheKey);
+        aiCache.setStatus(0);
+        aiCache.setCacheValue("");
+        aiCache.setModelName(currentAiConfig.getDefaultModel());
+        aiCache.setCreatedAt(new Date());
+        aiCache.setPrompt(systemPrompt + "\n" + userMessageContent);
+        aiCache.setProjectId(projectId);
+        aiCache.setDocId(docId);
+        String userName = SecurityUtils.getLoginUserName();
+        if (StringUtils.isBlank(userName)) {
+            String shareId = SecurityUtils.getLoginShareId();
+            if (StringUtils.isNotBlank(shareId)) {
+                ApiProjectShare share = apiProjectShareMapper.selectOne(
+                        Wrappers.<ApiProjectShare>lambdaQuery().eq(ApiProjectShare::getShareId, shareId));
+                userName = (share != null && StringUtils.isNotBlank(share.getCreator())) ? share.getCreator() : shareId;
+            }
+        }
+        aiCache.setUserName(userName);
+        aiCache.setClientIp(HttpRequestUtils.getClientIp());
+        aiCache.setCacheType(cacheType);
+        if (cacheExists) {
+            aiCacheMapper.updateById(aiCache);
+        } else {
+            aiCacheMapper.insert(aiCache);
+        }
+    }
+
     @Override
     public boolean isEnabled() {
         if (!aiConfigProperties.isEnabled()) {
@@ -257,22 +220,5 @@ public class AiServiceImpl implements AiService {
         }
         AiConfig config = aiConfigService.getDefaultAiConfig();
         return config != null && StringUtils.isNotBlank(config.getApiKey());
-    }
-
-    private String cleanGeneratedContent(String content) {
-        if (StringUtils.isBlank(content)) {
-            return "{}";
-        }
-        content = content.trim();
-        // 尝试去掉 ```json 和 ```
-        Matcher jsonMatcher = MARKDOWN_JSON_PATTERN.matcher(content);
-        if (jsonMatcher.find()) {
-            return jsonMatcher.group(1).trim();
-        }
-        Matcher genericMatcher = MARKDOWN_GENERIC_PATTERN.matcher(content);
-        if (genericMatcher.find()) {
-            return genericMatcher.group(1).trim();
-        }
-        return content;
     }
 }
