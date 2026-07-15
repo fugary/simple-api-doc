@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.impl.ai;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
+import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.AiCache;
 import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
@@ -212,6 +213,28 @@ public class AiServiceImpl implements AiService {
             aiCacheMapper.updateById(aiCache);
         } else {
             aiCacheMapper.insert(aiCache);
+        }
+    }
+
+    @Override
+    public String testAiConfig(Integer configId, String prompt) {
+        AiConfig aiConfig = aiConfigService.getById(configId);
+        if (aiConfig == null) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_404, "指定的 AI 配置不存在");
+        }
+        
+        AiChatProvider provider = getChatProvider(aiConfig.getProvider());
+        AiChatRequest chatRequest = new AiChatRequest();
+        chatRequest.setSystemPrompt("你是一个有用的 AI 助手。");
+        chatRequest.setUserMessage(prompt);
+        chatRequest.setTemperature(0.5);
+
+        try {
+            AiChatResponse chatResponse = provider.chat(aiConfig, chatRequest);
+            return chatResponse.getContent();
+        } catch (Exception e) {
+            log.error("AI 测试连接失败", e);
+            throw new SimpleRuntimeException(500, "测试连接失败: " + e.getMessage());
         }
     }
 

@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.AiConfig;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.service.ai.AiConfigService;
+import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
@@ -33,6 +35,25 @@ public class AiConfigController {
 
     @Autowired
     private AiConfigService aiConfigService;
+
+    @Autowired
+    private AiService aiService;
+
+    @PostMapping("/{id}/test")
+    public SimpleResult<String> test(@PathVariable("id") Integer id, @RequestBody java.util.Map<String, String> req) {
+        String prompt = req != null ? req.get("prompt") : null;
+        if (StringUtils.isBlank(prompt)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_400, "测试提示词不能为空");
+        }
+        try {
+            String result = aiService.testAiConfig(id, prompt);
+            return SimpleResultUtils.createSimpleResult(result);
+        } catch (SimpleRuntimeException e) {
+            return SimpleResultUtils.<String>createSimpleResult(e.getCode() != null ? e.getCode() : 500).toBuilder().message(e.getMessage()).build();
+        } catch (Exception e) {
+            return SimpleResultUtils.<String>createSimpleResult(500).toBuilder().message(e.getMessage()).build();
+        }
+    }
 
     @GetMapping
     public SimpleResult<List<AiConfig>> search(AiConfigQueryVo queryVo) {

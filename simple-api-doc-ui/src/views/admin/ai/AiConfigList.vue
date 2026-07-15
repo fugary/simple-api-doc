@@ -10,6 +10,7 @@ import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
+import AiConfigTestWindow from './AiConfigTestWindow.vue'
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { configName: '', status: '', isDefault: '', page: useDefaultPage() },
@@ -213,6 +214,14 @@ const columns = computed(() => {
   }]
 })
 
+const testDialogVisible = ref(false)
+const testConfigId = ref(null)
+
+const showTestDialog = (row) => {
+  testConfigId.value = row.id
+  testDialogVisible.value = true
+}
+
 const buttons = computed(() => {
   return [{
     labelKey: 'common.label.edit',
@@ -222,6 +231,10 @@ const buttons = computed(() => {
     labelKey: 'common.label.copy',
     type: 'warning',
     click: copyConfig
+  }, {
+    labelKey: 'common.label.test',
+    type: 'success',
+    click: showTestDialog
   }, {
     labelKey: 'api.label.history',
     type: 'info',
@@ -359,7 +372,7 @@ const editFormOptions = computed(() => {
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'280px'}"
+      :buttons-column-attrs="{minWidth:'330px'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"
@@ -376,6 +389,11 @@ const editFormOptions = computed(() => {
       :save-current-item="saveConfig"
       width="600px"
       label-width="120px"
+    />
+    <AiConfigTestWindow
+      v-if="testDialogVisible"
+      v-model="testDialogVisible"
+      :config-id="testConfigId"
     />
   </el-container>
 </template>

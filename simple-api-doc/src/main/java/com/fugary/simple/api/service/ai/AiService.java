@@ -24,6 +24,15 @@ public interface AiService {
     String generateSampleBySchema(AiGenerateSampleReq req);
 
     /**
+     * 测试指定的 AI 配置
+     *
+     * @param configId AI 配置 ID
+     * @param prompt 测试提示词
+     * @return AI 生成的响应内容
+     */
+    String testAiConfig(Integer configId, String prompt);
+
+    /**
      * 是否开启
      *
      * @return
