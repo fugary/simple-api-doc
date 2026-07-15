@@ -388,7 +388,7 @@ const editFormOptions = computed(() => {
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'340px'}"
+      :buttons-column-attrs="{minWidth:'340px', fixed: 'right'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"

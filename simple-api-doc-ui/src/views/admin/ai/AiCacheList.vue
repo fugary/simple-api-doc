@@ -9,6 +9,7 @@ import { $i18nBundle } from '@/messages'
 import { ElText, ElTag, ElMessage } from 'element-plus'
 import { useDefaultPage } from '@/config'
 import { useSelectProjects } from '@/api/ApiProjectApi'
+import { isJson } from '@/services/api/ApiCommonService'
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -112,16 +113,27 @@ const columns = computed(() => {
   }]
 })
 
+const formatCodeStr = (str) => {
+  if (!isJson(str)) return str
+  try {
+    const obj = JSON.parse(str)
+    return JSON.stringify(obj, null, 2)
+  } catch (e) {
+    console.debug('JSON parse error in formatCodeStr:', e)
+    return str
+  }
+}
+
 const showCacheDetail = item => {
   let detailStr = ''
   if (item.prompt) {
     detailStr += `### ${$i18nBundle('api.label.aiCachePrompt')}\n\`\`\`\n${item.prompt}\n\`\`\`\n\n`
   }
   if (item.rawResponse) {
-    detailStr += `### ${$i18nBundle('api.label.aiCacheRawResponse')}\n\`\`\`json\n${item.rawResponse}\n\`\`\`\n\n`
+    detailStr += `### ${$i18nBundle('api.label.aiCacheRawResponse')}\n\`\`\`json\n${formatCodeStr(item.rawResponse)}\n\`\`\`\n\n`
   }
   if (item.cacheValue) {
-    detailStr += `### ${$i18nBundle('api.label.aiCacheValue')}\n\`\`\`json\n${item.cacheValue}\n\`\`\`\n\n`
+    detailStr += `### ${$i18nBundle('api.label.aiCacheValue')}\n\`\`\`json\n${formatCodeStr(item.cacheValue)}\n\`\`\`\n\n`
   }
   if (item.errorMessage) {
     detailStr += `### ${$i18nBundle('api.label.aiCacheErrorMessage')}\n\`\`\`\n${item.errorMessage}\n\`\`\`\n\n`
@@ -236,7 +248,7 @@ const searchFormOptions = computed(() => {
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'220px'}"
+      :buttons-column-attrs="{minWidth:'220px', fixed: 'right'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"
