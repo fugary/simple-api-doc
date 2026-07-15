@@ -54,7 +54,7 @@ const handleTest = async () => {
 
   formData.value.result = ''
   try {
-    const res = await testAiConfig(props.configId, { prompt: formData.value.prompt.trim() }, { loading: true })
+    const res = await testAiConfig(props.configId, { userMessage: formData.value.prompt.trim() }, { loading: true })
     if (res.success) {
       formData.value.result = res.resultData || $i18nBundle('api.msg.noContent')
       ElMessage.success($i18nBundle('api.msg.testSuccess'))

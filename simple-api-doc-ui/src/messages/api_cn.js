@@ -290,5 +290,5 @@ api.msg.testResultPlaceholder = 'AI 的回复将显示在这里...'
 api.msg.testFailed = '测试失败: {0}'
 api.msg.requestError = '请求异常: {0}'
 api.msg.noContent = '（无内容）'
-
 api.msg.testSuccess = '测试成功'
+api.msg.noDefaultConfig = '未找到启用的默认AI配置'

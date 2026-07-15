@@ -10,6 +10,7 @@ import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import com.fugary.simple.api.web.vo.query.ai.AiConfigQueryVo;
@@ -40,8 +41,8 @@ public class AiConfigController {
     private AiService aiService;
 
     @PostMapping("/{id}/test")
-    public SimpleResult<String> test(@PathVariable("id") Integer id, @RequestBody java.util.Map<String, String> req) {
-        String prompt = req != null ? req.get("prompt") : null;
+    public SimpleResult<String> test(@PathVariable("id") Integer id, @RequestBody AiGenericTaskReq req) {
+        String prompt = req != null ? req.getUserMessage() : null;
         if (StringUtils.isBlank(prompt)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_400, "测试提示词不能为空");
         }
@@ -60,6 +61,8 @@ public class AiConfigController {
         Page<AiConfig> page = SimpleResultUtils.toPage(queryVo);
         QueryWrapper<AiConfig> queryWrapper = Wrappers.<AiConfig>query()
                 .like(StringUtils.isNotBlank(queryVo.getConfigName()), "config_name", queryVo.getConfigName())
+                .eq(StringUtils.isNotBlank(queryVo.getProvider()), "provider", queryVo.getProvider())
+                .like(StringUtils.isNotBlank(queryVo.getDefaultModel()), "default_model", queryVo.getDefaultModel())
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
                 .eq(queryVo.getIsDefault() != null, "is_default", queryVo.getIsDefault())
                 .eq(queryVo.getModifyFrom() != null, "modify_from", queryVo.getModifyFrom())

@@ -34,7 +34,7 @@ public class AiConfigServiceImpl extends ServiceImpl<AiConfigMapper, AiConfig> i
         if (systemConfig == null) {
             long count = this.count();
             AiConfig defaultConfig = new AiConfig();
-            defaultConfig.setConfigName("默认配置文件迁移");
+            defaultConfig.setConfigName("Env Default");
             defaultConfig.setBaseUrl(aiConfigProperties.getBaseUrl());
             defaultConfig.setApiKey(aiConfigProperties.getApiKey());
             defaultConfig.setDefaultModel(aiConfigProperties.getModel());

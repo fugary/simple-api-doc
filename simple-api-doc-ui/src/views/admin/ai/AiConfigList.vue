@@ -7,6 +7,7 @@ import { AiConfigApi, recoverAiConfigFromHistory, loadHistoryDiff, searchHistori
 import { ElMessage, ElTag, ElText } from 'element-plus'
 import { useDefaultPage } from '@/config'
 import { $i18nBundle } from '@/messages'
+import { useSearchStatus, useFormStatus } from '@/consts/GlobalConstants'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
@@ -222,6 +223,15 @@ const showTestDialog = (row) => {
   testDialogVisible.value = true
 }
 
+const testDefaultConfig = async () => {
+  const res = await AiConfigApi.search({ isDefault: 1, status: 1 })
+  if (res.success && res.resultData?.length > 0) {
+    showTestDialog(res.resultData[0])
+  } else {
+    ElMessage.warning($i18nBundle('api.msg.noDefaultConfig'))
+  }
+}
+
 const buttons = computed(() => {
   return [{
     labelKey: 'common.label.edit',
@@ -254,17 +264,23 @@ const searchFormOptions = computed(() => {
     labelKey: 'api.label.configName',
     prop: 'configName'
   }, {
-    labelKey: 'common.label.status',
-    prop: 'status',
+    labelKey: 'api.label.provider',
+    prop: 'provider',
     type: 'select',
     children: [
-      { labelKey: 'common.label.statusEnable', value: 1 },
-      { labelKey: 'common.label.statusDisable', value: 0 }
+      { label: 'OpenAI', value: 'OPENAI' },
+      { label: 'Anthropic Claude', value: 'ANTHROPIC' },
+      { label: 'Google Gemini', value: 'GEMINI' }
     ],
     change () {
       searchMethod()
     }
-  }]
+  }, {
+    labelKey: 'api.label.defaultModel',
+    prop: 'defaultModel'
+  },
+  useSearchStatus({ change: searchMethod })
+  ]
 })
 
 const PROVIDER_BASE_URL_HINTS = {
@@ -337,15 +353,9 @@ const editFormOptions = computed(() => {
       activeValue: 1,
       inactiveValue: 0
     }
-  }, {
-    labelKey: 'common.label.status',
-    prop: 'status',
-    type: 'switch',
-    attrs: {
-      activeValue: 1,
-      inactiveValue: 0
-    }
-  }]
+  },
+  useFormStatus()
+  ]
 })
 
 </script>
@@ -361,6 +371,12 @@ const editFormOptions = computed(() => {
     >
       <template #buttons>
         <el-button
+          type="success"
+          @click="testDefaultConfig()"
+        >
+          {{ $t('common.label.test') }}
+        </el-button>
+        <el-button
           type="info"
           @click="showEditDialog()"
         >
@@ -372,7 +388,7 @@ const editFormOptions = computed(() => {
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'330px'}"
+      :buttons-column-attrs="{minWidth:'340px'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"

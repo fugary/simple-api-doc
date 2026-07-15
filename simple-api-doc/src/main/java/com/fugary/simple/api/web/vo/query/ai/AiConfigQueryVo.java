@@ -15,4 +15,5 @@ public class AiConfigQueryVo extends SimpleQueryVo {
     private Integer status;
     private Integer isDefault;
     private Integer modifyFrom;
+    private String defaultModel;
 }

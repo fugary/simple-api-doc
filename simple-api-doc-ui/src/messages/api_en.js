@@ -292,5 +292,5 @@ api.msg.testResultPlaceholder = 'AI reply will be displayed here...'
 api.msg.testFailed = 'Test failed: {0}'
 api.msg.requestError = 'Request error: {0}'
 api.msg.noContent = '(No content)'
-
 api.msg.testSuccess = 'Test successful'
+api.msg.noDefaultConfig = 'No enabled default AI config found'
