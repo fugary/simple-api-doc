@@ -65,7 +65,7 @@ const handleTest = () => {
       ElMessage.success($i18nBundle('api.msg.testSuccess'))
     } else {
       formData.value.result = $i18nBundle('api.msg.testFailed', [res.message || $i18nBundle('common.msg.unknownError')])
-      ElMessage.error(res.message || $i18nBundle('api.msg.testFailed', ['']))
+      ElMessage.error($i18nBundle('api.msg.testFailed', [res.message || $i18nBundle('common.msg.unknownError')]))
     }
   }).catch(error => {
     formData.value.result = $i18nBundle('api.msg.requestError', [error.message || $i18nBundle('common.msg.networkError')])

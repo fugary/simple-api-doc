@@ -138,7 +138,8 @@ public class AiServiceImpl implements AiService {
         } catch (TimeoutException e) {
             throw new SimpleRuntimeException(202);
         } catch (Exception e) {
-            throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            throw new RuntimeException(getSimpleErrorMessage(cause), cause);
         }
     }
 
@@ -260,8 +261,20 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             log.error("AI 测试连接失败", e);
             updateCacheOnFailure(cacheKey, e, 0L);
-            throw new SimpleRuntimeException(500, "测试连接失败: " + e.getMessage());
+            throw new SimpleRuntimeException(500, "测试连接失败: " + getSimpleErrorMessage(e));
         }
+    }
+
+    private String getSimpleErrorMessage(Throwable e) {
+        if (e instanceof org.springframework.web.client.HttpStatusCodeException) {
+            org.springframework.web.client.HttpStatusCodeException httpEx = (org.springframework.web.client.HttpStatusCodeException) e;
+            return httpEx.getRawStatusCode() + " " + httpEx.getStatusText();
+        }
+        String message = e.getMessage();
+        if (StringUtils.isBlank(message)) {
+            return e.getClass().getSimpleName();
+        }
+        return StringUtils.abbreviate(message, 100);
     }
 
     @Override

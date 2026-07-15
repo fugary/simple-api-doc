@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.AiConfig;
-import com.fugary.simple.api.mapper.AiConfigMapper;
+import com.fugary.simple.api.mapper.api.AiConfigMapper;
 import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import org.apache.commons.lang3.StringUtils;
