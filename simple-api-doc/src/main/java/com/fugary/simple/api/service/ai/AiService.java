@@ -3,6 +3,9 @@ package com.fugary.simple.api.service.ai;
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
 import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 
+
+import com.fugary.simple.api.service.ai.provider.AiChatResponse;
+
 /**
  * AI 生成服务
  */
@@ -28,9 +31,9 @@ public interface AiService {
      *
      * @param configId AI 配置 ID
      * @param prompt 测试提示词
-     * @return AI 生成的响应内容
+     * @return AI 返回的内容及耗时/Token使用情况
      */
-    String testAiConfig(Integer configId, String prompt);
+    AiChatResponse testAiConfig(Integer configId, String prompt);
 
     /**
      * 是否开启

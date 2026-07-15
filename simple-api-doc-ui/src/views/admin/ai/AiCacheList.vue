@@ -53,6 +53,7 @@ const columns = computed(() => {
   }, {
     labelKey: 'api.label.provider',
     prop: 'provider',
+    minWidth: '100px',
     formatter (data) {
       if (!data.provider) return ''
       if (data.provider === 'OPENAI') return <ElTag type="success" disable-transitions>OpenAI</ElTag>
@@ -73,7 +74,6 @@ const columns = computed(() => {
       return data.cacheType || ''
     }
   }, {
-    labelKey: 'api.label.totalTokens',
     label: 'Tokens',
     prop: 'totalTokens'
   }, {

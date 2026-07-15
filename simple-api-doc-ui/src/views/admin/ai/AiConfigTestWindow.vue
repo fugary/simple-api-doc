@@ -21,6 +21,8 @@ const formData = ref({
   result: ''
 })
 
+const testMetrics = ref(null)
+
 const formOptions = computed(() => {
   return [
     {
@@ -45,39 +47,34 @@ const formOptions = computed(() => {
     }
   ]
 })
-
-const handleTest = async () => {
+const testLoading = ref(false)
+const handleTest = () => {
   if (!formData.value.prompt?.trim()) {
     ElMessage.warning($i18nBundle('api.msg.inputPrompt'))
-    return
+    return false
   }
 
   formData.value.result = ''
-  try {
-    const res = await testAiConfig(props.configId, { userMessage: formData.value.prompt.trim() }, { loading: true })
+  testMetrics.value = null
+  testLoading.value = true
+
+  testAiConfig(props.configId, { userMessage: formData.value.prompt.trim() }, { timeout: 30000 }).then(res => {
     if (res.success) {
-      formData.value.result = res.resultData || $i18nBundle('api.msg.noContent')
+      formData.value.result = res.resultData?.content || $i18nBundle('api.msg.noContent')
+      testMetrics.value = res.resultData
       ElMessage.success($i18nBundle('api.msg.testSuccess'))
     } else {
       formData.value.result = $i18nBundle('api.msg.testFailed', [res.message || $i18nBundle('common.msg.unknownError')])
       ElMessage.error(res.message || $i18nBundle('api.msg.testFailed', ['']))
     }
-  } catch (error) {
+  }).catch(error => {
     formData.value.result = $i18nBundle('api.msg.requestError', [error.message || $i18nBundle('common.msg.networkError')])
-  }
-}
+  }).finally(() => {
+    testLoading.value = false
+  })
 
-const buttons = computed(() => [
-  {
-    labelKey: 'common.label.close',
-    click: () => { visible.value = false }
-  },
-  {
-    labelKey: 'api.label.sendTest',
-    type: 'primary',
-    click: handleTest
-  }
-])
+  return false
+}
 </script>
 
 <template>
@@ -85,17 +82,45 @@ const buttons = computed(() => [
     v-model="visible"
     :title="$t('common.label.test')"
     width="800px"
-    :show-ok="false"
-    :show-cancel="false"
-    :buttons="buttons"
+    :ok-label="$t('api.label.sendTest')"
+    :ok-loading="testLoading"
+    :ok-click="handleTest"
+    :cancel-label="$t('common.label.close')"
   >
-    <common-form
-      class="form-edit-width-100"
-      :model="formData"
-      :options="formOptions"
-      :show-buttons="false"
-      label-width="100px"
-    />
+    <el-container class="flex-column">
+      <common-form
+        class="form-edit-width-100"
+        :model="formData"
+        :options="formOptions"
+        :show-buttons="false"
+        label-width="100px"
+      />
+      <div
+        v-if="testMetrics"
+        class="margin-top3"
+        style="padding-left: 100px;"
+      >
+        <el-space
+          wrap
+          :size="10"
+        >
+          <el-tag
+            v-if="testMetrics.elapsedTime != null"
+            type="primary"
+            size="small"
+          >
+            {{ $t('api.label.aiCacheCostTime') }}: {{ testMetrics.elapsedTime }}ms
+          </el-tag>
+          <el-tag
+            v-if="testMetrics.totalTokens != null"
+            type="success"
+            size="small"
+          >
+            Tokens: {{ testMetrics.totalTokens }}
+          </el-tag>
+        </el-space>
+      </div>
+    </el-container>
   </common-window>
 </template>
 

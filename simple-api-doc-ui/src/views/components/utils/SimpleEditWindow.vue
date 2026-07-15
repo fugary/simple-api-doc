@@ -1,10 +1,14 @@
 <script setup>
 import { $i18nBundle, $i18nKey } from '@/messages'
 import { ElMessage } from 'element-plus'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { getStyleGrow } from '@/utils'
 
 const props = defineProps({
+  editable: {
+    type: Boolean,
+    default: true
+  },
   formOptions: {
     type: Array,
     default: () => []
@@ -25,8 +29,9 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  debug: {
-    type: Boolean, default: false
+  windowAttrs: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -40,12 +45,16 @@ const currentItem = defineModel('modelValue', {
   default: () => ({})
 })
 
+const saveLoading = ref(false)
 const internalSaveCurrentItem = ({ form }) => {
   form.validate(valid => {
     if (valid) {
+      saveLoading.value = true
       props.saveCurrentItem(currentItem.value).then(() => {
         ElMessage.success($i18nBundle('common.msg.saveSuccess'))
         showEditWindow.value = false
+      }).finally(() => {
+        saveLoading.value = false
       })
     }
   })
@@ -71,11 +80,14 @@ const calcOptions = computed(() => {
     v-model="showEditWindow"
     :title="currentItem?.id?$i18nKey('common.label.commonEdit', name):$i18nKey('common.label.commonAdd', name)"
     :ok-click="internalSaveCurrentItem"
+    :ok-loading="saveLoading"
+    :show-ok="editable"
     append-to-body
     destroy-on-close
     show-fullscreen
     :close-on-click-modal="false"
     :width="width"
+    v-bind="windowAttrs"
   >
     <common-form
       v-if="currentItem"
@@ -97,7 +109,6 @@ const calcOptions = computed(() => {
         />
       </template>
     </common-form>
-    <pre v-if="debug">{{ currentItem }}</pre>
   </common-window>
 </template>
 

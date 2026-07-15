@@ -9,4 +9,5 @@ public class AiChatResponse {
     private Integer completionTokens;
     private Integer totalTokens;
     private String rawResponse;
+    private Long elapsedTime;
 }

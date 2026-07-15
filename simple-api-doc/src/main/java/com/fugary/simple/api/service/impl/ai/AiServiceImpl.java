@@ -2,15 +2,15 @@ package com.fugary.simple.api.service.impl.ai;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.config.AiConfigProperties;
-import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.AiCache;
 import com.fugary.simple.api.entity.api.AiConfig;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.mapper.api.ApiProjectShareMapper;
-import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.service.ai.AiConfigService;
+import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.service.ai.provider.AiChatProvider;
 import com.fugary.simple.api.service.ai.provider.AiChatRequest;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
@@ -25,7 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -121,37 +123,13 @@ public class AiServiceImpl implements AiService {
             String generatedSample = chatResponse.getContent();
 
             if (StringUtils.isNotBlank(generatedSample)) {
-                try {
-                    aiCacheMapper.update(null, com.baomidou.mybatisplus.core.toolkit.Wrappers.<AiCache>lambdaUpdate()
-                            .set(AiCache::getCacheValue, generatedSample)
-                            .set(AiCache::getStatus, 1)
-                            .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
-                            .set(AiCache::getRawResponse, chatResponse.getRawResponse())
-                            .set(AiCache::getUpdatedAt, new java.util.Date())
-                            .set(chatResponse.getPromptTokens() != null, AiCache::getPromptTokens, chatResponse.getPromptTokens())
-                            .set(chatResponse.getCompletionTokens() != null, AiCache::getCompletionTokens, chatResponse.getCompletionTokens())
-                            .set(chatResponse.getTotalTokens() != null, AiCache::getTotalTokens, chatResponse.getTotalTokens())
-                            .eq(AiCache::getCacheKey, cacheKey));
-                    log.info("AI {} 成功，写入缓存, key: {}", cacheType, cacheKey);
-                } catch (Exception cacheEx) {
-                    log.error("写入 AI 缓存失败", cacheEx);
-                }
+                updateCacheOnSuccess(cacheKey, chatResponse, System.currentTimeMillis() - startTime);
+                log.info("AI {} 成功，写入缓存, key: {}", cacheType, cacheKey);
             }
             return generatedSample;
         }, taskExecutor).whenComplete((res, ex) -> {
             if (ex != null) {
-                try {
-                    String errorMessage = ex.getMessage();
-                    if (errorMessage != null && errorMessage.length() > 1000) {
-                        errorMessage = errorMessage.substring(0, 1000);
-                    }
-                    aiCacheMapper.update(null, Wrappers.<AiCache>lambdaUpdate()
-                            .set(AiCache::getStatus, 2)
-                            .set(AiCache::getCostTime, System.currentTimeMillis() - startTime)
-                            .set(AiCache::getUpdatedAt, new java.util.Date())
-                            .set(AiCache::getErrorMessage, errorMessage)
-                            .eq(AiCache::getCacheKey, cacheKey));
-                } catch (Exception ignore) {}
+                updateCacheOnFailure(cacheKey, ex, System.currentTimeMillis() - startTime);
             }
         });
 
@@ -172,19 +150,19 @@ public class AiServiceImpl implements AiService {
                 "3. 根据 Schema 中的 type、description、example 或 format，生成逼真的模拟数据。\n" +
                 "4. 必须全面覆盖所有定义的属性（包括所有的嵌套对象和数组，以及 $ref 引用的组件），不能随意遗漏字段或简化数据结构，数组建议生成1-2条数据。\n" +
                 "5. 返回的结果必须是根据 `schema` 结构定义生成的实例数据对象。";
-                
+
         AiGenericTaskReq genericReq = new AiGenericTaskReq();
         genericReq.setSystemPrompt(systemPrompt);
         genericReq.setUserMessage(req.getSchemaContent());
         genericReq.setCacheType("mock_data");
         genericReq.setProjectId(req.getProjectId());
         genericReq.setDocId(req.getDocId());
-        
+
         return executeGenericTask(genericReq);
     }
 
-    private void initAiCache(String cacheKey, String systemPrompt, String userMessageContent, 
-                             String projectId, String docId, String cacheType, 
+    private void initAiCache(String cacheKey, String systemPrompt, String userMessageContent,
+                             String projectId, String docId, String cacheType,
                              AiConfig currentAiConfig, boolean cacheExists) {
         AiCache aiCache = new AiCache();
         aiCache.setCacheKey(cacheKey);
@@ -216,24 +194,72 @@ public class AiServiceImpl implements AiService {
         }
     }
 
+    private void updateCacheOnSuccess(String cacheKey, AiChatResponse chatResponse, long costTime) {
+        try {
+            aiCacheMapper.update(null, Wrappers.<AiCache>lambdaUpdate()
+                    .set(AiCache::getCacheValue, chatResponse.getContent())
+                    .set(AiCache::getStatus, 1)
+                    .set(costTime > 0, AiCache::getCostTime, costTime)
+                    .set(AiCache::getRawResponse, chatResponse.getRawResponse())
+                    .set(AiCache::getUpdatedAt, new Date())
+                    .set(chatResponse.getPromptTokens() != null, AiCache::getPromptTokens, chatResponse.getPromptTokens())
+                    .set(chatResponse.getCompletionTokens() != null, AiCache::getCompletionTokens, chatResponse.getCompletionTokens())
+                    .set(chatResponse.getTotalTokens() != null, AiCache::getTotalTokens, chatResponse.getTotalTokens())
+                    .eq(AiCache::getCacheKey, cacheKey));
+        } catch (Exception cacheEx) {
+            log.error("写入 AI 缓存失败", cacheEx);
+        }
+    }
+
+    private void updateCacheOnFailure(String cacheKey, Throwable ex, long costTime) {
+        try {
+            String errorMessage = ex.getMessage();
+            if (errorMessage != null && errorMessage.length() > 1000) {
+                errorMessage = errorMessage.substring(0, 1000);
+            }
+            aiCacheMapper.update(null, Wrappers.<AiCache>lambdaUpdate()
+                    .set(AiCache::getStatus, 2)
+                    .set(costTime > 0, AiCache::getCostTime, costTime)
+                    .set(AiCache::getErrorMessage, errorMessage)
+                    .set(AiCache::getUpdatedAt, new Date())
+                    .eq(AiCache::getCacheKey, cacheKey));
+        } catch (Exception ignore) {}
+    }
+
     @Override
-    public String testAiConfig(Integer configId, String prompt) {
+    public AiChatResponse testAiConfig(Integer configId, String prompt) {
         AiConfig aiConfig = aiConfigService.getById(configId);
         if (aiConfig == null) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_404, "指定的 AI 配置不存在");
         }
-        
+
         AiChatProvider provider = getChatProvider(aiConfig.getProvider());
         AiChatRequest chatRequest = new AiChatRequest();
         chatRequest.setSystemPrompt("你是一个有用的 AI 助手。");
         chatRequest.setUserMessage(prompt);
         chatRequest.setTemperature(0.5);
 
+        String cacheKey = UUID.randomUUID().toString();
         try {
+            initAiCache(cacheKey, chatRequest.getSystemPrompt(), prompt, null, null, "test_config", aiConfig, false);
+        } catch (Exception e) {
+            log.error("写入 AI 缓存状态失败", e);
+        }
+
+        try {
+            long startTime = System.currentTimeMillis();
             AiChatResponse chatResponse = provider.chat(aiConfig, chatRequest);
-            return chatResponse.getContent();
+            long endTime = System.currentTimeMillis();
+            chatResponse.setElapsedTime(endTime - startTime);
+
+            if (StringUtils.isNotBlank(chatResponse.getContent())) {
+                updateCacheOnSuccess(cacheKey, chatResponse, chatResponse.getElapsedTime());
+                log.info("AI {} 成功，写入缓存, key: {}", "test_config", cacheKey);
+            }
+            return chatResponse;
         } catch (Exception e) {
             log.error("AI 测试连接失败", e);
+            updateCacheOnFailure(cacheKey, e, 0L);
             throw new SimpleRuntimeException(500, "测试连接失败: " + e.getMessage());
         }
     }
