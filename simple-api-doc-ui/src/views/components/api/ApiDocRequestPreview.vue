@@ -7,7 +7,8 @@ import {
   previewRequest,
   processResponse,
   calcPreviewHeaders,
-  extractVariables
+  extractVariables,
+  syncCachedParamsToTarget
 } from '@/services/api/ApiDocPreviewService'
 import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
@@ -70,6 +71,7 @@ const requestPath = computed(() => {
 })
 
 const doDataPreview = async () => {
+  syncCachedParamsToTarget(paramTarget.value?.preferenceId, paramTarget.value?.groupConfig)
   console.log('========================paramTarget1', paramTarget.value, apiDocDetail.value)
   const serverSend = paramTarget.value?.sendType === 'server'
   let processedPath = requestPath.value

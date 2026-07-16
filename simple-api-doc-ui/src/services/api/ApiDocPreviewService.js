@@ -225,25 +225,28 @@ export const processResponse = function (response) {
   }
 }
 
+export const syncCachedParamsToTarget = (preferenceId, groupConfig) => {
+  if (!preferenceId || !groupConfig) return
+  const cachedParams = getExtractedEnvParams(preferenceId)
+  if (!cachedParams?.length) return
+
+  groupConfig.envParams = groupConfig.envParams || []
+  cachedParams.forEach(cp => {
+    const ep = groupConfig.envParams.find(p => p.name === cp.name)
+    if (ep) {
+      ep.value = cp.value
+    } else {
+      groupConfig.envParams.push({ ...cp, enabled: true })
+    }
+  })
+}
+
 export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   // const value = previewData?.mockParams || requestItem?.mockParams
   // const requestPath = `/mock/${groupItem.groupPath}${requestItem?.requestPath}`
   const preferenceId = calcDetailPreferenceId(apiDocDetail)
   const groupConfig = JSON.parse(apiDocDetail?.project?.groupConfig || '{}')
-  if (preferenceId) {
-    const cachedParams = getExtractedEnvParams(preferenceId)
-    if (cachedParams?.length) {
-      groupConfig.envParams = groupConfig.envParams || []
-      cachedParams.forEach(cp => {
-        const ep = groupConfig.envParams.find(p => p.name === cp.name)
-        if (ep) {
-          ep.value = cp.value
-        } else {
-          groupConfig.envParams.push({ ...cp, enabled: true })
-        }
-      })
-    }
-  }
+  syncCachedParamsToTarget(preferenceId, groupConfig)
   const componentMap = calcComponentMap(projectInfoDetail.componentSchemas || [])
   const target = {
     projectId: apiDocDetail?.projectId,
