@@ -13,7 +13,7 @@ import {
   ALL_CONTENT_TYPES_LIST,
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
-import { processEvnParams, useScreenCheck } from '@/services/api/ApiCommonService'
+import { processEvnParams, useScreenCheck, getExtractedEnvParams, cacheExtractedEnvParams } from '@/services/api/ApiCommonService'
 import { nextTick, ref, watch, computed, markRaw } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
@@ -141,6 +141,52 @@ export const previewRequest = function (reqData, config = {}) {
   })
 }
 
+export const extractVariables = (response, requestPath, groupConfig, preferenceId) => {
+  if (!groupConfig?.envParams?.length || !response) return
+
+  let responseData = response.data
+  if (isString(responseData)) {
+    try {
+      responseData = JSON.parse(responseData)
+    } catch {
+      // ignore
+    }
+  }
+
+  let updated = false
+  const cachedParams = getExtractedEnvParams(preferenceId) || []
+  groupConfig.envParams.forEach(param => {
+    if (param.enabled && param.extractRules?.length) {
+      param.extractRules.forEach(rule => {
+        if (rule.enabled && rule.jsonPath && (!rule.apiPath || requestPath.includes(rule.apiPath))) {
+          const jsonPathStr = rule.jsonPath.replace(/^\$\./, '')
+          let val = get(responseData, jsonPathStr)
+          if (val === undefined || val === null) {
+            val = get(response, jsonPathStr)
+          }
+          if (val !== undefined && val !== null) {
+            val = String(val)
+            param.value = val
+            const existing = cachedParams.find(p => p.name === param.name)
+            if (existing) {
+              if (existing.value !== val) {
+                existing.value = val
+                updated = true
+              }
+            } else {
+              cachedParams.push({ name: param.name, value: val })
+              updated = true
+            }
+          }
+        }
+      })
+    }
+  })
+  if (updated) {
+    cacheExtractedEnvParams(preferenceId, cachedParams)
+  }
+}
+
 export const processResponse = function (response) {
   console.log('=========================response', response)
   const { config } = response
@@ -182,11 +228,27 @@ export const processResponse = function (response) {
 export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   // const value = previewData?.mockParams || requestItem?.mockParams
   // const requestPath = `/mock/${groupItem.groupPath}${requestItem?.requestPath}`
-  const componentMap = calcComponentMap(projectInfoDetail.componentSchemas)
+  const preferenceId = calcDetailPreferenceId(apiDocDetail)
+  const groupConfig = JSON.parse(apiDocDetail?.project?.groupConfig || '{}')
+  if (preferenceId) {
+    const cachedParams = getExtractedEnvParams(preferenceId)
+    if (cachedParams?.length) {
+      groupConfig.envParams = groupConfig.envParams || []
+      cachedParams.forEach(cp => {
+        const ep = groupConfig.envParams.find(p => p.name === cp.name)
+        if (ep) {
+          ep.value = cp.value
+        } else {
+          groupConfig.envParams.push({ ...cp, enabled: true })
+        }
+      })
+    }
+  }
+  const componentMap = calcComponentMap(projectInfoDetail.componentSchemas || [])
   const target = {
     projectId: apiDocDetail?.projectId,
     docId: apiDocDetail?.id,
-    preferenceId: calcDetailPreferenceId(apiDocDetail),
+    preferenceId,
     pathParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'path'),
     requestParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap),
     headerParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'header'),
@@ -198,7 +260,8 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     requestFormat: 'json',
     targetUrl: apiDocDetail?.targetUrl,
     requestPath: apiDocDetail.url,
-    sendType: REQUEST_SEND_MODES[0].value
+    sendType: REQUEST_SEND_MODES[0].value,
+    groupConfig
   }
   if (apiDocDetail.requestsSchemas?.length) {
     const requestSchemas = apiDocDetail.requestsSchemas.flatMap(apiSchema => processSchemas(apiSchema, componentMap, true).map(reqSchema => {

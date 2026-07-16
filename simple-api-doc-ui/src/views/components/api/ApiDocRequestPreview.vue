@@ -6,7 +6,8 @@ import {
   preProcessParams,
   previewRequest,
   processResponse,
-  calcPreviewHeaders
+  calcPreviewHeaders,
+  extractVariables
 } from '@/services/api/ApiDocPreviewService'
 import ApiRequestForm from '@/views/components/api/form/ApiRequestForm.vue'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
@@ -129,6 +130,7 @@ const doDataPreview = async () => {
 
 const calcResponse = (response) => {
   responseTarget.value = processResponse(response)
+  extractVariables(response, paramTarget.value?.requestPath, paramTarget.value?.groupConfig, paramTarget.value?.preferenceId)
   if (response.status === 200 && response.headers[SIMPLE_SHARE_ERROR_HEADER]) {
     console.log('===============================responseTarget', responseTarget.value)
     emitter.emit('preview-401-error', {

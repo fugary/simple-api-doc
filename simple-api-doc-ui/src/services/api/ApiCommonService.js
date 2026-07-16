@@ -15,6 +15,7 @@ import { generate } from 'json-schema-faker'
 import { fakerZH_CN as faker } from '@faker-js/faker'
 import { XMLBuilder } from 'fast-xml-parser'
 import { cloneDeep, isArray, isFunction, isObject, isString, isPlainObject } from 'lodash-es'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { ALL_CONTENT_TYPES, ALL_CONTENT_TYPES_LIST, CHARSET_LIST, LANGUAGE_LIST1 } from '@/consts/ApiConstants'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { processSchemas } from '@/services/api/ApiDocPreviewService'
@@ -418,13 +419,41 @@ export const concatValueSuggestions = (...args) => {
   }
 }
 
-export const calcEnvSuggestions = (groupConfig) => {
-  if (groupConfig) {
-    groupConfig = isString(groupConfig) ? JSON.parse(groupConfig) : groupConfig
-    return (groupConfig?.envParams || [])
+export const calcEnvSuggestions = (groupConfig, preferenceId) => {
+  if (groupConfig || preferenceId) {
+    groupConfig = isString(groupConfig) ? JSON.parse(groupConfig) : cloneDeep(groupConfig || {})
+    const envParams = groupConfig?.envParams || []
+
+    if (preferenceId) {
+      const cachedParams = getExtractedEnvParams(preferenceId) || []
+      cachedParams.forEach(cp => {
+        const ep = envParams.find(p => p.name === cp.name)
+        if (ep) {
+          ep.value = cp.value
+        } else {
+          envParams.push({ ...cp, enabled: true })
+        }
+      })
+    }
+
+    return envParams
       .filter(param => param.enabled && param.name)
-      .map(param => `{{${param.name}}}`)
+      .map(param => ({ name: param.name, value: `{{${param.name}}}`, desc: param.value }))
   }
+}
+
+export const cacheExtractedEnvParams = (projectId, params) => {
+  if (!projectId) return
+  useShareConfigStore().extractedEnvParams[projectId] = params
+}
+
+export const getExtractedEnvParams = (projectId) => {
+  if (!projectId) return []
+  const store = useShareConfigStore()
+  if (!store.extractedEnvParams[projectId]) {
+    store.extractedEnvParams[projectId] = []
+  }
+  return store.extractedEnvParams[projectId]
 }
 
 export const processEvnParams = (groupConfig, dataValue, encode) => {
@@ -432,7 +461,7 @@ export const processEvnParams = (groupConfig, dataValue, encode) => {
     groupConfig = groupConfig && isString(groupConfig) ? JSON.parse(groupConfig) : groupConfig
     if (groupConfig?.envParams?.length) {
       groupConfig?.envParams.filter(param => param.enabled && param.name && isString(param.value)).forEach(item => {
-        dataValue = dataValue.replace(`{{${item.name}}}`, (item.value || '').trim())
+        dataValue = dataValue.replace(new RegExp(`\\{\\{${item.name}\\}\\}`, 'g'), (item.value || '').trim())
       })
     }
   }

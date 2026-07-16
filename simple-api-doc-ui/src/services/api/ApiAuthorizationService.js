@@ -75,8 +75,8 @@ const addTokenToParams = (model, token, headers, params) => {
 
 export const AUTH_OPTION_CONFIG = {
   basic: {
-    options: (groupConfig) => {
-      const envSuggestions = calcSuggestionsFunc(calcEnvSuggestions(groupConfig))
+    options: (groupConfig, preferenceId) => {
+      const envSuggestions = calcSuggestionsFunc(calcEnvSuggestions(groupConfig, preferenceId))
       return defineFormOptions([{
         labelKey: 'common.label.username',
         prop: 'userName',
@@ -106,8 +106,8 @@ export const AUTH_OPTION_CONFIG = {
     }
   },
   token: {
-    options: (groupConfig) => {
-      const envSuggestions = calcSuggestionsFunc(calcEnvSuggestions(groupConfig))
+    options: (groupConfig, preferenceId) => {
+      const envSuggestions = calcSuggestionsFunc(calcEnvSuggestions(groupConfig, preferenceId))
       return defineFormOptions([...baseOptions, {
         label: 'Token',
         prop: 'token',
@@ -125,8 +125,8 @@ export const AUTH_OPTION_CONFIG = {
     }
   },
   jwt: {
-    options: (groupConfig) => {
-      const envSuggestions = calcSuggestionsFunc(calcEnvSuggestions(groupConfig))
+    options: (groupConfig, preferenceId) => {
+      const envSuggestions = calcSuggestionsFunc(calcEnvSuggestions(groupConfig, preferenceId))
       return defineFormOptions([...baseOptions, {
         label: 'Algorithm',
         prop: 'algorithm',

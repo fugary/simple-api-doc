@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { useRoute } from 'vue-router'
 import { $coreShowLoading, $coreHideLoading, $goto, calcAffixOffset, useBackUrl } from '@/utils'
-import { ref, watch, computed, onActivated, onMounted, provide } from 'vue'
+import { ref, watch, computed, onActivated, onMounted, provide, nextTick } from 'vue'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import MarkdownDocViewer from '@/views/components/api/doc/MarkdownDocViewer.vue'
 import ApiDocViewer from '@/views/components/api/doc/ApiDocViewer.vue'
@@ -13,7 +13,7 @@ import ApiDocRequestPreview from '@/views/components/api/ApiDocRequestPreview.vu
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
-import { toEditEnvConfigs } from '@/utils/DynamicUtils'
+import { toEditEnvConfigs, toEditGroupEnvParams } from '@/utils/DynamicUtils'
 import { $i18nKey } from '@/messages'
 import ApiProjectSecuritySchemaEdit from '@/views/components/api/doc/comp/edit/ApiProjectSecuritySchemaEdit.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
@@ -34,7 +34,17 @@ const savedApiDoc = (newDoc) => {
   } else {
     currentDoc.value = newDoc
   }
-  folderTreeRef.value?.refreshProjectItem()
+  const refreshPromise = folderTreeRef.value?.refreshProjectItem()
+  if (refreshPromise) {
+    refreshPromise.then((newProject) => {
+      if (currentDoc.value) {
+        currentDoc.value = { ...currentDoc.value, project: newProject }
+        nextTick(() => {
+          apiDocPreviewRef.value?.toPreviewRequest(newProject, currentDoc.value, changeForceShowWindow.value)
+        })
+      }
+    })
+  }
 }
 const lastDocInfo = ref()
 watch(currentDoc, (newDoc, oldDoc) => {
@@ -162,6 +172,18 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
               {{ $t('api.label.environments') }}
             </el-button>
           </el-badge>
+          <el-button
+            v-if="isWritable"
+            class="margin-left2"
+            type="info"
+            @click="toEditGroupEnvParams(projectItem.id).then(() => savedApiDoc(currentDoc))"
+          >
+            <common-icon
+              icon="Setting"
+              class="margin-right1"
+            />
+            {{ $t('api.label.variableConfig') }}
+          </el-button>
           <el-badge
             v-if="isWritable"
             :value="projectItem.shares?.filter(share=>share.status).length"

@@ -1,5 +1,6 @@
 <script setup>
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
+import ApiEnvPopover from '@/views/components/api/ApiEnvPopover.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
 import { computed, ref, watch } from 'vue'
 import {
@@ -191,7 +192,7 @@ const selectExample = (example) => {
   setTimeout(() => checkEditorLang())
 }
 
-const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.groupConfig))
+const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.groupConfig, paramTarget.value?.preferenceId))
 
 const proxyModeOption = computed(() => {
   return {
@@ -333,6 +334,11 @@ const { monacoTheme } = useShareDocTheme()
     <template
       #add-icon
     >
+      <ApiEnvPopover
+        :env-suggestions="envSuggestions"
+        link-style="margin-top: -11px"
+        link-class="margin-right2"
+      />
       <el-dropdown
         class="margin-right2"
         @command="handleCurlCommand"
@@ -566,6 +572,7 @@ const { monacoTheme } = useShareDocTheme()
         v-model:auth-valid="authValid"
         :inherit-enabled="hasInheritAuth"
         :group-config="paramTarget.groupConfig"
+        :preference-id="paramTarget.preferenceId"
       />
     </el-tab-pane>
   </el-tabs>

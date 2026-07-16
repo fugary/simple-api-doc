@@ -14,8 +14,12 @@ const props = defineProps({
     default: 'authContent'
   },
   groupConfig: {
-    type: Object,
+    type: [Object, String],
     default: () => ({})
+  },
+  preferenceId: {
+    type: String,
+    default: ''
   },
   supportedAuthTypes: {
     type: Array,
@@ -68,7 +72,7 @@ const authTypeSelectOption = computed(() => {
 const authOptions = computed(() => {
   let options = AUTH_OPTION_CONFIG[vModel.value.authType]?.options || []
   if (isFunction(options)) {
-    options = options(props.groupConfig)
+    options = options(props.groupConfig, props.preferenceId)
   }
   if (vModel.value.authType === AUTH_TYPE.JWT) {
     options = [...options, jwtPayloadOption]

@@ -209,7 +209,7 @@ const paramsOptions = computed(() => {
       type: paramValueSuggestions ? 'autocomplete' : 'input',
       attrs: {
         fetchSuggestions: paramValueSuggestions,
-        triggerOnFocus: true
+        triggerOnFocus: false
       },
       dynamicOption: (item, ...args) => {
         if (isFunction(item.dynamicOption)) {
@@ -306,6 +306,16 @@ useTabFocus(sortableRef)
         >
           <common-icon icon="Delete" />
         </el-button>
+      </el-col>
+      <el-col
+        v-if="$slots.item"
+        :span="24"
+      >
+        <slot
+          name="item"
+          :item="item"
+          :index="index"
+        />
       </el-col>
     </el-row>
     <el-row>

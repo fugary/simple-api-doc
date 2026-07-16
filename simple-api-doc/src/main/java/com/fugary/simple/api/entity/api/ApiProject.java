@@ -18,6 +18,7 @@ public class ApiProject extends ModelBase {
     private String projectName;
     private String apiVersion;
     private String envContent;
+    private String groupConfig;
     private String iconUrl;
     private String description;
 }

@@ -19,10 +19,11 @@ import {
   copyParamsDynamicOption,
   isGetMethod
 } from '@/services/api/ApiDocPreviewService'
-import { useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
+import { calcEnvSuggestions, useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
 import { $i18nBundle } from '@/messages'
 import ApiDocSecurityRequirements from '@/views/components/api/doc/comp/ApiDocSecurityRequirements.vue'
+import ApiEnvPopover from '@/views/components/api/ApiEnvPopover.vue'
 import { cloneDeep } from 'lodash-es'
 
 const props = defineProps({
@@ -52,6 +53,7 @@ const projectInfoDetail = ref()
 const envConfigs = ref([])
 
 const paramTargetId = calcPreferenceId(props.projectItem, props.shareDoc)
+const envSuggestions = computed(() => calcEnvSuggestions(props.projectItem?.groupConfig, paramTargetId))
 const sharePreference = shareConfigStore.sharePreferenceView[paramTargetId]
 const getAuthContentModel = () => {
   return cloneDeep({
@@ -321,8 +323,20 @@ const authButtons = [{
       :ok-click="saveAuthorization"
       :buttons="authButtons"
     >
-      <el-container class="flex-column">
-        <el-tabs v-model="authContentModel.authKeyName">
+      <el-container
+        class="flex-column"
+        style="position: relative;"
+      >
+        <div style="position: absolute; right: 0; top: 2px; z-index: 10;">
+          <ApiEnvPopover
+            :env-suggestions="envSuggestions"
+            link-class="margin-top1"
+          />
+        </div>
+        <el-tabs
+          v-model="authContentModel.authKeyName"
+          class="common-tabs"
+        >
           <el-tab-pane
             v-for="(schema, name) in securitySchemas"
             :key="name"
@@ -363,6 +377,8 @@ const authButtons = [{
               :model-value="authModel"
               :form-prop="`authModels[${index}]`"
               :show-auth-types="false"
+              :group-config="props.projectItem?.groupConfig"
+              :preference-id="paramTargetId"
               :supported-auth-types="[authModel.authType]"
             />
           </template>
