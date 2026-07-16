@@ -6,6 +6,7 @@ trigger: always_on
 1. 生成提交日志时，请使用中文，日志主要包括本次修改实现的功能的信息。
 2. 每次提交后请更新DEVELOPMENT_LOG.md文件
 3. 每次大的变更请更新AGENTS.md文件
+4. 默认不自动提交(git commit)，除非在提示词中明确要求提交。
 
 # 前端代码
 

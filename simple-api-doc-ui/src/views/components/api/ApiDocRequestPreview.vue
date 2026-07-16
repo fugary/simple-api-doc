@@ -26,6 +26,8 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import emitter from '@/vendors/emitter'
 import { getEnvConfigs } from '@/api/SimpleShareApi'
 import { isFunction, lowerCase, isString } from 'lodash-es'
+import { ElMessage } from 'element-plus'
+import { $i18nBundle } from '@/messages'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 
 const projectInfoDetail = ref()
@@ -132,7 +134,11 @@ const doDataPreview = async () => {
 
 const calcResponse = (response) => {
   responseTarget.value = processResponse(response)
-  extractVariables(response, paramTarget.value?.requestPath, paramTarget.value?.groupConfig, paramTarget.value?.preferenceId)
+  const extracted = extractVariables(response, paramTarget.value?.requestPath, paramTarget.value?.groupConfig, paramTarget.value?.preferenceId)
+  if (extracted && extracted.length) {
+    const names = extracted.map(e => e.name).join(', ')
+    ElMessage.success($i18nBundle('api.msg.successExtractCache', [names]))
+  }
   if (response.status === 200 && response.headers[SIMPLE_SHARE_ERROR_HEADER]) {
     console.log('===============================responseTarget', responseTarget.value)
     emitter.emit('preview-401-error', {

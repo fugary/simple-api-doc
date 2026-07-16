@@ -141,6 +141,22 @@ export const previewRequest = function (reqData, config = {}) {
   })
 }
 
+export const isPathMatch = (rule, requestPath) => {
+  const apiPath = rule.apiPath
+  if (!apiPath) return true
+  if (apiPath === requestPath) return true
+
+  if (rule.isRegex) {
+    try {
+      return new RegExp(apiPath).test(requestPath)
+    } catch {
+      // ignore
+    }
+  }
+
+  return requestPath.includes(apiPath)
+}
+
 export const extractVariables = (response, requestPath, groupConfig, preferenceId) => {
   if (!groupConfig?.envParams?.length || !response) return
 
@@ -154,11 +170,12 @@ export const extractVariables = (response, requestPath, groupConfig, preferenceI
   }
 
   let updated = false
+  const extracted = []
   const cachedParams = getExtractedEnvParams(preferenceId) || []
   groupConfig.envParams.forEach(param => {
     if (param.enabled && param.extractRules?.length) {
       param.extractRules.forEach(rule => {
-        if (rule.enabled && rule.jsonPath && (!rule.apiPath || requestPath.includes(rule.apiPath))) {
+        if (rule.enabled && rule.jsonPath && isPathMatch(rule, requestPath)) {
           const jsonPathStr = rule.jsonPath.replace(/^\$\./, '')
           let val = get(responseData, jsonPathStr)
           if (val === undefined || val === null) {
@@ -172,10 +189,12 @@ export const extractVariables = (response, requestPath, groupConfig, preferenceI
               if (existing.value !== val) {
                 existing.value = val
                 updated = true
+                extracted.push({ name: param.name, value: val })
               }
             } else {
               cachedParams.push({ name: param.name, value: val })
               updated = true
+              extracted.push({ name: param.name, value: val })
             }
           }
         }
@@ -185,6 +204,7 @@ export const extractVariables = (response, requestPath, groupConfig, preferenceI
   if (updated) {
     cacheExtractedEnvParams(preferenceId, cachedParams)
   }
+  return extracted
 }
 
 export const processResponse = function (response) {

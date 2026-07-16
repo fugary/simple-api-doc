@@ -9,11 +9,19 @@ import { DEFAULT_HEADERS } from '@/consts/ApiConstants'
 import { defineFormOptions } from '@/components/utils'
 
 const extractRulesOptions = defineFormOptions([{
-  label: '',
+  labelKey: 'common.label.statusEnabled',
   prop: 'enabled',
   type: 'switch',
   value: true,
   width: 60,
+  columnAttrs: {
+    align: 'center'
+  }
+}, {
+  labelKey: 'api.label.isRegex',
+  prop: 'isRegex',
+  type: 'switch',
+  width: 90,
   columnAttrs: {
     align: 'center'
   }
