@@ -175,23 +175,6 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
             </el-button>
           </el-badge>
           <el-badge
-            :value="componentsCount"
-            :show-zero="false"
-            type="warning"
-            class="padding-left2"
-          >
-            <el-button
-              type="warning"
-              @click="$goto(`/api/projects/components/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
-            >
-              <common-icon
-                icon="SettingsInputComponentOutlined"
-                class="margin-right1"
-              />
-              {{ $t('api.label.dataModel') }}
-            </el-button>
-          </el-badge>
-          <el-badge
             v-if="isWritable"
             :value="envConfigs.length"
             :show-zero="false"
@@ -213,7 +196,7 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
             v-if="isWritable"
             :value="groupEnvParamsCount"
             :show-zero="false"
-            type="info"
+            type="primary"
             class="padding-left2"
           >
             <el-button
@@ -225,6 +208,23 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
                 class="margin-right1"
               />
               {{ $t('api.label.variableConfig') }}
+            </el-button>
+          </el-badge>
+          <el-badge
+            :value="componentsCount"
+            :show-zero="false"
+            type="warning"
+            class="padding-left2"
+          >
+            <el-button
+              type="warning"
+              @click="$goto(`/api/projects/components/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
+            >
+              <common-icon
+                icon="SettingsInputComponentOutlined"
+                class="margin-right1"
+              />
+              {{ $t('api.label.dataModel') }}
             </el-button>
           </el-badge>
           <el-badge
