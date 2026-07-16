@@ -1,12 +1,12 @@
 <script setup>
 import { ref } from 'vue'
+import { cloneDeep } from 'lodash-es'
 import ApiProjectApi from '@/api/ApiProjectApi'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 import { DEFAULT_HEADERS } from '@/consts/ApiConstants'
 import { defineFormOptions } from '@/components/utils'
-import { getExtractedEnvParams } from '@/services/api/ApiCommonService'
 
 const extractRulesOptions = defineFormOptions([{
   label: '',
@@ -36,19 +36,15 @@ const projectItem = ref()
 const groupConfig = ref({
   envParams: []
 })
-const cachedParams = ref([])
-const getCachedValue = (name) => {
-  if (!name) return null
-  return cachedParams.value.find(p => p.name === name)?.value
-}
 
 let callback
 const toEditGroupEnvParams = (projectId) => {
-  cachedParams.value = getExtractedEnvParams(projectId)
   ApiProjectApi.getById(projectId, { loading: true }).then(data => {
     projectItem.value = data.resultData
     if (projectItem.value?.groupConfig) {
       groupConfig.value = { envParams: [], ...JSON.parse(projectItem.value.groupConfig) }
+    } else {
+      groupConfig.value = { envParams: [] }
     }
     showWindow.value = true
   })
@@ -62,7 +58,11 @@ defineExpose({
 const saveGroupConfig = ({ form }) => {
   form.validate(valid => {
     if (valid) {
-      projectItem.value.groupConfig = JSON.stringify({ ...groupConfig.value })
+      const configToSave = cloneDeep(groupConfig.value)
+      configToSave.envParams?.forEach(param => {
+        delete param.showExtractRules
+      })
+      projectItem.value.groupConfig = JSON.stringify(configToSave)
       ApiProjectApi.saveOrUpdate(projectItem.value)
         .then(() => {
           ElMessage.success($i18nBundle('common.msg.saveSuccess'))
@@ -101,7 +101,7 @@ const saveGroupConfig = ({ form }) => {
           name-required
           :name-suggestions="DEFAULT_HEADERS"
         >
-          <template #item="{ item }">
+          <template #item="{ item, index }">
             <div style="margin-left: 20px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
               <el-button
                 type="primary"
@@ -109,24 +109,26 @@ const saveGroupConfig = ({ form }) => {
                 size="small"
                 @click="item.showExtractRules = !item.showExtractRules"
               >
-                <common-icon :icon="item.showExtractRules ? 'ArrowUp' : 'ArrowDown'" />
                 {{ item.showExtractRules ? $t('api.label.collapseExtractRules') : $t('api.label.configExtractRules') }}
                 <span
                   v-if="item.extractRules?.length"
-                  style="margin-left: 4px;"
+                  style="margin-left: 4px; margin-right: 2px"
                 >({{ item.extractRules.length }})</span>
+                <common-icon
+                  :icon="item.showExtractRules ? 'ArrowDown' : 'ArrowRight'"
+                  style="margin-left: 2px"
+                />
               </el-button>
 
-              <el-tooltip
-                v-if="getCachedValue(item.name)"
-                :content="$t('api.msg.successExtractCache', [getCachedValue(item.name)])"
-                placement="top"
-                max-width="400px"
+              <el-button
+                v-if="item.showExtractRules"
+                type="primary"
+                size="small"
+                link
+                @click="(item.extractRules = item.extractRules || []).push({ enabled: true })"
               >
-                <span style="font-size: 12px; color: var(--el-color-success); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                  <common-icon icon="InfoFilled" /> {{ $t('api.label.cachedValue') }}
-                </span>
-              </el-tooltip>
+                <common-icon icon="Plus" /> {{ $t('api.label.addExtractRule') }}
+              </el-button>
             </div>
 
             <el-collapse-transition>
@@ -138,7 +140,8 @@ const saveGroupConfig = ({ form }) => {
                   :model="item"
                   data-list-key="extractRules"
                   :form-options="extractRulesOptions"
-                  @delete="({index}) => item.extractRules.splice(index, 1)"
+                  :form-prop-prefix="`envParams.${index}`"
+                  @delete="({index: idx}) => item.extractRules.splice(idx, 1)"
                 >
                   <template #jsonPathHeader>
                     <div style="display: flex; align-items: center;">
@@ -147,16 +150,6 @@ const saveGroupConfig = ({ form }) => {
                     </div>
                   </template>
                 </common-table-form>
-                <div style="margin-top: 8px;">
-                  <el-button
-                    type="primary"
-                    size="small"
-                    plain
-                    @click="(item.extractRules = item.extractRules || []).push({ enabled: true })"
-                  >
-                    <common-icon icon="Plus" /> {{ $t('api.label.addExtractRule') }}
-                  </el-button>
-                </div>
               </div>
             </el-collapse-transition>
           </template>

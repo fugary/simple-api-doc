@@ -22,6 +22,10 @@ const props = defineProps({
   operationWidth: {
     type: String,
     default: '110px'
+  },
+  formPropPrefix: {
+    type: String,
+    default: ''
   }
 })
 
@@ -105,7 +109,7 @@ const options = computed(() => {
           :model="row"
           label-width="0"
           :option="option"
-          :prop="`${dataListKey}.${$index}.${option.prop}`"
+          :prop="formPropPrefix ? `${formPropPrefix}.${dataListKey}.${$index}.${option.prop}` : `${dataListKey}.${$index}.${option.prop}`"
           @change="formChange($event, row, $index, option)"
         />
       </template>
