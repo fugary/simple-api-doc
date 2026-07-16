@@ -17,6 +17,7 @@ import { toEditEnvConfigs, toEditGroupEnvParams } from '@/utils/DynamicUtils'
 import { $i18nKey } from '@/messages'
 import ApiProjectSecuritySchemaEdit from '@/views/components/api/doc/comp/edit/ApiProjectSecuritySchemaEdit.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
+import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -79,6 +80,30 @@ const envConfigs = computed(() => {
   return JSON.parse(projectItem.value?.envContent || '[]') || []
 })
 
+const authorizationCount = computed(() => projectItem.value?.infoList?.reduce((count, info) => {
+  try {
+    return count + Object.keys(JSON.parse(info.securitySchemas?.schemaContent || '{}')).length
+  } catch (e) {
+    console.debug(e)
+    return count
+  }
+}, 0) || 0)
+
+const componentsCount = ref(0)
+watch(() => projectItem.value?.id, id => {
+  id && ApiProjectInfoDetailApi.search({ projectId: id, bodyType: 'component', page: { pageSize: 1, pageNumber: 1 } })
+    .then(result => (componentsCount.value = result.page?.totalCount || 0))
+}, { immediate: true })
+
+const groupEnvParamsCount = computed(() => {
+  try {
+    return JSON.parse(projectItem.value?.groupConfig || '{}').envParams?.length || 0
+  } catch (e) {
+    console.debug(e)
+    return 0
+  }
+})
+
 const showSecurityEditWindow = ref(false)
 
 const splitRef = ref()
@@ -131,29 +156,41 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
           >
             {{ $t('common.label.back') }}
           </el-button>
-          <el-button
+          <el-badge
             v-if="projectItem.infoList?.length&&isWritable"
-            class="margin-left2"
+            :value="authorizationCount"
+            :show-zero="false"
             type="primary"
-            @click="showSecurityEditWindow=true"
+            class="padding-left2"
           >
-            <common-icon
-              icon="LockOutlined"
-              class="margin-right1"
-            />
-            {{ $t('api.label.authorization') }}
-          </el-button>
-          <el-button
-            class="margin-left2"
+            <el-button
+              type="primary"
+              @click="showSecurityEditWindow=true"
+            >
+              <common-icon
+                icon="LockOutlined"
+                class="margin-right1"
+              />
+              {{ $t('api.label.authorization') }}
+            </el-button>
+          </el-badge>
+          <el-badge
+            :value="componentsCount"
+            :show-zero="false"
             type="warning"
-            @click="$goto(`/api/projects/components/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
+            class="padding-left2"
           >
-            <common-icon
-              icon="SettingsInputComponentOutlined"
-              class="margin-right1"
-            />
-            {{ $t('api.label.dataModel') }}
-          </el-button>
+            <el-button
+              type="warning"
+              @click="$goto(`/api/projects/components/${projectItem.projectCode}?backUrl=${route.fullPath}`)"
+            >
+              <common-icon
+                icon="SettingsInputComponentOutlined"
+                class="margin-right1"
+              />
+              {{ $t('api.label.dataModel') }}
+            </el-button>
+          </el-badge>
           <el-badge
             v-if="isWritable"
             :value="envConfigs.length"
@@ -172,18 +209,24 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
               {{ $t('api.label.environments') }}
             </el-button>
           </el-badge>
-          <el-button
+          <el-badge
             v-if="isWritable"
-            class="margin-left2"
+            :value="groupEnvParamsCount"
+            :show-zero="false"
             type="info"
-            @click="toEditGroupEnvParams(projectItem.id).then(() => savedApiDoc(currentDoc))"
+            class="padding-left2"
           >
-            <common-icon
-              icon="Setting"
-              class="margin-right1"
-            />
-            {{ $t('api.label.variableConfig') }}
-          </el-button>
+            <el-button
+              type="info"
+              @click="toEditGroupEnvParams(projectItem.id).then(() => savedApiDoc(currentDoc))"
+            >
+              <common-icon
+                icon="Setting"
+                class="margin-right1"
+              />
+              {{ $t('api.label.variableConfig') }}
+            </el-button>
+          </el-badge>
           <el-badge
             v-if="isWritable"
             :value="projectItem.shares?.filter(share=>share.status).length"
