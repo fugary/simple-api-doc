@@ -107,7 +107,7 @@ const loadDocDetail = async () => {
 const handlerConfig = {
   preHandler: target => {
     const savedTarget = { ...lastParamTarget }
-    const notSavedKeys = ['requestBodySchema', 'securityRequirements', 'requestExamples']// 有些数据不能使用保存数据
+    const notSavedKeys = ['requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']// 有些数据不能使用保存数据
     notSavedKeys.forEach(key => delete savedTarget[key])
     copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
     copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
