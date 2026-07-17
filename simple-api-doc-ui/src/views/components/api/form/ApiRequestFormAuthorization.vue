@@ -1,12 +1,14 @@
-<script setup>
+<script setup lang="jsx">
 
 import { computed, watch, nextTick } from 'vue'
 import { AUTH_OPTIONS, AUTH_TYPE } from '@/consts/ApiConstants'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
-import { useFormItem } from 'element-plus'
+import { useFormItem, ElLink } from 'element-plus'
 import { isFunction } from 'lodash-es'
 import { useShareDocTheme } from '@/services/api/ApiFolderService'
+import { toLabelByKey } from '@/components/utils'
+import CommonIcon from '@/components/common-icon/index.vue'
 
 const props = defineProps({
   formProp: {
@@ -29,11 +31,17 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-  inheritEnabled: {
+  apiSupportsAuth: {
+    type: Boolean,
+    default: false
+  },
+  inheritConfigured: {
     type: Boolean,
     default: false
   }
 })
+
+const emits = defineEmits(['openAuthWindow'])
 
 const vModel = defineModel('modelValue', {
   type: Object,
@@ -53,13 +61,41 @@ const authTypeSelectOption = computed(() => {
     children: AUTH_OPTIONS.filter(authOpt => !props.supportedAuthTypes ||
         props.supportedAuthTypes.includes(authOpt.value)).map(authOpt => {
       const returnOpt = { ...authOpt }
-      if (props.inheritEnabled && authOpt.value === AUTH_TYPE.INHERIT) {
+      if (props.apiSupportsAuth && authOpt.value === AUTH_TYPE.INHERIT) {
         returnOpt.enabled = true
+        if (props.inheritConfigured) {
+          returnOpt.slots = {
+            default: () => (
+              <span style="display: inline-flex; align-items: center;">
+                {toLabelByKey(authOpt.labelKey)}
+                <ElLink
+                  type="primary"
+                  underline={false}
+                  style="margin-left: 4px;"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    emits('openAuthWindow')
+                  }}
+                >
+                  <CommonIcon icon="Edit" />
+                </ElLink>
+              </span>
+            )
+          }
+          delete returnOpt.labelKey
+          delete returnOpt.label
+        }
       }
       return returnOpt
     }),
     change (value) {
-      if (props.inheritEnabled && value !== AUTH_TYPE.INHERIT) { // 手动选择非继承配置
+      if (value === AUTH_TYPE.INHERIT) {
+        vModel.value.force = false
+        if (!props.inheritConfigured) {
+          emits('openAuthWindow')
+        }
+      } else if (props.apiSupportsAuth || props.inheritConfigured) { // 手动选择非继承配置
         vModel.value.force = true
       }
     },

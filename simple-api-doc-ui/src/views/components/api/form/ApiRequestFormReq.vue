@@ -39,6 +39,7 @@ import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
 import { buildCurlCommand, CURL_SHELL, extendCurlParams } from '@/services/api/CurlProcessService'
 import { useShareDocTheme } from '@/services/api/ApiFolderService'
+import emitter from '@/vendors/emitter'
 
 const props = defineProps({
   showAuthorization: {
@@ -141,7 +142,11 @@ watch(() => [paramTarget.value.headerParams, paramTarget.value.requestParams], (
 const currentTabName = ref('requestParamsTab')
 const authContentModel = ref({})
 const paramList = ['requestBody', 'pathParams', 'requestParams', 'headerParams']
-const hasInheritAuth = ref(false)
+const shareConfigStore = useShareConfigStore()
+const hasInheritAuth = computed(() => {
+  return !!shareConfigStore.sharePreferenceView[paramTarget.value?.preferenceId]?.defaultAuthModel && !!paramTarget.value?.securityRequirements?.length
+})
+
 const initParamTarget = () => {
   contentRef.value = paramTarget.value?.requestBody
   languageRef.value = paramTarget.value?.requestFormat || languageRef.value
@@ -156,14 +161,10 @@ const initParamTarget = () => {
       break
     }
   }
-  hasInheritAuth.value = paramTarget.value.hasInheritAuth && !!paramTarget.value?.securityRequirements?.length
   if (paramTarget.value.authContent) {
     authContentModel.value = paramTarget.value.authContent
   } else {
     paramTarget.value.authContent = authContentModel.value
-  }
-  if (hasInheritAuth.value && !authContentModel.value.force) {
-    authContentModel.value.authType = AUTH_TYPE.INHERIT
   }
   if (paramsSendAsOption.value.enabled && paramTarget.value && !paramTarget.value?.paramsSendAs) {
     paramTarget.value.paramsSendAs = !isGetMethod(paramTarget.value?.method) ? 'formUrlencoded' : 'urlParams'
@@ -171,6 +172,18 @@ const initParamTarget = () => {
 }
 initParamTarget()
 const authValid = ref(true)
+
+const openAuthorizationWindow = () => {
+  emitter.emit('open-authorization-window', paramTarget.value.docId)
+}
+
+watch(hasInheritAuth, (newVal) => {
+  if (newVal && !authContentModel.value.force) {
+    authContentModel.value.authType = AUTH_TYPE.INHERIT
+  } else if (!newVal && authContentModel.value.authType === AUTH_TYPE.INHERIT) {
+    authContentModel.value.authType = AUTH_TYPE.NONE
+  }
+}, { immediate: true })
 
 const generateSample = async (schema) => {
   if ([FORM_URL_ENCODED, FORM_DATA].includes(schema.type)) {
@@ -570,9 +583,11 @@ const { monacoTheme } = useShareDocTheme()
       <ApiRequestFormAuthorization
         v-model="authContentModel"
         v-model:auth-valid="authValid"
-        :inherit-enabled="hasInheritAuth"
+        :inherit-configured="hasInheritAuth"
+        :api-supports-auth="!!paramTarget?.securityRequirements?.length"
         :group-config="paramTarget.groupConfig"
         :preference-id="paramTarget.preferenceId"
+        @open-auth-window="openAuthorizationWindow"
       />
     </el-tab-pane>
   </el-tabs>

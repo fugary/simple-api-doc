@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, reactive } from 'vue'
+import { computed, ref, watch, reactive, onMounted, onUnmounted } from 'vue'
 import { getEnvConfigs, loadShareDoc } from '@/api/SimpleShareApi'
 import { loadDoc } from '@/api/ApiDocApi'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
@@ -148,6 +148,19 @@ const toEditAuthorization = () => {
   }
   showAuthorizationWindow.value = true
 }
+
+const handleOpenAuthWindow = (docId) => {
+  if (apiDocDetail.value?.id === docId) {
+    toEditAuthorization()
+  }
+}
+onMounted(() => {
+  emitter.on('open-authorization-window', handleOpenAuthWindow)
+})
+onUnmounted(() => {
+  emitter.off('open-authorization-window', handleOpenAuthWindow)
+})
+
 const saveAuthModel = (model) => {
   if (sharePreference) {
     sharePreference.defaultAuthModel = model ? cloneDeep(model) : undefined
