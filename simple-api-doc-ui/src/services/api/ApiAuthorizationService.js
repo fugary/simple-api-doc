@@ -84,7 +84,7 @@ export const AUTH_OPTION_CONFIG = {
         type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
-          triggerOnFocus: false
+          triggerOnFocus: true
         }
       }, {
         labelKey: 'common.label.password',
@@ -93,7 +93,7 @@ export const AUTH_OPTION_CONFIG = {
         type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
-          triggerOnFocus: false
+          triggerOnFocus: true
         }
       }])
     },
@@ -115,7 +115,7 @@ export const AUTH_OPTION_CONFIG = {
         type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
-          triggerOnFocus: false
+          triggerOnFocus: true
         }
       }])
     },
@@ -144,7 +144,7 @@ export const AUTH_OPTION_CONFIG = {
         type: envSuggestions ? 'autocomplete' : 'input',
         attrs: {
           fetchSuggestions: envSuggestions,
-          triggerOnFocus: false
+          triggerOnFocus: true
         }
       }, {
         label: 'base64 encoded',
