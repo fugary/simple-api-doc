@@ -4,14 +4,15 @@ import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { processProjectInfos, processSecuritySchema, securitySchemas2List } from '@/services/api/ApiDocEditService'
 import { defineFormOptions, defineTableColumns } from '@/components/utils'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { ElButton } from 'element-plus'
+import { ElButton, ElMessage, ElText } from 'element-plus'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
+import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { cloneDeep } from 'lodash-es'
 import { $coreConfirm, getSingleSelectOptions } from '@/utils'
-import { SECURITY_IN_TYPES, SECURITY_OAUTH2_AUTH_TYPES, SECURITY_TYPE_TYPES } from '@/consts/ApiConstants'
+import { AUTH_TYPE, SECURITY_IN_TYPES, SECURITY_OAUTH2_AUTH_TYPES, SECURITY_TYPE_TYPES } from '@/consts/ApiConstants'
 import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { toEditSecuritySchemas } from '@/utils/DynamicUtils'
-import { calcSecurityRequirements } from '@/services/api/ApiDocPreviewService'
+import { calcAuthModelBySchemas, calcAuthType, calcSecurityRequirements } from '@/services/api/ApiDocPreviewService'
 
 const showWindow = defineModel({
   type: Boolean,
@@ -70,6 +71,12 @@ const tableButtons = computed(() => {
     type: 'primary',
     click: (item) => {
       newOrEdit(item.schemaName)
+    }
+  }, {
+    labelKey: 'api.label.defaultValue',
+    type: 'success',
+    click: (item) => {
+      editRowDefaultAuth(item)
     }
   }, {
     labelKey: 'common.label.delete',
@@ -177,7 +184,7 @@ const saveOrDeleteSecuritySchema = async (item, isDelete) => {
   if (isDelete) {
     delete schemaContentObj[schemaName]
   } else {
-    schema = processSecuritySchema(securityInfoModel.value, schema)
+    schema = processSecuritySchema(item, schema)
     console.log('=======================schema', schema)
     schemaContentObj[schemaName] = schema
   }
@@ -189,6 +196,127 @@ const saveOrDeleteSecuritySchema = async (item, isDelete) => {
 const saveSecuritySchema = async () => {
   return saveOrDeleteSecuritySchema(securityInfoModel.value)
 }
+
+// ============ 默认值配置（复用 ApiDocViewer 统一认证 UI） ============
+const showDefaultAuthWindow = ref(false)
+const defaultSecuritySchemas = ref({})
+const defaultAuthContentModel = ref({ authModels: [] })
+const saveDefaultLoading = ref(false)
+const currentEditingInfoDetail = ref()
+
+const supportedDefaultAuthModels = computed(() => {
+  return defaultAuthContentModel.value?.authModels?.filter(authModel => authModel.isSupported) || []
+})
+
+const editRowDefaultAuth = (item) => {
+  const currentInfoDetail = infoListDetails.value.find(info => currentInfoId.value === info.id)
+  if (!currentInfoDetail) return
+
+  currentEditingInfoDetail.value = currentInfoDetail
+  const secSchemas = JSON.parse(currentInfoDetail.securitySchema?.schemaContent || '{}')
+  let jwtKey = null
+  Object.keys(secSchemas).forEach((key) => {
+    const secSchema = secSchemas[key]
+    secSchema.authType = calcAuthType(secSchema)
+    secSchema.isSupported = true
+    secSchema.authType === AUTH_TYPE.JWT && (jwtKey = key)
+    secSchema.authKey = key
+    secSchema.authKeyName = key
+  })
+  if (secSchemas[jwtKey]) {
+    secSchemas.$JWT_TOKEN = {
+      description: 'JWT authentication with token.',
+      authType: AUTH_TYPE.TOKEN,
+      name: secSchemas[jwtKey].name,
+      in: secSchemas[jwtKey].in,
+      scheme: secSchemas[jwtKey].scheme,
+      type: secSchemas[jwtKey].type,
+      'x-default-auth': secSchemas[jwtKey]['x-default-auth'],
+      isSupported: true,
+      authKeyName: '$JWT_TOKEN',
+      authKey: jwtKey
+    }
+  }
+
+  defaultSecuritySchemas.value = secSchemas
+
+  const model = { authModels: [] }
+  calcAuthModelBySchemas(model, secSchemas)
+
+  let activeTab = item.schemaName
+  if (secSchemas[item.schemaName]?.authType === AUTH_TYPE.JWT && secSchemas.$JWT_TOKEN) {
+    activeTab = '$JWT_TOKEN'
+  }
+  model.authKeyName = activeTab
+
+  defaultAuthContentModel.value = model
+  showDefaultAuthWindow.value = true
+}
+
+const clearDefaultAuthValues = () => {
+  calcAuthModelBySchemas(defaultAuthContentModel.value = {
+    authType: AUTH_TYPE.NONE,
+    authModels: []
+  }, defaultSecuritySchemas.value)
+}
+
+const saveDefaultAuthValues = () => {
+  const currentDetail = currentEditingInfoDetail.value
+  if (!currentDetail) return
+
+  const securitySchema = cloneDeep(currentDetail.securitySchema)
+  const schemaContentObj = securitySchema.schemaContentObj
+
+  const authModels = defaultAuthContentModel.value?.authModels || []
+  authModels.forEach(authModel => {
+    const schemaName = authModel.authKeyName || authModel.authKey
+    if (schemaName && schemaContentObj[schemaName]) {
+      const defaultAuth = {}
+      const keys = ['token', 'userName', 'userPassword', 'secret', 'algorithm', 'base64']
+      keys.forEach(k => {
+        if (authModel[k] !== undefined && authModel[k] !== '') {
+          defaultAuth[k] = authModel[k]
+        }
+      })
+      if (Object.keys(defaultAuth).length > 0) {
+        schemaContentObj[schemaName]['x-default-auth'] = defaultAuth
+      } else {
+        delete schemaContentObj[schemaName]['x-default-auth']
+      }
+    } else if (schemaName === '$JWT_TOKEN' && authModel.token) {
+      const originalJwtKey = Object.keys(defaultSecuritySchemas.value).find(key =>
+        defaultSecuritySchemas.value[key]?.authType === AUTH_TYPE.JWT && key !== '$JWT_TOKEN'
+      )
+      if (originalJwtKey && schemaContentObj[originalJwtKey]) {
+        schemaContentObj[originalJwtKey]['x-default-auth'] = schemaContentObj[originalJwtKey]['x-default-auth'] || {}
+        schemaContentObj[originalJwtKey]['x-default-auth'].token = authModel.token
+      }
+    }
+  })
+
+  securitySchema.schemaContent = JSON.stringify(schemaContentObj)
+  delete securitySchema.schemaContentObj
+
+  saveDefaultLoading.value = true
+  return ApiProjectInfoDetailApi.saveOrUpdate(securitySchema)
+    .then((resultData) => {
+      ElMessage.success($i18nBundle('common.msg.saveSuccess'))
+      emit('saveSecuritySchema', resultData)
+      showDefaultAuthWindow.value = false
+    })
+    .finally(() => {
+      saveDefaultLoading.value = false
+    })
+}
+
+const defaultAuthButtons = [{
+  labelKey: 'common.label.clear',
+  type: 'success',
+  click () {
+    clearDefaultAuthValues()
+  }
+}]
+
 const toEditDefaultSecuritySchemas = projectInfoDetail => toEditSecuritySchemas({
   projectInfoDetail,
   docSecurity: false,
@@ -216,7 +344,7 @@ const toEditDefaultSecuritySchemas = projectInfoDetail => toEditSecuritySchemas(
             :columns="columns"
             :data="infoDetail.schemaList"
             :buttons="tableButtons"
-            :buttons-column-attrs="{minWidth:'150px'}"
+            :buttons-column-attrs="{minWidth:'180px'}"
           />
           <el-container class="margin-top2">
             <el-button
@@ -259,6 +387,67 @@ const toEditDefaultSecuritySchemas = projectInfoDetail => toEditSecuritySchemas(
         :save-current-item="saveSecuritySchema"
         label-width="130px"
       />
+      <common-window
+        v-model="showDefaultAuthWindow"
+        :title="$i18nKey('common.label.commonEdit', 'api.label.defaultValue')"
+        :ok-click="saveDefaultAuthValues"
+        :ok-loading="saveDefaultLoading"
+        :buttons="defaultAuthButtons"
+        width="800px"
+        append-to-body
+        destroy-on-close
+      >
+        <el-container
+          class="flex-column"
+          style="position: relative;"
+        >
+          <el-tabs
+            v-model="defaultAuthContentModel.authKeyName"
+            class="common-tabs"
+          >
+            <el-tab-pane
+              v-for="(schema, name) in defaultSecuritySchemas"
+              :key="name"
+              :name="name"
+            >
+              <template #label>
+                <el-text type="info">
+                  {{ name }}
+                  <span v-if="schema.type">
+                    ({{ schema.type }})
+                  </span>
+                </el-text>
+              </template>
+              <div
+                v-if="schema.description"
+                class="padding-top2 padding-bottom3"
+              >
+                <el-text>
+                  {{ schema.description }}
+                </el-text>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+          <common-form
+            :model="defaultAuthContentModel"
+            :show-buttons="false"
+          >
+            <template
+              v-for="(authModel, index) in supportedDefaultAuthModels"
+              :key="authModel.authKeyName"
+            >
+              <ApiRequestFormAuthorization
+                v-if="defaultAuthContentModel.authKeyName===authModel.authKeyName"
+                :model-value="authModel"
+                :form-prop="`authModels[${index}]`"
+                :show-auth-types="false"
+                :group-config="projectItem?.groupConfig"
+                :supported-auth-types="[authModel.authType]"
+              />
+            </template>
+          </common-form>
+        </el-container>
+      </common-window>
     </el-container>
   </common-window>
 </template>

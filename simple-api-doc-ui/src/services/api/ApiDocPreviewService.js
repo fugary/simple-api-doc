@@ -828,6 +828,7 @@ export const calcSecuritySchemas = (projectInfoDetail, apiDocDetail, securitySch
           in: jwtSchema.in,
           scheme: jwtSchema.scheme,
           type: jwtSchema.type,
+          'x-default-auth': jwtSchema['x-default-auth'],
           isSupported: true,
           authKeyName,
           authKey: jwtKey
@@ -835,11 +836,15 @@ export const calcSecuritySchemas = (projectInfoDetail, apiDocDetail, securitySch
       }
     }
     console.log('==================================secSchemas', secSchemas)
-    securitySchemas.value = Object.fromEntries(Object.entries(secSchemas).sort(([, a], [, b]) => {
-      return !!b.isSupported - !!a.isSupported
-    }))
-    supportedAuthTypes.value = Object.values(secSchemas).filter(s => s.isSupported)
-      .map(s => s.authType)
+    if (securitySchemas) {
+      securitySchemas.value = Object.fromEntries(Object.entries(secSchemas).sort(([, a], [, b]) => {
+        return !!b.isSupported - !!a.isSupported
+      }))
+    }
+    if (supportedAuthTypes) {
+      supportedAuthTypes.value = Object.values(secSchemas).filter(s => s.isSupported)
+        .map(s => s.authType)
+    }
     return secSchemas
   }
   return undefined
@@ -877,6 +882,10 @@ export const calcDefaultAuthModel = (authContentModel, authSchema) => {
       authContentModel.tokenPrefix = authSchema.scheme || (BEARER_KEY === authSchema.authKey ? BEARER_KEY : '')
     }
     authContentModel.authKey = authSchema.authKey
+    const defaultAuth = authSchema['x-default-auth']
+    if (defaultAuth) {
+      Object.assign(authContentModel, defaultAuth)
+    }
     return authContentModel
   }
 }

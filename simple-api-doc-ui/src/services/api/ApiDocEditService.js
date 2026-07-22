@@ -164,6 +164,9 @@ export const processSecuritySchema = (securityInfo, schema) => {
       [oauth2Type]: schema.flows[oauth2Type]
     }
   }
+  if (schema['x-default-auth'] && !Object.values(schema['x-default-auth']).some(val => val !== undefined && val !== '' && val !== null)) {
+    delete schema['x-default-auth']
+  }
   return schema
 }
 
