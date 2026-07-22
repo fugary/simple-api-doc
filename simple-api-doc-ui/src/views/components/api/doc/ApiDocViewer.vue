@@ -12,7 +12,7 @@ import ApiDocRequestBody from '@/views/components/api/doc/comp/ApiDocRequestBody
 import ApiDocResponseBody from '@/views/components/api/doc/comp/ApiDocResponseBody.vue'
 import emitter from '@/vendors/emitter'
 import { AUTH_TYPE } from '@/consts/ApiConstants'
-import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
+import ApiDocAuthorizationWindow from '@/views/components/api/doc/comp/ApiDocAuthorizationWindow.vue'
 import {
   calcAuthModelBySchemas,
   calcSecuritySchemas,
@@ -21,9 +21,7 @@ import {
 } from '@/services/api/ApiDocPreviewService'
 import { calcEnvSuggestions, useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
-import { $i18nBundle } from '@/messages'
 import ApiDocSecurityRequirements from '@/views/components/api/doc/comp/ApiDocSecurityRequirements.vue'
-import ApiEnvPopover from '@/views/components/api/ApiEnvPopover.vue'
 import { cloneDeep } from 'lodash-es'
 
 const props = defineProps({
@@ -96,6 +94,9 @@ const loadDocDetail = async () => {
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
   calcSecuritySchemas(projectInfoDetail.value, apiDocDetail.value, securitySchemas, supportedAuthTypes, props.shareDoc)
   calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
+  if (!sharePreference?.defaultAuthModel && authContentModel.value?.authType && authContentModel.value.authType !== AUTH_TYPE.NONE) {
+    saveAuthModel(authContentModel.value)
+  }
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
   apiDocDetail.value.targetUrl = envConfigs.value?.find(env => env.url === sharePreference?.targetUrl)?.url || envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
@@ -177,37 +178,23 @@ const saveAuthorization = ({ form }) => {
   return false
 }
 
-const getNotSupportedMsg = (schema) => {
-  if (!schema.isSupported) {
-    return $i18nBundle('api.label.notSupported')
-  }
-  if (!schema.authModel?.isSupported) {
-    return $i18nBundle('api.msg.authNotSupported')
-  }
+const clearAuthorization = () => {
+  calcAuthModelBySchemas(authContentModel.value = {
+    authType: AUTH_TYPE.NONE,
+    authModels: []
+  }, securitySchemas.value)
+  saveAuthModel()
+  showAuthorizationWindow.value = false
 }
 
 const supportedAuthModels = computed(() => {
-  console.log('===================================authContentModel', authContentModel.value)
   return authContentModel.value?.authModels?.filter(authModel => authModel.isSupported) || []
 })
 const copyRight = useCopyRight(props.shareDoc)
-
 const docContent = computed(() => {
   return apiDocDetail.value?.docContent || apiDocDetail.value?.description
 })
 const { isSmallContainer, containerRef } = useContainerCheck()
-const authButtons = [{
-  labelKey: 'common.label.clear',
-  type: 'success',
-  click () {
-    calcAuthModelBySchemas(authContentModel.value = {
-      authType: AUTH_TYPE.NONE,
-      authModels: []
-    }, securitySchemas.value)
-    saveAuthModel()
-    showAuthorizationWindow.value = false
-  }
-}]
 </script>
 
 <template>
@@ -330,74 +317,16 @@ const authButtons = [{
         :bottom="40"
       />
     </template>
-    <common-window
+    <ApiDocAuthorizationWindow
       v-model="showAuthorizationWindow"
-      :title="$t('api.label.authorization')"
+      v-model:auth-content-model="authContentModel"
+      :security-schemas="securitySchemas"
+      :group-config="props.projectItem?.groupConfig"
+      :preference-id="paramTargetId"
+      :env-suggestions="envSuggestions"
       :ok-click="saveAuthorization"
-      :buttons="authButtons"
-    >
-      <el-container
-        class="flex-column"
-        style="position: relative;"
-      >
-        <div style="position: absolute; right: 0; top: 2px; z-index: 10;">
-          <ApiEnvPopover
-            :env-suggestions="envSuggestions"
-            link-class="margin-top1"
-          />
-        </div>
-        <el-tabs
-          v-model="authContentModel.authKeyName"
-          class="common-tabs"
-        >
-          <el-tab-pane
-            v-for="(schema, name) in securitySchemas"
-            :key="name"
-            :disabled="!schema.isSupported||!schema.authModel?.isSupported"
-            :name="name"
-          >
-            <template #label>
-              <el-text
-                v-common-tooltip="getNotSupportedMsg(schema)"
-                type="info"
-              >
-                {{ name }}
-                <span v-if="schema.type">
-                  ({{ schema.type }})
-                </span>
-              </el-text>
-            </template>
-            <div
-              v-if="schema.description"
-              class="padding-top2 padding-bottom3"
-            >
-              <el-text>
-                {{ schema.description }}
-              </el-text>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
-        <common-form
-          :model="authContentModel"
-          :show-buttons="false"
-        >
-          <template
-            v-for="(authModel, index) in supportedAuthModels"
-            :key="authModel.authKeyName"
-          >
-            <ApiRequestFormAuthorization
-              v-if="authContentModel.authKeyName===authModel.authKeyName"
-              :model-value="authModel"
-              :form-prop="`authModels[${index}]`"
-              :show-auth-types="false"
-              :group-config="props.projectItem?.groupConfig"
-              :preference-id="paramTargetId"
-              :supported-auth-types="[authModel.authType]"
-            />
-          </template>
-        </common-form>
-      </el-container>
-    </common-window>
+      :clear-click="clearAuthorization"
+    />
   </el-container>
 </template>
 

@@ -885,6 +885,7 @@ export const calcDefaultAuthModel = (authContentModel, authSchema) => {
     const defaultAuth = authSchema['x-default-auth']
     if (defaultAuth) {
       Object.assign(authContentModel, defaultAuth)
+      authContentModel.hasDefaultAuth = true
     }
     return authContentModel
   }
@@ -907,9 +908,12 @@ export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
       secSchema.authModel = authModel
       return authModel
     })
-    const selectedModel = authContentModel.authModels?.find(authModel => authModel.isSupported && authModel.authKeyName === authContentModel.authKeyName) ||
-      authContentModel.authModels?.find(authModel => authModel.isSupported && authModel.authType === authContentModel.authType) ||
-      authContentModel.authModels?.find(authModel => authModel.isSupported)
+
+    const supportedModels = authContentModel.authModels?.filter(m => m.isSupported) || []
+    const selectedModel = supportedModels.find(m => m.authKeyName === authContentModel.authKeyName) ||
+      (authContentModel.authType && authContentModel.authType !== AUTH_TYPE.NONE && supportedModels.find(m => m.authType === authContentModel.authType)) ||
+      supportedModels.find(m => m.hasDefaultAuth) ||
+      supportedModels[0]
     authContentModel.authType = selectedModel?.authType || AUTH_TYPE.NONE
     authContentModel.authKeyName = selectedModel?.authKeyName
     console.log('================================authModels', authContentModel)

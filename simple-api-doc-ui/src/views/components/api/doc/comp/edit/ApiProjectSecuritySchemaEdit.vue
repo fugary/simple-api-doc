@@ -4,15 +4,15 @@ import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { processProjectInfos, processSecuritySchema, securitySchemas2List } from '@/services/api/ApiDocEditService'
 import { defineFormOptions, defineTableColumns } from '@/components/utils'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { ElButton, ElMessage, ElText } from 'element-plus'
+import { ElButton, ElMessage } from 'element-plus'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
-import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { cloneDeep } from 'lodash-es'
 import { $coreConfirm, getSingleSelectOptions } from '@/utils'
 import { AUTH_TYPE, SECURITY_IN_TYPES, SECURITY_OAUTH2_AUTH_TYPES, SECURITY_TYPE_TYPES } from '@/consts/ApiConstants'
 import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
 import { toEditSecuritySchemas } from '@/utils/DynamicUtils'
 import { calcAuthModelBySchemas, calcAuthType, calcSecurityRequirements } from '@/services/api/ApiDocPreviewService'
+import ApiDocAuthorizationWindow from '@/views/components/api/doc/comp/ApiDocAuthorizationWindow.vue'
 
 const showWindow = defineModel({
   type: Boolean,
@@ -204,10 +204,6 @@ const defaultAuthContentModel = ref({ authModels: [] })
 const saveDefaultLoading = ref(false)
 const currentEditingInfoDetail = ref()
 
-const supportedDefaultAuthModels = computed(() => {
-  return defaultAuthContentModel.value?.authModels?.filter(authModel => authModel.isSupported) || []
-})
-
 const editRowDefaultAuth = (item) => {
   const currentInfoDetail = infoListDetails.value.find(info => currentInfoId.value === info.id)
   if (!currentInfoDetail) return
@@ -254,6 +250,9 @@ const editRowDefaultAuth = (item) => {
 }
 
 const clearDefaultAuthValues = () => {
+  Object.keys(defaultSecuritySchemas.value || {}).forEach(key => {
+    delete defaultSecuritySchemas.value[key]['x-default-auth']
+  })
   calcAuthModelBySchemas(defaultAuthContentModel.value = {
     authType: AUTH_TYPE.NONE,
     authModels: []
@@ -308,14 +307,6 @@ const saveDefaultAuthValues = () => {
       saveDefaultLoading.value = false
     })
 }
-
-const defaultAuthButtons = [{
-  labelKey: 'common.label.clear',
-  type: 'success',
-  click () {
-    clearDefaultAuthValues()
-  }
-}]
 
 const toEditDefaultSecuritySchemas = projectInfoDetail => toEditSecuritySchemas({
   projectInfoDetail,
@@ -387,67 +378,17 @@ const toEditDefaultSecuritySchemas = projectInfoDetail => toEditSecuritySchemas(
         :save-current-item="saveSecuritySchema"
         label-width="130px"
       />
-      <common-window
+      <ApiDocAuthorizationWindow
         v-model="showDefaultAuthWindow"
+        v-model:auth-content-model="defaultAuthContentModel"
         :title="$i18nKey('common.label.commonEdit', 'api.label.defaultValue')"
+        :security-schemas="defaultSecuritySchemas"
+        :group-config="projectItem?.groupConfig"
+        :notice="$t('api.msg.securityDefaultNotice', ['{{access_token}}', '{{username}}'])"
         :ok-click="saveDefaultAuthValues"
         :ok-loading="saveDefaultLoading"
-        :buttons="defaultAuthButtons"
-        width="800px"
-        append-to-body
-        destroy-on-close
-      >
-        <el-container
-          class="flex-column"
-          style="position: relative;"
-        >
-          <el-tabs
-            v-model="defaultAuthContentModel.authKeyName"
-            class="common-tabs"
-          >
-            <el-tab-pane
-              v-for="(schema, name) in defaultSecuritySchemas"
-              :key="name"
-              :name="name"
-            >
-              <template #label>
-                <el-text type="info">
-                  {{ name }}
-                  <span v-if="schema.type">
-                    ({{ schema.type }})
-                  </span>
-                </el-text>
-              </template>
-              <div
-                v-if="schema.description"
-                class="padding-top2 padding-bottom3"
-              >
-                <el-text>
-                  {{ schema.description }}
-                </el-text>
-              </div>
-            </el-tab-pane>
-          </el-tabs>
-          <common-form
-            :model="defaultAuthContentModel"
-            :show-buttons="false"
-          >
-            <template
-              v-for="(authModel, index) in supportedDefaultAuthModels"
-              :key="authModel.authKeyName"
-            >
-              <ApiRequestFormAuthorization
-                v-if="defaultAuthContentModel.authKeyName===authModel.authKeyName"
-                :model-value="authModel"
-                :form-prop="`authModels[${index}]`"
-                :show-auth-types="false"
-                :group-config="projectItem?.groupConfig"
-                :supported-auth-types="[authModel.authType]"
-              />
-            </template>
-          </common-form>
-        </el-container>
-      </common-window>
+        :clear-click="clearDefaultAuthValues"
+      />
     </el-container>
   </common-window>
 </template>
