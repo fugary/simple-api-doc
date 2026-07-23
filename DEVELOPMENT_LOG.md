@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **opt**: [2026-07-23] 优化数据模型列表默认排序逻辑：在 `ApiProjectInfoDetailController` 的 `search` 与 `loadInfoDetails` 接口中增加 `orderByDesc("coalesce(modify_date, create_date)", "id")` 排序，确保数据模型列表默认按最近修改时间（当修改时间为空时容错回退为创建时间/ID）降序排列，提升大量数据模型场景下的使用体验。
 - **bug**: [2026-07-23] 修复数据模型 (DTO) 历史记录与编辑问题：1. 在 `ApiDocParseUtils.processProjectInfoDetail` 中统一步骤校验 Schema 内容合并/保留后的相等性，消除 COMPONENT/SECURITY 类型无实质变化时产生的冗余历史记录；2. 重构 `SimpleModelUtils.mergeAuditInfo`，直接在目标对象上设置 `modifier` 与 `modifyDate`，消除修改 `existsModel` 导致的历史记录修改时间戳被污染问题；3. 修复已有/导入数据模型数据库中 `data_version` 为 null 导致乐观锁更新失败、数据未更新且反复插入历史记录的问题（在导入及保存时补全默认版本号，并在更新前对 NULL `data_version` 进行静默修复）；4. 修复前端历史列表弹窗“修改时间”列原先写死 `property: 'createDate'` 导致最新版本显示的修改时间比历史版本旧的问题，简化为使用标准 `formatDate(data.modifyDate || data.createDate)` 表达式。
 - **bug**: [2026-07-23] 修复重新导入/同步文档时 x-default-auth 认证默认值被覆盖清除的问题：在后端 `ApiDocParseUtils.processProjectInfoDetail` 中对 security 类型的 schemaContent 新增合并逻辑，通过 `ApiSchemaContentUtils.mergeSecuritySchemaContent` 将已保存的各 security schema 的 x-default-auth 字段回填到新导入的 schemaContent 中；同时在合并后重新做相等性判断，避免仅添加 x-default-auth 无实质变更时产生不必要的历史记录。
 - **bug**: [2026-07-23] 彻底修复认证弹窗默认 Tab 选中错误问题：根本原因是两个 schema 同时具有 hasDefaultAuth，旧逻辑总选先出现的 JWT 类型（AccessToken）；修复为优先选 TOKEN 类型（$JWT_TOKEN），确保默认显示简化 Token 表单。同步重构：移除 hasAuthValue 值检查，改用 x-default-auth 存在性作为结构性判断；hasInheritAuth 改为基于 schema hasDefaultAuth 而非 defaultAuthModel 是否存在。

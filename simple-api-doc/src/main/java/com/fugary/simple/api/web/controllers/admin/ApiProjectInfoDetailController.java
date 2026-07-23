@@ -72,7 +72,8 @@ public class ApiProjectInfoDetailController {
                         wrapper.or().isNull("locked");
                     }
                 })
-                .eq("body_type", queryVo.getBodyType());
+                .eq("body_type", queryVo.getBodyType())
+                .orderByDesc("coalesce(modify_date, create_date)", "id");
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.page(page, queryWrapper));
     }
 
@@ -85,7 +86,8 @@ public class ApiProjectInfoDetailController {
                 .eq("project_id", queryVo.getProjectId())
                 .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .eq(queryVo.getInfoId() != null, "info_id", queryVo.getInfoId())
-                .eq("body_type", queryVo.getBodyType());
+                .eq("body_type", queryVo.getBodyType())
+                .orderByDesc("coalesce(modify_date, create_date)", "id");
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.list(queryWrapper));
     }
 
