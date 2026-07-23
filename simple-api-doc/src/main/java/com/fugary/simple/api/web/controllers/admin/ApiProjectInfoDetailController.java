@@ -53,14 +53,9 @@ public class ApiProjectInfoDetailController {
     @Autowired
     private ApiProjectAccessService apiProjectAccessService;
 
-    @GetMapping
-    public SimpleResult<List<ApiProjectInfoDetail>> search(@ModelAttribute ProjectComponentQueryVo queryVo) {
-        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.READABLE)) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
-        }
-        Page<ApiProjectInfoDetail> page = SimpleResultUtils.toPage(queryVo);
+    private QueryWrapper<ApiProjectInfoDetail> buildComponentQueryWrapper(ProjectComponentQueryVo queryVo) {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
-        QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
+        return Wrappers.<ApiProjectInfoDetail>query()
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("schema_name", keyword)
                         .or().like("description", keyword))
                 .eq("project_id", queryVo.getProjectId())
@@ -72,9 +67,49 @@ public class ApiProjectInfoDetailController {
                         wrapper.or().isNull("locked");
                     }
                 })
-                .eq("body_type", queryVo.getBodyType())
+                .eq("body_type", queryVo.getBodyType());
+    }
+
+    @GetMapping
+    public SimpleResult<List<ApiProjectInfoDetail>> search(@ModelAttribute ProjectComponentQueryVo queryVo) {
+        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.READABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        Page<ApiProjectInfoDetail> page = SimpleResultUtils.toPage(queryVo);
+        QueryWrapper<ApiProjectInfoDetail> queryWrapper = buildComponentQueryWrapper(queryVo)
                 .orderByDesc("coalesce(modify_date, create_date)", "id");
         return SimpleResultUtils.createSimpleResult(apiProjectInfoDetailService.page(page, queryWrapper));
+    }
+
+    @PostMapping("/removeByQuery")
+    public SimpleResult<Map<String, Object>> removeByQuery(@RequestBody ProjectComponentQueryVo queryVo) {
+        if (queryVo.getProjectId() == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_400);
+        }
+        if (!apiProjectAccessService.canAccessProject(queryVo.getProjectId(), ApiGroupAuthority.DELETABLE)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        QueryWrapper<ApiProjectInfoDetail> queryWrapper = buildComponentQueryWrapper(queryVo);
+        List<ApiProjectInfoDetail> list = apiProjectInfoDetailService.list(queryWrapper);
+        long lockedCount = list.stream().filter(item -> Boolean.TRUE.equals(item.getLocked())).count();
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalCount", list.size());
+        result.put("lockedCount", lockedCount);
+        result.put("unlockedCount", list.size() - lockedCount);
+        result.put("deletedCount", 0);
+        result.put("success", true);
+
+        boolean checkOnly = Boolean.TRUE.equals(queryVo.getCheckOnly());
+        if (!checkOnly && !list.isEmpty()) {
+            List<Integer> ids = list.stream().map(ApiProjectInfoDetail::getId).collect(Collectors.toList());
+            boolean success = apiProjectInfoDetailService.remove(Wrappers.<ApiProjectInfoDetail>query()
+                    .in("id", ids)
+                    .or()
+                    .in("modify_from", ids));
+            result.put("deletedCount", list.size());
+            result.put("success", success);
+        }
+        return SimpleResultUtils.createSimpleResult(result);
     }
 
     @PostMapping("/loadInfoDetails")

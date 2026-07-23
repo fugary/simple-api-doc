@@ -1,15 +1,17 @@
 <script setup lang="jsx">
 import { computed, onActivated, onMounted, ref, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
-import { useBackUrl } from '@/utils'
+import { useBackUrl, $coreConfirm } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
+import ApiProjectInfoDetailApi, { removeByQuery } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import ApiProjectComponent from '@/views/components/api/project/ApiProjectComponent.vue'
 import { processProjectInfos } from '@/services/api/ApiDocEditService'
+import { $i18nBundle } from '@/messages'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -32,6 +34,8 @@ const loadProjectComponents = (pageNumber) => searchMethod(pageNumber).then(data
       currentInfoDetail.value = data.resultData.find(item => item.id === currentInfoDetail.value.id) || data.resultData[0]
     }
     componentsTableRef.value?.table?.setCurrentRow(currentInfoDetail.value)
+  } else {
+    currentInfoDetail.value = null
   }
   return data
 })
@@ -48,6 +52,25 @@ const newOrEdit = (id) => {
       infoId: searchParam.value?.infoId || projectItem.value?.infoList?.[0]?.id
     }
   }
+}
+
+const confirmRemoveAllByQuery = async () => {
+  const stat = await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: true })).then(res => res?.resultData)
+  if (!stat || !stat.totalCount) {
+    ElMessage.warning($i18nBundle('api.msg.noComponentsToDelete'))
+    return
+  }
+  let msg = $i18nBundle('api.msg.clearComponentsConfirm', [stat.totalCount])
+  if (stat.lockedCount > 0) {
+    msg += '<br/>' + $i18nBundle('api.msg.clearComponentsLockedNotice', [stat.lockedCount])
+  }
+  msg += '<br/><span class="text-danger margin-top2 inline-block">' + $i18nBundle('common.msg.deleteConfirm') + '</span>'
+
+  await $coreConfirm(msg, $i18nBundle('common.label.reminder'))
+  await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: false }))
+  ElMessage.success($i18nBundle('common.msg.deleteSuccess'))
+  currentInfoDetail.value = null
+  loadProjectComponents(1)
 }
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
@@ -74,7 +97,7 @@ const searchFormOptions = computed(() => {
     labelKey: 'common.label.keywords',
     prop: 'keyword',
     attrs: {
-      onInput () {
+      onChange () {
         loadProjectComponents()
       }
     }
@@ -164,6 +187,13 @@ const saveComponent = (data) => {
               @click="newOrEdit()"
             >
               {{ $t('common.label.new') }}
+            </el-button>
+            <el-button
+              v-if="isDeletable"
+              type="danger"
+              @click="confirmRemoveAllByQuery()"
+            >
+              {{ $t('api.label.clearComponents') }}
             </el-button>
           </template>
         </common-form>

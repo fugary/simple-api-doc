@@ -54,4 +54,8 @@ export const updateExamples = function (param, config) {
   return $httpPost(`${BASE_URL}/updateExamples`, param, config)
 }
 
+export const removeByQuery = function (param, config) {
+  return $httpPost(`${BASE_URL}/removeByQuery`, param, config)
+}
+
 export default ApiProjectInfoDetailApi

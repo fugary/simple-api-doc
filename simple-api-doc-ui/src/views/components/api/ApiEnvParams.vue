@@ -28,6 +28,7 @@ const extractRulesOptions = defineFormOptions([{
 }, {
   labelKey: 'api.label.matchPath',
   prop: 'apiPath',
+  required: true,
   tooltipKey: 'api.msg.matchPathTip',
   minWidth: 150
 }, {

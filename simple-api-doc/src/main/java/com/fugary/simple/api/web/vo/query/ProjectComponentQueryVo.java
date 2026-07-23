@@ -17,4 +17,5 @@ public class ProjectComponentQueryVo extends ProjectQueryVo{
     private String bodyType = PROJECT_SCHEMA_TYPE_COMPONENT;
     private String schemaName;
     private Boolean locked;
+    private Boolean checkOnly;
 }
