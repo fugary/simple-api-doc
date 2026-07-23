@@ -1,5 +1,7 @@
 import { $coreHideLoading, $coreShowLoading, formatDate, toGetParams } from '@/utils'
 import { cloneDeep, get, isArray, isObject, isString, lowerCase, pull, set } from 'lodash-es'
+import { JSONPath } from 'jsonpath-plus'
+import { XMLParser } from 'fast-xml-parser'
 import { hasLoading } from '@/vendors/axios'
 import {
   FORM_DATA,
@@ -13,7 +15,7 @@ import {
   ALL_CONTENT_TYPES_LIST,
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
-import { processEvnParams, useScreenCheck, getExtractedEnvParams, cacheExtractedEnvParams } from '@/services/api/ApiCommonService'
+import { processEvnParams, useScreenCheck, getExtractedEnvParams, cacheExtractedEnvParams, isJson, isXml } from '@/services/api/ApiCommonService'
 import { nextTick, ref, watch, computed, markRaw } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
@@ -157,15 +159,38 @@ export const isPathMatch = (rule, requestPath) => {
   return requestPath.includes(apiPath)
 }
 
+const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
+
+const getValueByPath = (target, normalizedPath, rawPathStr) => {
+  if (!isObject(target) && !isArray(target)) return undefined
+  try {
+    const results = JSONPath({ path: normalizedPath, json: target })
+    if (results && results.length > 0) {
+      return results[0]
+    }
+  } catch {
+    // ignore
+  }
+  return get(target, rawPathStr)
+}
+
 export const extractVariables = (response, requestPath, groupConfig, preferenceId) => {
   if (!groupConfig?.envParams?.length || !response) return
 
   let responseData = response.data
   if (isString(responseData)) {
-    try {
-      responseData = JSON.parse(responseData)
-    } catch {
-      // ignore
+    if (isXml(responseData)) {
+      try {
+        responseData = xmlParser.parse(responseData)
+      } catch {
+        // ignore
+      }
+    } else if (isJson(responseData)) {
+      try {
+        responseData = JSON.parse(responseData)
+      } catch {
+        // ignore
+      }
     }
   }
 
@@ -176,10 +201,13 @@ export const extractVariables = (response, requestPath, groupConfig, preferenceI
     if (param.enabled && param.extractRules?.length) {
       param.extractRules.forEach(rule => {
         if (rule.enabled && rule.jsonPath && isPathMatch(rule, requestPath)) {
-          const jsonPathStr = rule.jsonPath.replace(/^\$\./, '')
-          let val = get(responseData, jsonPathStr)
+          const rawExpr = rule.jsonPath.trim()
+          const normalizedPath = rawExpr.startsWith('$') ? rawExpr : `$.${rawExpr}`
+          const rawPathStr = rawExpr.replace(/^\$\./, '')
+
+          let val = getValueByPath(responseData, normalizedPath, rawPathStr)
           if (val === undefined || val === null) {
-            val = get(response, jsonPathStr)
+            val = getValueByPath(response, normalizedPath, rawPathStr)
           }
           if (val !== undefined && val !== null) {
             val = String(val)

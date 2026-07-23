@@ -25,6 +25,7 @@
     "element-plus": "^2.13.1",
     "fast-xml-parser": "^5.3.3",
     "json-schema-faker": "^0.6.2",
+    "jsonpath-plus": "^10.4.0",
     "katex": "^0.16.27",
     "lodash-es": "^4.17.22",
     "markdown-it": "^14.1.0",
