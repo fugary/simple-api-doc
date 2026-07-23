@@ -1,5 +1,7 @@
 package com.fugary.simple.api.utils.exports;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.media.Schema;
@@ -19,6 +21,11 @@ import java.util.function.Supplier;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ApiSchemaContentUtils {
     /**
+     * x-default-auth 扩展字段 key
+     */
+    public static final String X_DEFAULT_AUTH = "x-default-auth";
+
+    /**
      * 是否相同
      *
      * @param savedComponentSchemaContent
@@ -29,6 +36,39 @@ public class ApiSchemaContentUtils {
         String savedSchema = StringUtils.deleteWhitespace(savedComponentSchemaContent);
         String newSchema = StringUtils.deleteWhitespace(componentSchemaContent);
         return Objects.equals(savedSchema, newSchema);
+    }
+
+    private static final TypeReference<Map<String, Map<String, Object>>> SECURITY_SCHEMA_TYPE_REF =
+            new TypeReference<Map<String, Map<String, Object>>>() {};
+
+    /**
+     * 合并 Security Schema Content，将已保存的 x-default-auth 字段保留到新的 schemaContent 中。
+     * 导入文档时 OpenAPI 解析器不会保留自定义扩展字段，需在保存前合并回来。
+     *
+     * @param savedSecuritySchemaContent 已保存的 security schemaContent（含 x-default-auth）
+     * @param newSecuritySchemaContent   新导入的 security schemaContent（不含 x-default-auth）
+     * @return 合并后的 schemaContent
+     */
+    public static String mergeSecuritySchemaContent(String savedSecuritySchemaContent, String newSecuritySchemaContent) {
+        if (StringUtils.isBlank(savedSecuritySchemaContent) || StringUtils.isBlank(newSecuritySchemaContent)) {
+            return newSecuritySchemaContent;
+        }
+        try {
+            Map<String, Map<String, Object>> savedMap = JsonUtils.fromJson(savedSecuritySchemaContent, SECURITY_SCHEMA_TYPE_REF);
+            Map<String, Map<String, Object>> newMap = JsonUtils.fromJson(newSecuritySchemaContent, SECURITY_SCHEMA_TYPE_REF);
+            if (savedMap == null || newMap == null) {
+                return newSecuritySchemaContent;
+            }
+            // 将旧 schema 中的 x-default-auth 合并到新 schema 中
+            savedMap.forEach((schemaName, savedSchema) -> {
+                if (savedSchema != null && savedSchema.containsKey(X_DEFAULT_AUTH) && newMap.containsKey(schemaName)) {
+                    newMap.get(schemaName).put(X_DEFAULT_AUTH, savedSchema.get(X_DEFAULT_AUTH));
+                }
+            });
+            return JsonUtils.toJson(newMap);
+        } catch (Exception e) {
+            return newSecuritySchemaContent;
+        }
     }
 
     /**

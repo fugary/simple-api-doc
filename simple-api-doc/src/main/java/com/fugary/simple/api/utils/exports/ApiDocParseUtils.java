@@ -217,10 +217,19 @@ public class ApiDocParseUtils {
                     projectInfoDetailVo.setSchemaContent(retainedSchemaContent);
                 }
                 if (StringUtils.isNotBlank(existsInfoDetail.getDescription())) {
-                    if (StringUtils.isBlank(projectInfoDetailVo.getDescription()) || 
+                    if (StringUtils.isBlank(projectInfoDetailVo.getDescription()) ||
                             existsInfoDetail.getDescription().length() > projectInfoDetailVo.getDescription().length()) {
                         projectInfoDetailVo.setDescription(existsInfoDetail.getDescription());
                     }
+                }
+            } else if (ApiDocConstants.PROJECT_SCHEMA_TYPE_SECURITY.equals(existsInfoDetail.getBodyType())) {
+                // 导入文档时保留已有的 x-default-auth 认证默认值，避免被新导入的数据覆盖清除
+                String mergedSchemaContent = ApiSchemaContentUtils.mergeSecuritySchemaContent(existsInfoDetail.getSchemaContent(),
+                        projectInfoDetailVo.getSchemaContent());
+                projectInfoDetailVo.setSchemaContent(mergedSchemaContent);
+                // 合并只涉及 schemaContent，仅重新比较该字段判断是否真正有变化，避免产生不必要的历史记录
+                if (!isSameInfoDetail) {
+                    isSameInfoDetail = ApiSchemaContentUtils.isSameSchemaContent(mergedSchemaContent, existsInfoDetail.getSchemaContent());
                 }
             }
             if (!isSameInfoDetail) {

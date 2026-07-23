@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **bug**: [2026-07-23] 修复重新导入/同步文档时 x-default-auth 认证默认值被覆盖清除的问题：在后端 `ApiDocParseUtils.processProjectInfoDetail` 中对 security 类型的 schemaContent 新增合并逻辑，通过 `ApiSchemaContentUtils.mergeSecuritySchemaContent` 将已保存的各 security schema 的 x-default-auth 字段回填到新导入的 schemaContent 中；同时在合并后重新做相等性判断，避免仅添加 x-default-auth 无实质变更时产生不必要的历史记录。
 - **bug**: [2026-07-23] 彻底修复认证弹窗默认 Tab 选中错误问题：根本原因是两个 schema 同时具有 hasDefaultAuth，旧逻辑总选先出现的 JWT 类型（AccessToken）；修复为优先选 TOKEN 类型（$JWT_TOKEN），确保默认显示简化 Token 表单。同步重构：移除 hasAuthValue 值检查，改用 x-default-auth 存在性作为结构性判断；hasInheritAuth 改为基于 schema hasDefaultAuth 而非 defaultAuthModel 是否存在。
 - **feat**: [2026-07-22] 简化认证默认值【清空】逻辑：只需直接从内存 Schema 中删除 x-default-auth 节点，并重新调用 calcAuthModelBySchemas 恢复表单标准默认兜底参数，保持组件行为一致与优雅。
 - **bug**: [2026-07-17] 修复变量提取规则由于偏好缓存导致未正确生效的 Bug。
