@@ -121,8 +121,10 @@ const saveGroupConfig = ({ form }) => {
                 {{ item.showExtractRules ? $t('api.label.collapseExtractRules') : $t('api.label.configExtractRules') }}
                 <span
                   v-if="item.extractRules?.length"
-                  style="margin-left: 4px; margin-right: 2px"
-                >({{ item.extractRules.length }})</span>
+                  class="rule-count-badge"
+                >
+                  {{ item.extractRules.length }}
+                </span>
                 <common-icon
                   :icon="item.showExtractRules ? 'ArrowDown' : 'ArrowRight'"
                   style="margin-left: 2px"
@@ -169,5 +171,20 @@ const saveGroupConfig = ({ form }) => {
 </template>
 
 <style scoped>
-
+.rule-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  border-radius: 8px;
+  color: #fff;
+  background-color: var(--el-color-primary);
+  margin-left: 4px;
+  margin-right: 2px;
+}
 </style>
