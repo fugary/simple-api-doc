@@ -53,14 +53,7 @@ const envConfigs = ref([])
 const paramTargetId = calcPreferenceId(props.projectItem, props.shareDoc)
 const envSuggestions = computed(() => calcEnvSuggestions(props.projectItem?.groupConfig, paramTargetId))
 const sharePreference = shareConfigStore.sharePreferenceView[paramTargetId]
-const getAuthContentModel = () => {
-  return cloneDeep({
-    ...sharePreference?.defaultAuthModel || {
-      authType: AUTH_TYPE.NONE,
-      authModels: []
-    }
-  })
-}
+const getAuthContentModel = () => cloneDeep(sharePreference?.defaultAuthModel || { authType: AUTH_TYPE.NONE, authModels: [] })
 let lastParamTarget = reactive({})
 const securitySchemas = ref()
 const supportedAuthTypes = ref()
@@ -93,16 +86,17 @@ const loadDocDetail = async () => {
   }
   projectInfoDetail.value = apiDocDetail.value?.projectInfoDetail
   calcSecuritySchemas(projectInfoDetail.value, apiDocDetail.value, securitySchemas, supportedAuthTypes, props.shareDoc)
+  authContentModel.value = getAuthContentModel()
   calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
-  if (!sharePreference?.defaultAuthModel && authContentModel.value?.authType && authContentModel.value.authType !== AUTH_TYPE.NONE) {
+  const hasDefaultAuth = authContentModel.value?.authModels?.some(m => m.hasDefaultAuth)
+  if (hasDefaultAuth && sharePreference?.defaultAuthModel?.authKeyName !== authContentModel.value?.authKeyName) {
     saveAuthModel(authContentModel.value)
   }
   envConfigs.value = getEnvConfigs(apiDocDetail.value)
   apiDocDetail.value.targetUrl = envConfigs.value?.find(env => env.url === sharePreference?.targetUrl)?.url || envConfigs.value[0]?.url
   const calcParamTargetId = `${paramTargetId}-${apiDocDetail.value.id}`
   lastParamTarget = shareConfigStore.shareParamTargets[calcParamTargetId] = shareConfigStore.shareParamTargets[calcParamTargetId] || reactive({})
-  lastParamTarget.hasInheritAuth = !!sharePreference?.defaultAuthModel
-  console.log('======================apiDocDetail', apiDocDetail.value)
+  lastParamTarget.hasInheritAuth = hasDefaultAuth || !!sharePreference?.defaultAuthModel
 }
 
 const handlerConfig = {
@@ -143,10 +137,8 @@ defineEmits(['toDebugApi', 'updateHistory', 'toEditSecuritySchemas'])
 
 const showAuthorizationWindow = ref(false)
 const toEditAuthorization = () => {
-  if (sharePreference.defaultAuthModel) {
-    authContentModel.value = getAuthContentModel()
-    calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
-  }
+  authContentModel.value = getAuthContentModel()
+  calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
   showAuthorizationWindow.value = true
 }
 
@@ -165,7 +157,7 @@ onUnmounted(() => {
 const saveAuthModel = (model) => {
   if (sharePreference) {
     sharePreference.defaultAuthModel = model ? cloneDeep(model) : undefined
-    lastParamTarget.hasInheritAuth = !!sharePreference.defaultAuthModel
+    lastParamTarget.hasInheritAuth = authContentModel.value?.authModels?.some(m => m.hasDefaultAuth) || !!sharePreference.defaultAuthModel
   }
 }
 const saveAuthorization = ({ form }) => {
@@ -179,11 +171,10 @@ const saveAuthorization = ({ form }) => {
 }
 
 const clearAuthorization = () => {
-  calcAuthModelBySchemas(authContentModel.value = {
-    authType: AUTH_TYPE.NONE,
-    authModels: []
-  }, securitySchemas.value)
-  saveAuthModel()
+  authContentModel.value = { authType: AUTH_TYPE.NONE, authModels: [] }
+  calcAuthModelBySchemas(authContentModel.value, securitySchemas.value)
+  const hasDefaultAuth = authContentModel.value?.authModels?.some(m => m.hasDefaultAuth)
+  saveAuthModel(hasDefaultAuth ? authContentModel.value : undefined)
   showAuthorizationWindow.value = false
 }
 

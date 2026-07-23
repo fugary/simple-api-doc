@@ -3,7 +3,8 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
-- **feat**: [2026-07-22] 简化认证默认值【清空】逻辑：只需直接从内存 Schema 中删除 `x-default-auth` 节点，并重新调用 `calcAuthModelBySchemas` 恢复表单标准默认兜底参数，保持组件行为一致与优雅。
+- **bug**: [2026-07-23] 彻底修复认证弹窗默认 Tab 选中错误问题：根本原因是两个 schema 同时具有 hasDefaultAuth，旧逻辑总选先出现的 JWT 类型（AccessToken）；修复为优先选 TOKEN 类型（$JWT_TOKEN），确保默认显示简化 Token 表单。同步重构：移除 hasAuthValue 值检查，改用 x-default-auth 存在性作为结构性判断；hasInheritAuth 改为基于 schema hasDefaultAuth 而非 defaultAuthModel 是否存在。
+- **feat**: [2026-07-22] 简化认证默认值【清空】逻辑：只需直接从内存 Schema 中删除 x-default-auth 节点，并重新调用 calcAuthModelBySchemas 恢复表单标准默认兜底参数，保持组件行为一致与优雅。
 - **bug**: [2026-07-17] 修复变量提取规则由于偏好缓存导致未正确生效的 Bug。
 - **feat**: [2026-07-16] 优化全局变量提取的路径匹配规则，支持正则表达式，并增加提取成功提示
 - **feat**: [2026-07-16] 优化项目详情页的按钮，为认证、数据模型、变量配置等按钮补充数量显示
@@ -31,7 +32,7 @@
 - **feat**: [2026-06-30] 完善 AI 缓存信息收集设计，新增提示词(Prompt)、操作用户、项目ID、文档ID、Token消耗以及大模型原始响应和完成时间等维度的记录，方便后续问题排查与额度审计
 - **feat**: [2026-06-29] 新增 AI 缓存管理页面，支持管理员查看和管理 AI 调用生成的样本数据缓存
 - **feat**: [2026-06-29] 优化 AI 生成数据功能，在分享页隐藏 AI 生成选项，保留后台完整功能，便于内部测试与数据模拟
-- **bug**: [2026-06-29] 修复 `TaskScheduleConfig` 和 `AiServiceImpl` 之间的循环依赖问题，通过 `@Lazy` 延迟加载打破依赖循环
+- **bug**: [2026-07-23] 彻底修复"认证"弹窗默认 Tab 选中错误问题：根本原因是 `calcSecuritySchemas` 将原始 JWT schema 的 `x-default-auth` 同时复制给虚拟 `$JWT_TOKEN` schema，导致两者都有 `hasDefaultAuth=true`，旧逻辑总选先出现的 JWT 类型（AccessToken），显示复杂 JWT 表单；修复为有 `hasDefaultAuth` 时优先选 TOKEN 类型（`$JWT_TOKEN`）而非 JWT 类型，确保默认显示简化的 Token 表单和正确值。同步重构认证相关判断逻辑：移除 `hasAuthValue` 值检查，改用 `x-default-auth` 存在性（`hasDefaultAuth`）作为结构性判断；`hasInheritAuth` 改为基于 schema 的 `hasDefaultAuth` 而非 `defaultAuthModel` 是否存在；每次打开认证弹窗都刷新 model；清空操作后若有 schema 默认值则自动重新初始化。
 - **feat**: [2026-06-29] 增加针对 AI 生成请求的数量限制，当排队中的请求过多时会拒绝新的请求，防止耗尽系统线程
 - **feat**: [2026-06-26] 支持将 AI 生成或手动编写的数据保存为接口示例，新增管理及删改功能，并保护导入的 OpenAPI 不覆盖原有示例数据
 - **feat**: [2026-06-26] AI模拟数据生成功能升级为异步任务池处理，增强前端队列状态响应提示，并支持过期及阻塞状态的数据清理

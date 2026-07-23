@@ -910,9 +910,13 @@ export const calcAuthModelBySchemas = (authContentModel, securitySchemas) => {
     })
 
     const supportedModels = authContentModel.authModels?.filter(m => m.isSupported) || []
-    const selectedModel = supportedModels.find(m => m.authKeyName === authContentModel.authKeyName) ||
+    // 优先选有 x-default-auth 的非 JWT 类型（$JWT_TOKEN 为 TOKEN 类型）；JWT 类型优先级低，因两者可能同时有 hasDefaultAuth
+    const hasDefaultSelected =
+      supportedModels.find(m => m.hasDefaultAuth && m.authType !== AUTH_TYPE.JWT) ||
+      supportedModels.find(m => m.hasDefaultAuth)
+    const selectedModel = hasDefaultSelected ||
+      supportedModels.find(m => m.authKeyName === authContentModel.authKeyName) ||
       (authContentModel.authType && authContentModel.authType !== AUTH_TYPE.NONE && supportedModels.find(m => m.authType === authContentModel.authType)) ||
-      supportedModels.find(m => m.hasDefaultAuth) ||
       supportedModels[0]
     authContentModel.authType = selectedModel?.authType || AUTH_TYPE.NONE
     authContentModel.authKeyName = selectedModel?.authKeyName

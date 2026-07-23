@@ -142,10 +142,7 @@ watch(() => [paramTarget.value.headerParams, paramTarget.value.requestParams], (
 const currentTabName = ref('requestParamsTab')
 const authContentModel = ref({})
 const paramList = ['requestBody', 'pathParams', 'requestParams', 'headerParams']
-const shareConfigStore = useShareConfigStore()
-const hasInheritAuth = computed(() => {
-  return !!shareConfigStore.sharePreferenceView[paramTarget.value?.preferenceId]?.defaultAuthModel && !!paramTarget.value?.securityRequirements?.length
-})
+const hasInheritAuth = computed(() => !!paramTarget.value?.hasInheritAuth && !!paramTarget.value?.securityRequirements?.length)
 
 const initParamTarget = () => {
   contentRef.value = paramTarget.value?.requestBody
