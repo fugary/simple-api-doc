@@ -55,7 +55,7 @@ const newOrEdit = (id) => {
 }
 
 const confirmRemoveAllByQuery = async () => {
-  const stat = await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: true })).then(res => res?.resultData)
+  const stat = await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: true }), { loading: true }).then(res => res?.resultData)
   if (!stat || !stat.totalCount) {
     ElMessage.warning($i18nBundle('api.msg.noComponentsToDelete'))
     return
@@ -67,7 +67,7 @@ const confirmRemoveAllByQuery = async () => {
   msg += '<br/><span class="text-danger margin-top2 inline-block">' + $i18nBundle('common.msg.deleteConfirm') + '</span>'
 
   await $coreConfirm(msg, $i18nBundle('common.label.reminder'))
-  await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: false }))
+  await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: false }), { loading: true })
   ElMessage.success($i18nBundle('common.msg.deleteSuccess'))
   currentInfoDetail.value = null
   loadProjectComponents(1)
