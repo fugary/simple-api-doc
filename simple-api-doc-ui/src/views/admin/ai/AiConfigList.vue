@@ -117,7 +117,7 @@ const historyColumns = defineTableColumns([{
   property: 'createDate',
   width: '170px',
   align: 'center',
-  formatter: (data) => formatDate(data.createDate || data.modifyDate)
+  formatter: (data) => formatDate(data.modifyDate || data.createDate)
 }])
 
 const historyOptionsMethod = (doc, history) => {

@@ -5,7 +5,7 @@ import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElTag, ElText } from 'element-plus'
-import { $copyText, $coreConfirm, $coreError, getSingleSelectOptions, getStyleGrow } from '@/utils'
+import { $copyText, $coreConfirm, $coreError, formatDate, getSingleSelectOptions, getStyleGrow } from '@/utils'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
 import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail, loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
@@ -309,8 +309,9 @@ const toShowHistoryWindow = (current) => {
       }
     }, {
       labelKey: 'common.label.modifyDate',
-      property: 'createDate',
-      dateFormat: 'YYYY-MM-DD HH:mm:ss'
+      formatter (data) {
+        return formatDate(data.modifyDate || data.createDate)
+      }
     }]),
     searchFunc: param => loadHistoryList({ ...param, queryId: current.id }),
     compareFunc: async (modified, target, previous) => {

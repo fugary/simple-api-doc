@@ -3,7 +3,7 @@ import { computed, inject } from 'vue'
 import { getFolderPaths } from '@/services/api/ApiProjectService'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
-import { $copyText } from '@/utils'
+import { $copyText, formatDate } from '@/utils'
 import { $i18nBundle } from '@/messages'
 import { ElText, ElTag } from 'element-plus'
 import CommonIcon from '@/components/common-icon/index.vue'
@@ -104,8 +104,9 @@ const toShowHistoryWindow = (current) => {
       }
     }, {
       labelKey: 'common.label.modifyDate',
-      property: 'createDate',
-      dateFormat: 'YYYY-MM-DD HH:mm:ss'
+      formatter (data) {
+        return formatDate(data.modifyDate || data.createDate)
+      }
     }]),
     searchFunc: param => loadHistoryList({ ...param, queryId: current.id }),
     compareFunc: async (modified, target, previous) => {

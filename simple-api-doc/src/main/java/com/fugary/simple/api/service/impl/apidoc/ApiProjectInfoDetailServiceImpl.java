@@ -90,6 +90,9 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
                 historyDetails.add(toApiHistory(existsInfoDetail));
             }
             if (toSaveInfoDetail != null) {
+                if (toSaveInfoDetail.getVersion() == null) {
+                    toSaveInfoDetail.setVersion(1);
+                }
                 toSaveDetails.add(SimpleModelUtils.addAuditInfo(toSaveInfoDetail));
             }
         });
@@ -115,6 +118,7 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
         infoHistory.setModifyFrom(infoDetail.getId());
         infoHistory.setCreator(StringUtils.defaultIfBlank(infoDetail.getModifier(), infoDetail.getCreator()));
         infoHistory.setCreateDate(Objects.requireNonNullElse(infoDetail.getModifyDate(), infoDetail.getCreateDate()));
+        infoHistory.setVersion(Objects.requireNonNullElse(infoDetail.getVersion(), 1));
         return infoHistory;
     }
 

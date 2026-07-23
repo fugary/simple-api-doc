@@ -110,11 +110,10 @@ public class SimpleModelUtils {
      */
     public static void mergeAuditInfo(ModelBase model, ModelBase existsModel) {
         if (existsModel != null) {
-            SimpleModelUtils.addAuditInfo(existsModel);
             model.setCreator(existsModel.getCreator());
             model.setCreateDate(existsModel.getCreateDate());
-            model.setModifier(existsModel.getModifier());
-            model.setModifyDate(existsModel.getModifyDate());
+            model.setModifier(SecurityUtils.getLoginUserName());
+            model.setModifyDate(new Date());
         }
     }
 

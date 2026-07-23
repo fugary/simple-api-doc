@@ -176,14 +176,16 @@ public class ApiProjectInfoDetailController {
         if (apiProjectInfoDetailService.existsInfoDetail(infoDetail)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_1001);
         }
-        if (infoDetail.getVersion() == null) {
-            infoDetail.setVersion(1);
-        }
         if (existsInfoDetail != null) {
             if (existsInfoDetail.getVersion() == null) {
+                apiProjectInfoDetailService.update(Wrappers.<ApiProjectInfoDetail>update()
+                        .eq("id", existsInfoDetail.getId()).set("data_version", 1));
                 existsInfoDetail.setVersion(1);
             }
             apiProjectInfoDetailService.saveApiHistory(existsInfoDetail);
+            infoDetail.setVersion(existsInfoDetail.getVersion());
+        } else if (infoDetail.getVersion() == null) {
+            infoDetail.setVersion(1);
         }
         apiProjectInfoDetailService.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
         return SimpleResultUtils.createSimpleResult(infoDetail);
@@ -211,6 +213,8 @@ public class ApiProjectInfoDetailController {
             return SimpleResultUtils.createSimpleResult(true);
         }
         if (existsInfoDetail.getVersion() == null) {
+            apiProjectInfoDetailService.update(Wrappers.<ApiProjectInfoDetail>update()
+                    .eq("id", existsInfoDetail.getId()).set("data_version", 1));
             existsInfoDetail.setVersion(1);
         }
         apiProjectInfoDetailService.saveApiHistory(existsInfoDetail);
