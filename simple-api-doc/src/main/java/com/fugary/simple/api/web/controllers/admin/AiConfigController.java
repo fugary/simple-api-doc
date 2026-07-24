@@ -103,7 +103,10 @@ public class AiConfigController {
 
         // 如果设置为默认，需要把其他的取消默认
         if (Integer.valueOf(1).equals(aiConfig.getIsDefault())) {
-            aiConfigService.update(Wrappers.<AiConfig>update().set("is_default", 0).ne(aiConfig.getId() != null, "id", aiConfig.getId()));
+            aiConfigService.update(Wrappers.<AiConfig>update()
+                    .isNull("modify_from")
+                    .set("is_default", 0)
+                    .ne(aiConfig.getId() != null, "id", aiConfig.getId()));
         }
 
         SimpleModelUtils.addAuditInfo(aiConfig);

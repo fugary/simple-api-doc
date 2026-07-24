@@ -114,6 +114,14 @@ const historyColumns = defineTableColumns([{
   minWidth: '150px',
   align: 'center'
 }, {
+  labelKey: 'common.label.status',
+  prop: 'status',
+  minWidth: '100px',
+  align: 'center',
+  formatter (data) {
+    return <DelFlagTag v-model={data.status} switchMode={false} />
+  }
+}, {
   labelKey: 'api.label.setDefault',
   prop: 'isDefault',
   minWidth: '100px',
@@ -126,14 +134,6 @@ const historyColumns = defineTableColumns([{
                          1: $i18nBundle('common.label.yes'),
                          0: $i18nBundle('common.label.no')
                        }} />
-  }
-}, {
-  labelKey: 'common.label.status',
-  prop: 'status',
-  minWidth: '100px',
-  align: 'center',
-  formatter (data) {
-    return <DelFlagTag v-model={data.status} switchMode={false} />
   }
 }, {
   labelKey: 'common.label.modifier',
@@ -228,6 +228,16 @@ const columns = computed(() => {
     minWidth: '200px',
     showOverflowTooltip: true
   }, {
+    labelKey: 'common.label.status',
+    prop: 'status',
+    minWidth: '100px',
+    align: 'center',
+    formatter (data) {
+      return <DelFlagTag v-model={data.status}
+                         clickToToggle={true}
+                         onToggleValue={(status) => saveConfig({ ...data, status: Number(status) })} />
+    }
+  }, {
     labelKey: 'api.label.setDefault',
     prop: 'isDefault',
     minWidth: '100px',
@@ -242,16 +252,6 @@ const columns = computed(() => {
                   before-change={() => handleToggleDefault(data)}
                   onClick={(e) => e.stopPropagation()} />
       </el-link>
-    }
-  }, {
-    labelKey: 'common.label.status',
-    prop: 'status',
-    minWidth: '100px',
-    align: 'center',
-    formatter (data) {
-      return <DelFlagTag v-model={data.status}
-                         clickToToggle={true}
-                         onToggleValue={(status) => saveConfig({ ...data, status: Number(status) })} />
     }
   }, {
     labelKey: 'common.label.createDate',
@@ -392,7 +392,9 @@ const editFormOptions = computed(() => {
     prop: 'defaultModel',
     disabled: isSystem,
     required: true
-  }, {
+  },
+  useFormStatus(),
+  {
     labelKey: 'api.label.setDefault',
     prop: 'isDefault',
     type: 'switch',
@@ -400,8 +402,7 @@ const editFormOptions = computed(() => {
       activeValue: 1,
       inactiveValue: 0
     }
-  },
-  useFormStatus()
+  }
   ]
 })
 

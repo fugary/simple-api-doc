@@ -63,6 +63,7 @@ public class AiConfigServiceImpl extends ServiceImpl<AiConfigMapper, AiConfig> i
     @Override
     public AiConfig getDefaultAiConfig() {
         return this.getOne(Wrappers.<AiConfig>query()
+                .isNull("modify_from")
                 .eq("is_default", 1)
                 .eq("status", 1)
                 .orderByDesc("id")
