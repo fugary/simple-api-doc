@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.AiCache;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -108,9 +109,11 @@ public class AiCacheController {
         try {
             String result = aiService.executeGenericTask(genericReq);
             return SimpleResultUtils.createSimpleResult(result);
+        } catch (SimpleRuntimeException e) {
+            return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
             log.error("生成描述失败", e);
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_500, e.getMessage());
+            return SimpleResultUtils.createError(e.getMessage());
         }
     }
 }

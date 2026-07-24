@@ -74,4 +74,32 @@ public class SystemErrorConstants {
      * 没有找到需要导出的文档或API
      */
     public static final int CODE_2011 = 2011;
+    /**
+     * 指定的 AI 配置不存在
+     */
+    public static final int CODE_2012 = 2012;
+    /**
+     * 指定的 AI 配置已被禁用
+     */
+    public static final int CODE_2013 = 2013;
+    /**
+     * AI 生成功能未开启或未配置 API Key
+     */
+    public static final int CODE_2014 = 2014;
+    /**
+     * 测试提示词不能为空
+     */
+    public static final int CODE_2015 = 2015;
+    /**
+     * 当前排队中的 AI 请求过多，请稍后再试
+     */
+    public static final int CODE_2016 = 2016;
+    /**
+     * 已加入请求队列，请稍后再次生成
+     */
+    public static final int CODE_2017 = 2017;
+    /**
+     * Schema 内容不能为空
+     */
+    public static final int CODE_2018 = 2018;
 }

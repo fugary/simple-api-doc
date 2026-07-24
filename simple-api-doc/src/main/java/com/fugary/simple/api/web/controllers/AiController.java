@@ -58,15 +58,15 @@ public class AiController {
     public SimpleResult<String> generateSample(@RequestBody AiGenerateSampleReq req) {
         String schemaContent = req.getSchemaContent();
         if (StringUtils.isBlank(schemaContent)) {
-            return SimpleResultUtils.<String>createSimpleResult(500).toBuilder().message("Schema内容不能为空").build();
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2018);
         }
         try {
             String sample = aiService.generateSampleBySchema(req);
             return SimpleResultUtils.createSimpleResult(sample);
         } catch (SimpleRuntimeException e) {
-            return SimpleResultUtils.<String>createSimpleResult(e.getCode() != null ? e.getCode() : 500).toBuilder().message(e.getMessage()).build();
+            return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
-            return SimpleResultUtils.<String>createSimpleResult(500).toBuilder().message(e.getMessage()).build();
+            return SimpleResultUtils.createError(e.getMessage());
         }
     }
 }

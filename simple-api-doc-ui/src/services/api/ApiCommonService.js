@@ -206,12 +206,7 @@ export const generateSchemaSample = async (schemaBody, type, config) => {
           components: { schemas: components }
         })
         const res = await aiGenerateSample({ schemaContent: payload, projectId, docId, configId }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
-        if (res && res.code === 202) {
-          ElMessage.warning(res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later'))
-          json = { message: res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later') }
-        } else if (res && res.success === false) {
-          json = { error: $i18nMsg('AI 生成失败', 'AI generation failed'), details: res.message || $i18nMsg('未知错误', 'Unknown error') }
-        } else if (res && res.resultData) {
+        if (res?.resultData) {
           try {
             json = JSON.parse(res.resultData)
           } catch (e) {
@@ -219,11 +214,13 @@ export const generateSchemaSample = async (schemaBody, type, config) => {
             json = { error: $i18nMsg('AI 生成失败或返回非法数据', 'AI generation failed or returned invalid data'), details: res.resultData }
           }
         } else {
-          json = { error: $i18nMsg('AI 生成接口返回为空', 'AI generation interface returned empty'), details: res ? JSON.stringify(res) : $i18nMsg('无详细信息', 'No details') }
+          const msg = res?.message || $i18nMsg('AI 生成失败', 'AI generation failed')
+          ElMessage.warning(msg)
+          json = { error: msg }
         }
       } catch (err) {
         console.error('AI接口调用异常', err)
-        json = { error: $i18nMsg('调用 AI 接口失败', 'Failed to call AI interface'), details: err?.data?.message || err?.message || $i18nMsg('未知错误', 'Unknown error') }
+        json = { error: err?.data?.message || err?.message || $i18nMsg('调用 AI 接口失败', 'Failed to call AI interface') }
       }
     } else if (mode === 'mockjs') {
       schema = injectMockExample(schema)

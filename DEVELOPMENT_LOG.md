@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **bug**: [2026-07-24] 修复禁用 AI 配置但在未刷新页面调用生成时静默降级为默认配置并成功返回数据的问题：1. 在 `SystemErrorConstants.java` 中新增 `CODE_2012`~`CODE_2018` 统一业务错误码，在 `messages*.properties` 补充国际化文案，彻底清理硬编码 HTTP `202` 状态码；2. 重构 `AiServiceImpl.java` 的 `resolveAiConfig` 校验逻辑，配置禁用时抛出 `CODE_2013` 错误码并通过 i18n 动态返回中/英文提示；3. 前端 `ApiCommonService.js` 彻底移除 `code` 判断逻辑，重构为通用的 `resultData`（成功渲染 Payload）与 `res.message`（未包含 Payload 时直接提示消息）架构，并通过 ESLint 规则校验。
 - **bug**: [2026-07-24] 修复修改 AI 配置默认状态时历史记录 `is_default` 被误清零的 Bug：在 `AiConfigController.java` 的 `save` 接口中，增加 `isNull("modify_from")` 限定逻辑，防止更新默认 AI 配置时误将全局历史记录 (`modify_from IS NOT NULL`) 的 `is_default` 覆盖更新为 0；同时在 `AiConfigServiceImpl.getDefaultAiConfig` 中增加 `isNull("modify_from")` 约束。
 - **opt**: [2026-07-24] 优化 AI 配置管理列表页面与历史记录版本弹窗：1. 将主列表、历史记录版本列表及编辑表单中的“状态”与“设为默认”字段顺序统一调整为“状态”在前、“设为默认”在后；2. 将主列表与历史记录版本列表的所有表格列宽度由固定 `width` 统一调整为响应式 `minWidth`（如 `minWidth: '120px'`, `minWidth: '150px'`, `minWidth: '100px'` 等），防止大屏显示时表头或文本内容被截断；3. 在历史记录版本列表 (`historyColumns`) 中补全“状态”与“设为默认”只读 Tag 标签列；4. “设为默认”(`isDefault`) 主列表列使用原生 `ElSwitch` 绑定 `v-common-tooltip` 动态悬浮提示。
 - **feat**: [2026-07-24] 支持 AI 生成时自由选择 AI 配置与默认选中：1. 后端 `/admin/ai/status` 与 `/shares/ai/status` 接口升级，返回包含 enabled 状态、`defaultConfigId` 及启用的 AI 配置列表 (`configs`) 的 `AiStatusVo`；2. 后端 `executeGenericTask` 和 `generateSampleBySchema` 支持接收 `configId` 并优先调用指定配置；3. 前端在生成示例数据弹窗 (`ApiGenerateSampleWindow`) 和 Schema 编辑器补全描述弹窗 (`ApiComponentSchemaEditTree`) 中新增“AI接口配置”下拉框，当有多个 AI 配置时默认选中默认配置，并支持用户切换选择。

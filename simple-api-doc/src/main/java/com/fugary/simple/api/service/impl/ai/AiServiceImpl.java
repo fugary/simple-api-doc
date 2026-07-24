@@ -68,18 +68,28 @@ public class AiServiceImpl implements AiService {
     }
 
     private AiConfig resolveAiConfig(Integer configId) {
-        AiConfig config = configId != null ? aiConfigService.getAiConfig(configId) : null;
-        if (config == null || !Integer.valueOf(1).equals(config.getStatus())) {
-            config = aiConfigService.getDefaultAiConfig();
+        if (configId != null) {
+            AiConfig config = aiConfigService.getById(configId);
+            if (config == null) {
+                throw new SimpleRuntimeException(SystemErrorConstants.CODE_2012);
+            }
+            if (!Integer.valueOf(1).equals(config.getStatus())) {
+                throw new SimpleRuntimeException(SystemErrorConstants.CODE_2013);
+            }
+            return config;
         }
-        return config;
+        AiConfig defaultConfig = aiConfigService.getDefaultAiConfig();
+        if (defaultConfig == null || !Integer.valueOf(1).equals(defaultConfig.getStatus())) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2014);
+        }
+        return defaultConfig;
     }
 
     @Override
     public String executeGenericTask(AiGenericTaskReq req) {
         final AiConfig targetAiConfig = resolveAiConfig(req.getConfigId());
-        if (targetAiConfig == null || StringUtils.isBlank(targetAiConfig.getApiKey())) {
-            throw new RuntimeException("AI 生成功能未开启或未配置 API Key");
+        if (StringUtils.isBlank(targetAiConfig.getApiKey())) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2014);
         }
         String systemPrompt = req.getSystemPrompt();
         String userMessageContent = req.getUserMessage();
@@ -100,7 +110,7 @@ public class AiServiceImpl implements AiService {
                     log.info("AI {} 命中缓存, key: {}", cacheType, cacheKey);
                     return cache.getCacheValue();
                 } else if (cache.getStatus() != null && cache.getStatus() == 0) {
-                    throw new SimpleRuntimeException(202, "已加入请求队列，请稍后重试");
+                    throw new SimpleRuntimeException(SystemErrorConstants.CODE_2017);
                 }
             }
         } catch (SimpleRuntimeException e) {
@@ -111,7 +121,7 @@ public class AiServiceImpl implements AiService {
         try {
             Long pendingCount = aiCacheMapper.selectCount(Wrappers.<AiCache>lambdaQuery().eq(AiCache::getStatus, 0));
             if (pendingCount != null && pendingCount >= aiConfigProperties.getMaxPendingTasks()) {
-                throw new SimpleRuntimeException(429, "当前排队中的 AI 请求过多，请稍后再试");
+                throw new SimpleRuntimeException(SystemErrorConstants.CODE_2016);
             }
             initAiCache(cacheKey, systemPrompt, userMessageContent, projectId, docId, cacheType, targetAiConfig, cacheExists);
         } catch (SimpleRuntimeException e) {
@@ -144,7 +154,7 @@ public class AiServiceImpl implements AiService {
         try {
             return future.get(1, TimeUnit.MINUTES);
         } catch (TimeoutException e) {
-            throw new SimpleRuntimeException(202);
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2017);
         } catch (Exception e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;
             throw new RuntimeException(getSimpleErrorMessage(cause), cause);
@@ -240,7 +250,7 @@ public class AiServiceImpl implements AiService {
     public AiChatResponse testAiConfig(Integer configId, String prompt) {
         AiConfig aiConfig = aiConfigService.getById(configId);
         if (aiConfig == null) {
-            throw new SimpleRuntimeException(SystemErrorConstants.CODE_404, "指定的 AI 配置不存在");
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2012);
         }
 
         AiChatProvider provider = getChatProvider(aiConfig.getProvider());

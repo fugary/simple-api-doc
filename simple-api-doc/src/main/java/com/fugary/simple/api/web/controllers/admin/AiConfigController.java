@@ -45,15 +45,15 @@ public class AiConfigController {
     public SimpleResult<AiChatResponse> test(@PathVariable("id") Integer id, @RequestBody AiGenericTaskReq req) {
         String prompt = req != null ? req.getUserMessage() : null;
         if (StringUtils.isBlank(prompt)) {
-            return SimpleResultUtils.<AiChatResponse>createSimpleResult(SystemErrorConstants.CODE_400).toBuilder().message("测试提示词不能为空").build();
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2015);
         }
         try {
             AiChatResponse result = aiService.testAiConfig(id, prompt);
             return SimpleResultUtils.createSimpleResult(result);
         } catch (SimpleRuntimeException e) {
-            return SimpleResultUtils.<AiChatResponse>createSimpleResult(e.getCode() != null ? e.getCode() : 500).toBuilder().message(e.getMessage()).build();
+            return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
-            return SimpleResultUtils.<AiChatResponse>createSimpleResult(500).toBuilder().message(e.getMessage()).build();
+            return SimpleResultUtils.createError(e.getMessage());
         }
     }
 
