@@ -76,14 +76,16 @@ const columns = [{
   labelKey: 'api.label.project',
   formatter (data) {
     const url = `/api/projects/${data.project?.projectCode}?backUrl=${route.fullPath}`
-    let group = null
-    if (data.project?.groupCode) {
-      group = projectGroupOptions.value.find(item => item.value === data.project?.groupCode)
-    }
+    const groupCode = data.project?.groupCode
+    const group = (groupCode && projectGroupOptions.value.find(item => item.value === groupCode)) ||
+      data.project?.projectGroup || (groupCode ? { groupCode, groupName: groupCode } : null)
     const groupLabel = group ? renderProjectGroupLabel(group) : ''
+    const groupNode = groupLabel
+      ? (!inProject ? <ElLink type="info" class="font-normal" onClick={() => changeGroup(groupCode)}>{groupLabel}</ElLink> : <ElText type="info">{groupLabel}</ElText>)
+      : ''
     return <>
       <ElLink type="primary" onClick={() => inProject ? goBack() : $goto(url)}>{data.project?.projectName}</ElLink>
-      {groupLabel ? <><br/><ElText type="info">{groupLabel}</ElText></> : ''}
+      {groupNode ? <><br/>{groupNode}</> : ''}
     </>
   },
   minWidth: '120px'

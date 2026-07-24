@@ -62,6 +62,19 @@ export const useSelectProjectGroups = (searchParam) => {
   const loadSelectGroups = (data, config) => {
     return loadProjectGroups(data, config).then(result => {
       projectGroups.value = result || []
+      const currentUserName = useCurrentUserName()
+      projectGroups.value.sort((a, b) => {
+        const isSelfA = a.userName === currentUserName ? 0 : 1
+        const isSelfB = b.userName === currentUserName ? 0 : 1
+        if (isSelfA !== isSelfB) {
+          return isSelfA - isSelfB
+        }
+        const userCompare = (a.userName || '').localeCompare(b.userName || '')
+        if (userCompare !== 0) {
+          return userCompare
+        }
+        return (a.id || 0) - (b.id || 0)
+      })
       projectGroupOptions.value = projectGroups.value.map(group => {
         const label = group.userName ? `${group.groupName} (${group.userName})` : group.groupName
         return {
