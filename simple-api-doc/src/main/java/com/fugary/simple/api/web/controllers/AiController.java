@@ -1,15 +1,23 @@
 package com.fugary.simple.api.web.controllers;
 
-import com.fugary.simple.api.config.AiConfigProperties;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
+import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.AiService;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
+import com.fugary.simple.api.web.vo.AiStatusVo;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * AI 相关接口
@@ -22,12 +30,28 @@ public class AiController {
     private AiService aiService;
 
     @Autowired
-    private AiConfigProperties aiConfigProperties;
+    private AiConfigService aiConfigService;
 
     @GetMapping("/status")
-    public SimpleResult<Boolean> getAiStatus() {
-        boolean enabled = aiConfigProperties.isEnabled() && StringUtils.isNotBlank(aiConfigProperties.getApiKey());
-        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_0, enabled);
+    public SimpleResult<AiStatusVo> getAiStatus() {
+        AiStatusVo vo = new AiStatusVo();
+        boolean enabled = aiService.isEnabled();
+        vo.setEnabled(enabled);
+        List<AiConfig> configs = aiConfigService.list(Wrappers.<AiConfig>query()
+                .eq("status", 1)
+                .isNull("modify_from")
+                .orderByDesc("is_default")
+                .orderByDesc("id"));
+        if (!configs.isEmpty()) {
+            List<AiStatusVo.AiConfigVo> voList = configs.stream()
+                    .map(c -> SimpleModelUtils.copy(c, AiStatusVo.AiConfigVo.class))
+                    .collect(Collectors.toList());
+            vo.setConfigs(voList);
+            vo.setDefaultConfigId(configs.get(0).getId());
+        } else {
+            vo.setConfigs(Collections.emptyList());
+        }
+        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_0, vo);
     }
 
     @PostMapping("/generate-sample")

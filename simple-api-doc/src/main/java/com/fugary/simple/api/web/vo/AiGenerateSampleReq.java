@@ -25,4 +25,9 @@ public class AiGenerateSampleReq implements Serializable {
      * 文档 ID
      */
     private String docId;
+
+    /**
+     * AI 配置 ID
+     */
+    private Integer configId;
 }

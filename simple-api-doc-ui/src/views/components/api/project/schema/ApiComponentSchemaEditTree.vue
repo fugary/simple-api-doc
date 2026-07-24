@@ -28,9 +28,14 @@ import { defineFormOptions } from '@/components/utils'
 import { ElMessage } from 'element-plus'
 
 const aiEnabled = ref(false)
+const aiConfigs = ref([])
+const defaultAiConfigId = ref(null)
 getAiStatus().then(res => {
   if (res && res.success) {
-    aiEnabled.value = !!res.resultData
+    const data = res.resultData || {}
+    aiEnabled.value = data.enabled ?? !!data
+    aiConfigs.value = data.configs || []
+    defaultAiConfigId.value = data.defaultConfigId || null
   }
 }).catch(console.error)
 
@@ -63,18 +68,34 @@ const schemaModel = defineModel({
 })
 
 const aiDialogVisible = ref(false)
-const aiFormModel = ref({ mode: 'missing', prompt: '' })
-const aiFormOptions = computed(() => defineFormOptions([
-  {
-    prop: 'mode',
-    labelKey: 'api.msg.aiGenerateMode',
-    type: 'radio-group',
-    children: [
-      { labelKey: 'api.msg.aiGenerateDesc', value: 'missing' },
-      { labelKey: 'api.msg.aiGenerateAllDesc', value: 'all' }
-    ]
-  },
-  {
+const aiFormModel = ref({ mode: 'missing', prompt: '', configId: null })
+const aiFormOptions = computed(() => {
+  const options = [
+    {
+      prop: 'mode',
+      labelKey: 'api.msg.aiGenerateMode',
+      type: 'radio-group',
+      children: [
+        { labelKey: 'api.msg.aiGenerateDesc', value: 'missing' },
+        { labelKey: 'api.msg.aiGenerateAllDesc', value: 'all' }
+      ]
+    }
+  ]
+  if (aiConfigs.value.length > 0) {
+    options.push({
+      prop: 'configId',
+      labelKey: 'api.label.aiConfigSelect',
+      type: 'select',
+      children: aiConfigs.value.map(item => ({
+        label: item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel,
+        value: item.id
+      })),
+      attrs: {
+        clearable: false
+      }
+    })
+  }
+  options.push({
     prop: 'prompt',
     labelKey: 'api.msg.aiExtraPrompt',
     attrs: {
@@ -82,11 +103,12 @@ const aiFormOptions = computed(() => defineFormOptions([
       rows: 5,
       placeholder: $i18nBundle('api.msg.aiExtraPromptPlaceholder')
     }
-  }
-]))
+  })
+  return defineFormOptions(options)
+})
 
 const openAiDialog = () => {
-  aiFormModel.value = { mode: 'missing', prompt: '' }
+  aiFormModel.value = { mode: 'missing', prompt: '', configId: defaultAiConfigId.value }
   aiDialogVisible.value = true
 }
 const checkNeedGenerate = (schema, mode) => {
@@ -122,6 +144,7 @@ const doGenerateDescriptions = async () => {
       schemaContent: JSON.stringify(schemaModel.value),
       projectId: props.currentInfoDetail.projectId,
       prompt: aiFormModel.value.prompt,
+      configId: aiFormModel.value.configId,
       lang: useGlobalConfigStore().currentLocale
     }, { loading: true, timeout: 60000 })
     if (res?.success && res.resultData) {

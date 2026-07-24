@@ -96,11 +96,15 @@ public class AiCacheController {
                 ? "【参考文档/附加提示词】：\n" + extraPrompt.trim() + "\n\n【JSON Schema 结构】：\n" + schemaContent
                 : schemaContent;
 
+        Object configIdObj = payload.get("configId");
+        Integer configId = configIdObj != null ? Integer.valueOf(configIdObj.toString()) : null;
+
         AiGenericTaskReq genericReq = new AiGenericTaskReq();
         genericReq.setSystemPrompt(systemPrompt);
         genericReq.setUserMessage(userMessage);
         genericReq.setCacheType("generate_desc");
         genericReq.setProjectId(projectId);
+        genericReq.setConfigId(configId);
         try {
             String result = aiService.executeGenericTask(genericReq);
             return SimpleResultUtils.createSimpleResult(result);

@@ -96,7 +96,8 @@ export const ALL_MENUS = [
     checkEnabled: async () => {
       try {
         const res = await getAiStatus()
-        return res.success && res.resultData
+        const enabled = typeof res?.resultData === 'object' ? res.resultData.enabled : res?.resultData
+        return !!(res?.success && enabled)
       } catch {
         return false
       }

@@ -67,10 +67,18 @@ public class AiServiceImpl implements AiService {
                         .orElseThrow(() -> new RuntimeException("No suitable AI provider found")));
     }
 
+    private AiConfig resolveAiConfig(Integer configId) {
+        AiConfig config = configId != null ? aiConfigService.getAiConfig(configId) : null;
+        if (config == null || !Integer.valueOf(1).equals(config.getStatus())) {
+            config = aiConfigService.getDefaultAiConfig();
+        }
+        return config;
+    }
+
     @Override
     public String executeGenericTask(AiGenericTaskReq req) {
-        AiConfig currentAiConfig = aiConfigService.getDefaultAiConfig();
-        if (currentAiConfig == null || StringUtils.isBlank(currentAiConfig.getApiKey())) {
+        final AiConfig targetAiConfig = resolveAiConfig(req.getConfigId());
+        if (targetAiConfig == null || StringUtils.isBlank(targetAiConfig.getApiKey())) {
             throw new RuntimeException("AI 生成功能未开启或未配置 API Key");
         }
         String systemPrompt = req.getSystemPrompt();
@@ -80,7 +88,7 @@ public class AiServiceImpl implements AiService {
         String docId = req.getDocId();
 
         String promptHash = DigestUtils.md5Hex(systemPrompt);
-        String rawKey = currentAiConfig.getDefaultModel() + ":" + promptHash + ":" + userMessageContent;
+        String rawKey = targetAiConfig.getDefaultModel() + ":" + promptHash + ":" + userMessageContent;
         String cacheKey = DigestUtils.sha256Hex(rawKey);
 
         boolean cacheExists = false;
@@ -105,7 +113,7 @@ public class AiServiceImpl implements AiService {
             if (pendingCount != null && pendingCount >= aiConfigProperties.getMaxPendingTasks()) {
                 throw new SimpleRuntimeException(429, "当前排队中的 AI 请求过多，请稍后再试");
             }
-            initAiCache(cacheKey, systemPrompt, userMessageContent, projectId, docId, cacheType, currentAiConfig, cacheExists);
+            initAiCache(cacheKey, systemPrompt, userMessageContent, projectId, docId, cacheType, targetAiConfig, cacheExists);
         } catch (SimpleRuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -113,13 +121,13 @@ public class AiServiceImpl implements AiService {
         }
         long startTime = System.currentTimeMillis();
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-            AiChatProvider provider = getChatProvider(currentAiConfig.getProvider());
+            AiChatProvider provider = getChatProvider(targetAiConfig.getProvider());
             AiChatRequest chatRequest = new AiChatRequest();
             chatRequest.setSystemPrompt(systemPrompt);
             chatRequest.setUserMessage(userMessageContent);
             chatRequest.setTemperature(0.3); // Default temperature as per original logic
 
-            AiChatResponse chatResponse = provider.chat(currentAiConfig, chatRequest);
+            AiChatResponse chatResponse = provider.chat(targetAiConfig, chatRequest);
             String generatedSample = chatResponse.getContent();
 
             if (StringUtils.isNotBlank(generatedSample)) {
@@ -158,6 +166,7 @@ public class AiServiceImpl implements AiService {
         genericReq.setCacheType("mock_data");
         genericReq.setProjectId(req.getProjectId());
         genericReq.setDocId(req.getDocId());
+        genericReq.setConfigId(req.getConfigId());
 
         return executeGenericTask(genericReq);
     }

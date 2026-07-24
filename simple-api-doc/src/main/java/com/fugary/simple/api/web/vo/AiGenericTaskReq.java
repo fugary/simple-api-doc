@@ -28,4 +28,9 @@ public class AiGenericTaskReq {
      * Associated document ID
      */
     private String docId;
+
+    /**
+     * Selected AI Config ID
+     */
+    private Integer configId;
 }

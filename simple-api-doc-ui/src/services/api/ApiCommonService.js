@@ -168,7 +168,7 @@ export const generateSchemaSample = async (schemaBody, type, config) => {
   const projectId = config?.projectId
   const docId = config?.docId
   return showGenerateSampleWindow(schemaBody, type, preferenceId).then(async (result) => {
-    const { mode, useExample, useDescription } = result
+    const { mode, configId, useExample, useDescription } = result
     let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
     schema = removeSchemaRecursion(schema)
     if (!useExample) {
@@ -205,7 +205,7 @@ export const generateSchemaSample = async (schemaBody, type, config) => {
           schema: compressNode(schema),
           components: { schemas: components }
         })
-        const res = await aiGenerateSample({ schemaContent: payload, projectId, docId }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
+        const res = await aiGenerateSample({ schemaContent: payload, projectId, docId, configId }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
         if (res && res.code === 202) {
           ElMessage.warning(res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later'))
           json = { message: res.message || $i18nMsg('已加入请求队列，请稍后再次生成', 'Request queued, please generate again later') }
