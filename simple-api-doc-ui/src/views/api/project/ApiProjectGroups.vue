@@ -3,7 +3,7 @@ import { computed, onActivated, onMounted, ref } from 'vue'
 import { $coreConfirm, isAdminUser, useCurrentUserName } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectGroupApi from '@/api/ApiProjectGroupApi'
+import ApiProjectGroupApi, { renderProjectGroupLabel } from '@/api/ApiProjectGroupApi'
 import { $i18nBundle } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
@@ -39,7 +39,9 @@ onActivated(initLoadOnce)
 const columns = computed(() => {
   return [{
     labelKey: 'api.label.projectGroupName',
-    prop: 'groupName',
+    formatter (data) {
+      return renderProjectGroupLabel(data)
+    },
     minWidth: '120px'
   }, {
     labelKey: 'common.label.status',

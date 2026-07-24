@@ -30,7 +30,7 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-import { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import { useSelectProjectGroups, renderProjectGroupLabel } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useCustomDocLabel } from '@/services/api/ApiCommonService'
 import { calcEnvConfigs, getEnvOptions } from '@/api/SimpleShareApi'
@@ -104,13 +104,14 @@ const columns = [{
   labelKey: 'api.label.project',
   formatter (data) {
     const url = `/api/projects/${data.project?.projectCode}?backUrl=${route.fullPath}`
-    let groupInfo = ''
+    let group = null
     if (data.project?.groupCode) {
-      groupInfo = projectGroupOptions.value.find(group => group.value === data.project?.groupCode)?.label
+      group = projectGroupOptions.value.find(item => item.value === data.project?.groupCode)
     }
+    const groupLabel = group ? renderProjectGroupLabel(group) : ''
     return <>
       <ElLink type="primary" onClick={() => inProject ? goBack() : $goto(url)}>{data.project?.projectName}</ElLink>
-      {groupInfo ? <><br/><ElText type="info">{`(${groupInfo})`}</ElText></> : ''}
+      {groupLabel ? <><br/><ElText type="info">{groupLabel}</ElText></> : ''}
     </>
   },
   minWidth: '120px'

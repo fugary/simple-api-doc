@@ -18,7 +18,7 @@ import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImp
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
 import ApiGroupAuthorityList from '@/views/components/api/project/ApiGroupAuthorityList.vue'
 import { ElButton, ElLink, ElMessage, ElText, ElUpload } from 'element-plus'
-import ApiProjectGroupApi, { useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
+import ApiProjectGroupApi, { renderProjectGroupLabel, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
 
@@ -332,9 +332,12 @@ const tableProjectItems = computed(() => {
       projectGroupItems: [{
         labelKey: 'api.label.projectGroups1',
         formatter () {
+          const groupLabel = project.projectGroup
+            ? renderProjectGroupLabel(project.projectGroup)
+            : (project.projectGroupLabel || project.groupCode)
           return <span class="project-group-title">
             <ElLink type="primary" onClick={() => selectGroup(project.groupCode)}>
-              {project.projectGroupLabel}
+              {groupLabel}
             </ElLink>
             {project.canConfigGroupUsers && <>
               <ElButton

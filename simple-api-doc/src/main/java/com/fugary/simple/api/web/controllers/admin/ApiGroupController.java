@@ -54,13 +54,19 @@ public class ApiGroupController {
 
     @GetMapping("/loadProjectGroups")
     public SimpleResult<List<ApiGroupVo>> loadProjectGroups(@ModelAttribute ProjectQueryVo queryVo) {
-        queryVo.setUserName(StringUtils.defaultIfBlank(queryVo.getUserName(), SecurityUtils.getLoginUserName()));
+        String loginUserName = SecurityUtils.getLoginUserName();
         List<ApiGroupVo> apiGroups;
-        if (SecurityUtils.isAdmin(queryVo.getUserName())) {
-            List<ApiGroup> adminGroups = apiGroupService.list(Wrappers.<ApiGroup>query().eq("status", ApiDocConstants.STATUS_ENABLED));
-            apiGroups = adminGroups.stream().map(group -> SimpleModelUtils.copy(group, ApiGroupVo.class)).collect(Collectors.toList());
+        if (SecurityUtils.isAdmin(loginUserName)) {
+            String targetUser = StringUtils.defaultIfBlank(queryVo.getUserName(), loginUserName);
+            if (SecurityUtils.isAdmin(targetUser)) {
+                List<ApiGroup> adminGroups = apiGroupService.list(Wrappers.<ApiGroup>query().eq("status", ApiDocConstants.STATUS_ENABLED));
+                apiGroups = adminGroups.stream().map(group -> SimpleModelUtils.copy(group, ApiGroupVo.class)).collect(Collectors.toList());
+            } else {
+                ApiUserVo userVo = apiUserService.loadUser(targetUser);
+                apiGroups = apiGroupService.loadUserGroups(userVo);
+            }
         } else {
-            ApiUserVo userVo = apiUserService.loadUser(queryVo.getUserName());
+            ApiUserVo userVo = apiUserService.loadUser(loginUserName);
             apiGroups = apiGroupService.loadUserGroups(userVo).stream()
                     .filter(apiGroupVo -> apiGroupService.checkGroupAccess(userVo, apiGroupVo.getGroupCode(), ApiGroupAuthority.READABLE))
                     .collect(Collectors.toList());

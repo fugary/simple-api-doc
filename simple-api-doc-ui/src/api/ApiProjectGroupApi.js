@@ -1,8 +1,9 @@
 import { useResourceApi } from '@/hooks/ApiHooks'
 import { $http, $httpPost } from '@/vendors/axios'
-import { ref } from 'vue'
-import { useCurrentUserName } from '@/utils'
+import { ref, h } from 'vue'
+import { useCurrentUserName, isAdminUser } from '@/utils'
 import { checkCurrentAuthAccess } from '@/services/api/ApiCommonService'
+import { ElText } from 'element-plus'
 
 const BASE_URL = '/admin/groups'
 
@@ -40,25 +41,46 @@ export const saveUserGroups = (userGroupVo, config) => {
   return $httpPost(`${BASE_URL}/saveUserGroups`, userGroupVo, config)
 }
 
+/**
+ * 格式化分组名称与用户高亮标签
+ * @param {Object} group
+ * @return {import('vue').VNode|string}
+ */
+export const renderProjectGroupLabel = (group) => {
+  if (!group) {
+    return ''
+  }
+  return h('span', [
+    group.groupName,
+    group.userName ? h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, `(${group.userName})`) : null
+  ])
+}
+
 export const useSelectProjectGroups = (searchParam) => {
   const projectGroups = ref([])
   const projectGroupOptions = ref([])
   const loadSelectGroups = (data, config) => {
     return loadProjectGroups(data, config).then(result => {
       projectGroups.value = result || []
-      projectGroupOptions.value = projectGroups.value.map(group => ({
-        id: group.id,
-        label: `${group.groupName}-${group.userName}`,
-        value: group.groupCode,
-        userName: group.userName,
-        status: group.status
-      }))
+      projectGroupOptions.value = projectGroups.value.map(group => {
+        const label = group.userName ? `${group.groupName} (${group.userName})` : group.groupName
+        return {
+          id: group.id,
+          label,
+          value: group.groupCode,
+          userName: group.userName,
+          status: group.status,
+          groupName: group.groupName,
+          slots: {
+            default: () => renderProjectGroupLabel(group)
+          }
+        }
+      })
     })
   }
   const loadGroupsAndRefreshOptions = async () => {
-    await loadSelectGroups({
-      userName: searchParam.value?.userName || useCurrentUserName()
-    })
+    const userName = (isAdminUser() && searchParam.value?.userName) ? searchParam.value.userName : useCurrentUserName()
+    await loadSelectGroups({ userName })
     const currentGroup = projectGroups.value.find(group => group.groupCode === searchParam.value.groupCode)
     searchParam.value.projectCode = currentGroup?.projectCode
   }
