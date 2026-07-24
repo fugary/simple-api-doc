@@ -36,6 +36,9 @@ getAiStatus().then(res => {
     aiEnabled.value = data.enabled ?? !!data
     aiConfigs.value = data.configs || []
     defaultAiConfigId.value = data.defaultConfigId || null
+    if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
+      aiFormModel.value.configId = defaultAiConfigId.value
+    }
   }
 }).catch(console.error)
 
@@ -86,10 +89,14 @@ const aiFormOptions = computed(() => {
       prop: 'configId',
       labelKey: 'api.label.aiConfigSelect',
       type: 'select',
-      children: aiConfigs.value.map(item => ({
-        label: item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel,
-        value: item.id
-      })),
+      children: aiConfigs.value.map(item => {
+        const isDefault = item.isDefault === 1 || item.id === defaultAiConfigId.value
+        const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
+        return {
+          label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
+          value: item.id
+        }
+      }),
       attrs: {
         clearable: false
       }
@@ -108,7 +115,9 @@ const aiFormOptions = computed(() => {
 })
 
 const openAiDialog = () => {
-  aiFormModel.value = { mode: 'missing', prompt: '', configId: defaultAiConfigId.value }
+  if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
+    aiFormModel.value.configId = defaultAiConfigId.value
+  }
   aiDialogVisible.value = true
 }
 const checkNeedGenerate = (schema, mode) => {

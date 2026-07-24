@@ -3,6 +3,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { getAiStatus } from '@/api/AiCacheApi'
 import { defineFormOptions } from '@/components/utils'
+import { $i18nBundle } from '@/messages'
 
 const showDialog = ref(false)
 const shareConfigStore = useShareConfigStore()
@@ -54,10 +55,14 @@ const formOptions = computed(() => {
       labelKey: 'api.label.aiConfigSelect',
       prop: 'configId',
       type: 'select',
-      children: aiConfigs.value.map(item => ({
-        label: item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel,
-        value: item.id
-      })),
+      children: aiConfigs.value.map(item => {
+        const isDefault = item.isDefault === 1 || item.id === defaultAiConfigId.value
+        const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
+        return {
+          label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
+          value: item.id
+        }
+      }),
       attrs: {
         clearable: false
       }

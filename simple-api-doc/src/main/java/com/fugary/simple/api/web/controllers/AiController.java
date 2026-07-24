@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -40,14 +41,18 @@ public class AiController {
         List<AiConfig> configs = aiConfigService.list(Wrappers.<AiConfig>query()
                 .eq("status", 1)
                 .isNull("modify_from")
-                .orderByDesc("is_default")
                 .orderByDesc("id"));
         if (!configs.isEmpty()) {
             List<AiStatusVo.AiConfigVo> voList = configs.stream()
                     .map(c -> SimpleModelUtils.copy(c, AiStatusVo.AiConfigVo.class))
                     .collect(Collectors.toList());
             vo.setConfigs(voList);
-            vo.setDefaultConfigId(configs.get(0).getId());
+            Integer defaultId = configs.stream()
+                    .filter(c -> Objects.equals(c.getIsDefault(), 1))
+                    .map(AiConfig::getId)
+                    .findFirst()
+                    .orElseGet(() -> configs.get(0).getId());
+            vo.setDefaultConfigId(defaultId);
         } else {
             vo.setConfigs(Collections.emptyList());
         }
