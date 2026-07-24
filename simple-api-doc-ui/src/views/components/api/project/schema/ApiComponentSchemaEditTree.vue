@@ -63,18 +63,32 @@ const schemaModel = defineModel({
 })
 
 const aiDialogVisible = ref(false)
-const aiFormModel = ref({ mode: 'missing' })
-const aiFormOptions = defineFormOptions([
+const aiFormModel = ref({ mode: 'missing', prompt: '' })
+const aiFormOptions = computed(() => defineFormOptions([
   {
     prop: 'mode',
+    labelKey: 'api.msg.aiGenerateMode',
     type: 'radio-group',
-    labelWidth: '1px',
     children: [
       { labelKey: 'api.msg.aiGenerateDesc', value: 'missing' },
       { labelKey: 'api.msg.aiGenerateAllDesc', value: 'all' }
     ]
+  },
+  {
+    prop: 'prompt',
+    labelKey: 'api.msg.aiExtraPrompt',
+    attrs: {
+      type: 'textarea',
+      rows: 5,
+      placeholder: $i18nBundle('api.msg.aiExtraPromptPlaceholder')
+    }
   }
-])
+]))
+
+const openAiDialog = () => {
+  aiFormModel.value = { mode: 'missing', prompt: '' }
+  aiDialogVisible.value = true
+}
 const checkNeedGenerate = (schema, mode) => {
   let hasProps = false
   let hasMissing = false
@@ -107,6 +121,7 @@ const doGenerateDescriptions = async () => {
     const res = await generateDescriptions({
       schemaContent: JSON.stringify(schemaModel.value),
       projectId: props.currentInfoDetail.projectId,
+      prompt: aiFormModel.value.prompt,
       lang: useGlobalConfigStore().currentLocale
     }, { loading: true, timeout: 60000 })
     if (res?.success && res.resultData) {
@@ -568,7 +583,7 @@ defineEmits(['gotoComponent'])
               type="primary"
               size="small"
               round
-              @click.stop="aiDialogVisible = true; aiFormModel.mode = 'missing'"
+              @click.stop="openAiDialog"
             >
               <common-icon
                 icon="MagicStick"
@@ -661,12 +676,14 @@ defineEmits(['gotoComponent'])
   <common-window
     v-model="aiDialogVisible"
     :title="$t('api.msg.aiGenerateDesc')"
-    width="400px"
+    width="600px"
     :ok-click="doGenerateDescriptions"
   >
     <common-form
       :model="aiFormModel"
       :options="aiFormOptions"
+      label-width="140px"
+      class="form-edit-width-100"
       :show-buttons="false"
     />
   </common-window>

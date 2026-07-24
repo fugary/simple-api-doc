@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * AI Cache 管理 Controller
@@ -81,20 +82,23 @@ public class AiCacheController {
 
     @PostMapping("/generate-descriptions")
     public SimpleResult<String> generateDescriptions(@RequestBody Map<String, Object> payload) {
-        Object schemaObj = payload.get("schemaContent");
-        String schemaContent = schemaObj != null ? String.valueOf(schemaObj) : null;
-        Object projectIdObj = payload.get("projectId");
-        String projectId = projectIdObj != null ? String.valueOf(projectIdObj) : null;
+        String schemaContent = Objects.toString(payload.get("schemaContent"), null);
+        String projectId = Objects.toString(payload.get("projectId"), null);
         String lang = (String) payload.get("lang");
+        String extraPrompt = (String) payload.get("prompt");
         String languageDesc = "zh-CN".equalsIgnoreCase(lang) ? "中文" : "英文";
-        String systemPrompt = "你是一个资深的 API 文档专家。基于提供的 JSON Schema 结构，推断字段的业务含义，生成准确的" + languageDesc + "描述。\n" +
+        String systemPrompt = "你是一个资深的 API 文档专家。基于提供的 JSON Schema 结构及参考提示信息，推断字段的业务含义，生成准确的" + languageDesc + "描述。\n" +
                 "规则：\n" +
                 "1. 严格返回 JSON 对象格式。\n" +
                 "2. Key 为 JSON Schema 中的层级路径（如 properties.username），Value 为生成的描述。\n" +
                 "3. 不要包含任何多余的解释文字或 markdown 格式，只返回纯 JSON。";
+        String userMessage = StringUtils.isNotBlank(extraPrompt)
+                ? "【参考文档/附加提示词】：\n" + extraPrompt.trim() + "\n\n【JSON Schema 结构】：\n" + schemaContent
+                : schemaContent;
+
         AiGenericTaskReq genericReq = new AiGenericTaskReq();
         genericReq.setSystemPrompt(systemPrompt);
-        genericReq.setUserMessage(schemaContent);
+        genericReq.setUserMessage(userMessage);
         genericReq.setCacheType("generate_desc");
         genericReq.setProjectId(projectId);
         try {

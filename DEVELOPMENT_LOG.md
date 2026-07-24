@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **feat**: [2026-07-24] AI 智能补全缺失描述功能增强：1. 在“AI 智能补全缺失描述”弹窗中新增“附加提示词”多行输入框，允许粘贴外部文档、字段说明或自定义提示词；后端接收该附加提示词并融合至 prompt，使 AI 能精准参考外部文档对应与补全 Schema 属性描述；2. 统一表单项 Label 对齐逻辑（精简 Label 文本为“附加提示词”/“Additional Prompt”，对齐宽度降至 110px），并重构精简前后端参数处理与弹窗打开逻辑。
 - **feat**: [2026-07-23] 升级接口调试变量提取引擎：1. 前端引入 `jsonpath-plus` 依赖，重构 `extractVariables` 提取逻辑，支持标准 JSONPath 语法（如高阶数组谓词筛选 `$.data.list[?(@.status==1)].token` 等）；2. 具备 100% 旧配置向下兼容能力，自动将无 `$` 根节点前缀的旧表达式（如 `data.token`）规范化为 `$.data.token`，并提供 Lodash `get` 降级兜底机制；3. 增强透明 XML 响应解析支持，当 Response Body 为 XML 时利用 `fast-xml-parser` 自动解析为内存 JSON 对象进行 JSONPath 提取。
 - **feat**: [2026-07-23] 新增按条件批量删除/清空数据模型功能：1. 在 `ProjectComponentQueryVo` 中新增 `checkOnly` 字段，将核对统计与实际删除整合为统一的 `/admin/info/detail/removeByQuery` 接口，严格校验 `DELETABLE` 权限，既能在预检时返回匹配记录与锁定模型数，又能再正式删除时返回 `deletedCount` 并清理关联历史记录 (`modify_from`)；2. 前端基于 `isDeletable` 权限展示“清空数据模型”按钮，两阶段调用统一的 `removeByQuery` 接口，显式配置 `{ loading: true }`，在预检与正式删除过程中均展示全屏 loading 加载指示器，先获取服务端统计数据，再使用 `$coreConfirm` 弹窗向用户展示明细，确认后发起 `checkOnly: false` 正式删除并清空视图。
 - **opt**: [2026-07-23] 优化数据模型列表默认排序逻辑：在 `ApiProjectInfoDetailController` 的 `search` 与 `loadInfoDetails` 接口中增加 `orderByDesc("coalesce(modify_date, create_date)", "id")` 排序，确保数据模型列表默认按最近修改时间（当修改时间为空时容错回退为创建时间/ID）降序排列，提升大量数据模型场景下的使用体验。
