@@ -4,11 +4,12 @@ import { omit } from 'lodash-es'
 import { formatDate, $coreConfirm } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { AiConfigApi, recoverAiConfigFromHistory, loadHistoryDiff, searchHistories } from '@/api/AiConfigApi'
-import { ElMessage, ElTag, ElText } from 'element-plus'
+import { ElMessage, ElTag, ElText, ElSwitch } from 'element-plus'
 import { useDefaultPage } from '@/config'
-import { $i18nBundle } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { useSearchStatus, useFormStatus } from '@/consts/GlobalConstants'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
+import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
 import AiConfigTestWindow from './AiConfigTestWindow.vue'
@@ -65,6 +66,13 @@ const saveConfig = async (data) => {
   }
 }
 
+const handleToggleDefault = (row) => {
+  const toValue = row.isDefault === 1 ? 0 : 1
+  const confirmMsg = $i18nBundle('common.msg.commonConfirm', [$i18nBundle('api.label.setDefault')])
+  return $coreConfirm(confirmMsg)
+    .then(() => saveConfig({ ...row, isDefault: toValue }))
+}
+
 const deleteConfig = (row) => {
   $coreConfirm($i18nBundle('common.msg.deleteConfirm'))
     .then(async () => {
@@ -82,7 +90,7 @@ const deleteConfig = (row) => {
 const historyColumns = defineTableColumns([{
   labelKey: 'common.label.version',
   prop: 'version',
-  width: '120',
+  minWidth: '120px',
   align: 'center',
   formatter: (data) => {
     const currentFlag = data.current ? <ElTag type="success" size="small">{$i18nBundle('api.label.current')}</ElTag> : ''
@@ -103,19 +111,41 @@ const historyColumns = defineTableColumns([{
 }, {
   labelKey: 'api.label.defaultModel',
   prop: 'defaultModel',
-  width: '150px',
+  minWidth: '150px',
   align: 'center'
+}, {
+  labelKey: 'api.label.setDefault',
+  prop: 'isDefault',
+  minWidth: '100px',
+  align: 'center',
+  formatter (data) {
+    return <DelFlagTag v-model={data.isDefault}
+                       switchMode={false}
+                       typeConfig={{ 1: 'primary', 0: 'info' }}
+                       valueConfig={{
+                         1: $i18nBundle('common.label.yes'),
+                         0: $i18nBundle('common.label.no')
+                       }} />
+  }
+}, {
+  labelKey: 'common.label.status',
+  prop: 'status',
+  minWidth: '100px',
+  align: 'center',
+  formatter (data) {
+    return <DelFlagTag v-model={data.status} switchMode={false} />
+  }
 }, {
   labelKey: 'common.label.modifier',
   formatter (data) {
     return <ElText>{data.modifier || data.creator}</ElText>
   },
-  width: '120px',
+  minWidth: '120px',
   align: 'center'
 }, {
   labelKey: 'common.label.modifyDate',
   property: 'createDate',
-  width: '170px',
+  minWidth: '170px',
   align: 'center',
   formatter: (data) => formatDate(data.modifyDate || data.createDate)
 }])
@@ -171,13 +201,12 @@ const columns = computed(() => {
     minWidth: '150px',
     prop: 'configName',
     formatter (data) {
-      const tag = data.isDefault === 1 ? <ElTag type="success" size="small" style="margin-left: 8px;">{$i18nBundle('api.label.default')}</ElTag> : null
-      return <><ElText tag="strong">{data.configName}</ElText>{tag}</>
+      return <ElText tag="strong">{data.configName}</ElText>
     }
   }, {
     labelKey: 'api.label.provider',
     prop: 'provider',
-    width: '120',
+    minWidth: '120px',
     align: 'center',
     formatter (data) {
       const typeMap = {
@@ -191,7 +220,7 @@ const columns = computed(() => {
   }, {
     labelKey: 'api.label.defaultModel',
     prop: 'defaultModel',
-    width: '150',
+    minWidth: '150px',
     align: 'center'
   }, {
     labelKey: 'api.label.baseUrl',
@@ -199,17 +228,35 @@ const columns = computed(() => {
     minWidth: '200px',
     showOverflowTooltip: true
   }, {
-    labelKey: 'common.label.status',
-    prop: 'status',
-    width: '100',
+    labelKey: 'api.label.setDefault',
+    prop: 'isDefault',
+    minWidth: '100px',
     align: 'center',
     formatter (data) {
-      return <ElTag type={data.status === 1 ? 'success' : 'danger'}>{data.status === 1 ? $i18nBundle('common.label.statusEnable') : $i18nBundle('common.label.statusDisable')}</ElTag>
+      const toText = data.isDefault === 1 ? $i18nBundle('common.label.statusDisabled') : $i18nBundle('api.label.setDefault')
+      const tooltip = $i18nKey('common.msg.clickTo', toText)
+      return <el-link v-common-tooltip={tooltip} underline="never">
+        <ElSwitch v-model={data.isDefault}
+                  active-value={1}
+                  inactive-value={0}
+                  before-change={() => handleToggleDefault(data)}
+                  onClick={(e) => e.stopPropagation()} />
+      </el-link>
+    }
+  }, {
+    labelKey: 'common.label.status',
+    prop: 'status',
+    minWidth: '100px',
+    align: 'center',
+    formatter (data) {
+      return <DelFlagTag v-model={data.status}
+                         clickToToggle={true}
+                         onToggleValue={(status) => saveConfig({ ...data, status: Number(status) })} />
     }
   }, {
     labelKey: 'common.label.createDate',
     property: 'createDate',
-    width: '170',
+    minWidth: '170px',
     align: 'center',
     formatter: (row) => formatDate(row.createDate)
   }]

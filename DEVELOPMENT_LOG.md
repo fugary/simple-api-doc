@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **opt**: [2026-07-24] 优化 AI 配置管理列表页面与历史记录版本弹窗：1. 将主列表与历史记录版本列表的所有表格列宽度由固定 `width` 统一调整为响应式 `minWidth`（如 `minWidth: '120px'`, `minWidth: '150px'`, `minWidth: '100px'` 等），防止大屏显示时表头或文本内容被截断；2. 在历史记录版本列表 (`historyColumns`) 中补全补充“设为默认”(`isDefault`) 与“状态”(`status`) 只读 Tag 标签列，方便直观查看各历史版本的配置状态；3. “设为默认”(`isDefault`) 主列表列使用原生 `ElSwitch` 绑定 `v-common-tooltip` 动态悬浮提示，实现快捷直观的操作体验。
 - **feat**: [2026-07-24] 支持 AI 生成时自由选择 AI 配置与默认选中：1. 后端 `/admin/ai/status` 与 `/shares/ai/status` 接口升级，返回包含 enabled 状态、`defaultConfigId` 及启用的 AI 配置列表 (`configs`) 的 `AiStatusVo`；2. 后端 `executeGenericTask` 和 `generateSampleBySchema` 支持接收 `configId` 并优先调用指定配置；3. 前端在生成示例数据弹窗 (`ApiGenerateSampleWindow`) 和 Schema 编辑器补全描述弹窗 (`ApiComponentSchemaEditTree`) 中新增“AI接口配置”下拉框，当有多个 AI 配置时默认选中默认配置，并支持用户切换选择。
 - **feat**: [2026-07-24] AI 智能补全缺失描述功能增强：1. 在“AI 智能补全缺失描述”弹窗中新增“附加提示词”多行输入框，允许粘贴外部文档、字段说明或自定义提示词；后端接收该附加提示词并融合至 prompt，使 AI 能精准参考外部文档对应与补全 Schema 属性描述；2. 统一表单项 Label 对齐逻辑（精简 Label 文本为“附加提示词”/“Additional Prompt”，对齐宽度降至 110px），并重构精简前后端参数处理与弹窗打开逻辑。
 - **feat**: [2026-07-23] 升级接口调试变量提取引擎：1. 前端引入 `jsonpath-plus` 依赖，重构 `extractVariables` 提取逻辑，支持标准 JSONPath 语法（如高阶数组谓词筛选 `$.data.list[?(@.status==1)].token` 等）；2. 具备 100% 旧配置向下兼容能力，自动将无 `$` 根节点前缀的旧表达式（如 `data.token`）规范化为 `$.data.token`，并提供 Lodash `get` 降级兜底机制；3. 增强透明 XML 响应解析支持，当 Response Body 为 XML 时利用 `fast-xml-parser` 自动解析为内存 JSON 对象进行 JSONPath 提取。
