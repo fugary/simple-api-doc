@@ -62,6 +62,10 @@ const props = defineProps({
   showMergeAllOf: {
     type: Boolean,
     default: true
+  },
+  readonly: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -379,7 +383,7 @@ const constructRefSchema = data => {
   })
 }
 
-const baseNodeCheck = node => node?.data?.id !== '_root' && checkEditProperty(node)
+const baseNodeCheck = node => !props.readonly && node?.data?.id !== '_root' && checkEditProperty(node)
 
 const allowDrop = (draggingNode, dropNode, type) => {
   return baseNodeCheck(dropNode) && (type !== 'inner' || isObjectSchema(dropNode.data?.schema))
@@ -518,7 +522,7 @@ defineEmits(['gotoComponent'])
       :load="loadTreeNode"
       :allow-drag="allowDrag"
       :allow-drop="allowDrop"
-      draggable
+      :draggable="!readonly"
       @node-drag-end="handleDragEnd"
       @node-expand="toggleExpandKey($event, true)"
       @node-collapse="toggleExpandKey($event, false)"
@@ -595,33 +599,35 @@ defineEmits(['gotoComponent'])
             v-if="currentTreeData===data&&currentModel?.id!==data.id"
             style="position: absolute; top:calc(50% - 11px);right:50px"
           >
-            <el-button
-              v-if="checkAddProperty(node)"
-              v-common-tooltip="$i18nKey('common.label.commonAdd1', 'api.label.property')"
-              type="primary"
-              size="small"
-              round
-              @click.stop="addPropertyInline(node)"
-            >
-              <common-icon
-                icon="Plus"
-                :size="18"
-              />
-            </el-button>
-            <el-button
-              v-if="data.id === '_root' && aiEnabled"
-              v-common-tooltip="$t('api.msg.aiGenerateDesc')"
-              class="margin-left1"
-              type="primary"
-              size="small"
-              round
-              @click.stop="openAiDialog"
-            >
-              <common-icon
-                icon="MagicStick"
-                :size="18"
-              />
-            </el-button>
+            <template v-if="!readonly">
+              <el-button
+                v-if="checkAddProperty(node)"
+                v-common-tooltip="$i18nKey('common.label.commonAdd1', 'api.label.property')"
+                type="primary"
+                size="small"
+                round
+                @click.stop="addPropertyInline(node)"
+              >
+                <common-icon
+                  icon="Plus"
+                  :size="18"
+                />
+              </el-button>
+              <el-button
+                v-if="data.id === '_root' && aiEnabled"
+                v-common-tooltip="$t('api.msg.aiGenerateDesc')"
+                class="margin-left1"
+                type="primary"
+                size="small"
+                round
+                @click.stop="openAiDialog"
+              >
+                <common-icon
+                  icon="MagicStick"
+                  :size="18"
+                />
+              </el-button>
+            </template>
             <el-button
               v-if="checkGotoRef(node)"
               v-common-tooltip="$i18nBundle('common.label.commonGoto', [$ref2Schema(getData$ref(data))||$t('api.label.typeRef')])"
@@ -635,71 +641,73 @@ defineEmits(['gotoComponent'])
                 :size="18"
               />
             </el-button>
-            <el-button
-              v-if="checkGotoRef(node)&&!checkGotoRef(node.parent)"
-              v-common-tooltip="$i18nBundle('api.label.deRef', [$ref2Schema(getData$ref(data))||$t('api.label.typeRef')])"
-              type="danger"
-              size="small"
-              round
-              @click.stop="dereferenceSchema(data);"
-            >
-              <common-icon
-                icon="LinkOffFilled"
-                :size="18"
-              />
-            </el-button>
-            <el-button
-              v-if="!checkGotoRef(node)&&data.schema?.type==='object'"
-              v-common-tooltip="$i18nBundle('api.label.constructRefNew')"
-              type="success"
-              size="small"
-              round
-              @click.stop="constructRefSchema(data)"
-            >
-              <common-icon
-                icon="AddLinkFilled"
-                :size="18"
-              />
-            </el-button>
-            <el-button
-              v-if="!checkGotoRef(node)&&data.schema?.type==='object'"
-              v-common-tooltip="$i18nBundle('api.label.constructRefLink')"
-              type="success"
-              size="small"
-              round
-              @click.stop="newOrEdit(data, node.parent?.data, SCHEMA_SELECT_TYPE.REF)"
-            >
-              <common-icon
-                icon="LinkFilled"
-                :size="18"
-              />
-            </el-button>
-            <el-button
-              v-if="checkEditProperty(node)"
-              v-common-tooltip="$t('common.label.edit')"
-              type="primary"
-              size="small"
-              round
-              @click.stop="toEditSchemaModel(node)"
-            >
-              <common-icon
-                icon="Edit"
-                :size="18"
-              />
-            </el-button>
-            <el-button
-              v-if="checkDeleteProperty(node)"
-              v-common-tooltip="$t('common.label.delete')"
-              type="danger"
-              size="small"
-              round
-              @click.stop="deleteProperty(data, node.parent?.data)"
-            >
-              <common-icon
-                icon="DeleteFilled"
-                :size="18"
-              />
-            </el-button>
+            <template v-if="!readonly">
+              <el-button
+                v-if="checkGotoRef(node)&&!checkGotoRef(node.parent)"
+                v-common-tooltip="$i18nBundle('api.label.deRef', [$ref2Schema(getData$ref(data))||$t('api.label.typeRef')])"
+                type="danger"
+                size="small"
+                round
+                @click.stop="dereferenceSchema(data);"
+              >
+                <common-icon
+                  icon="LinkOffFilled"
+                  :size="18"
+                />
+              </el-button>
+              <el-button
+                v-if="!checkGotoRef(node)&&data.schema?.type==='object'"
+                v-common-tooltip="$i18nBundle('api.label.constructRefNew')"
+                type="success"
+                size="small"
+                round
+                @click.stop="constructRefSchema(data)"
+              >
+                <common-icon
+                  icon="AddLinkFilled"
+                  :size="18"
+                />
+              </el-button>
+              <el-button
+                v-if="!checkGotoRef(node)&&data.schema?.type==='object'"
+                v-common-tooltip="$i18nBundle('api.label.constructRefLink')"
+                type="success"
+                size="small"
+                round
+                @click.stop="newOrEdit(data, node.parent?.data, SCHEMA_SELECT_TYPE.REF)"
+              >
+                <common-icon
+                  icon="LinkFilled"
+                  :size="18"
+                />
+              </el-button>
+              <el-button
+                v-if="checkEditProperty(node)"
+                v-common-tooltip="$t('common.label.edit')"
+                type="primary"
+                size="small"
+                round
+                @click.stop="toEditSchemaModel(node)"
+              >
+                <common-icon
+                  icon="Edit"
+                  :size="18"
+                />
+              </el-button>
+              <el-button
+                v-if="checkDeleteProperty(node)"
+                v-common-tooltip="$t('common.label.delete')"
+                type="danger"
+                size="small"
+                round
+                @click.stop="deleteProperty(data, node.parent?.data)"
+              >
+                <common-icon
+                  icon="DeleteFilled"
+                  :size="18"
+                />
+              </el-button>
+            </template>
           </span>
         </div>
       </template>

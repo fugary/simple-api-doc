@@ -68,6 +68,7 @@ watch(currentInfoDetail, async model => {
 const projectItem = computed(() => projectItemMap[currentComponentModel.value?.projectId])
 const deletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
 const writable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || deletable.value)
+const readonly = computed(() => !writable.value)
 const projectInfos = computed(() => {
   if (projectItem.value?.infoList?.length) {
     return processProjectInfos(projectItem.value)
@@ -155,10 +156,11 @@ const componentEditOptions = computed(() => {
     tooltipFunc () {
       showMarkdownWindow({
         content: currentComponentModel.value?.description,
-        title: $i18nKey('common.label.commonEdit', 'common.label.description')
+        title: $i18nKey('common.label.commonEdit', 'common.label.description'),
+        readonly: readonly.value
       }, {
         'onUpdate:modelValue': value => {
-          if (currentComponentModel.value) {
+          if (!readonly.value && currentComponentModel.value) {
             currentComponentModel.value.description = value
           }
         }
@@ -201,6 +203,12 @@ const copyComponent = () => {
     })
 }
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, languageSelectOption, formatDocument } = useMonacoEditorOptions({ readOnly: false })
+watch(readonly, isReadOnly => {
+  monacoEditorOptions.readOnly = isReadOnly
+  if (editorRef.value) {
+    editorRef.value.updateOptions({ readOnly: isReadOnly })
+  }
+}, { immediate: true })
 languageRef.value = 'json'
 const schemaContentObj = ref({})
 const mediaTypeSchemaObj = ref()
@@ -354,6 +362,7 @@ defineExpose({
       :class="{'padding-top3':!inWindow}"
       class-name="common-form-auto"
       :model="currentComponentModel"
+      :disabled="readonly"
       inline
       :options="componentEditOptions"
       :show-buttons="false"
@@ -447,6 +456,7 @@ defineExpose({
               :spec-version="currentProjectInfo?.specVersion"
               :component-schemas="componentSchemas"
               :show-merge-all-of="false"
+              :readonly="readonly"
               @goto-component="gotoComponent"
             />
           </el-container>
