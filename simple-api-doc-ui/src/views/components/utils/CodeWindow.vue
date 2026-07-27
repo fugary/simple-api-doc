@@ -78,7 +78,7 @@ defineExpose({
 const fullscreen = ref(false)
 
 const codeHeight = computed(() => {
-  const offset = codeConfig.diffEditor ? 150 : 190
+  const offset = codeConfig.diffEditor ? 230 : 270
   return fullscreen.value ? `calc(100dvh - ${offset}px)` : codeConfig.height
 })
 

@@ -16,7 +16,7 @@ const showWindow = ref(false)
 const fullscreen = ref(false)
 const contentConfig = ref({})
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-const editorHeight = computed(() => fullscreen.value ? 'calc(100dvh - 145px)' : '500px')
+const editorHeight = computed(() => fullscreen.value ? 'calc(100dvh - 230px)' : '500px')
 const showMarkdownWindow = (content) => {
   if (isPlainObject(content)) {
     Object.assign(contentConfig.value, content)

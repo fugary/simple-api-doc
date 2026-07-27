@@ -81,7 +81,7 @@ defineExpose({
 })
 
 const fullscreen = ref(false)
-const codeHeight = computed(() => fullscreen.value ? 'calc(100dvh - 150px)' : props.height)
+const codeHeight = computed(() => fullscreen.value ? 'calc(100dvh - 230px)' : props.height)
 
 </script>
 
