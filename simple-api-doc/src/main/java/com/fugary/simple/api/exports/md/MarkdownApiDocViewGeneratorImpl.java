@@ -13,6 +13,8 @@ import io.swagger.v3.oas.models.SpecVersion;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.apache.commons.collections.CollectionUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -104,6 +106,10 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
                 }).collect(Collectors.toList());
         model.put("responsesSchemas", responseSchemas);
         model.put("v31", SchemaJsonUtils.isV31(specVersion));
+        List<SecurityScheme> securitySchemas = apiDocFreemarkerUtils.calcSecuritySchemas(apiDocDetail, specVersion);
+        if (CollectionUtils.isNotEmpty(securitySchemas)) {
+            model.put("securitySchemas", securitySchemas);
+        }
         if (context.isGenerateComponents()) {
             Map<String, Schema<?>> sortedSchemasMap = sortSchemasMap(schemasMap, requestSchemas, responseSchemas);
             model.put("schemasMap", sortedSchemasMap);

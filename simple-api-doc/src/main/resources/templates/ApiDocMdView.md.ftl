@@ -15,6 +15,13 @@ ${apiDocDetail.docContent}
 ${apiDocDetail.description}
 </#if>
 </#if>
+<#if securitySchemas?? && (securitySchemas?size > 0)>
+### ${message('api.label.authorization')}
+
+<#list securitySchemas as sec>
+* ${utils.formatSecurityScheme(sec)}
+</#list>
+</#if>
 <#if parameters??>
 ### ${message('api.label.queryParams')}
 

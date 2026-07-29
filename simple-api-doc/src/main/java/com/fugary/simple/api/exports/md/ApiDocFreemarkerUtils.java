@@ -12,6 +12,9 @@ import io.swagger.v3.core.util.RefUtils;
 import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.SpecVersion;
+import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -516,5 +519,91 @@ public class ApiDocFreemarkerUtils {
      */
     public boolean isNotBlank(String str) {
         return StringUtils.isNotBlank(str);
+    }
+
+    /**
+     * 计算 ApiDoc 所启用的 SecuritySchemas
+     *
+     * @param apiDocDetail
+     * @param specVersion
+     * @return
+     */
+    public List<SecurityScheme> calcSecuritySchemas(ApiDocDetailVo apiDocDetail, SpecVersion specVersion) {
+        if (apiDocDetail == null || apiDocDetail.getProjectInfoDetail() == null) {
+            return Collections.emptyList();
+        }
+        ApiProjectInfoDetail securitySchemasDetail = apiDocDetail.getProjectInfoDetail().getSecuritySchemas();
+        if (securitySchemasDetail == null || StringUtils.isBlank(securitySchemasDetail.getSchemaContent())) {
+            return Collections.emptyList();
+        }
+
+        Map<String, SecurityScheme> allSchemas = SchemaJsonUtils.fromJson(securitySchemasDetail.getSchemaContent(),
+                new TypeReference<>() {}, SchemaJsonUtils.isV31(specVersion));
+        if (MapUtils.isEmpty(allSchemas)) {
+            return Collections.emptyList();
+        }
+
+        ApiProjectInfoDetail securityRequirementsDetail = apiDocDetail.getSecurityRequirements();
+        if (securityRequirementsDetail == null || StringUtils.isBlank(securityRequirementsDetail.getSchemaContent())) {
+            securityRequirementsDetail = apiDocDetail.getProjectInfoDetail().getSecurityRequirements();
+        }
+
+        if (securityRequirementsDetail == null || StringUtils.isBlank(securityRequirementsDetail.getSchemaContent())) {
+            return Collections.emptyList();
+        }
+
+        List<Map<String, List<String>>> requirements = SchemaJsonUtils.fromJson(securityRequirementsDetail.getSchemaContent(),
+                new TypeReference<>() {}, SchemaJsonUtils.isV31(specVersion));
+        if (CollectionUtils.isEmpty(requirements)) {
+            return Collections.emptyList();
+        }
+
+        Set<String> activeKeys = new LinkedHashSet<>();
+        for (Map<String, List<String>> reqMap : requirements) {
+            if (reqMap != null) {
+                activeKeys.addAll(reqMap.keySet());
+            }
+        }
+
+        List<SecurityScheme> resultList = new ArrayList<>();
+        for (String key : activeKeys) {
+            for (Map.Entry<String, SecurityScheme> entry : allSchemas.entrySet()) {
+                if (entry.getValue() != null && (StringUtils.equalsIgnoreCase(entry.getKey(), key) || StringUtils.equalsIgnoreCase(entry.getValue().getName(), key))) {
+                    if (!resultList.contains(entry.getValue())) {
+                        resultList.add(entry.getValue());
+                    }
+                }
+            }
+        }
+        return resultList;
+    }
+
+    /**
+     * 将 SecurityScheme 转换为格式化 Markdown 文本
+     *
+     * @param scheme
+     * @return
+     */
+    public String formatSecurityScheme(SecurityScheme scheme) {
+        if (scheme == null) {
+            return StringUtils.EMPTY;
+        }
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isNotBlank(scheme.getName())) {
+            sb.append("**`").append(scheme.getName()).append("`**");
+        }
+        if (scheme.getIn() != null) {
+            sb.append(" (").append(scheme.getIn().toString().toLowerCase()).append(")");
+        }
+        if (scheme.getType() != null) {
+            sb.append(" `<").append(scheme.getType().toString().toLowerCase()).append(">`");
+        }
+        if (StringUtils.isNotBlank(scheme.getScheme())) {
+            sb.append(" ").append(scheme.getScheme());
+        }
+        if (StringUtils.isNotBlank(scheme.getDescription())) {
+            sb.append(": ").append(scheme.getDescription());
+        }
+        return sb.toString();
     }
 }

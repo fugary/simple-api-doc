@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **feat**: [2026-07-29] 增强文档模式（Markdown 模式）下的信息完整性：后端 `MarkdownApiDocViewGeneratorImpl.java` 与 `ApiDocFreemarkerUtils.java` 支持解析接口与项目配置的 `securityRequirements` 及 `securitySchemas` 认证规则，并在 `ApiDocMdView.md.ftl` 模板中新增 `### 认证` / `### Authorization` 章节渲染输出；修正 `messages_zh_CN.properties` 与 `messages.properties` 中的 `api.label.authorization` 词条为 `认证`，保持前后端词条一致。
 - **opt**: [2026-07-29] 优化文档模式（Markdown 模式）下的数据模型排序：在 `MarkdownApiDocViewGeneratorImpl.java` 中新增 `sortSchemasMap` 智能重排逻辑，按【请求主模型 -> 响应主模型 -> 关联嵌套模型 -> 其他通用模型】四层严格优先级重新组织 `schemasMap`，使文档模式下底部的“数据模型”列表及右侧大纲（`md-catalog`）最优先置顶显示当前接口的请求体模型与响应体模型；新增 `MarkdownApiDocViewGeneratorImplTest` 单元测试并通过验证。
 - **bug**: [2026-07-29] 修复从项目详情进入导入任务列表与分享列表时项目分组名称显示为原始 `groupCode` ID 串的问题：在 `ApiProjectTasks.vue` 和 `ApiProjectShares.vue` 的 `initLoadOnce` 中，当 `inProject` 为 `true` 时补全 `loadGroupsAndRefreshOptions()` 调用，确保初始化即加载当前用户的项目分组数据，使表格渲染项目列时能正确匹配并显示真实的项目分组名称。
 - **opt**: [2026-07-29] 优化数据模型/Schema 编辑树添加属性交互体验：1. 在 `ApiComponentSchemaEditTree.vue` 的 `addPropertyInline` 方法中增加父节点自动展开逻辑（`node.expanded = true`）；2. 解决因为 `el-tree` 开启 `lazy` 懒加载及刷新重新挂载 DOM 导致 `nextTick` 无法即时捕捉 DOM 的问题，新增带重试机制的 `scrollToAndFocusNewRow` 异步轮询定位；3. 自动触发居中平滑滚动（`scrollIntoView({ behavior: 'smooth', block: 'center' })`），确保当对象属性较多时新增属性表单即时平滑居中展示在当前视口内；4. 自动定位并聚焦“属性名称”输入框（`input.focus()`），并叠加 2s 柔和渐变脉冲高亮动画（`@keyframes property-highlight`）。
