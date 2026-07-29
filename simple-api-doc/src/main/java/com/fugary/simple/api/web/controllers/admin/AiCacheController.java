@@ -81,10 +81,31 @@ public class AiCacheController {
         return SimpleResultUtils.createSimpleResult(aiCacheMapper.deleteById(id) > 0);
     }
 
+    private SimpleResult<String> executeTask(String systemPrompt, String userMessage, String cacheType, Map<String, Object> payload, String errorLogMsg) {
+        String projectId = Objects.toString(payload.get("projectId"), null);
+        Object configIdObj = payload.get("configId");
+        Integer configId = configIdObj != null ? Integer.valueOf(configIdObj.toString()) : null;
+
+        AiGenericTaskReq genericReq = new AiGenericTaskReq();
+        genericReq.setSystemPrompt(systemPrompt);
+        genericReq.setUserMessage(userMessage);
+        genericReq.setCacheType(cacheType);
+        genericReq.setProjectId(projectId);
+        genericReq.setConfigId(configId);
+        try {
+            String result = aiService.executeGenericTask(genericReq);
+            return SimpleResultUtils.createSimpleResult(result);
+        } catch (SimpleRuntimeException e) {
+            return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
+        } catch (Exception e) {
+            log.error(errorLogMsg, e);
+            return SimpleResultUtils.createError(e.getMessage());
+        }
+    }
+
     @PostMapping("/generate-descriptions")
     public SimpleResult<String> generateDescriptions(@RequestBody Map<String, Object> payload) {
         String schemaContent = Objects.toString(payload.get("schemaContent"), null);
-        String projectId = Objects.toString(payload.get("projectId"), null);
         String lang = (String) payload.get("lang");
         String extraPrompt = (String) payload.get("prompt");
         String languageDesc = "zh-CN".equalsIgnoreCase(lang) ? "中文" : "英文";
@@ -96,24 +117,22 @@ public class AiCacheController {
         String userMessage = StringUtils.isNotBlank(extraPrompt)
                 ? "【参考文档/附加提示词】：\n" + extraPrompt.trim() + "\n\n【JSON Schema 结构】：\n" + schemaContent
                 : schemaContent;
+        return executeTask(systemPrompt, userMessage, "generate_desc", payload, "生成描述失败");
+    }
 
-        Object configIdObj = payload.get("configId");
-        Integer configId = configIdObj != null ? Integer.valueOf(configIdObj.toString()) : null;
-
-        AiGenericTaskReq genericReq = new AiGenericTaskReq();
-        genericReq.setSystemPrompt(systemPrompt);
-        genericReq.setUserMessage(userMessage);
-        genericReq.setCacheType("generate_desc");
-        genericReq.setProjectId(projectId);
-        genericReq.setConfigId(configId);
-        try {
-            String result = aiService.executeGenericTask(genericReq);
-            return SimpleResultUtils.createSimpleResult(result);
-        } catch (SimpleRuntimeException e) {
-            return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
-        } catch (Exception e) {
-            log.error("生成描述失败", e);
-            return SimpleResultUtils.createError(e.getMessage());
-        }
+    @PostMapping("/generate-model")
+    public SimpleResult<String> generateModel(@RequestBody Map<String, Object> payload) {
+        String prompt = Objects.toString(payload.get("prompt"), null);
+        String lang = (String) payload.get("lang");
+        String languageDesc = "zh-CN".equalsIgnoreCase(lang) ? "中文" : "英文";
+        String systemPrompt = "你是一个资深的 API 与 OpenAPI 设计专家。基于用户提供的业务需求描述，生成一个完整且规范的数据模型（JSON Schema）对象。\n" +
+                "规则：\n" +
+                "1. 必须只返回合法的纯 JSON 对象，不要包含任何 markdown 格式标记（如 ```json）或额外的解释文字。\n" +
+                "2. 返回的 JSON 对象包含以下 3 个根属性：\n" +
+                "   - \"schemaName\": 模型的英文名称，推荐采用 PascalCase 大驼峰命名规范（如 UserInfoVo, CreateOrderReq）。\n" +
+                "   - \"description\": 模型的业务与功能描述（使用" + languageDesc + "）。\n" +
+                "   - \"schema\": 符合 OpenAPI 3.0 / JSON Schema 规范的对象结构，必须包含 type (\"object\"), properties (属性列表), optional required (必填字段数组)，并且每个属性节点需指定 type, description (" + languageDesc + "描述), example (可选示例值), format (可选格式) 等。\n" +
+                "3. 字段命名合理，类型推断准确（如 integer, string, boolean, array, object 等）。";
+        return executeTask(systemPrompt, prompt, "generate_model", payload, "生成模型失败");
     }
 }

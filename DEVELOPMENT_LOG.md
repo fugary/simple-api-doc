@@ -3,6 +3,8 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **feat**: [2026-07-29] 新增 AI 智能生成数据模型功能：1. 后端在 `AiCacheController` 中新增 `/admin/ai/caches/generate-model` 接口，基于业务需求描述生成 PascalCase 格式的模型名称、业务描述及符合 OpenAPI 3.0 / JSON Schema 规范的标准 Schema 结构；2. 前端在 `AiCacheApi.js` 增加 `generateModel` API 接口，并在数据模型表单（`ApiProjectComponent.vue`）“保存”按钮旁边新增简洁无图标的「`AI生成`」按钮，保持与保存、删除、复制等按钮外观一致；3. 提供需求描述输入弹窗（修复 `placeholder` 传递位置，使占位文本正常显示），支持自由选择 AI 配置，并在 `AiCacheList.vue` 中补全 `generate_model` 类型的表格格式化与筛选项；4. 校验并覆盖全部新增国际化词条，并通过 ESLint 代码规范验证。
+
 - **opt**: [2026-07-29] 彻底清理废弃空函数 `syncCachedParamsToTarget`：从 `ApiDocPreviewService.js` 与 `ApiDocRequestPreview.vue` 中彻底擦除无用的 `syncCachedParamsToTarget` 空函数定义与调用点，保持全量代码零冗余。
 - **bug**: [2026-07-29] 修复初始尚未配置环境变量时调试面板右上角 `变量` / `Variables` 链接隐藏导致无法入口配置的问题：调整 `ApiEnvPopover.vue` 渲染逻辑为 `v-if="envSuggestions?.length || preferenceId || projectId"`，确保无论初始是否有已解析变量，`变量` 链接均常驻可见，支持随时点开编辑新增变量。
 - **bug**: [2026-07-29] 修复点击编辑变量时因 `preferenceId`/`projectCode` 字符串传给 `ApiProjectApi.getById` 导致的后端 `MethodArgumentTypeMismatchException` 类型转换异常：1. 在 `ApiEnvParams.vue` 的 `toEditGroupEnvParams` 中增加 `isNumeric` 防护，当传入非纯数字 ID（如 UUID 格式的 `projectCode` 或 `shareId`）时安全阻止发送后端接口请求，杜绝 Spring MVC 将字符串转为 Long/Integer 失败引发的 500 报错；2. 在 `ApiEnvPopover.vue` 与 `ApiRequestFormReq.vue` 中明确区分与透传数字 `projectId` 与偏好主键 `preferenceId`，保证弹窗能安全发起后端默认配置加载，同时完全独立控制本地持久化缓存。

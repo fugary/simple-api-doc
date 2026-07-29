@@ -716,7 +716,7 @@ defineEmits(['gotoComponent'])
   <common-window
     v-model="aiDialogVisible"
     :title="$t('api.msg.aiGenerateDesc')"
-    width="600px"
+    width="800px"
     :ok-click="doGenerateDescriptions"
   >
     <common-form

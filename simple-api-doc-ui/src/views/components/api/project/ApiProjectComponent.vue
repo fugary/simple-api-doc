@@ -4,7 +4,7 @@ import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
-import { ElTag, ElText } from 'element-plus'
+import { ElMessage, ElTag, ElText } from 'element-plus'
 import { $copyText, $coreConfirm, $coreError, formatDate, getSingleSelectOptions, getStyleGrow } from '@/utils'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
 import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail, loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiProjectInfoDetailApi'
@@ -18,10 +18,10 @@ import {
   useComponentSchemas
 } from '@/services/api/ApiDocEditService'
 import { showHistoryListWindow, showMarkdownWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
-import { defineTableColumns } from '@/components/utils'
-
+import { defineFormOptions, defineTableColumns } from '@/components/utils'
 import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 import CommonIcon from '@/components/common-icon/index.vue'
+import { generateModel, getAiStatus } from '@/api/AiCacheApi'
 
 const props = defineProps({
   currentProject: {
@@ -347,6 +347,97 @@ const toShowHistoryWindow = (current) => {
   })
 }
 
+const aiEnabled = ref(false)
+const aiConfigs = ref([])
+const defaultAiConfigId = ref(null)
+const aiDialogVisible = ref(false)
+const aiFormModel = ref({ prompt: '', configId: null })
+getAiStatus().then(res => {
+  if (res && res.success) {
+    const data = res.resultData || {}
+    aiEnabled.value = data.enabled ?? !!data
+    aiConfigs.value = data.configs || []
+    defaultAiConfigId.value = data.defaultConfigId || null
+    if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
+      aiFormModel.value.configId = defaultAiConfigId.value
+    }
+  }
+}).catch(console.error)
+const aiFormOptions = computed(() => {
+  const options = []
+  if (aiConfigs.value.length > 0) {
+    options.push({
+      prop: 'configId',
+      labelKey: 'api.label.aiConfigSelect',
+      type: 'select',
+      children: aiConfigs.value.map(item => {
+        const isDefault = item.isDefault === 1 || item.id === defaultAiConfigId.value
+        const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
+        return {
+          label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
+          value: item.id
+        }
+      }),
+      attrs: {
+        clearable: false
+      }
+    })
+  }
+  options.push({
+    prop: 'prompt',
+    labelKey: 'api.msg.aiGenerateModelPrompt',
+    placeholder: $i18nBundle('api.msg.aiGenerateModelPromptPlaceholder'),
+    attrs: {
+      type: 'textarea',
+      rows: 6
+    }
+  })
+
+  return defineFormOptions(options)
+})
+
+const openAiDialog = () => {
+  if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
+    aiFormModel.value.configId = defaultAiConfigId.value
+  }
+  aiDialogVisible.value = true
+}
+
+const doGenerateModel = async () => {
+  if (!aiFormModel.value.prompt?.trim()) {
+    ElMessage.warning($i18nBundle('api.msg.aiGenerateModelInputRequired'))
+    return false
+  }
+  const isNotEmpty = currentComponentModel.value?.schemaName || currentComponentModel.value?.description || currentComponentModel.value?.id
+  if (isNotEmpty) {
+    try {
+      await $coreConfirm($i18nBundle('api.msg.aiGenerateModelOverwriteConfirm'))
+    } catch {
+      return false
+    }
+  }
+  try {
+    const res = await generateModel({
+      prompt: aiFormModel.value.prompt.trim(),
+      projectId: currentComponentModel.value?.projectId,
+      configId: aiFormModel.value.configId,
+      lang: useGlobalConfigStore().currentLocale
+    }, { loading: true, timeout: 60000 })
+    if (res?.success && res.resultData) {
+      const jsonStr = res.resultData.replace(/^[^{]*/, '').replace(/[^}]*$/, '')
+      const { schemaName, description, schema } = JSON.parse(jsonStr) || {}
+      if (schemaName) currentComponentModel.value.schemaName = schemaName
+      if (description) currentComponentModel.value.description = description
+      if (schema) schemaContentObj.value = schema
+      ElMessage.success($i18nBundle('api.msg.aiGenerateModelSuccess'))
+      aiDialogVisible.value = false
+    }
+  } catch (e) {
+    console.error(e)
+  }
+  return false
+}
+
 defineExpose({
   saveComponent,
   copyComponent,
@@ -390,6 +481,14 @@ defineExpose({
             >
               {{ $t('common.label.save') }}
             </el-button>
+            <el-button
+              v-if="aiEnabled"
+              type="success"
+              @click="openAiDialog"
+            >
+              {{ $t('api.label.aiGenerateModel') }}
+            </el-button>
+
             <el-button
               v-if="deletable&&currentComponentModel.id"
               type="danger"
@@ -514,6 +613,20 @@ defineExpose({
       </el-tabs>
     </el-container>
   </el-container>
+  <common-window
+    v-model="aiDialogVisible"
+    :title="$t('api.label.aiGenerateModel')"
+    width="800px"
+    :ok-click="doGenerateModel"
+  >
+    <common-form
+      :model="aiFormModel"
+      :options="aiFormOptions"
+      label-width="140px"
+      class="form-edit-width-100"
+      :show-buttons="false"
+    />
+  </common-window>
 </template>
 
 <style scoped>

@@ -53,9 +53,10 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] API 响应多格式支持：支持 JSON 响应解析为树状表格形式查看，支持 XML 格式转 JSON 表格视图，支持 Event-Stream 实时推送数据预览。
 - [x] AI 数据模拟与缓存管理：支持多引擎（openapi-sampler, Mock.js, json-schema-faker）生成模拟数据，并新增持久化缓存及后台管理页面。
 - [x] AI 配置管理模块：支持在后台动态添加、编辑和切换 AI 接口配置（如 OpenAI, Anthropic 等），替代原有的硬编码配置方式，并支持多版本历史管理及一键回滚。
+- [x] AI 智能生成数据模型：支持输入业务需求文本一键生成 PascalCase 模型名称、描述及完整 JSON Schema 结构，自动填入表单，并支持弹窗扩宽及多 AI 配置切换。
 
 ---
-*Last Updated: 2026-07-13*
+*Last Updated: 2026-07-29*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：

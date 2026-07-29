@@ -27,3 +27,8 @@ export const generateDescriptions = (data, config) => {
   const { baseUrl, finalConfig } = getAiConfig(config)
   return $httpPost(`${baseUrl}/caches/generate-descriptions`, data, finalConfig)
 }
+
+export const generateModel = (data, config) => {
+  const { baseUrl, finalConfig } = getAiConfig(config)
+  return $httpPost(`${baseUrl}/caches/generate-model`, data, finalConfig)
+}

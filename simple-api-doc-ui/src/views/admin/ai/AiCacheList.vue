@@ -72,6 +72,7 @@ const columns = computed(() => {
     formatter (data) {
       if (data.cacheType === 'mock_data') return $i18nBundle('api.label.aiCacheTypeMockData')
       if (data.cacheType === 'generate_desc') return $i18nBundle('api.label.aiCacheTypeGenerateDesc')
+      if (data.cacheType === 'generate_model') return $i18nBundle('api.label.aiCacheTypeGenerateModel')
       if (data.cacheType === 'test_config') return $i18nBundle('common.label.test')
       return data.cacheType || ''
     }
@@ -202,6 +203,7 @@ const searchFormOptions = computed(() => {
     children: [
       { labelKey: 'api.label.aiCacheTypeMockData', value: 'mock_data' },
       { labelKey: 'api.label.aiCacheTypeGenerateDesc', value: 'generate_desc' },
+      { labelKey: 'api.label.aiCacheTypeGenerateModel', value: 'generate_model' },
       { labelKey: 'common.label.test', value: 'test_config' }
     ],
     change () {
