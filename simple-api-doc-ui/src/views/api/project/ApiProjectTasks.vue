@@ -57,7 +57,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     searchParam.value.projectId = projectId
     searchParam.value.userName = projectItem.value?.userName
     searchParam.value.groupCode = projectItem.value?.groupCode
-    loadValidFolders(searchParam.value.projectId)
+    await Promise.allSettled([loadValidFolders(searchParam.value.projectId), loadGroupsAndRefreshOptions()])
   } else {
     await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }

@@ -71,6 +71,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value))
     editTreeNodes.value = docTreeNodes
     editShareProject.value = projectItem.value
+    await loadGroupsAndRefreshOptions()
   } else {
     await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
