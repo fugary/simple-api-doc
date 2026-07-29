@@ -1,10 +1,19 @@
 <script setup>
 import { $copyText } from '@/utils'
+import { toEditGroupEnvParams } from '@/utils/DynamicUtils'
 
-defineProps({
+const props = defineProps({
   envSuggestions: {
     type: Array,
     default: () => []
+  },
+  projectId: {
+    type: [String, Number],
+    default: ''
+  },
+  preferenceId: {
+    type: [String, Number],
+    default: ''
   },
   linkClass: {
     type: String,
@@ -15,11 +24,18 @@ defineProps({
     default: ''
   }
 })
+
+const openEditWindow = () => {
+  const pId = props.projectId || props.preferenceId
+  if (pId) {
+    toEditGroupEnvParams(pId, { isLocal: true, preferenceId: props.preferenceId || pId })
+  }
+}
 </script>
 
 <template>
   <el-popover
-    v-if="envSuggestions?.length"
+    v-if="envSuggestions?.length || preferenceId || projectId"
     placement="bottom-end"
     title=""
     :width="450"
@@ -34,15 +50,30 @@ defineProps({
         <span>{{ $t('api.label.variables') }}</span>
       </el-link>
     </template>
+    <div
+      v-if="preferenceId || projectId"
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;"
+    >
+      <span style="font-weight: 600; font-size: 13px;">{{ $t('api.label.variables') }}</span>
+      <el-button
+        type="primary"
+        link
+        size="small"
+        @click="openEditWindow"
+      >
+        <common-icon icon="Edit" /> {{ $t('api.label.editVariables') }}
+      </el-button>
+    </div>
     <el-table
       :data="envSuggestions"
       size="small"
       border
+      max-height="300"
     >
       <el-table-column
         property="name"
         :label="$t('common.label.name')"
-        width="120"
+        width="130"
       >
         <template #default="{ row }">
           <el-link
@@ -61,7 +92,7 @@ defineProps({
         <template #default="{ row }">
           <el-link
             :underline="false"
-            style="display: inline-block; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px;"
+            style="display: inline-block; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;"
             @click="$copyText(row.desc)"
           >
             {{ row.desc }}

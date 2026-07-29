@@ -211,7 +211,6 @@ export const extractVariables = (response, requestPath, groupConfig, preferenceI
           }
           if (val !== undefined && val !== null) {
             val = String(val)
-            param.value = val
             const existing = cachedParams.find(p => p.name === param.name)
             if (existing) {
               if (existing.value !== val) {
@@ -275,6 +274,11 @@ export const processResponse = function (response) {
 
 export const syncCachedParamsToTarget = (preferenceId, groupConfig) => {
   if (!preferenceId || !groupConfig) return
+  const store = useShareConfigStore()
+  const localParams = store.getLocalEnvParams(preferenceId)
+  if (localParams && localParams.length > 0) {
+    groupConfig.envParams = cloneDeep(localParams)
+  }
   const cachedParams = getExtractedEnvParams(preferenceId)
   if (!cachedParams?.length) return
 

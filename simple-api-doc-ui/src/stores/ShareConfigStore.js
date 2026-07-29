@@ -10,6 +10,7 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
   const shareParamTargets = ref({})
   const shareGenerateCodeConfig = ref({})
   const extractedEnvParams = ref({})
+  const localEnvParams = ref({})
 
   const clearShareToken = (shareId) => {
     delete shareConfig.value[shareId]
@@ -17,6 +18,7 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
   }
   const clearSharePreference = (shareId) => {
     delete extractedEnvParams.value[shareId]
+    delete localEnvParams.value[shareId]
     delete sharePreferenceView.value[shareId]
     delete shareGenerateCodeConfig.value[shareId]
     Object.keys(shareParamTargets.value).forEach(key => {
@@ -32,6 +34,7 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
     shareParamTargets,
     shareGenerateCodeConfig,
     extractedEnvParams,
+    localEnvParams,
     getShareToken (shareId) {
       return shareConfig.value[shareId]
     },
@@ -40,12 +43,27 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
     },
     clearShareToken,
     clearSharePreference,
+    saveLocalEnvParams (preferenceId, params) {
+      if (preferenceId) {
+        localEnvParams.value[preferenceId] = params
+      }
+    },
+    getLocalEnvParams (preferenceId) {
+      return (preferenceId && localEnvParams.value[preferenceId]) || []
+    },
+    resetLocalEnvParams (preferenceId) {
+      if (preferenceId) {
+        delete localEnvParams.value[preferenceId]
+        delete extractedEnvParams.value[preferenceId]
+      }
+    },
     clearAllShareToken: () => {
       shareConfig.value = {}
       sharePreferenceView.value = {}
       shareParamTargets.value = {}
       shareGenerateCodeConfig.value = {}
       extractedEnvParams.value = {}
+      localEnvParams.value = {}
     }
   }
 }, {

@@ -419,23 +419,17 @@ export const concatValueSuggestions = (...args) => {
 export const calcEnvSuggestions = (groupConfig, preferenceId) => {
   if (groupConfig || preferenceId) {
     groupConfig = isString(groupConfig) ? JSON.parse(groupConfig) : cloneDeep(groupConfig || {})
-    const envParams = groupConfig?.envParams || []
-
-    if (preferenceId) {
-      const cachedParams = getExtractedEnvParams(preferenceId) || []
-      cachedParams.forEach(cp => {
-        const ep = envParams.find(p => p.name === cp.name)
-        if (ep) {
-          ep.value = cp.value
-        } else {
-          envParams.push({ ...cp, enabled: true })
-        }
-      })
-    }
+    const localParams = preferenceId ? useShareConfigStore().getLocalEnvParams(preferenceId) : null
+    const envParams = (localParams && localParams.length > 0) ? localParams : (groupConfig?.envParams || [])
+    const extractedList = preferenceId ? getExtractedEnvParams(preferenceId) : []
+    const runtimeMap = new Map((extractedList || []).map(p => [p.name, p.value]))
 
     return envParams
       .filter(param => param.enabled && param.name)
-      .map(param => ({ name: param.name, value: `{{${param.name}}}`, desc: param.value }))
+      .map(param => {
+        const actualVal = runtimeMap.has(param.name) ? runtimeMap.get(param.name) : param.value
+        return { name: param.name, value: `{{${param.name}}}`, desc: actualVal }
+      })
   }
 }
 

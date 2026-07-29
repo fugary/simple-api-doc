@@ -109,6 +109,7 @@ const authButtons = computed(() => {
         <div style="position: absolute; right: 0; top: 2px; z-index: 10;">
           <ApiEnvPopover
             :env-suggestions="calcSuggestions"
+            :preference-id="preferenceId"
             link-class="margin-top1"
           />
         </div>

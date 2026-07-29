@@ -346,6 +346,8 @@ const { monacoTheme } = useShareDocTheme()
     >
       <ApiEnvPopover
         :env-suggestions="envSuggestions"
+        :project-id="paramTarget?.projectId || paramTarget?.project?.id"
+        :preference-id="paramTarget?.preferenceId"
         link-style="margin-top: -11px"
         link-class="margin-right2"
       />

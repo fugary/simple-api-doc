@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { cloneDeep } from 'lodash-es'
 import ApiProjectApi from '@/api/ApiProjectApi'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
@@ -7,6 +7,7 @@ import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 import { DEFAULT_HEADERS } from '@/consts/ApiConstants'
 import { defineFormOptions } from '@/components/utils'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 
 const extractRulesOptions = defineFormOptions([{
   labelKey: 'common.label.statusEnabled',
@@ -42,18 +43,40 @@ const extractRulesOptions = defineFormOptions([{
 
 const showWindow = ref(false)
 const projectItem = ref()
+const isLocalMode = ref(false)
+const preferenceIdRef = ref('')
+const shareConfigStore = useShareConfigStore()
+
+const isSavedLocal = computed(() => {
+  return isLocalMode.value && !!(preferenceIdRef.value && shareConfigStore.getLocalEnvParams(preferenceIdRef.value)?.length)
+})
+
 const groupConfig = ref({
   envParams: []
 })
 
 let callback
-const toEditGroupEnvParams = (projectId) => {
-  ApiProjectApi.getById(projectId, { loading: true }).then(data => {
-    projectItem.value = data.resultData
-    if (projectItem.value?.groupConfig) {
-      groupConfig.value = { envParams: [], ...JSON.parse(projectItem.value.groupConfig) }
+const toEditGroupEnvParams = (projectId, options = {}) => {
+  isLocalMode.value = !!options.isLocal
+  preferenceIdRef.value = options.preferenceId || projectId
+
+  const isNumeric = projectId && !isNaN(Number(projectId))
+  const fetchPromise = isNumeric
+    ? ApiProjectApi.getById(projectId, { loading: true, showErrorMessage: false }).catch(() => null)
+    : Promise.resolve(null)
+
+  fetchPromise.then(data => {
+    projectItem.value = data?.resultData || {}
+    const dbConfig = projectItem.value?.groupConfig ? JSON.parse(projectItem.value.groupConfig) : { envParams: [] }
+    if (isLocalMode.value) {
+      const localParams = shareConfigStore.getLocalEnvParams(preferenceIdRef.value)
+      if (localParams && localParams.length > 0) {
+        groupConfig.value = { ...dbConfig, envParams: cloneDeep(localParams) }
+      } else {
+        groupConfig.value = { ...dbConfig, envParams: dbConfig.envParams || [] }
+      }
     } else {
-      groupConfig.value = { envParams: [] }
+      groupConfig.value = dbConfig
     }
     showWindow.value = true
   })
@@ -64,6 +87,26 @@ defineExpose({
   toEditGroupEnvParams
 })
 
+const windowButtons = computed(() => {
+  if (isSavedLocal.value) {
+    return [{
+      labelKey: 'api.label.resetDefault',
+      type: 'warning',
+      click: resetLocal
+    }]
+  }
+  return []
+})
+
+const resetLocal = () => {
+  if (preferenceIdRef.value) {
+    shareConfigStore.resetLocalEnvParams(preferenceIdRef.value)
+    const dbConfig = projectItem.value?.groupConfig ? JSON.parse(projectItem.value.groupConfig) : { envParams: [] }
+    groupConfig.value = cloneDeep(dbConfig)
+    ElMessage.success($i18nBundle('common.msg.operationSuccess'))
+  }
+}
+
 const saveGroupConfig = ({ form }) => {
   form.validate(valid => {
     if (valid) {
@@ -71,13 +114,20 @@ const saveGroupConfig = ({ form }) => {
       configToSave.envParams?.forEach(param => {
         delete param.showExtractRules
       })
-      projectItem.value.groupConfig = JSON.stringify(configToSave)
-      ApiProjectApi.saveOrUpdate(projectItem.value)
-        .then(() => {
-          ElMessage.success($i18nBundle('common.msg.saveSuccess'))
-          callback?.(projectItem.value)
-          showWindow.value = false
-        })
+      if (isLocalMode.value) {
+        shareConfigStore.saveLocalEnvParams(preferenceIdRef.value, configToSave.envParams)
+        ElMessage.success($i18nBundle('common.msg.saveSuccess'))
+        callback?.(configToSave.envParams)
+        showWindow.value = false
+      } else {
+        projectItem.value.groupConfig = JSON.stringify(configToSave)
+        ApiProjectApi.saveOrUpdate(projectItem.value)
+          .then(() => {
+            ElMessage.success($i18nBundle('common.msg.saveSuccess'))
+            callback?.(projectItem.value)
+            showWindow.value = false
+          })
+      }
     }
   })
   return false
@@ -91,12 +141,19 @@ const saveGroupConfig = ({ form }) => {
     :ok-label="$t('common.label.save')"
     destroy-on-close
     :ok-click="saveGroupConfig"
+    :buttons="windowButtons"
     width="900px"
   >
     <template #header>
-      <span class="el-dialog__title">
-        {{ $t('api.label.envAndExtractConfig') }}
-      </span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="el-dialog__title">
+          {{ $t('api.label.envAndExtractConfig') }}
+          <span
+            v-if="isLocalMode"
+            style="font-size: 13px; font-weight: normal; color: var(--el-color-primary);"
+          >({{ $t('api.msg.saveLocalOnlyTip') }})</span>
+        </span>
+      </div>
     </template>
     <common-form
       :model="groupConfig"
