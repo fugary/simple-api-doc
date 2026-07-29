@@ -105,7 +105,8 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         model.put("responsesSchemas", responseSchemas);
         model.put("v31", SchemaJsonUtils.isV31(specVersion));
         if (context.isGenerateComponents()) {
-            model.put("schemasMap", schemasMap);
+            Map<String, Schema<?>> sortedSchemasMap = sortSchemasMap(schemasMap, requestSchemas, responseSchemas);
+            model.put("schemasMap", sortedSchemasMap);
         }
         try {
             // 加载模板
@@ -116,6 +117,131 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
             log.error("模板渲染失败", e);
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * 智能重排 schemasMap，使请求主模型、响应主模型优先排在最前，其次为关联嵌套模型
+     *
+     * @param schemasMap
+     * @param requestSchemas
+     * @param responseSchemas
+     * @return
+     */
+    protected Map<String, Schema<?>> sortSchemasMap(Map<String, Schema<?>> schemasMap,
+                                                    List<FmApiDocSchema> requestSchemas,
+                                                    List<FmApiDocSchema> responseSchemas) {
+        if (schemasMap == null || schemasMap.isEmpty()) {
+            return schemasMap;
+        }
+
+        Set<String> directRequestNames = collectDirectSchemaNames(requestSchemas);
+        Set<String> directResponseNames = collectDirectSchemaNames(responseSchemas);
+
+        Set<String> nestedNames = new LinkedHashSet<>();
+        Set<String> visited = new HashSet<>();
+        visited.addAll(directRequestNames);
+        visited.addAll(directResponseNames);
+
+        // 使用单独的 startNames 进行遍历，避免在循环体内修改 visited 触发 ConcurrentModificationException
+        List<String> startNames = new ArrayList<>(visited);
+        for (String name : startNames) {
+            if (schemasMap.containsKey(name)) {
+                traverseNestedSchema(schemasMap.get(name), schemasMap, nestedNames, visited);
+            }
+        }
+
+        Map<String, Schema<?>> sortedMap = new LinkedHashMap<>();
+
+        // 按四层优先级顺序充填 sortedMap：1.请求主模型 2.响应主模型 3.嵌套关联模型
+        List<Set<String>> priorityGroups = Arrays.asList(directRequestNames, directResponseNames, nestedNames);
+        for (Set<String> group : priorityGroups) {
+            for (String name : group) {
+                if (schemasMap.containsKey(name) && !sortedMap.containsKey(name)) {
+                    sortedMap.put(name, schemasMap.get(name));
+                }
+            }
+        }
+
+        // 4.项目其余未引用的通用模型
+        for (Map.Entry<String, Schema<?>> entry : schemasMap.entrySet()) {
+            if (!sortedMap.containsKey(entry.getKey())) {
+                sortedMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return sortedMap;
+    }
+
+    protected Set<String> collectDirectSchemaNames(List<FmApiDocSchema> docSchemas) {
+        Set<String> names = new LinkedHashSet<>();
+        if (docSchemas != null) {
+            for (FmApiDocSchema docSchema : docSchemas) {
+                if (docSchema != null && docSchema.getSchema() != null) {
+                    extractSchemaName(docSchema.getSchema(), names);
+                }
+            }
+        }
+        return names;
+    }
+
+    protected void extractSchemaName(Schema<?> schema, Set<String> names) {
+        if (schema == null) {
+            return;
+        }
+        if (StringUtils.isNotBlank(schema.getName())) {
+            names.add(schema.getName());
+        }
+        if (StringUtils.isNotBlank(schema.get$ref())) {
+            String refName = apiDocFreemarkerUtils.unRef(schema.get$ref());
+            if (StringUtils.isNotBlank(refName)) {
+                names.add(refName);
+            }
+        }
+        if (schema.getItems() != null) {
+            extractSchemaName(schema.getItems(), names);
+        }
+        for (Schema<?> subSchema : getXxxOf(schema)) {
+            extractSchemaName(subSchema, names);
+        }
+    }
+
+    protected void traverseNestedSchema(Schema<?> schema, Map<String, Schema<?>> schemasMap, Set<String> names, Set<String> visited) {
+        if (schema == null) {
+            return;
+        }
+        if (StringUtils.isNotBlank(schema.get$ref())) {
+            String refName = apiDocFreemarkerUtils.unRef(schema.get$ref());
+            if (StringUtils.isNotBlank(refName) && visited.add(refName)) {
+                names.add(refName);
+                if (schemasMap.containsKey(refName)) {
+                    traverseNestedSchema(schemasMap.get(refName), schemasMap, names, visited);
+                }
+            }
+        }
+        if (schema.getItems() != null) {
+            traverseNestedSchema(schema.getItems(), schemasMap, names, visited);
+        }
+        if (schema.getProperties() != null) {
+            for (Object propObj : schema.getProperties().values()) {
+                if (propObj instanceof Schema) {
+                    traverseNestedSchema((Schema<?>) propObj, schemasMap, names, visited);
+                }
+            }
+        }
+        for (Schema<?> subSchema : getXxxOf(schema)) {
+            traverseNestedSchema(subSchema, schemasMap, names, visited);
+        }
+    }
+
+    protected List<Schema> getXxxOf(Schema<?> schema) {
+        if (schema == null) {
+            return Collections.emptyList();
+        }
+        List<Schema> list = new ArrayList<>();
+        Optional.ofNullable(schema.getAllOf()).ifPresent(list::addAll);
+        Optional.ofNullable(schema.getAnyOf()).ifPresent(list::addAll);
+        Optional.ofNullable(schema.getOneOf()).ifPresent(list::addAll);
+        return list;
     }
 
     @Override
