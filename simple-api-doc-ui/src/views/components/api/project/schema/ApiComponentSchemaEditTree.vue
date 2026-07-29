@@ -187,6 +187,21 @@ const toggleExpandKey = (data, expand) => {
   }
 }
 
+const scrollToAndFocusNewRow = () => {
+  let attempts = 0
+  const tryScrollAndFocus = () => {
+    attempts++
+    const targetEl = document.querySelector('.is-new-property-row')
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      targetEl.querySelector('input')?.focus()
+    } else if (attempts < 20) {
+      setTimeout(tryScrollAndFocus, 50)
+    }
+  }
+  setTimeout(tryScrollAndFocus, 50)
+}
+
 const isAddingInline = ref(false)
 const showTree = ref(false)
 watch([schemaModel, () => props.rootName], () => {
@@ -195,6 +210,7 @@ watch([schemaModel, () => props.rootName], () => {
     showTree.value = true
     if (isAddingInline.value) {
       isAddingInline.value = false
+      scrollToAndFocusNewRow()
     } else {
       currentModel.value = null
     }
@@ -531,6 +547,7 @@ defineEmits(['gotoComponent'])
       <template #default="{data,node}">
         <div
           class="form-edit-width-100"
+          :class="{ 'is-new-property-row': currentModel && currentModel.id === data.id }"
           style="position: relative;"
           @mouseenter="currentTreeData=data"
           @mouseleave="currentTreeData=null"
@@ -724,5 +741,22 @@ defineEmits(['gotoComponent'])
 </template>
 
 <style scoped>
+.is-new-property-row {
+  animation: property-highlight 2s ease-in-out;
+  border-radius: 4px;
+}
 
+@keyframes property-highlight {
+  0% {
+    background-color: var(--el-color-primary-light-8, rgba(64, 158, 255, 0.25));
+    box-shadow: 0 0 8px var(--el-color-primary-light-5, rgba(64, 158, 255, 0.5));
+  }
+  50% {
+    background-color: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.15));
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
 </style>

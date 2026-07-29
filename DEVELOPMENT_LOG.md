@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-07
+- **opt**: [2026-07-29] 优化数据模型/Schema 编辑树添加属性交互体验：1. 在 `ApiComponentSchemaEditTree.vue` 的 `addPropertyInline` 方法中增加父节点自动展开逻辑（`node.expanded = true`）；2. 解决因为 `el-tree` 开启 `lazy` 懒加载及刷新重新挂载 DOM 导致 `nextTick` 无法即时捕捉 DOM 的问题，新增带重试机制的 `scrollToAndFocusNewRow` 异步轮询定位；3. 自动触发居中平滑滚动（`scrollIntoView({ behavior: 'smooth', block: 'center' })`），确保当对象属性较多时新增属性表单即时平滑居中展示在当前视口内；4. 自动定位并聚焦“属性名称”输入框（`input.focus()`），并叠加 2s 柔和渐变脉冲高亮动画（`@keyframes property-highlight`）。
 - **feat**: [2026-07-29] 新增 AI 智能生成数据模型功能：1. 后端在 `AiCacheController` 中新增 `/admin/ai/caches/generate-model` 接口，基于业务需求描述生成 PascalCase 格式的模型名称、业务描述及符合 OpenAPI 3.0 / JSON Schema 规范的标准 Schema 结构；2. 前端在 `AiCacheApi.js` 增加 `generateModel` API 接口，并在数据模型表单（`ApiProjectComponent.vue`）“保存”按钮旁边新增简洁无图标的「`AI生成`」按钮，保持与保存、删除、复制等按钮外观一致；3. 提供需求描述输入弹窗（修复 `placeholder` 传递位置，使占位文本正常显示），支持自由选择 AI 配置，并在 `AiCacheList.vue` 中补全 `generate_model` 类型的表格格式化与筛选项；4. 校验并覆盖全部新增国际化词条，并通过 ESLint 代码规范验证。
 
 - **opt**: [2026-07-29] 彻底清理废弃空函数 `syncCachedParamsToTarget`：从 `ApiDocPreviewService.js` 与 `ApiDocRequestPreview.vue` 中彻底擦除无用的 `syncCachedParamsToTarget` 空函数定义与调用点，保持全量代码零冗余。
