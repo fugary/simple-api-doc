@@ -22,6 +22,7 @@ import { defineFormOptions, defineTableColumns } from '@/components/utils'
 import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { generateModel, getAiStatus } from '@/api/AiCacheApi'
+import { buildAiConfigOptions } from '@/services/api/ApiCommonService'
 
 const props = defineProps({
   currentProject: {
@@ -370,14 +371,7 @@ const aiFormOptions = computed(() => {
       prop: 'configId',
       labelKey: 'api.label.aiConfigSelect',
       type: 'select',
-      children: aiConfigs.value.map(item => {
-        const isDefault = item.isDefault === 1 || item.id === defaultAiConfigId.value
-        const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
-        return {
-          label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
-          value: item.id
-        }
-      }),
+      children: buildAiConfigOptions(aiConfigs.value, defaultAiConfigId.value),
       attrs: {
         clearable: false
       }

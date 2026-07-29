@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElText } from 'element-plus'
 import {
   formatDate,
   getSingleSelectOptions,
@@ -644,4 +644,40 @@ export const calcHeaderSuggestions = name => {
     includesAnyIgnoreCase(name, h.keys) || includesAnyIgnoreCase(name, h.keyWords)
   )
   return header ? header.values : []
+}
+
+/**
+ * 格式化 AI 配置 label 节点 (支持 [默认] 标记高亮)
+ * @param {Object} item AI 配置项
+ * @param {boolean} isDefault 是否默认配置
+ * @return {import('vue').VNode|string}
+ */
+export const renderAiConfigLabel = (item, isDefault) => {
+  if (!item) return ''
+  const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
+  if (!isDefault) return name
+  return h('span', [
+    name,
+    h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, `[${$i18nBundle('api.label.default')}]`)
+  ])
+}
+
+/**
+ * 构建 AI 配置 Select 选项列表
+ * @param {Array} configs AI 配置列表
+ * @param {number|string|null} defaultId 默认 AI 配置 ID
+ * @return {Array} Select 选项数组
+ */
+export const buildAiConfigOptions = (configs = [], defaultId = null) => {
+  return (configs || []).map(item => {
+    const isDefault = item.isDefault === 1 || item.id === defaultId
+    const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
+    return {
+      label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
+      value: item.id,
+      slots: {
+        default: () => renderAiConfigLabel(item, isDefault)
+      }
+    }
+  })
 }
