@@ -23,6 +23,7 @@ import { calcEnvSuggestions, useContainerCheck, useCopyRight, useScreenCheck } f
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
 import ApiDocSecurityRequirements from '@/views/components/api/doc/comp/ApiDocSecurityRequirements.vue'
 import { cloneDeep } from 'lodash-es'
+import { $copyText } from '@/utils'
 
 const props = defineProps({
   shareDoc: {
@@ -186,6 +187,12 @@ const docContent = computed(() => {
   return apiDocDetail.value?.docContent || apiDocDetail.value?.description
 })
 const { isSmallContainer, containerRef } = useContainerCheck()
+const handleCopyMarkdown = () => {
+  const name = apiDocDetail.value?.docName
+  const markdown = apiDocDetail.value?.apiMarkdown || ''
+  const content = name ? `## ${name}\n\n${markdown}` : markdown
+  $copyText(content)
+}
 </script>
 
 <template>
@@ -293,6 +300,17 @@ const { isSmallContainer, containerRef } = useContainerCheck()
       </span>
     </el-container>
     <template v-if="apiDocDetail">
+      <div
+        v-if="viewAsMarkdown"
+        v-common-tooltip="$t('api.label.copyMarkdown')"
+        class="floating-action-btn copy-md-btn"
+        @click="handleCopyMarkdown"
+      >
+        <common-icon
+          icon="CopyDocument"
+          :size="16"
+        />
+      </div>
       <el-backtop
         v-if="viewAsMarkdown"
         v-common-tooltip="$t('common.label.backtop')"

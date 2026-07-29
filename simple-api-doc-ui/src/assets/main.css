@@ -871,7 +871,8 @@ body,
     background-color: var(--el-bg-color);
 }
 
-.fullscreen-btn {
+.fullscreen-btn,
+.floating-action-btn {
     position: fixed;
     top: auto;
     right: 40px;
@@ -888,12 +889,18 @@ body,
     cursor: pointer;
     box-shadow: var(--el-box-shadow-lighter);
     opacity: 1;
-    transition: opacity 0.3s;
-    font-size: 20px;
+    transition: opacity 0.3s, color 0.3s;
+    font-size: 18px;
 }
 
-.fullscreen-btn:hover {
+.floating-action-btn.copy-md-btn {
+    bottom: 140px;
+}
+
+.fullscreen-btn:hover,
+.floating-action-btn:hover {
     opacity: 1;
+    color: var(--el-color-primary-light-3);
 }
 
 /* Theme transition animation */
