@@ -2,12 +2,13 @@
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import ApiEnvPopover from '@/views/components/api/ApiEnvPopover.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import {
   checkParamsFilled,
   checkRequestBody,
   generateSampleCheckResults,
-  isGetMethod
+  isGetMethod,
+  copyParamsDynamicOption
 } from '@/services/api/ApiDocPreviewService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import {
@@ -22,8 +23,10 @@ import {
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning, $copyText } from '@/utils'
-import { showCodeWindow } from '@/utils/DynamicUtils'
+import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning, $copyText, $coreConfirm } from '@/utils'
+import { showCodeWindow, previewApiRequest, toEditGroupEnvParams } from '@/utils/DynamicUtils'
+import { loadDoc } from '@/api/ApiDocApi'
+import { ElMessage } from 'element-plus'
 import { isString, isArray, cloneDeep } from 'lodash-es'
 import {
   calcEnvSuggestions,
@@ -38,7 +41,7 @@ import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
 import { buildCurlCommand, CURL_SHELL, extendCurlParams } from '@/services/api/CurlProcessService'
-import { useShareDocTheme } from '@/services/api/ApiFolderService'
+import { useShareDocTheme, calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
 
 const props = defineProps({
@@ -206,7 +209,7 @@ const envSuggestions = computed(() => calcEnvSuggestions(paramTarget.value?.grou
 
 const proxyModeOption = computed(() => {
   return {
-    labelKey: 'api.label.sendType',
+    labelWidth: '50px',
     tooltip: $i18nBundle('api.msg.sendTypeTooltip'),
     prop: 'sendType',
     type: 'select',
@@ -330,6 +333,65 @@ const handleCurlCommand = async (command) => {
   }
 }
 
+const shareConfigStore = useShareConfigStore()
+
+const loginApiConfig = computed(() => {
+  let gConfig = paramTarget.value?.groupConfig || paramTarget.value?.project?.groupConfig
+  if (isString(gConfig)) {
+    try {
+      gConfig = JSON.parse(gConfig)
+    } catch {
+      gConfig = {}
+    }
+  }
+  return gConfig?.loginApiConfig || null
+})
+
+const isCurrentLoginApi = computed(() => {
+  const loginApiId = loginApiConfig.value?.apiId
+  const currentDocId = paramTarget.value?.docId || paramTarget.value?.id
+  return !!(loginApiId && currentDocId && String(loginApiId) === String(currentDocId))
+})
+
+const openLoginApiDebug = () => {
+  const pId = paramTarget.value?.projectId || paramTarget.value?.project?.id || paramTarget.value?.preferenceId
+  const config = loginApiConfig.value
+  if (config?.apiId) {
+    loadDoc(config.apiId).then(data => {
+      const docDetail = data?.resultData
+      if (docDetail) {
+        const projInfo = docDetail.projectInfoDetail || paramTarget.value?.project || { id: pId }
+        const prefId = paramTarget.value?.preferenceId || calcDetailPreferenceId(docDetail)
+        const paramTargetId = `${prefId}-${docDetail.id}`
+        const lastParamTarget = shareConfigStore.shareParamTargets[paramTargetId] = shareConfigStore.shareParamTargets[paramTargetId] || reactive({})
+        const handlerConfig = {
+          preHandler: target => {
+            const savedTarget = { ...lastParamTarget }
+            const notSavedKeys = ['requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']
+            notSavedKeys.forEach(key => delete savedTarget[key])
+            copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
+            copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
+            copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
+            return Object.assign(target, savedTarget)
+          },
+          changeHandler: target => {
+            Object.assign(lastParamTarget, target)
+          }
+        }
+        previewApiRequest(projInfo, docDetail, null, handlerConfig)
+      } else {
+        ElMessage.error($i18nBundle('common.msg.dataNotFound'))
+      }
+    })
+  } else {
+    $coreConfirm($i18nBundle('api.msg.noLoginApiConfigured')).then(() => {
+      if (pId) {
+        toEditGroupEnvParams(pId, { isLocal: true, preferenceId: paramTarget.value?.preferenceId || pId })
+      }
+    }).catch(() => {})
+  }
+}
+
 const { monacoTheme } = useShareDocTheme()
 
 </script>
@@ -344,6 +406,15 @@ const { monacoTheme } = useShareDocTheme()
     <template
       #add-icon
     >
+      <el-link
+        v-if="!isCurrentLoginApi"
+        type="primary"
+        style="margin-top: -11px"
+        class="margin-right2"
+        @click="openLoginApiDebug"
+      >
+        <span>{{ $t('api.label.loginApi') }}</span>
+      </el-link>
       <ApiEnvPopover
         :env-suggestions="envSuggestions"
         :project-id="paramTarget?.projectId || paramTarget?.project?.id"

@@ -44,17 +44,17 @@ let handlerConfig = {}
 const toPreviewRequest = async (projectInfo, apiDoc, handConfig) => {
   projectInfoDetail.value = projectInfo
   apiDocDetail.value = apiDoc
-  handlerConfig = handConfig
+  handlerConfig = handConfig || {}
   clearParamsAndResponse()
   return nextTick(() => {
     const target = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
-    paramTarget.value = isFunction(handlerConfig.preHandler) ? handlerConfig.preHandler(target) : target
+    paramTarget.value = isFunction(handlerConfig?.preHandler) ? handlerConfig.preHandler(target) : target
     envConfigs.value = getEnvConfigs(apiDocDetail.value)
     paramTarget.value.targetUrl = apiDocDetail.value.targetUrl || envConfigs.value[0]?.url
   })
 }
 watch(paramTarget, () => {
-  if (isFunction(handlerConfig.changeHandler) && paramTarget.value) {
+  if (isFunction(handlerConfig?.changeHandler) && paramTarget.value) {
     handlerConfig.changeHandler(paramTarget.value)
   }
 }, { deep: true })

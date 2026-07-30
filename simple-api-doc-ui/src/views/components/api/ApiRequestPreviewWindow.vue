@@ -19,9 +19,13 @@ const currentDoc = ref()
 const changeForceShowWindow = ref()
 const toPreviewRequest = async (projectInfo, apiDoc, changeForceShowWindowFunc, ...args) => {
   currentDoc.value = apiDoc
-  changeForceShowWindow.value = () => {
-    changeForceShowWindowFunc?.()
-    showWindow.value = false
+  if (changeForceShowWindowFunc) {
+    changeForceShowWindow.value = () => {
+      changeForceShowWindowFunc?.()
+      showWindow.value = false
+    }
+  } else {
+    changeForceShowWindow.value = null
   }
   showWindow.value = true
   nextTick(() => {
@@ -58,7 +62,7 @@ useInitShareDocTheme(props.apiDocDetail?.apiShare?.shareId, false)
       <span class="el-dialog__title">
         {{ currentDoc?.docName || currentDoc?.url }}
         <el-link
-          v-if="!verySmallWindow"
+          v-if="!verySmallWindow && !!changeForceShowWindow"
           v-common-tooltip="$t('api.label.debugInFitScreen')"
           type="primary"
           underline="never"
