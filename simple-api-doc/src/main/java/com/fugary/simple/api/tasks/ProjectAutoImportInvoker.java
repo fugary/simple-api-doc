@@ -117,7 +117,7 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                 projectInfo.setFolderId(projectTask.getToFolder());
                 SimpleResult<ApiProject> importResult = apiProjectService.importUpdateProject(apiProject, parseResult.getResultData(), importVo);
                 if (!importResult.isSuccess()) {
-                    String errorMessage = MessageFormat.format("[{0}]项目任务[{1}]执行导入错误：{2}", apiProject.getProjectName(), projectTask.getTaskName(), parseResult.getMessage());
+                    String errorMessage = MessageFormat.format("[{0}]项目任务[{1}]执行导入错误：{2}", apiProject.getProjectName(), projectTask.getTaskName(), importResult.getMessage());
                     log.error(errorMessage);
                     publishEvent(logBuilder, apiProject, createDate, errorMessage);
                     return SimpleResultUtils.createError(errorMessage);

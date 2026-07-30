@@ -7,6 +7,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.*;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
 import com.fugary.simple.api.service.apidoc.*;
@@ -27,6 +28,7 @@ import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import com.fugary.simple.api.web.vo.user.ApiGroupVo;
 import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -45,6 +47,7 @@ import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
  *
  * @author gary.fu
  */
+@Slf4j
 @Service
 public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProject> implements ApiProjectService {
 
@@ -232,8 +235,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         if (importer == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2004);
         }
-        if ((exportVo = importer.doImport(content)) == null) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2006);
+        try {
+            if ((exportVo = importer.doImport(content)) == null) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2006);
+            }
+        } catch (SimpleRuntimeException e) {
+            log.error("解析文档失败", e);
+            return SimpleResult.<ExportApiProjectVo>builder().code(e.getCode()).message(e.getMessage()).build();
         }
         exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
         exportVo.setIconUrl(StringUtils.defaultIfBlank(importVo.getIconUrl(), exportVo.getIconUrl()));

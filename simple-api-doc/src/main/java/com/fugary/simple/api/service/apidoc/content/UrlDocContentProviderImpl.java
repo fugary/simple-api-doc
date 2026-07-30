@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.apidoc.content;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.http.SimpleHttpClientUtils;
@@ -38,25 +39,44 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
 
     @Override
     public SimpleResult<String> getContent(UrlWithAuthVo source) {
-        Pair<String,HttpResponse> resultPair = SimpleHttpClientUtils.sendHttpGet(source.getUrl(), Pair.class, (client, request) -> {
-            log.info("client = {}, request = {}", client, request);
-            Function<UrlWithAuthVo, String> authTokenFunc = authConfigMap.get(StringUtils.lowerCase(source.getAuthType()));
-            if (authTokenFunc != null) {
-                request.setHeader("Authorization", authTokenFunc.apply(source));
-            }
-        }, (httpResponse, clazz) -> {
-            String resultStr = StringUtils.EMPTY;
-            try {
-                resultStr = EntityUtils.toString(httpResponse.getEntity(), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                log.error("Url数据解析错误", e);
-            }
-            return Pair.of(resultStr, httpResponse);
-        });
+        if (source == null || StringUtils.isBlank(source.getUrl())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
+        }
+        Pair<String,HttpResponse> resultPair = null;
+        try {
+            resultPair = SimpleHttpClientUtils.sendHttpGet(source.getUrl(), Pair.class, (client, request) -> {
+                log.info("client = {}, request = {}", client, request);
+                Function<UrlWithAuthVo, String> authTokenFunc = authConfigMap.get(StringUtils.lowerCase(source.getAuthType()));
+                if (authTokenFunc != null) {
+                    request.setHeader("Authorization", authTokenFunc.apply(source));
+                }
+            }, (httpResponse, clazz) -> {
+                String resultStr = StringUtils.EMPTY;
+                try {
+                    resultStr = EntityUtils.toString(httpResponse.getEntity(), StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    log.error("Url数据解析错误", e);
+                }
+                return Pair.of(resultStr, httpResponse);
+            });
+        } catch (SimpleRuntimeException e) {
+            log.error("URL数据下载异常: url={}", source.getUrl(), e);
+            String baseMsg = SimpleResultUtils.getErrorMsg(SystemErrorConstants.CODE_2009);
+            String detail = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            String errorMsg = StringUtils.isNotBlank(detail) ? baseMsg + ": " + detail : baseMsg;
+            return SimpleResultUtils.createError(errorMsg);
+        }
         if (resultPair != null) {
             HttpResponse httpResponse = resultPair.getRight();
-            if (httpResponse != null && HttpStatus.SC_OK == httpResponse.getStatusLine().getStatusCode()) {
-                return SimpleResultUtils.createSimpleResult(resultPair.getLeft());
+            if (httpResponse != null) {
+                int statusCode = httpResponse.getStatusLine().getStatusCode();
+                if (HttpStatus.SC_OK == statusCode) {
+                    return SimpleResultUtils.createSimpleResult(resultPair.getLeft());
+                }
+                String statusLineStr = httpResponse.getStatusLine().toString();
+                log.error("URL数据下载失败: url={}, status={}", source.getUrl(), statusLineStr);
+                String baseMsg = SimpleResultUtils.getErrorMsg(SystemErrorConstants.CODE_2009);
+                return SimpleResultUtils.createError(baseMsg + ": " + statusLineStr);
             }
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2005);
         }

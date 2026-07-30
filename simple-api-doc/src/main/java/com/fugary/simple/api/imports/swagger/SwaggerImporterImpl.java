@@ -2,6 +2,8 @@ package com.fugary.simple.api.imports.swagger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
@@ -53,7 +55,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         OpenAPI openAPI = result.getOpenAPI();
         ExportApiProjectVo projectVo = null;
         if (openAPI != null) {
-            Map<String, List<Triple<String, PathItem, List<Pair<String, Operation>>>>> pathMap = openAPI.getPaths().entrySet().stream().map(entry -> {
+            Map<String, List<Triple<String, PathItem, List<Pair<String, Operation>>>>> pathMap = openAPI.getPaths() == null ? Collections.emptyMap() : openAPI.getPaths().entrySet().stream().map(entry -> {
                 PathItem pathItem = entry.getValue();
                 List<Pair<String, Operation>> operations = getAllOperationsInAPath(pathItem);
                 return Triple.of(entry.getKey(), entry.getValue(), operations);
@@ -67,8 +69,12 @@ public class SwaggerImporterImpl implements ApiDocImporter {
             projectVo.setProjectCode(SimpleModelUtils.uuid());
             processFolders(openAPI, projectVo, pathMap);
             processProjectInfo(openAPI, projectVo, data);
+            return projectVo;
         }
-        return projectVo;
+        List<String> messages = result.getMessages();
+        log.error("OpenAPI解析文档失败: messages={}", messages);
+        String errorDetail = (messages != null && !messages.isEmpty()) ? String.join("; ", messages) : "";
+        throw new SimpleRuntimeException(SystemErrorConstants.CODE_2006, errorDetail);
     }
 
     protected void processProjectInfo(OpenAPI openAPI, ExportApiProjectVo projectVo, String content) {

@@ -1,5 +1,6 @@
 package com.fugary.simple.api.utils.http;
 
+import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
@@ -182,12 +183,12 @@ public class SimpleHttpClientUtils {
             }
             return responseCallback.apply(response, clazz);
         } catch (Exception e) {
-            logger.error("执行GET请求错误", e);
+            logger.error("执行GET请求错误: url={}", url, e);
+            throw new SimpleRuntimeException(500, e.getMessage(), e);
         } finally {
             httpGet.releaseConnection();
             HttpClientUtils.closeQuietly(response);
         }
-        return null;
     }
 
     /**
