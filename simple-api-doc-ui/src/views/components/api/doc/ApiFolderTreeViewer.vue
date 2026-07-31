@@ -283,6 +283,30 @@ const handleDragEnd = (draggingNode, dropNode, type) => {
 
 const isDeletable = computed(() => props.deletable)
 
+const contextMenuPos = reactive({ x: 0, y: 0 })
+const contextMenuHandlers = ref([])
+const contextMenuDropdownRef = ref()
+
+const getNodeHandlers = (data) => {
+  const handlers = data.isDoc
+    ? getDocHandlers(data, sharePreference, handlerData)
+    : getFolderHandlers(data, sharePreference, handlerData)
+  return (handlers || []).filter(item => item.enabled !== false)
+}
+
+const handleNodeContextMenu = (event, data) => {
+  event.preventDefault()
+  if (!props.editable) {
+    return
+  }
+  contextMenuHandlers.value = getNodeHandlers(data)
+  contextMenuPos.x = event.clientX
+  contextMenuPos.y = event.clientY
+  nextTick(() => {
+    contextMenuDropdownRef.value?.handleOpen?.()
+  })
+}
+
 const handlerData = {
   sharePreference,
   refreshProjectItem,
@@ -432,6 +456,7 @@ defineExpose(handlerData)
           @node-drag-start="handleDragStart"
           @node-drag-end="handleDragEnd"
           @node-click="showDocDetails($event, false)"
+          @node-contextmenu="handleNodeContextMenu"
           @node-expand="expandOrCollapse($event, true)"
           @node-collapse="expandOrCollapse($event, false)"
         >
@@ -476,7 +501,7 @@ defineExpose(handlerData)
                 class="more-actions"
               >
                 <more-actions-link
-                  :handlers="data.isDoc ? getDocHandlers(data, sharePreference, handlerData) : getFolderHandlers(data, sharePreference, handlerData)"
+                  :handlers="getNodeHandlers(data)"
                   @show-dropdown="showDropdown(data)"
                   @enter-dropdown="enterDropdown(data)"
                   @leave-dropdown="leaveDropdown(data)"
@@ -504,6 +529,36 @@ defineExpose(handlerData)
       :share-doc="shareDoc"
       :project-item="projectItem"
     />
+    <div
+      style="position: fixed; pointer-events: none; z-index: 3000;"
+      :style="{ left: contextMenuPos.x + 'px', top: contextMenuPos.y + 'px' }"
+    >
+      <el-dropdown
+        ref="contextMenuDropdownRef"
+        trigger="contextmenu"
+      >
+        <span style="display: inline-block; width: 0; height: 0;" />
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item
+              v-for="(handler, index) in contextMenuHandlers"
+              :key="index"
+              :disabled="handler.disabled"
+              :divided="handler.divided"
+              @click="handler.handler"
+            >
+              <el-link
+                underline="never"
+                :type="handler.type || 'default'"
+              >
+                <common-icon :icon="handler.icon" />
+                {{ handler.label || $t(handler.labelKey) }}
+              </el-link>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
   </el-container>
 </template>
 
