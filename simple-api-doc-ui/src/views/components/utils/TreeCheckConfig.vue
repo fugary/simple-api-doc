@@ -109,8 +109,9 @@ const filterOption = computed(() => {
   }
 })
 
-const nodeClick = (data) => {
+const nodeClick = (data, node) => {
   if (props.singleSelect && data?.isDoc) {
+    if (node && node.disabled) return
     const key = data[props.nodeKey]
     selectedKeys.value = [key]
     treeRef.value?.setCurrentKey(key)

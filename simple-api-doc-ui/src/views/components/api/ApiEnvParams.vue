@@ -70,7 +70,7 @@ const groupConfig = ref({
 })
 
 const isTreeNodeDisabled = (nodeData) => {
-  return !nodeData.isDoc
+  return !nodeData.isDoc || nodeData.docType !== 'api'
 }
 
 const findDocNodeInTree = (nodes, id) => {
@@ -594,7 +594,7 @@ const saveGroupConfig = ({ form }) => {
           :url="data.isDoc ? data.url : ''"
         >
           <ApiMethodTag
-            v-if="data.isDoc"
+            v-if="data.method"
             :method="data.method"
             size="small"
             style="margin-right: 6px;"
