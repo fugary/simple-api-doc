@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { toLabelByKey } from '@/components/utils'
-import { useSortableParams } from '@/hooks/CommonHooks'
+import { useRenderKey, useSortableParams } from '@/hooks/CommonHooks'
 
 const props = defineProps({
   formOptions: {
@@ -40,6 +40,9 @@ const dataList = computed(() => {
 
 const emit = defineEmits(['delete', 'change'])
 
+const { renderKey } = useRenderKey()
+const rowKey = (row) => renderKey(row)
+
 const sortableState = props.sortable ? useSortableParams(dataList, '.el-table__row') : {}
 const sortableRef = sortableState.sortableRef || ref()
 
@@ -71,6 +74,7 @@ const options = computed(() => {
   <el-table
     ref="sortableRef"
     :data="dataList"
+    :row-key="rowKey"
     class="common-table-form"
   >
     <el-table-column
