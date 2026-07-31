@@ -142,13 +142,16 @@ useTabFocus(sortableRef)
                 :option="option"
                 :prop="`envConfigs.${index}.${option.prop}`"
               >
-                <template #beforeLabel>
+                <template
+                  v-if="idx===0"
+                  #beforeLabel
+                >
                   <common-icon
-                    v-if="idx===0&&hoverIndex===index&&!dragging"
                     :size="20"
-                    class="move-indicator"
+                    class="margin-top1 move-indicator"
                     icon="DragIndicatorFilled"
                     style="cursor: move;"
+                    :style="{ visibility: hoverIndex === index && !dragging ? 'visible' : 'hidden' }"
                   />
                 </template>
               </common-form-control>

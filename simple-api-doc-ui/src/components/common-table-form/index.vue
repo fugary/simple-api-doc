@@ -88,6 +88,7 @@ const options = computed(() => {
           style="display: flex; align-items: center; justify-content: center; height: 32px;"
         >
           <common-icon
+            :size="18"
             icon="DragIndicatorFilled"
             class="move-indicator"
             style="cursor: move; color: var(--el-text-color-secondary);"
@@ -182,5 +183,10 @@ const options = computed(() => {
 </template>
 
 <style scoped>
-
+.common-table-form :deep(.el-table__row .move-indicator) {
+  visibility: hidden;
+}
+.common-table-form :deep(.el-table__row:hover .move-indicator) {
+  visibility: visible;
+}
 </style>
