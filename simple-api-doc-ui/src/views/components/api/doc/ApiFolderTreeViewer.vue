@@ -299,6 +299,7 @@ const handleNodeContextMenu = (event, data) => {
   if (!props.editable) {
     return
   }
+  contextMenuDropdownRef.value?.handleClose?.()
   contextMenuHandlers.value = getNodeHandlers(data)
   contextMenuPos.x = event.clientX
   contextMenuPos.y = event.clientY
