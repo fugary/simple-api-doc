@@ -4,6 +4,10 @@ defineProps({
     type: Object,
     required: true
   },
+  url: {
+    type: String,
+    default: ''
+  },
   iconSize: {
     type: [Number, String],
     default: 18
@@ -52,15 +56,63 @@ defineProps({
         :icon="iconLeaf"
       />
     </template>
-    <slot>
-      {{ node.label }}
-    </slot>
+    <div class="tree-label-body">
+      <span class="tree-label-content">
+        <slot>
+          {{ node.label }}
+        </slot>
+      </span>
+      <span
+        v-if="url"
+        class="tree-label-url"
+        :title="url"
+      >
+        {{ url }}
+      </span>
+    </div>
   </span>
 </template>
 
 <style scoped>
+.el-tree-node__label {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
 .tree-label-icon {
   vertical-align: middle;
   margin-right: 4px;
+  flex-shrink: 0;
+}
+.tree-label-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 8px;
+  min-width: 0;
+}
+.tree-label-content {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  margin-right: 8px;
+}
+.tree-label-content > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-label-url {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  flex-shrink: 0;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

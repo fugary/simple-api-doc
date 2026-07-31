@@ -94,12 +94,13 @@ const exportSelectedDocs = () => {
         :show-icon="shareDoc?.showTreeIcon!==false"
         :node="node"
         :icon-leaf="calcNodeLeaf(data)"
+        :url="data.isDoc ? data.url : ''"
       >
         <api-method-tag
           v-if="data.docType==='api'"
           :method="data.method"
         />
-        {{ node.label }}
+        {{ data.docName || node.label }}
       </tree-icon-label>
     </template>
   </tree-config-window>

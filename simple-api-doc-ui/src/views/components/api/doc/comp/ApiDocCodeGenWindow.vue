@@ -126,6 +126,7 @@ const generateSelectedDocs = (data) => {
 <template>
   <common-window
     v-model="showCodeGenConfigWindow"
+    width="900px"
     :title="$t('api.label.generateClientCode')"
     :ok-label="okButtonLabel"
     :ok-click="okButtonClick"
@@ -163,12 +164,13 @@ const generateSelectedDocs = (data) => {
               :show-icon="shareDoc?.showTreeIcon!==false"
               :node="node"
               :icon-leaf="calcNodeLeaf(data)"
+              :url="data.isDoc ? data.url : ''"
             >
               <api-method-tag
                 v-if="data.docType==='api'"
                 :method="data.method"
               />
-              {{ node.label }}
+              {{ data.docName || node.label }}
             </tree-icon-label>
           </template>
         </tree-check-config>

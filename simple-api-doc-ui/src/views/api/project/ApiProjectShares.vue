@@ -32,7 +32,6 @@ import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { useSelectProjectGroups, renderProjectGroupLabel } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
-import { useCustomDocLabel } from '@/services/api/ApiCommonService'
 import { calcEnvConfigs, getEnvOptions } from '@/api/SimpleShareApi'
 import { toEditEnvConfigs } from '@/utils/DynamicUtils'
 
@@ -462,8 +461,6 @@ const saveProjectShare = (item) => {
   return ApiProjectShareApi.saveOrUpdate(item).then(() => loadProjectShares())
 }
 
-const { customDocLabel, customToggleButtons } = useCustomDocLabel()
-
 </script>
 
 <template>
@@ -530,19 +527,19 @@ const { customDocLabel, customToggleButtons } = useCustomDocLabel()
       :title="$t('api.label.selectShareDocs')"
       :ok-label="$t('common.label.close')"
       :show-cancel="false"
-      :buttons="customToggleButtons"
       @submit-keys="showTreeConfigWindow=false"
     >
       <template #default="{node, data}">
         <tree-icon-label
           :node="node"
           :icon-leaf="calcNodeLeaf(data)"
+          :url="data.isDoc ? data.url : ''"
         >
           <api-method-tag
             v-if="data.docType==='api'"
             :method="data.method"
           />
-          {{ data[customDocLabel] || data.docName || data.url || node.label }}
+          {{ data.docName || node.label }}
         </tree-icon-label>
       </template>
     </tree-config-window>

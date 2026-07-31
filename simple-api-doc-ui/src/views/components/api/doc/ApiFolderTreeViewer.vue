@@ -218,9 +218,7 @@ const currentExportType = ref('json')
 const exportAllFunc = ref()
 const toShowTreeConfigWindow = (type, exAllFunc) => {
   exportAllFunc.value = exAllFunc
-  const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value), null, {
-    defaultShowLabel: sharePreference.defaultShowLabel
-  })
+  const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value), null)
   exportTreeNodes.value = docTreeNodes
   currentExportType.value = type
   showExportWindow.value = true
@@ -231,9 +229,7 @@ const generateTreeNodes = ref([])
 const generateSelectedKeys = ref([])
 const toShowCodeGenConfigWindow = () => {
   const filteredItem = filterApiProjectItem(projectItem.value)
-  const { docTreeNodes } = calcProjectItem(filteredItem, null, {
-    defaultShowLabel: sharePreference.defaultShowLabel
-  })
+  const { docTreeNodes } = calcProjectItem(filteredItem, null)
   generateTreeNodes.value = docTreeNodes
   showCodeGenConfigWindow.value = true
 }

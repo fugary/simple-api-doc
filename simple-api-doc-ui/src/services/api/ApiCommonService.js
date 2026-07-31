@@ -21,7 +21,6 @@ import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { processSchemas } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
 import { ref, h, computed } from 'vue'
-import { defineTableButtons } from '@/components/utils'
 import { showCodeWindow, showGenerateSampleWindow } from '@/utils/DynamicUtils'
 import { aiGenerateSample } from '@/api/AiCacheApi'
 import { $i18nMsg, $i18nBundle, $i18nKey } from '@/messages'
@@ -537,23 +536,6 @@ export const checkUserAuthAccess = (userName, accessData, authority) => {
 
 export const checkCurrentAuthAccess = (accessData, authority) => {
   return checkUserAuthAccess(useCurrentUserName(), accessData, authority)
-}
-
-export const useCustomDocLabel = () => {
-  const customDocLabel = ref('docName')
-  const customToggleButtons = computed(() => {
-    return defineTableButtons([{
-      type: 'success',
-      labelKey: customDocLabel.value === 'docName' ? 'api.label.docLabelShowUrl' : 'api.label.docLabelShowName',
-      click () {
-        customDocLabel.value = customDocLabel.value === 'docName' ? 'url' : 'docName'
-      }
-    }])
-  })
-  return {
-    customDocLabel,
-    customToggleButtons
-  }
 }
 
 export const isJson = str => {

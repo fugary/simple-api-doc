@@ -21,6 +21,10 @@ defineProps({
   showFilter: {
     type: Boolean,
     default: true
+  },
+  width: {
+    type: String,
+    default: '900px'
   }
 })
 const emit = defineEmits(['submitKeys'])
@@ -41,6 +45,7 @@ const submitKeys = () => {
   <common-window
     v-model="showWindow"
     default-cls="flex-column"
+    :width="width"
     v-bind="$attrs"
     :ok-click="submitKeys"
   >
