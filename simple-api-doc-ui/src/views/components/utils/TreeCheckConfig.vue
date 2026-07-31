@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { $i18nBundle } from '@/messages'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { debounce } from 'lodash-es'
@@ -24,6 +24,10 @@ const props = defineProps({
   showFilter: {
     type: Boolean,
     default: true
+  },
+  singleSelect: {
+    type: Boolean,
+    default: false
   }
 })
 const selectedKeys = defineModel('selectedKeys', {
@@ -34,10 +38,14 @@ const treeRef = ref(null)
 const selectOrClearAll = (select) => {
   if (treeRef.value) {
     let treeKeys = []
-    if (select) {
+    if (select && !props.singleSelect) {
       treeKeys = getTreeKeys(props.treeNodes)
     }
     treeRef.value?.setCheckedKeys(treeKeys)
+    if (!select) {
+      treeRef.value?.setCurrentKey(null)
+      selectedKeys.value = []
+    }
   }
 }
 
@@ -63,9 +71,23 @@ const checkedKeys = computed(() => {
       const node = treeRef.value?.getNode(key)
       return node && node.isLeaf
     })
+    if (props.singleSelect) {
+      treeRef.value?.setCurrentKey(selectedKeys.value[0])
+    }
+  } else if (treeRef.value && props.singleSelect) {
+    treeRef.value?.setCurrentKey(null)
   }
   return checkIds
 })
+
+watch(() => selectedKeys.value, (val) => {
+  nextTick(() => {
+    if (props.singleSelect && treeRef.value) {
+      const activeKey = val && val.length ? val[0] : null
+      treeRef.value.setCurrentKey(activeKey)
+    }
+  })
+}, { immediate: true, deep: true })
 
 const filterModel = ref({})
 const filterOption = computed(() => {
@@ -87,9 +109,19 @@ const filterOption = computed(() => {
   }
 })
 
+const nodeClick = (data) => {
+  if (props.singleSelect && data?.isDoc) {
+    const key = data[props.nodeKey]
+    selectedKeys.value = [key]
+    treeRef.value?.setCurrentKey(key)
+  }
+}
+
 const checkChange = debounce(() => {
-  selectedKeys.value = [...treeRef.value?.getHalfCheckedKeys() || [], ...treeRef.value?.getCheckedKeys() || []]
-}, 300)
+  if (!props.singleSelect) {
+    selectedKeys.value = [...treeRef.value?.getHalfCheckedKeys() || [], ...treeRef.value?.getCheckedKeys() || []]
+  }
+}, 200)
 
 const filterNode = (keyword, data) => {
   if (!keyword) return true
@@ -111,10 +143,11 @@ const filterNode = (keyword, data) => {
 <template>
   <el-container
     class="flex-column"
-    :style="{ height: treeHeight}"
+    :style="{ height: treeHeight, maxHeight: 'calc(85vh - 160px)' }"
   >
     <el-header style="display: flex;">
       <el-button
+        v-if="!singleSelect"
         type="primary"
         @click="selectOrClearAll(true)"
       >
@@ -136,13 +169,16 @@ const filterNode = (keyword, data) => {
       <el-scrollbar class="form-edit-width-100 flex-column">
         <el-tree
           ref="treeRef"
-          show-checkbox
+          :class="[singleSelect ? 'tree-single-select' : '']"
+          :show-checkbox="!singleSelect"
+          highlight-current
           default-expand-all
           :node-key="nodeKey"
           :default-checked-keys="checkedKeys"
           :data="treeNodes"
           v-bind="treeAttrs"
           :filter-node-method="filterNode"
+          @node-click="nodeClick"
           @check-change="checkChange"
         >
           <template #empty>
@@ -161,5 +197,7 @@ const filterNode = (keyword, data) => {
 </template>
 
 <style scoped>
-
+:deep(.tree-single-select .el-tree-node.is-current > .el-tree-node__content) {
+  border-left: 3px solid var(--el-color-primary);
+}
 </style>

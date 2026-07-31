@@ -136,7 +136,7 @@ const doDataPreview = async () => {
 
 const calcResponse = (response) => {
   responseTarget.value = processResponse(response)
-  const extracted = extractVariables(response, paramTarget.value?.requestPath, paramTarget.value?.groupConfig, paramTarget.value?.preferenceId)
+  const extracted = extractVariables(response, paramTarget.value?.requestPath, paramTarget.value?.groupConfig, paramTarget.value?.preferenceId, apiDocDetail.value?.id)
   if (extracted && extracted.length) {
     const names = extracted.map(e => e.name).join(', ')
     ElMessage.success($i18nBundle('api.msg.successExtractCache', [names]))

@@ -36,15 +36,15 @@ const extractRulesOptions = defineFormOptions([{
 }, {
   labelKey: 'api.label.matchPath',
   prop: 'apiPath',
-  required: true,
   tooltipKey: 'api.msg.matchPathTip',
-  minWidth: 150
+  minWidth: 320,
+  slot: 'matchPathSlot'
 }, {
   labelKey: 'api.label.extractPath',
   prop: 'jsonPath',
   required: true,
   tooltipKey: 'api.msg.extractPathTip',
-  minWidth: 180,
+  minWidth: 200,
   headerSlot: 'jsonPathHeader'
 }])
 
@@ -56,7 +56,9 @@ const shareConfigStore = useShareConfigStore()
 const activeTab = ref('envParams')
 const docTreeNodes = ref([])
 const showTreeConfigWindow = ref(false)
-const selectedLoginApiKeys = ref([])
+const treeConfigContext = ref('')
+const selectedTreeKeys = ref([])
+const currentExtractRule = ref(null)
 
 const isSavedLocal = computed(() => {
   return isLocalMode.value && !!(preferenceIdRef.value && shareConfigStore.getLocalEnvParams(preferenceIdRef.value)?.length)
@@ -101,6 +103,85 @@ const enrichLoginApiConfigs = (configs) => {
   })
 }
 
+const applyApiToExtractRule = (rule, node) => {
+  if (!rule || !node) return
+  rule.matchType = 'api'
+  rule.apiId = node.id
+  rule.apiPath = node.url
+  rule.apiMethod = node.method
+  rule.apiSummary = node.docName || node.label || node.url
+}
+
+const enrichExtractRules = (envParams) => {
+  envParams?.forEach(param => {
+    param.extractRules?.forEach(rule => {
+      if (rule.apiId) {
+        const found = findDocNodeInTree(docTreeNodes.value, rule.apiId)
+        if (found) {
+          applyApiToExtractRule(rule, found)
+        } else if (rule.matchType === 'api') {
+          rule.apiSummary = rule.apiSummary || $i18nBundle('api.label.invalidApi')
+        }
+      } else if (!rule.matchType) {
+        rule.matchType = 'path'
+      }
+    })
+  })
+}
+
+const openExtractApiTreeSelect = (rule) => {
+  currentExtractRule.value = rule
+  treeConfigContext.value = 'extract'
+  selectedTreeKeys.value = rule.apiId ? [rule.apiId] : []
+  showTreeConfigWindow.value = true
+}
+
+const handleTreeSelectSubmit = (keys) => {
+  if (treeConfigContext.value === 'extract') {
+    if (currentExtractRule.value && keys?.length) {
+      const selectedKey = keys[keys.length - 1]
+      const node = findDocNodeInTree(docTreeNodes.value, selectedKey)
+      if (node) {
+        applyApiToExtractRule(currentExtractRule.value, node)
+      }
+    }
+  } else {
+    const currentConfigs = groupConfig.value.loginApiConfigs || []
+    const keySet = new Set((keys || []).map(String))
+    const updatedConfigs = []
+
+    currentConfigs.forEach(c => {
+      if (c.apiId && keySet.has(String(c.apiId))) {
+        updatedConfigs.push(c)
+        keySet.delete(String(c.apiId))
+      }
+    })
+
+    keySet.forEach(key => {
+      const node = findDocNodeInTree(docTreeNodes.value, key)
+      if (node) {
+        updatedConfigs.push(buildLoginApiConfig(node))
+      }
+    })
+    groupConfig.value.loginApiConfigs = updatedConfigs
+  }
+  showTreeConfigWindow.value = false
+}
+
+const switchToCustomPath = (rule) => {
+  rule.matchType = 'path'
+  rule.apiPath = ''
+  delete rule.apiId
+  delete rule.apiMethod
+  delete rule.apiSummary
+}
+
+const parseGroupConfig = (rawConfigStr) => {
+  const dbConfig = rawConfigStr ? JSON.parse(rawConfigStr) : { envParams: [], loginApiConfigs: [] }
+  const dbLoginApiConfigs = dbConfig.loginApiConfigs || (dbConfig.loginApiConfig ? [dbConfig.loginApiConfig] : [])
+  return { dbConfig, dbLoginApiConfigs }
+}
+
 let callback
 const toEditGroupEnvParams = (projectId, options = {}) => {
   isLocalMode.value = !!options.isLocal
@@ -121,8 +202,7 @@ const toEditGroupEnvParams = (projectId, options = {}) => {
     } else {
       docTreeNodes.value = []
     }
-    const dbConfig = projectItem.value?.groupConfig ? JSON.parse(projectItem.value.groupConfig) : { envParams: [], loginApiConfigs: [] }
-    const dbLoginApiConfigs = dbConfig.loginApiConfigs || (dbConfig.loginApiConfig ? [dbConfig.loginApiConfig] : [])
+    const { dbConfig, dbLoginApiConfigs } = parseGroupConfig(projectItem.value?.groupConfig)
     if (isLocalMode.value) {
       const localParams = shareConfigStore.getLocalEnvParams(preferenceIdRef.value)
       groupConfig.value = {
@@ -136,6 +216,7 @@ const toEditGroupEnvParams = (projectId, options = {}) => {
     }
     prepareTreeSearchText(docTreeNodes.value)
     enrichLoginApiConfigs(groupConfig.value.loginApiConfigs)
+    enrichExtractRules(groupConfig.value.envParams)
     showWindow.value = true
   })
   return new Promise(resolve => (callback = resolve))
@@ -153,35 +234,11 @@ const {
 } = useSortableParams(loginApiConfigsParams, '.login-api-item')
 
 const openLoginApiTreeSelect = () => {
-  selectedLoginApiKeys.value = (groupConfig.value.loginApiConfigs || [])
+  treeConfigContext.value = 'login'
+  selectedTreeKeys.value = (groupConfig.value.loginApiConfigs || [])
     .map(c => c.apiId)
     .filter(Boolean)
   showTreeConfigWindow.value = true
-}
-
-const handleTreeSelectSubmit = (keys) => {
-  const currentConfigs = groupConfig.value.loginApiConfigs || []
-  const keySet = new Set((keys || []).map(String))
-  const updatedConfigs = []
-
-  // 保留原有接口的当前排序
-  currentConfigs.forEach(c => {
-    if (c.apiId && keySet.has(String(c.apiId))) {
-      updatedConfigs.push(c)
-      keySet.delete(String(c.apiId))
-    }
-  })
-
-  // 追加新选中的接口
-  keySet.forEach(key => {
-    const node = findDocNodeInTree(docTreeNodes.value, key)
-    if (node) {
-      updatedConfigs.push(buildLoginApiConfig(node))
-    }
-  })
-
-  groupConfig.value.loginApiConfigs = updatedConfigs
-  showTreeConfigWindow.value = false
 }
 
 const removeLoginApi = (index) => {
@@ -223,17 +280,17 @@ const windowButtons = computed(() => {
 const resetLocal = () => {
   if (preferenceIdRef.value) {
     shareConfigStore.resetLocalEnvParams(preferenceIdRef.value)
-    const dbConfig = projectItem.value?.groupConfig ? JSON.parse(projectItem.value.groupConfig) : { envParams: [], loginApiConfigs: [] }
-    const dbLoginApiConfigs = dbConfig.loginApiConfigs || (dbConfig.loginApiConfig ? [dbConfig.loginApiConfig] : [])
+    const { dbConfig, dbLoginApiConfigs } = parseGroupConfig(projectItem.value?.groupConfig)
     groupConfig.value = cloneDeep(dbConfig)
     groupConfig.value.loginApiConfigs = cloneDeep(dbLoginApiConfigs)
     enrichLoginApiConfigs(groupConfig.value.loginApiConfigs)
+    enrichExtractRules(groupConfig.value.envParams)
     ElMessage.success($i18nBundle('common.msg.operationSuccess'))
   }
 }
 
 const saveGroupConfig = ({ form }) => {
-  form.validate(valid => {
+  form.validate((valid, fields) => {
     if (valid) {
       const configToSave = cloneDeep(groupConfig.value)
       configToSave.envParams?.forEach(param => {
@@ -253,7 +310,12 @@ const saveGroupConfig = ({ form }) => {
             callback?.(projectItem.value)
             showWindow.value = false
           })
+          .catch(err => {
+            ElMessage.error(err?.message || $i18nBundle('common.msg.operationFailed'))
+          })
       }
+    } else {
+      console.warn('Form validation failed:', fields)
     }
   })
   return false
@@ -268,7 +330,7 @@ const saveGroupConfig = ({ form }) => {
     destroy-on-close
     :ok-click="saveGroupConfig"
     :buttons="windowButtons"
-    width="900px"
+    width="1000px"
   >
     <template #header>
       <div style="display: flex; align-items: center; gap: 8px;">
@@ -347,10 +409,77 @@ const saveGroupConfig = ({ form }) => {
                       @delete="({index: idx}) => item.extractRules.splice(idx, 1)"
                     >
                       <template #jsonPathHeader>
-                        <div style="display: flex; align-items: center;">
+                        <div style="display: flex; align-items: center; white-space: nowrap;">
                           <span style="color: var(--el-color-danger); margin-right: 4px;">*</span>
                           <span>{{ $t('api.label.extractPathFull') }}</span>
                         </div>
+                      </template>
+                      <template #matchPathSlot="{ item: rule }">
+                        <el-form-item
+                          v-if="item.extractRules && item.extractRules.indexOf(rule) !== -1"
+                          label-width="0"
+                          :prop="`envParams.${index}.extractRules.${item.extractRules.indexOf(rule)}.apiPath`"
+                          :rules="[{ required: true, message: $i18nBundle('common.msg.nonNull', [$t('api.label.matchPath')]), trigger: ['blur', 'change'] }]"
+                        >
+                          <el-tooltip
+                            effect="dark"
+                            :content="rule.apiSummary"
+                            :disabled="!rule.apiSummary"
+                            placement="top"
+                          >
+                            <el-input
+                              v-model="rule.apiPath"
+                              :placeholder="$t('api.msg.matchPathPlaceholder')"
+                              :readonly="rule.matchType === 'api'"
+                              clearable
+                              style="width: 100%;"
+                            >
+                              <template
+                                v-if="rule.apiMethod"
+                                #prefix
+                              >
+                                <div style="display: flex; align-items: center; height: 100%;">
+                                  <ApiMethodTag
+                                    :method="rule.apiMethod"
+                                    size="small"
+                                    style="margin-right: 4px;"
+                                  />
+                                </div>
+                              </template>
+                              <template
+                                v-if="rule.matchType === 'api'"
+                                #suffix
+                              >
+                                <el-tooltip
+                                  effect="dark"
+                                  :content="$t('common.label.clear')"
+                                  placement="top"
+                                >
+                                  <el-icon
+                                    class="el-input__icon"
+                                    style="cursor: pointer;"
+                                    @click.stop="switchToCustomPath(rule)"
+                                  >
+                                    <common-icon icon="CircleClose" />
+                                  </el-icon>
+                                </el-tooltip>
+                              </template>
+                              <template #append>
+                                <el-tooltip
+                                  effect="dark"
+                                  :content="$t('api.label.selectApi')"
+                                  placement="top"
+                                >
+                                  <el-button
+                                    @click="openExtractApiTreeSelect(rule)"
+                                  >
+                                    <common-icon icon="Search" />
+                                  </el-button>
+                                </el-tooltip>
+                              </template>
+                            </el-input>
+                          </el-tooltip>
+                        </el-form-item>
                       </template>
                     </common-table-form>
                   </div>
@@ -448,12 +577,13 @@ const saveGroupConfig = ({ form }) => {
     </common-form>
     <TreeConfigWindow
       v-model="showTreeConfigWindow"
-      v-model:selected-keys="selectedLoginApiKeys"
+      v-model:selected-keys="selectedTreeKeys"
       node-key="id"
       :tree-nodes="docTreeNodes"
       :tree-attrs="{ checkStrictly: true, props: { label: 'label', children: 'children', disabled: isTreeNodeDisabled } }"
-      :title="$t('api.label.selectLoginApi')"
-      width="900px"
+      :title="treeConfigContext === 'login' ? $t('api.label.selectLoginApi') : $t('api.label.selectApi')"
+      width="950px"
+      :single-select="treeConfigContext === 'extract'"
       @submit-keys="handleTreeSelectSubmit"
     >
       <template #default="{ node, data }">

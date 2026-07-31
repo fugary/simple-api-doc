@@ -25,6 +25,10 @@ defineProps({
   width: {
     type: String,
     default: '900px'
+  },
+  singleSelect: {
+    type: Boolean,
+    default: false
   }
 })
 const emit = defineEmits(['submitKeys'])
@@ -46,6 +50,7 @@ const submitKeys = () => {
     v-model="showWindow"
     default-cls="flex-column"
     :width="width"
+    append-to-body
     v-bind="$attrs"
     :ok-click="submitKeys"
   >
@@ -56,6 +61,7 @@ const submitKeys = () => {
       :tree-attrs="treeAttrs"
       :show-filter="showFilter"
       :tree-height="treeHeight"
+      :single-select="singleSelect"
     >
       <template #default="scope">
         <slot

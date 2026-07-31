@@ -145,7 +145,12 @@ export const previewRequest = function (reqData, config = {}) {
   })
 }
 
-export const isPathMatch = (rule, requestPath) => {
+export const isPathMatch = (rule, requestPath, currentApiId) => {
+  if (rule.matchType === 'api' || rule.apiId) {
+    return (currentApiId && String(rule.apiId) === String(currentApiId)) ||
+           (rule.apiPath && rule.apiPath === requestPath)
+  }
+
   const apiPath = rule.apiPath
   if (!apiPath) return true
   if (apiPath === requestPath) return true
@@ -176,7 +181,7 @@ const getValueByPath = (target, normalizedPath, rawPathStr) => {
   return get(target, rawPathStr)
 }
 
-export const extractVariables = (response, requestPath, groupConfig, preferenceId) => {
+export const extractVariables = (response, requestPath, groupConfig, preferenceId, currentApiId) => {
   if (!groupConfig?.envParams?.length || !response) return
 
   let responseData = response.data
@@ -202,7 +207,7 @@ export const extractVariables = (response, requestPath, groupConfig, preferenceI
   groupConfig.envParams.forEach(param => {
     if (param.enabled && param.extractRules?.length) {
       param.extractRules.forEach(rule => {
-        if (rule.enabled && rule.jsonPath && isPathMatch(rule, requestPath)) {
+        if (rule.enabled && rule.jsonPath && isPathMatch(rule, requestPath, currentApiId)) {
           const rawExpr = rule.jsonPath.trim()
           const normalizedPath = rawExpr.startsWith('$') ? rawExpr : `$.${rawExpr}`
           const rawPathStr = rawExpr.replace(/^\$\./, '')
