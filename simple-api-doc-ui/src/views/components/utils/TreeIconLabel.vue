@@ -56,14 +56,21 @@ defineProps({
         :icon="iconLeaf"
       />
     </template>
-    <div class="tree-label-body">
+    <template v-if="!url">
+      <slot>
+        {{ node.label }}
+      </slot>
+    </template>
+    <div
+      v-else
+      class="tree-label-body"
+    >
       <span class="tree-label-content">
         <slot>
           {{ node.label }}
         </slot>
       </span>
       <span
-        v-if="url"
         class="tree-label-url"
         :title="url"
       >
@@ -74,12 +81,6 @@ defineProps({
 </template>
 
 <style scoped>
-.el-tree-node__label {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-}
 .tree-label-icon {
   vertical-align: middle;
   margin-right: 4px;
