@@ -468,6 +468,7 @@ const pageAttrs = {
           v-for="{project, projectItems, projectGroupItems} in dataRow"
           :key="project.id"
           :span="Math.floor(24/colSize)"
+          class="project-col"
           @mouseenter="project.showOperations=true"
           @mouseleave="project.showOperations=false"
         >
@@ -599,6 +600,11 @@ const pageAttrs = {
 </template>
 
 <style scoped>
+.project-col {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Project card base styling */
 .project-card {
   border-radius: 12px;
@@ -607,6 +613,9 @@ const pageAttrs = {
   /* Sync top border width with hover state to prevent layout shift
      Use default border color initially so it looks connected */
   border-top: 3px solid var(--el-border-color-lighter);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .dark .project-card {
@@ -639,6 +648,9 @@ const pageAttrs = {
 /* Card body styling */
 .project-card :deep(.el-card__body) {
   padding: 14px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Project title styling */
@@ -676,7 +688,7 @@ const pageAttrs = {
 }
 
 .project-group-panel {
-  margin-top: 12px;
+  margin-top: auto;
   padding-top: 12px;
   border-top: 1px dashed var(--el-border-color);
 }
