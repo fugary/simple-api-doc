@@ -23,8 +23,8 @@ import {
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning, $copyText, $coreConfirm } from '@/utils'
-import { showCodeWindow, previewApiRequest, toEditGroupEnvParams } from '@/utils/DynamicUtils'
+import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning, $copyText } from '@/utils'
+import { showCodeWindow, previewApiRequest } from '@/utils/DynamicUtils'
 import { loadDoc } from '@/api/ApiDocApi'
 import { ElMessage } from 'element-plus'
 import { isString, isArray, cloneDeep } from 'lodash-es'
@@ -335,7 +335,7 @@ const handleCurlCommand = async (command) => {
 
 const shareConfigStore = useShareConfigStore()
 
-const loginApiConfig = computed(() => {
+const loginApiConfigs = computed(() => {
   let gConfig = paramTarget.value?.groupConfig || paramTarget.value?.project?.groupConfig
   if (isString(gConfig)) {
     try {
@@ -344,18 +344,17 @@ const loginApiConfig = computed(() => {
       gConfig = {}
     }
   }
-  return gConfig?.loginApiConfig || null
+  return gConfig?.loginApiConfigs || (gConfig?.loginApiConfig ? [gConfig.loginApiConfig] : [])
 })
 
 const isCurrentLoginApi = computed(() => {
-  const loginApiId = loginApiConfig.value?.apiId
+  const configs = loginApiConfigs.value || []
   const currentDocId = paramTarget.value?.docId || paramTarget.value?.id
-  return !!(loginApiId && currentDocId && String(loginApiId) === String(currentDocId))
+  return configs.some(c => String(c.apiId) === String(currentDocId))
 })
 
-const openLoginApiDebug = () => {
+const openLoginApiDebug = (config) => {
   const pId = paramTarget.value?.projectId || paramTarget.value?.project?.id || paramTarget.value?.preferenceId
-  const config = loginApiConfig.value
   if (config?.apiId) {
     loadDoc(config.apiId).then(data => {
       const docDetail = data?.resultData
@@ -372,10 +371,17 @@ const openLoginApiDebug = () => {
             copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
             copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
             copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
-            return Object.assign(target, savedTarget)
+            Object.assign(target, savedTarget)
+            if (paramTarget.value?.targetUrl) {
+              target.targetUrl = paramTarget.value.targetUrl
+            }
+            return target
           },
           changeHandler: target => {
             Object.assign(lastParamTarget, target)
+            if (paramTarget.value && target.targetUrl && paramTarget.value.targetUrl !== target.targetUrl) {
+              paramTarget.value.targetUrl = target.targetUrl
+            }
           }
         }
         previewApiRequest(projInfo, docDetail, null, handlerConfig)
@@ -383,12 +389,6 @@ const openLoginApiDebug = () => {
         ElMessage.error($i18nBundle('common.msg.dataNotFound'))
       }
     })
-  } else {
-    $coreConfirm($i18nBundle('api.msg.noLoginApiConfigured')).then(() => {
-      if (pId) {
-        toEditGroupEnvParams(pId, { isLocal: true, preferenceId: paramTarget.value?.preferenceId || pId })
-      }
-    }).catch(() => {})
   }
 }
 
@@ -406,12 +406,37 @@ const { monacoTheme } = useShareDocTheme()
     <template
       #add-icon
     >
+      <el-dropdown
+        v-if="!isCurrentLoginApi && loginApiConfigs.length > 1"
+        trigger="click"
+        style="margin-top: -11px"
+        class="margin-right2"
+        @command="openLoginApiDebug"
+      >
+        <el-link
+          type="primary"
+          :underline="false"
+        >
+          <span>{{ $t('api.label.loginApi') }}</span>
+        </el-link>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item
+              v-for="api in loginApiConfigs"
+              :key="api.apiId"
+              :command="api"
+            >
+              {{ api.summary }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
       <el-link
-        v-if="!isCurrentLoginApi"
+        v-else-if="!isCurrentLoginApi && loginApiConfigs.length === 1"
         type="primary"
         style="margin-top: -11px"
         class="margin-right2"
-        @click="openLoginApiDebug"
+        @click="openLoginApiDebug(loginApiConfigs[0])"
       >
         <span>{{ $t('api.label.loginApi') }}</span>
       </el-link>
