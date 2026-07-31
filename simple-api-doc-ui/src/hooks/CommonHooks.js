@@ -141,8 +141,12 @@ export const useSortableParams = (params, selector, moveCls = '.move-indicator')
   const hoverIndex = ref(-1)
 
   const initSortable = () => {
-    const el = sortableRef.value?.$el || sortableRef.value
+    let el = sortableRef.value?.$el || sortableRef.value
     if (el && !sortable) {
+      const tbody = el.querySelector('tbody')
+      if (tbody) {
+        el = tbody
+      }
       sortable = new Sortable(el, {
         animation: 150,
         draggable: selector,

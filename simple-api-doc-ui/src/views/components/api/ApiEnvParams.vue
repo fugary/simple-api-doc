@@ -14,6 +14,7 @@ import { calcProjectItem } from '@/services/api/ApiProjectService'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
+import { useSortableParams } from '@/hooks/CommonHooks'
 
 const extractRulesOptions = defineFormOptions([{
   labelKey: 'common.label.statusEnabled',
@@ -140,6 +141,17 @@ const toEditGroupEnvParams = (projectId, options = {}) => {
   return new Promise(resolve => (callback = resolve))
 }
 
+const loginApiConfigsParams = computed({
+  get: () => groupConfig.value.loginApiConfigs || [],
+  set: (val) => (groupConfig.value.loginApiConfigs = val)
+})
+
+const {
+  sortableRef: loginSortableRef,
+  hoverIndex: hoverLoginIndex,
+  dragging: loginDragging
+} = useSortableParams(loginApiConfigsParams, '.login-api-item')
+
 const openLoginApiTreeSelect = () => {
   selectedLoginApiKeys.value = (groupConfig.value.loginApiConfigs || [])
     .map(c => c.apiId)
@@ -148,10 +160,27 @@ const openLoginApiTreeSelect = () => {
 }
 
 const handleTreeSelectSubmit = (keys) => {
-  groupConfig.value.loginApiConfigs = (keys || [])
-    .map(key => findDocNodeInTree(docTreeNodes.value, key))
-    .filter(Boolean)
-    .map(buildLoginApiConfig)
+  const currentConfigs = groupConfig.value.loginApiConfigs || []
+  const keySet = new Set((keys || []).map(String))
+  const updatedConfigs = []
+
+  // 保留原有接口的当前排序
+  currentConfigs.forEach(c => {
+    if (c.apiId && keySet.has(String(c.apiId))) {
+      updatedConfigs.push(c)
+      keySet.delete(String(c.apiId))
+    }
+  })
+
+  // 追加新选中的接口
+  keySet.forEach(key => {
+    const node = findDocNodeInTree(docTreeNodes.value, key)
+    if (node) {
+      updatedConfigs.push(buildLoginApiConfig(node))
+    }
+  })
+
+  groupConfig.value.loginApiConfigs = updatedConfigs
   showTreeConfigWindow.value = false
 }
 
@@ -314,6 +343,7 @@ const saveGroupConfig = ({ form }) => {
                       data-list-key="extractRules"
                       :form-options="extractRulesOptions"
                       :form-prop-prefix="`envParams.${index}`"
+                      sortable
                       @delete="({index: idx}) => item.extractRules.splice(idx, 1)"
                     >
                       <template #jsonPathHeader>
@@ -349,15 +379,26 @@ const saveGroupConfig = ({ form }) => {
               <div style="width: 100%;">
                 <div
                   v-if="groupConfig.loginApiConfigs?.length"
+                  ref="loginSortableRef"
                   class="margin-bottom2 flex-column"
                   style="gap: 8px;"
                 >
                   <div
                     v-for="(apiConfig, index) in groupConfig.loginApiConfigs"
-                    :key="index"
+                    :key="apiConfig.apiId || index"
+                    class="login-api-item"
                     style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border: 1px solid var(--el-border-color-lighter); border-radius: 4px; background: var(--el-fill-color-blank);"
+                    @mouseenter="hoverLoginIndex = index"
+                    @mouseleave="hoverLoginIndex = -1"
                   >
                     <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; margin-right: 8px;">
+                      <common-icon
+                        :size="18"
+                        class="move-indicator"
+                        icon="DragIndicatorFilled"
+                        style="cursor: move; flex-shrink: 0; color: var(--el-text-color-secondary);"
+                        :style="{ visibility: hoverLoginIndex === index && !loginDragging ? 'visible' : 'hidden' }"
+                      />
                       <ApiMethodTag
                         v-if="apiConfig.method"
                         :method="apiConfig.method"

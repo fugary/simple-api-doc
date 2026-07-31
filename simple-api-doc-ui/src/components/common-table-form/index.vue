@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { toLabelByKey } from '@/components/utils'
+import { useSortableParams } from '@/hooks/CommonHooks'
 
 const props = defineProps({
   formOptions: {
@@ -26,6 +27,10 @@ const props = defineProps({
   formPropPrefix: {
     type: String,
     default: ''
+  },
+  sortable: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -34,6 +39,9 @@ const dataList = computed(() => {
 })
 
 const emit = defineEmits(['delete', 'change'])
+
+const sortableState = props.sortable ? useSortableParams(dataList, '.el-table__row') : {}
+const sortableRef = sortableState.sortableRef || ref()
 
 const deleteItem = (item, index) => {
   emit('delete', {
@@ -61,9 +69,28 @@ const options = computed(() => {
 
 <template>
   <el-table
+    ref="sortableRef"
     :data="dataList"
     class="common-table-form"
   >
+    <el-table-column
+      v-if="sortable"
+      width="40px"
+      align="center"
+    >
+      <template #default>
+        <div
+          class="el-form-item"
+          style="display: flex; align-items: center; justify-content: center; height: 32px;"
+        >
+          <common-icon
+            icon="DragIndicatorFilled"
+            class="move-indicator"
+            style="cursor: move; color: var(--el-text-color-secondary);"
+          />
+        </div>
+      </template>
+    </el-table-column>
     <el-table-column
       v-for="(option, index) in options"
       :key="`${option.prop}__${index}`"

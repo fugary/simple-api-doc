@@ -276,7 +276,7 @@ useTabFocus(sortableRef)
               <common-icon
                 v-if="idx===0&&hoverIndex===index&&!dragging"
                 :size="20"
-                class="margin-top1 move-indicator"
+                class="move-indicator"
                 icon="DragIndicatorFilled"
                 style="cursor: move;"
               />
