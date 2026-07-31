@@ -63,7 +63,6 @@ const checkedKeys = computed(() => {
       const node = treeRef.value?.getNode(key)
       return node && node.isLeaf
     })
-    console.log('========================checkIds', checkIds, selectedKeys)
   }
   return checkIds
 })
@@ -94,9 +93,15 @@ const checkChange = debounce(() => {
 
 const filterNode = (keyword, data) => {
   if (!keyword) return true
-  keyword = keyword.toLowerCase()
+  keyword = keyword.toLowerCase().trim()
+  if (!keyword) return true
+  if (data._searchText) {
+    return data._searchText.includes(keyword)
+  }
   if (data.isDoc) {
-    return data.docName?.toLowerCase().includes(keyword) || data.url?.toLowerCase().includes(keyword)
+    return data.docName?.toLowerCase().includes(keyword) ||
+      data.url?.toLowerCase().includes(keyword) ||
+      data.method?.toLowerCase().includes(keyword)
   }
   return data.label?.toLowerCase()?.includes(keyword)
 }

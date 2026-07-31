@@ -3,7 +3,7 @@ import { computed, ref, markRaw } from 'vue'
 import { cloneDeep } from 'lodash-es'
 import ApiProjectApi, { loadDetailById } from '@/api/ApiProjectApi'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
-import { ElAlert, ElFormItem, ElMessage, ElTreeSelect, ElTabPane, ElTabs } from 'element-plus'
+import { ElAlert, ElFormItem, ElMessage, ElTabPane, ElTabs } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 import { DEFAULT_HEADERS } from '@/consts/ApiConstants'
 import { defineFormOptions } from '@/components/utils'
@@ -11,6 +11,9 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { calcProjectItem } from '@/services/api/ApiProjectService'
+import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
+import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
+import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 
 const extractRulesOptions = defineFormOptions([{
   labelKey: 'common.label.statusEnabled',
@@ -51,6 +54,8 @@ const preferenceIdRef = ref('')
 const shareConfigStore = useShareConfigStore()
 const activeTab = ref('envParams')
 const docTreeNodes = ref([])
+const showTreeConfigWindow = ref(false)
+const selectedLoginApiKeys = ref([])
 
 const isSavedLocal = computed(() => {
   return isLocalMode.value && !!(preferenceIdRef.value && shareConfigStore.getLocalEnvParams(preferenceIdRef.value)?.length)
@@ -77,6 +82,22 @@ const findDocNodeInTree = (nodes, id) => {
     }
   }
   return null
+}
+
+const buildLoginApiConfig = (node) => ({
+  apiId: node.id,
+  url: node.url,
+  method: node.method,
+  summary: node.docName || node.label || node.url
+})
+
+const enrichLoginApiConfigs = (configs) => {
+  configs?.forEach(c => {
+    if (c.apiId) {
+      const found = findDocNodeInTree(docTreeNodes.value, c.apiId)
+      if (found) Object.assign(c, buildLoginApiConfig(found))
+    }
+  })
 }
 
 let callback
@@ -113,30 +134,25 @@ const toEditGroupEnvParams = (projectId, options = {}) => {
       groupConfig.value.loginApiConfigs = cloneDeep(dbLoginApiConfigs)
     }
     prepareTreeSearchText(docTreeNodes.value)
+    enrichLoginApiConfigs(groupConfig.value.loginApiConfigs)
     showWindow.value = true
   })
   return new Promise(resolve => (callback = resolve))
 }
 
-const handleLoginApiChange = (val, index) => {
-  if (!val) {
-    groupConfig.value.loginApiConfigs[index] = { apiId: '' }
-  } else {
-    const found = findDocNodeInTree(docTreeNodes.value, val)
-    if (found) {
-      groupConfig.value.loginApiConfigs[index] = {
-        apiId: found.id,
-        url: found.url,
-        method: found.method,
-        summary: found.docName || found.label || found.url
-      }
-    }
-  }
+const openLoginApiTreeSelect = () => {
+  selectedLoginApiKeys.value = (groupConfig.value.loginApiConfigs || [])
+    .map(c => c.apiId)
+    .filter(Boolean)
+  showTreeConfigWindow.value = true
 }
 
-const addLoginApi = () => {
-  groupConfig.value.loginApiConfigs = groupConfig.value.loginApiConfigs || []
-  groupConfig.value.loginApiConfigs.push({ apiId: '' })
+const handleTreeSelectSubmit = (keys) => {
+  groupConfig.value.loginApiConfigs = (keys || [])
+    .map(key => findDocNodeInTree(docTreeNodes.value, key))
+    .filter(Boolean)
+    .map(buildLoginApiConfig)
+  showTreeConfigWindow.value = false
 }
 
 const removeLoginApi = (index) => {
@@ -158,13 +174,6 @@ const prepareTreeSearchText = (nodes) => {
       prepareTreeSearchText(node.children)
     }
   })
-}
-
-const filterLoginApiNode = (value, data) => {
-  if (!value) return true
-  const keyword = value.trim().toLowerCase()
-  if (!keyword) return true
-  return data._searchText ? data._searchText.includes(keyword) : true
 }
 
 defineExpose({
@@ -189,6 +198,7 @@ const resetLocal = () => {
     const dbLoginApiConfigs = dbConfig.loginApiConfigs || (dbConfig.loginApiConfig ? [dbConfig.loginApiConfig] : [])
     groupConfig.value = cloneDeep(dbConfig)
     groupConfig.value.loginApiConfigs = cloneDeep(dbLoginApiConfigs)
+    enrichLoginApiConfigs(groupConfig.value.loginApiConfigs)
     ElMessage.success($i18nBundle('common.msg.operationSuccess'))
   }
 }
@@ -338,82 +348,56 @@ const saveGroupConfig = ({ form }) => {
             >
               <div style="width: 100%;">
                 <div
-                  v-for="(apiConfig, index) in groupConfig.loginApiConfigs"
-                  :key="index"
-                  style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;"
+                  v-if="groupConfig.loginApiConfigs?.length"
+                  class="margin-bottom2 flex-column"
+                  style="gap: 8px;"
                 >
-                  <el-tree-select
-                    v-model="apiConfig.apiId"
-                    :data="docTreeNodes"
-                    node-key="id"
-                    :props="{ label: 'label', children: 'children', disabled: isTreeNodeDisabled }"
-                    :filter-node-method="filterLoginApiNode"
-                    clearable
-                    filterable
-                    check-strictly
-                    style="flex: 1"
-                    :placeholder="$t('common.label.pleaseSelect')"
-                    @change="val => handleLoginApiChange(val, index)"
+                  <div
+                    v-for="(apiConfig, index) in groupConfig.loginApiConfigs"
+                    :key="index"
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border: 1px solid var(--el-border-color-lighter); border-radius: 4px; background: var(--el-fill-color-blank);"
                   >
-                    <template #default="{ data }">
-                      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding-right: 8px; min-width: 0;">
-                        <span
-                          v-if="data.isDoc"
-                          style="display: flex; align-items: center; min-width: 0; flex: 1; overflow: hidden; margin-right: 8px;"
-                        >
-                          <ApiMethodTag
-                            :method="data.method"
-                            size="small"
-                            style="margin-right: 8px; flex-shrink: 0;"
-                          />
-                          <span
-                            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                            :title="data.docName || data.label"
-                          >{{ data.docName || data.label }}</span>
-                        </span>
-                        <span
-                          v-else
-                          style="display: flex; align-items: center; min-width: 0; flex: 1; overflow: hidden; margin-right: 8px;"
-                        >
-                          <CommonIcon
-                            icon="Folder"
-                            size="16"
-                            style="margin-right: 6px; color: var(--el-color-primary); flex-shrink: 0;"
-                          />
-                          <span
-                            style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                            :title="data.folderName || data.label"
-                          >{{ data.folderName || data.label }}</span>
-                        </span>
-                        <span
-                          v-if="data.isDoc"
-                          style="color: var(--el-text-color-secondary); font-size: 12px; flex-shrink: 0; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                          :title="data.url"
-                        >
-                          {{ data.url }}
-                        </span>
-                      </div>
-                    </template>
-                  </el-tree-select>
-                  <el-button
-                    type="danger"
-                    size="small"
-                    circle
-                    @click="removeLoginApi(index)"
-                  >
-                    <common-icon icon="Delete" />
-                  </el-button>
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; margin-right: 8px;">
+                      <ApiMethodTag
+                        v-if="apiConfig.method"
+                        :method="apiConfig.method"
+                        size="small"
+                        style="flex-shrink: 0;"
+                      />
+                      <span
+                        style="font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; color: var(--el-text-color-primary);"
+                        :title="apiConfig.summary || apiConfig.url"
+                      >
+                        {{ apiConfig.summary || apiConfig.url }}
+                      </span>
+                      <span
+                        v-if="apiConfig.url"
+                        style="font-size: 12px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;"
+                        :title="apiConfig.url"
+                      >
+                        {{ apiConfig.url }}
+                      </span>
+                    </div>
+                    <el-button
+                      type="danger"
+                      size="small"
+                      circle
+                      @click="removeLoginApi(index)"
+                    >
+                      <common-icon icon="Delete" />
+                    </el-button>
+                  </div>
                 </div>
                 <el-button
                   type="primary"
                   size="small"
-                  @click="addLoginApi"
+                  @click="openLoginApiTreeSelect"
                 >
                   <common-icon
                     class="margin-right1"
                     icon="Plus"
                   />
-                  {{ $t('common.label.add') }}
+                  {{ $t('api.label.selectLoginApi') }}
                 </el-button>
               </div>
             </el-form-item>
@@ -421,6 +405,33 @@ const saveGroupConfig = ({ form }) => {
         </el-tab-pane>
       </el-tabs>
     </common-form>
+    <TreeConfigWindow
+      v-model="showTreeConfigWindow"
+      v-model:selected-keys="selectedLoginApiKeys"
+      node-key="id"
+      :tree-nodes="docTreeNodes"
+      :tree-attrs="{ checkStrictly: true, props: { label: 'label', children: 'children', disabled: isTreeNodeDisabled } }"
+      :title="$t('api.label.selectLoginApi')"
+      width="900px"
+      @submit-keys="handleTreeSelectSubmit"
+    >
+      <template #default="{ node, data }">
+        <TreeIconLabel
+          :show-icon="true"
+          :node="node"
+          :icon-leaf="calcNodeLeaf(data)"
+          :url="data.isDoc ? data.url : ''"
+        >
+          <ApiMethodTag
+            v-if="data.isDoc"
+            :method="data.method"
+            size="small"
+            style="margin-right: 6px;"
+          />
+          {{ data.docName || data.folderName || node.label }}
+        </TreeIconLabel>
+      </template>
+    </TreeConfigWindow>
   </common-window>
 </template>
 
