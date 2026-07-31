@@ -16,13 +16,15 @@ import {
   REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
 import { processEvnParams, useScreenCheck, getExtractedEnvParams, cacheExtractedEnvParams, isJson, isXml } from '@/services/api/ApiCommonService'
-import { nextTick, ref, watch, computed, markRaw } from 'vue'
+import { nextTick, ref, watch, computed, markRaw, reactive } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
 import { calcDetailPreferenceId } from '@/services/api/ApiFolderService'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { $i18nBundle } from '@/messages'
 import { InfoFilled } from '@vicons/material'
 import { isExternalLink } from '@/components/utils'
+import { loadDoc } from '@/api/ApiDocApi'
+import { ElMessage } from 'element-plus'
 
 export const getHeader = (headers, key) => {
   if (isObject(headers) && key) {
@@ -1171,4 +1173,55 @@ export const getDownloadConfirmConfig = (config) => {
     distinguishCancelAndClose: true,
     ...config
   }
+}
+
+export const parseLoginApiConfigs = (target) => {
+  let gConfig = target?.groupConfig || target?.project?.groupConfig
+  if (isString(gConfig)) {
+    try {
+      gConfig = JSON.parse(gConfig)
+    } catch {
+      gConfig = {}
+    }
+  }
+  return gConfig?.loginApiConfigs || (gConfig?.loginApiConfig ? [gConfig.loginApiConfig] : [])
+}
+
+export const openLoginApiDebug = (config, currentParamTarget) => {
+  if (!config?.apiId) return
+  const shareConfigStore = useShareConfigStore()
+  loadDoc(config.apiId).then(data => {
+    const docDetail = data?.resultData
+    if (docDetail) {
+      const pId = currentParamTarget?.projectId || currentParamTarget?.project?.id || currentParamTarget?.preferenceId
+      const projInfo = docDetail.projectInfoDetail || currentParamTarget?.project || { id: pId }
+      const prefId = currentParamTarget?.preferenceId || calcDetailPreferenceId(docDetail)
+      const paramTargetId = `${prefId}-${docDetail.id}`
+      const lastParamTarget = shareConfigStore.shareParamTargets[paramTargetId] = shareConfigStore.shareParamTargets[paramTargetId] || reactive({})
+      const handlerConfig = {
+        preHandler: target => {
+          const savedTarget = { ...lastParamTarget }
+          const notSavedKeys = ['requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']
+          notSavedKeys.forEach(key => delete savedTarget[key])
+          copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
+          copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
+          copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
+          Object.assign(target, savedTarget)
+          if (currentParamTarget?.targetUrl) {
+            target.targetUrl = currentParamTarget.targetUrl
+          }
+          return target
+        },
+        changeHandler: target => {
+          Object.assign(lastParamTarget, target)
+          if (currentParamTarget && target.targetUrl && currentParamTarget.targetUrl !== target.targetUrl) {
+            currentParamTarget.targetUrl = target.targetUrl
+          }
+        }
+      }
+      previewApiRequest(projInfo, docDetail, null, handlerConfig)
+    } else {
+      ElMessage.error($i18nBundle('common.msg.dataNotFound'))
+    }
+  })
 }

@@ -331,6 +331,7 @@ const handleCopyMarkdown = () => {
       v-model:auth-content-model="authContentModel"
       :security-schemas="securitySchemas"
       :group-config="props.projectItem?.groupConfig"
+      :project-item="props.projectItem"
       :preference-id="paramTargetId"
       :env-suggestions="envSuggestions"
       :ok-click="saveAuthorization"

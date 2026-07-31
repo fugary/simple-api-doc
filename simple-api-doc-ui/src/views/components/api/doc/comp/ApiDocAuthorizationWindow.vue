@@ -2,8 +2,10 @@
 import { computed } from 'vue'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
 import ApiEnvPopover from '@/views/components/api/ApiEnvPopover.vue'
+import ApiDocLoginApiDropdown from '@/views/components/api/doc/comp/ApiDocLoginApiDropdown.vue'
 import { $i18nBundle } from '@/messages'
 import { calcEnvSuggestions } from '@/services/api/ApiCommonService'
+import { parseLoginApiConfigs } from '@/services/api/ApiDocPreviewService'
 import { ElAlert, ElTabs, ElTabPane, ElText } from 'element-plus'
 
 const showWindow = defineModel({
@@ -26,6 +28,10 @@ const props = defineProps({
     default: () => ({})
   },
   groupConfig: {
+    type: [Object, String],
+    default: undefined
+  },
+  projectItem: {
     type: Object,
     default: undefined
   },
@@ -53,6 +59,10 @@ const props = defineProps({
     type: Function,
     default: undefined
   }
+})
+
+const loginApiConfigs = computed(() => {
+  return parseLoginApiConfigs({ groupConfig: props.groupConfig, project: props.projectItem })
 })
 
 const calcSuggestions = computed(() => {
@@ -106,7 +116,12 @@ const authButtons = computed(() => {
         class="margin-bottom2"
       />
       <div style="position: relative;">
-        <div style="position: absolute; right: 0; top: 2px; z-index: 10;">
+        <div style="position: absolute; right: 0; top: 2px; z-index: 10; display: flex; align-items: center; gap: 12px;">
+          <ApiDocLoginApiDropdown
+            :login-api-configs="loginApiConfigs"
+            :param-target="props.projectItem || { preferenceId: props.preferenceId, groupConfig: props.groupConfig }"
+            link-class="margin-top1"
+          />
           <ApiEnvPopover
             :env-suggestions="calcSuggestions"
             :preference-id="preferenceId"

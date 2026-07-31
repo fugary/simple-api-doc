@@ -2,13 +2,13 @@
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import ApiEnvPopover from '@/views/components/api/ApiEnvPopover.vue'
 import CommonParamsEdit from '@/views/components/utils/CommonParamsEdit.vue'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   checkParamsFilled,
   checkRequestBody,
   generateSampleCheckResults,
   isGetMethod,
-  copyParamsDynamicOption
+  parseLoginApiConfigs
 } from '@/services/api/ApiDocPreviewService'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
 import {
@@ -21,12 +21,11 @@ import {
   DEFAULT_HEADERS, REQUEST_SEND_MODES
 } from '@/consts/ApiConstants'
 import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestFormAuthorization.vue'
+import ApiDocLoginApiDropdown from '@/views/components/api/doc/comp/ApiDocLoginApiDropdown.vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning, $copyText } from '@/utils'
-import { showCodeWindow, previewApiRequest } from '@/utils/DynamicUtils'
-import { loadDoc } from '@/api/ApiDocApi'
-import { ElMessage } from 'element-plus'
+import { showCodeWindow } from '@/utils/DynamicUtils'
 import { isString, isArray, cloneDeep } from 'lodash-es'
 import {
   calcEnvSuggestions,
@@ -41,7 +40,7 @@ import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
 import { buildCurlCommand, CURL_SHELL, extendCurlParams } from '@/services/api/CurlProcessService'
-import { useShareDocTheme, calcDetailPreferenceId } from '@/services/api/ApiFolderService'
+import { useShareDocTheme } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
 
 const props = defineProps({
@@ -333,64 +332,13 @@ const handleCurlCommand = async (command) => {
   }
 }
 
-const shareConfigStore = useShareConfigStore()
-
-const loginApiConfigs = computed(() => {
-  let gConfig = paramTarget.value?.groupConfig || paramTarget.value?.project?.groupConfig
-  if (isString(gConfig)) {
-    try {
-      gConfig = JSON.parse(gConfig)
-    } catch {
-      gConfig = {}
-    }
-  }
-  return gConfig?.loginApiConfigs || (gConfig?.loginApiConfig ? [gConfig.loginApiConfig] : [])
-})
+const loginApiConfigs = computed(() => parseLoginApiConfigs(paramTarget.value))
 
 const isCurrentLoginApi = computed(() => {
   const configs = loginApiConfigs.value || []
   const currentDocId = paramTarget.value?.docId || paramTarget.value?.id
   return configs.some(c => String(c.apiId) === String(currentDocId))
 })
-
-const openLoginApiDebug = (config) => {
-  const pId = paramTarget.value?.projectId || paramTarget.value?.project?.id || paramTarget.value?.preferenceId
-  if (config?.apiId) {
-    loadDoc(config.apiId).then(data => {
-      const docDetail = data?.resultData
-      if (docDetail) {
-        const projInfo = docDetail.projectInfoDetail || paramTarget.value?.project || { id: pId }
-        const prefId = paramTarget.value?.preferenceId || calcDetailPreferenceId(docDetail)
-        const paramTargetId = `${prefId}-${docDetail.id}`
-        const lastParamTarget = shareConfigStore.shareParamTargets[paramTargetId] = shareConfigStore.shareParamTargets[paramTargetId] || reactive({})
-        const handlerConfig = {
-          preHandler: target => {
-            const savedTarget = { ...lastParamTarget }
-            const notSavedKeys = ['requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']
-            notSavedKeys.forEach(key => delete savedTarget[key])
-            copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
-            copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
-            copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
-            Object.assign(target, savedTarget)
-            if (paramTarget.value?.targetUrl) {
-              target.targetUrl = paramTarget.value.targetUrl
-            }
-            return target
-          },
-          changeHandler: target => {
-            Object.assign(lastParamTarget, target)
-            if (paramTarget.value && target.targetUrl && paramTarget.value.targetUrl !== target.targetUrl) {
-              paramTarget.value.targetUrl = target.targetUrl
-            }
-          }
-        }
-        previewApiRequest(projInfo, docDetail, null, handlerConfig)
-      } else {
-        ElMessage.error($i18nBundle('common.msg.dataNotFound'))
-      }
-    })
-  }
-}
 
 const { monacoTheme } = useShareDocTheme()
 
@@ -406,40 +354,13 @@ const { monacoTheme } = useShareDocTheme()
     <template
       #add-icon
     >
-      <el-dropdown
-        v-if="!isCurrentLoginApi && loginApiConfigs.length > 1"
-        trigger="click"
+      <ApiDocLoginApiDropdown
+        :login-api-configs="loginApiConfigs"
+        :is-current-login-api="isCurrentLoginApi"
+        :param-target="paramTarget"
         style="margin-top: -11px"
         class="margin-right2"
-        @command="openLoginApiDebug"
-      >
-        <el-link
-          type="primary"
-          :underline="false"
-        >
-          <span>{{ $t('api.label.loginApi') }}</span>
-        </el-link>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item
-              v-for="api in loginApiConfigs"
-              :key="api.apiId"
-              :command="api"
-            >
-              {{ api.summary }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <el-link
-        v-else-if="!isCurrentLoginApi && loginApiConfigs.length === 1"
-        type="primary"
-        style="margin-top: -11px"
-        class="margin-right2"
-        @click="openLoginApiDebug(loginApiConfigs[0])"
-      >
-        <span>{{ $t('api.label.loginApi') }}</span>
-      </el-link>
+      />
       <ApiEnvPopover
         :env-suggestions="envSuggestions"
         :project-id="paramTarget?.projectId || paramTarget?.project?.id"
