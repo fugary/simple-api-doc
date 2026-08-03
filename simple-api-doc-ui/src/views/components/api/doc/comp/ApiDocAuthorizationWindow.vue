@@ -119,7 +119,7 @@ const authButtons = computed(() => {
         <div style="position: absolute; right: 0; top: 2px; z-index: 10; display: flex; align-items: center; gap: 12px;">
           <ApiDocLoginApiDropdown
             :login-api-configs="loginApiConfigs"
-            :param-target="props.projectItem || { preferenceId: props.preferenceId, groupConfig: props.groupConfig }"
+            :param-target="{ preferenceId: props.preferenceId, projectId: props.projectItem?.id, groupConfig: props.groupConfig }"
             link-class="margin-top1"
           />
           <ApiEnvPopover

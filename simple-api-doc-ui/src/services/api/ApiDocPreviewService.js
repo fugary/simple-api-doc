@@ -307,6 +307,7 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   const groupConfig = JSON.parse(apiDocDetail?.project?.groupConfig || '{}')
   syncCachedParamsToTarget(preferenceId, groupConfig)
   const componentMap = calcComponentMap(projectInfoDetail.componentSchemas || [])
+  const sharePreference = useShareConfigStore().sharePreferenceView[preferenceId]
   const target = {
     projectId: apiDocDetail?.projectId,
     docId: apiDocDetail?.id,
@@ -320,7 +321,7 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
     contentType: apiDocDetail?.contentType || 'application/json',
     requestContentType: apiDocDetail?.contentType || 'application/json',
     requestFormat: 'json',
-    targetUrl: apiDocDetail?.targetUrl,
+    targetUrl: sharePreference?.targetUrl || apiDocDetail?.targetUrl,
     requestPath: apiDocDetail.url,
     sendType: REQUEST_SEND_MODES[0].value,
     groupConfig
@@ -1192,35 +1193,42 @@ export const parseLoginApiConfigs = (target) => {
   return gConfig?.loginApiConfigs || (gConfig?.loginApiConfig ? [gConfig.loginApiConfig] : [])
 }
 
+export const NOT_SAVED_KEYS = ['targetUrl', 'requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']
+
+export const mergeSavedParamTarget = (target, lastParamTarget) => {
+  const savedTarget = { ...lastParamTarget }
+  NOT_SAVED_KEYS.forEach(key => delete savedTarget[key])
+  copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
+  copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
+  copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
+  return Object.assign(target, savedTarget)
+}
+
 export const openLoginApiDebug = (config, currentParamTarget) => {
   if (!config?.apiId) return
   const shareConfigStore = useShareConfigStore()
   loadDoc(config.apiId).then(data => {
     const docDetail = data?.resultData
     if (docDetail) {
-      const pId = currentParamTarget?.projectId || currentParamTarget?.project?.id || currentParamTarget?.preferenceId
-      const projInfo = docDetail.projectInfoDetail || currentParamTarget?.project || { id: pId }
-      const prefId = currentParamTarget?.preferenceId || calcDetailPreferenceId(docDetail)
-      const paramTargetId = `${prefId}-${docDetail.id}`
+      const pId = currentParamTarget?.projectId || currentParamTarget?.preferenceId
+      const projInfo = docDetail.projectInfoDetail || { id: pId }
+      const mainPrefId = currentParamTarget?.preferenceId || calcDetailPreferenceId(docDetail)
+      const sharePreference = shareConfigStore.sharePreferenceView[mainPrefId] = shareConfigStore.sharePreferenceView[mainPrefId] || reactive({})
+      const docPrefId = calcDetailPreferenceId(docDetail)
+      const paramTargetId = `${docPrefId}-${docDetail.id}`
       const lastParamTarget = shareConfigStore.shareParamTargets[paramTargetId] = shareConfigStore.shareParamTargets[paramTargetId] || reactive({})
       const handlerConfig = {
         preHandler: target => {
-          const savedTarget = { ...lastParamTarget }
-          const notSavedKeys = ['requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']
-          notSavedKeys.forEach(key => delete savedTarget[key])
-          copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
-          copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
-          copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
-          Object.assign(target, savedTarget)
-          if (currentParamTarget?.targetUrl) {
-            target.targetUrl = currentParamTarget.targetUrl
+          mergeSavedParamTarget(target, lastParamTarget)
+          if (sharePreference?.targetUrl) {
+            target.targetUrl = sharePreference.targetUrl
           }
           return target
         },
         changeHandler: target => {
           Object.assign(lastParamTarget, target)
-          if (currentParamTarget && target.targetUrl && currentParamTarget.targetUrl !== target.targetUrl) {
-            currentParamTarget.targetUrl = target.targetUrl
+          if (sharePreference && target.targetUrl && sharePreference.targetUrl !== target.targetUrl) {
+            sharePreference.targetUrl = target.targetUrl
           }
         }
       }

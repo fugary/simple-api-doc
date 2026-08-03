@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-08
+- **opt**: [2026-08-03] 优化及精简全局环境 URL 同步与调试参数合并代码逻辑：1. 抽取通用的 `NOT_SAVED_KEYS` 与 `mergeSavedParamTarget` 封装工具方法，消除 `ApiDocViewer.vue` 与 `ApiDocPreviewService.js` 中 10 余行重复的参数预处理合并逻辑；2. 精简 `ApiDocAuthorizationWindow.vue` 与 `ApiDocViewer.vue` 中无用的组件属性透传；3. 保证主详情页、接口调试弹窗、登录调试弹窗全链路 `targetUrl` 的响应式联动与数据单例存储；全量通过 ESLint 规范校验。
 - **bug**: [2026-08-03] 修复 API 树形菜单右键弹出上下文菜单后再次右键点击其他节点无反应及无法更新位置的问题：在 `ApiFolderTreeViewer.vue` 的 `handleNodeContextMenu` 中，利用 `showContextMenu` 状态控制上下文菜单 DOM 重新挂载，解决 Element Plus 下拉组件 Popper 位置缓存导致的右键点击其他位置菜单不移动/无法展开新节点菜单的 Bug；右键点击节点仅弹出菜单且不主动改变当前已选中的文档树节点（避免切换当前查看的接口），并在展开节点右侧 `more-actions` 菜单时自动隐藏关闭右键上下文菜单，防止弹窗菜单重叠；全量通过 ESLint 规范校验。
 - **opt**: [2026-08-03] 修复前端缺失及未匹配的 i18n 资源 Key：
   1. **补全缺失 Key**：补全前端代码中引用但未在 locale 中定义的 6 个 Key：`common.msg.dataNotFound`（'未找到相关数据'）、`common.label.unlimited`（'不限'）、`common.msg.saveFailed`（'保存失败。'）、`common.msg.deleteFailed`（'删除失败。'）、`common.msg.operationFailed`（'操作失败。'）、`common.msg.unknownError`（'未知错误'）；

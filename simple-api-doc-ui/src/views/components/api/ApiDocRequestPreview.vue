@@ -61,6 +61,16 @@ watch(paramTarget, () => {
   }
 }, { deep: true })
 
+const shareConfigStore = useShareConfigStore()
+watch(() => {
+  const prefId = paramTarget.value?.preferenceId
+  return prefId ? shareConfigStore.sharePreferenceView[prefId]?.targetUrl : undefined
+}, (newTargetUrl) => {
+  if (paramTarget.value && newTargetUrl && paramTarget.value.targetUrl !== newTargetUrl) {
+    paramTarget.value.targetUrl = newTargetUrl
+  }
+})
+
 const resetParamTarget = () => {
   paramTarget.value = calcParamTarget(projectInfoDetail.value, apiDocDetail.value)
   envConfigs.value = getEnvConfigs(apiDocDetail.value)

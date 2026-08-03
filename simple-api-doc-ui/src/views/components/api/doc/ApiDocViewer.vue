@@ -16,8 +16,8 @@ import ApiDocAuthorizationWindow from '@/views/components/api/doc/comp/ApiDocAut
 import {
   calcAuthModelBySchemas,
   calcSecuritySchemas,
-  copyParamsDynamicOption,
-  isGetMethod
+  isGetMethod,
+  mergeSavedParamTarget
 } from '@/services/api/ApiDocPreviewService'
 import { calcEnvSuggestions, useContainerCheck, useCopyRight, useScreenCheck } from '@/services/api/ApiCommonService'
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
@@ -53,7 +53,7 @@ const envConfigs = ref([])
 
 const paramTargetId = calcPreferenceId(props.projectItem, props.shareDoc)
 const envSuggestions = computed(() => calcEnvSuggestions(props.projectItem?.groupConfig, paramTargetId))
-const sharePreference = shareConfigStore.sharePreferenceView[paramTargetId]
+const sharePreference = shareConfigStore.sharePreferenceView[paramTargetId] = shareConfigStore.sharePreferenceView[paramTargetId] || reactive({})
 const getAuthContentModel = () => cloneDeep(sharePreference?.defaultAuthModel || { authType: AUTH_TYPE.NONE, authModels: [] })
 let lastParamTarget = reactive({})
 const securitySchemas = ref()
@@ -101,15 +101,7 @@ const loadDocDetail = async () => {
 }
 
 const handlerConfig = {
-  preHandler: target => {
-    const savedTarget = { ...lastParamTarget }
-    const notSavedKeys = ['requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']// 有些数据不能使用保存数据
-    notSavedKeys.forEach(key => delete savedTarget[key])
-    copyParamsDynamicOption(target.pathParams, savedTarget.pathParams)
-    copyParamsDynamicOption(target.requestParams, savedTarget.requestParams)
-    copyParamsDynamicOption(target.headerParams, savedTarget.headerParams)
-    return Object.assign(target, savedTarget)
-  },
+  preHandler: target => mergeSavedParamTarget(target, lastParamTarget),
   changeHandler: target => {
     Object.assign(lastParamTarget, target)
     if (apiDocDetail.value?.targetUrl !== target.targetUrl) {
@@ -119,8 +111,13 @@ const handlerConfig = {
 }
 
 watch(() => apiDocDetail.value?.targetUrl, (targetUrl) => {
-  if (sharePreference) {
+  if (sharePreference && targetUrl && sharePreference.targetUrl !== targetUrl) {
     sharePreference.targetUrl = targetUrl
+  }
+})
+watch(() => sharePreference?.targetUrl, (targetUrl) => {
+  if (apiDocDetail.value && targetUrl && apiDocDetail.value.targetUrl !== targetUrl) {
+    apiDocDetail.value.targetUrl = targetUrl
   }
 })
 watch(apiDoc, loadDocDetail, {
