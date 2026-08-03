@@ -3,6 +3,10 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-08
+- **opt**: [2026-08-03] 修复前端缺失及未匹配的 i18n 资源 Key：
+  1. **补全缺失 Key**：补全前端代码中引用但未在 locale 中定义的 6 个 Key：`common.msg.dataNotFound`（'未找到相关数据'）、`common.label.unlimited`（'不限'）、`common.msg.saveFailed`（'保存失败。'）、`common.msg.deleteFailed`（'删除失败。'）、`common.msg.operationFailed`（'操作失败。'）、`common.msg.unknownError`（'未知错误'）；
+  2. **对齐中英文语言包**：修复中英文语言包不对称问题，补全 `api.label.corsMode`（中文 '跨域模式'）及 `menu.label.menuManagement`（英文 'Menu Management'），并清理冗余未引用的 `menu.label.menuOperation`；
+  3. **自动化校验**：运行 i18n 校验脚本，确认全部 534 个 Key 中英文 100% 对齐且代码引用零缺失；
 - **feat**: [2026-08-03] 后端纯集中实现文档分享模式下「登录接口」配置自动过滤与防泄露：
   1. **后端工具类实现**：在 `SimpleModelUtils.java` 中新增 `filterGroupConfigLoginApis(String groupConfig, Set<Integer> allowedDocIds)` 方法，使用 Jackson 对 `groupConfig` JSON 的 `loginApiConfigs` 数组基于分享授权 `shareDocIds` 进行精准过滤；
   2. **控制器响应过滤**：在 `SimpleShareController.java` 的 `/shares/loadProject/{shareId}` 与 `/shares/loadShareDoc/{shareId}/{docId}` 接口响应组装中，若分享配置了具体 `shareDocIds` 集合，自动对 `groupConfig` 进行接口级过滤，保证未授权的登录接口数据绝不离开服务器；
