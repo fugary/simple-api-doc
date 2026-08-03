@@ -306,6 +306,11 @@ const handleContextItemClick = (handler) => {
   handler.handler?.()
 }
 
+const handleMoreActionsShowDropdown = (data) => {
+  showContextMenu.value = false
+  showDropdown(data)
+}
+
 const handleNodeContextMenu = (event, data) => {
   event.preventDefault()
   if (!props.editable) {
@@ -521,7 +526,7 @@ defineExpose(handlerData)
               >
                 <more-actions-link
                   :handlers="getNodeHandlers(data)"
-                  @show-dropdown="showDropdown(data)"
+                  @show-dropdown="handleMoreActionsShowDropdown(data)"
                   @enter-dropdown="enterDropdown(data)"
                   @leave-dropdown="leaveDropdown(data)"
                 />
