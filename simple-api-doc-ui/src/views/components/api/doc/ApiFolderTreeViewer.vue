@@ -283,6 +283,7 @@ const handleDragEnd = (draggingNode, dropNode, type) => {
 
 const isDeletable = computed(() => props.deletable)
 
+const showContextMenu = ref(false)
 const contextMenuPos = reactive({ x: 0, y: 0 })
 const contextMenuHandlers = ref([])
 const contextMenuDropdownRef = ref()
@@ -294,17 +295,34 @@ const getNodeHandlers = (data) => {
   return (handlers || []).filter(item => item.enabled !== false)
 }
 
+const handleContextMenuVisibleChange = (visible) => {
+  if (!visible) {
+    showContextMenu.value = false
+  }
+}
+
+const handleContextItemClick = (handler) => {
+  showContextMenu.value = false
+  handler.handler?.()
+}
+
 const handleNodeContextMenu = (event, data) => {
   event.preventDefault()
   if (!props.editable) {
     return
   }
-  contextMenuDropdownRef.value?.handleClose?.()
+  if (data?.treeId) {
+    treeRef.value?.setCurrentKey(data.treeId)
+  }
+  showContextMenu.value = false
   contextMenuHandlers.value = getNodeHandlers(data)
   contextMenuPos.x = event.clientX
   contextMenuPos.y = event.clientY
   nextTick(() => {
-    contextMenuDropdownRef.value?.handleOpen?.()
+    showContextMenu.value = true
+    nextTick(() => {
+      contextMenuDropdownRef.value?.handleOpen?.()
+    })
   })
 }
 
@@ -531,12 +549,14 @@ defineExpose(handlerData)
       :project-item="projectItem"
     />
     <div
+      v-if="showContextMenu"
       style="position: fixed; pointer-events: none; z-index: 3000;"
       :style="{ left: contextMenuPos.x + 'px', top: contextMenuPos.y + 'px' }"
     >
       <el-dropdown
         ref="contextMenuDropdownRef"
         trigger="contextmenu"
+        @visible-change="handleContextMenuVisibleChange"
       >
         <span style="display: inline-block; width: 0; height: 0;" />
         <template #dropdown>
@@ -546,7 +566,7 @@ defineExpose(handlerData)
               :key="index"
               :disabled="handler.disabled"
               :divided="handler.divided"
-              @click="handler.handler"
+              @click="handleContextItemClick(handler)"
             >
               <el-link
                 underline="never"
