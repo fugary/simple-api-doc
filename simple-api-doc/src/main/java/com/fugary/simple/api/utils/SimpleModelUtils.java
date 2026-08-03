@@ -1,6 +1,9 @@
 package com.fugary.simple.api.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -597,5 +600,38 @@ public class SimpleModelUtils {
             }
         }
         return -1;
+    }
+
+    /**
+     * 过滤groupConfig中的loginApiConfigs（仅保留在allowedDocIds中的apiId）
+     *
+     * @param groupConfig
+     * @param allowedDocIds
+     * @return
+     */
+    public static String filterGroupConfigLoginApis(String groupConfig, Set<Integer> allowedDocIds) {
+        if (StringUtils.isBlank(groupConfig) || allowedDocIds == null || allowedDocIds.isEmpty()) {
+            return groupConfig;
+        }
+        try {
+            JsonNode rootNode = JsonUtils.getMapper().readTree(groupConfig);
+            if (rootNode instanceof ObjectNode) {
+                ObjectNode root = (ObjectNode) rootNode;
+                if (root.has("loginApiConfigs") && root.get("loginApiConfigs").isArray()) {
+                    ArrayNode arrayNode = (ArrayNode) root.get("loginApiConfigs");
+                    ArrayNode filteredArray = JsonUtils.getMapper().createArrayNode();
+                    for (JsonNode item : arrayNode) {
+                        if (item.has("apiId") && allowedDocIds.contains(item.get("apiId").asInt())) {
+                            filteredArray.add(item);
+                        }
+                    }
+                    root.set("loginApiConfigs", filteredArray);
+                    return JsonUtils.toJson(root);
+                }
+            }
+        } catch (Exception e) {
+            log.error("过滤groupConfig登录接口解析错误", e);
+        }
+        return groupConfig;
     }
 }

@@ -117,13 +117,18 @@ public class SimpleShareController {
         if (apiShare == null || (project = apiProjectService.getById(apiShare.getProjectId())) == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
-        return SimpleResultUtils.createSimpleResult(apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
+        Set<Integer> shareDocIds = SimpleModelUtils.getShareDocIds(apiShare.getShareDocs());
+        ApiProjectDetailVo projectVo = apiProjectService.loadProjectVo(ProjectDetailQueryVo.builder()
                 .projectCode(project.getProjectCode())
                 .forceEnabled(true)
                 .includeDocContent(false)
                 .removeAuditFields(false)
-                .docIds(SimpleModelUtils.getShareDocIds(apiShare.getShareDocs()))
-                .includeDocs(true).build()));
+                .docIds(shareDocIds)
+                .includeDocs(true).build());
+        if (projectVo != null && CollectionUtils.isNotEmpty(shareDocIds)) {
+            projectVo.setGroupConfig(SimpleModelUtils.filterGroupConfigLoginApis(projectVo.getGroupConfig(), shareDocIds));
+        }
+        return SimpleResultUtils.createSimpleResult(projectVo);
     }
 
     @PostMapping("/checkExportDownloadDocs")
@@ -191,6 +196,10 @@ public class SimpleShareController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
+        if (apiProject != null && CollectionUtils.isNotEmpty(docIds)) {
+            apiProject = SimpleModelUtils.copy(apiProject, new ApiProject());
+            apiProject.setGroupConfig(SimpleModelUtils.filterGroupConfigLoginApis(apiProject.getGroupConfig(), docIds));
+        }
         ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
         apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
         apiDocVo.setProject(apiProject);

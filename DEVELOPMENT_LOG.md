@@ -2,6 +2,13 @@
 
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
+### 2026-08
+- **feat**: [2026-08-03] 后端纯集中实现文档分享模式下「登录接口」配置自动过滤与防泄露：
+  1. **后端工具类实现**：在 `SimpleModelUtils.java` 中新增 `filterGroupConfigLoginApis(String groupConfig, Set<Integer> allowedDocIds)` 方法，使用 Jackson 对 `groupConfig` JSON 的 `loginApiConfigs` 数组基于分享授权 `shareDocIds` 进行精准过滤；
+  2. **控制器响应过滤**：在 `SimpleShareController.java` 的 `/shares/loadProject/{shareId}` 与 `/shares/loadShareDoc/{shareId}/{docId}` 接口响应组装中，若分享配置了具体 `shareDocIds` 集合，自动对 `groupConfig` 进行接口级过滤，保证未授权的登录接口数据绝不离开服务器；
+  3. **前端零修改**：前端代码恢复 100% 原始状态，无需任何前端改动，按原逻辑解析 `groupConfig.loginApiConfigs` 即可得到已授权的登录接口；
+  4. 全量通过 Maven `test-compile` 构建校验。
+
 ### 2026-07
 - **opt**: [2026-07-31] 深度代码审查与 Vue 组件级重构优化：1. 在 `ApiEnvParams.vue` 中发现并抽取高度重复的 `<TreeConfigWindow>` 树形弹窗 DOM 结构，将其统一收口为单一弹窗实例，通过 `treeConfigContext` 状态与动态 `:single-select`、`:title` 属性动态复用于“登录接口选择”与“提取规则接口选择”两大场景，成功移除近 40 行重复冗余的 template 代码；2. 将重复的 `groupConfig` JSON 反序列化逻辑抽象提取为独立的 `parseGroupConfig` 工具函数，减少业务逻辑中的心智负担与重复代码，大幅提升代码优雅度、可读性与可维护性；3. 通过 ESLint 静态代码检查。
 - **opt**: [2026-07-31] 优化全局变量提取规则表单校验根因修复、一键清空与树选择同步：1. 彻底解决保存报错阻断（最终根因修复）：定位到 Element Plus `el-table` 在渲染布局与列宽度计算时，会使用空对象 `{}` 渲染虚拟测量行，调用 `item.extractRules.indexOf({})` 必然返回 `-1`，导致 `<el-form-item>` 误将 `envParams.0.extractRules.-1.apiPath` 注册进 `el-form` 校验表并触发 `fieldValue: undefined` 报错阻断保存；通过在 `matchPathSlot` 的 `<el-form-item>` 上添加 `v-if="item.extractRules && item.extractRules.indexOf(rule) !== -1"` 条件过滤，确保仅真实数据行渲染校验项，彻底根除了该问题；2. 解决清空需要点击两次的问题：在 `switchToCustomPath` 清空逻辑中同步重置 `rule.apiPath = ''`，实现一键同时清空已绑定接口与路径文本；3. 解决清空后重新打开选择树残留高亮节点问题：在 `TreeCheckConfig.vue` 中为 `selectedKeys` 添加深度 `watch` 监听，当绑定的已选 Array 为空时自动触发 `treeRef.value.setCurrentKey(null)`，保证弹窗高亮状态与底层绑定数据 100% 同步；4. 通过全量 ESLint 规范校验。
