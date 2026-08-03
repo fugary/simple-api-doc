@@ -3,7 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-08
-- **bug**: [2026-08-03] 修复 API 树形菜单右键弹出上下文菜单后再次右键点击其他节点无反应及无法更新位置与选中节点的问题：在 `ApiFolderTreeViewer.vue` 的 `handleNodeContextMenu` 中，在右键点击节点时同步设置 `treeRef` 的当前高亮节点 (`setCurrentKey`)，利用 `showContextMenu` 状态控制上下文菜单 DOM 重新挂载，解决 Element Plus 下拉组件 Popper 位置缓存导致的右键点击其他位置菜单不移动/无法展开新节点菜单的 Bug；并在展开节点右侧 `more-actions` 菜单时自动隐藏关闭右键上下文菜单，防止弹窗菜单重叠；全量通过 ESLint 规范校验。
+- **bug**: [2026-08-03] 修复 API 树形菜单右键弹出上下文菜单后再次右键点击其他节点无反应及无法更新位置的问题：在 `ApiFolderTreeViewer.vue` 的 `handleNodeContextMenu` 中，利用 `showContextMenu` 状态控制上下文菜单 DOM 重新挂载，解决 Element Plus 下拉组件 Popper 位置缓存导致的右键点击其他位置菜单不移动/无法展开新节点菜单的 Bug；右键点击节点仅弹出菜单且不主动改变当前已选中的文档树节点（避免切换当前查看的接口），并在展开节点右侧 `more-actions` 菜单时自动隐藏关闭右键上下文菜单，防止弹窗菜单重叠；全量通过 ESLint 规范校验。
 - **opt**: [2026-08-03] 修复前端缺失及未匹配的 i18n 资源 Key：
   1. **补全缺失 Key**：补全前端代码中引用但未在 locale 中定义的 6 个 Key：`common.msg.dataNotFound`（'未找到相关数据'）、`common.label.unlimited`（'不限'）、`common.msg.saveFailed`（'保存失败。'）、`common.msg.deleteFailed`（'删除失败。'）、`common.msg.operationFailed`（'操作失败。'）、`common.msg.unknownError`（'未知错误'）；
   2. **对齐中英文语言包**：修复中英文语言包不对称问题，补全 `api.label.corsMode`（中文 '跨域模式'）及 `menu.label.menuManagement`（英文 'Menu Management'），并清理冗余未引用的 `menu.label.menuOperation`；

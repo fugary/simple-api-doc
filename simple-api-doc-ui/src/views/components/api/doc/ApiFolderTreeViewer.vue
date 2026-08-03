@@ -316,9 +316,6 @@ const handleNodeContextMenu = (event, data) => {
   if (!props.editable) {
     return
   }
-  if (data?.treeId) {
-    treeRef.value?.setCurrentKey(data.treeId)
-  }
   showContextMenu.value = false
   contextMenuHandlers.value = getNodeHandlers(data)
   contextMenuPos.x = event.clientX
