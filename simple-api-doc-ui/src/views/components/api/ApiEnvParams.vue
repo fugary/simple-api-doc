@@ -433,6 +433,7 @@ const saveGroupConfig = ({ form }) => {
                               :readonly="rule.matchType === 'api'"
                               clearable
                               style="width: 100%;"
+                              class="match-path-input"
                             >
                               <template
                                 v-if="rule.apiMethod"
@@ -456,7 +457,7 @@ const saveGroupConfig = ({ form }) => {
                                   placement="top"
                                 >
                                   <el-icon
-                                    class="el-input__icon"
+                                    class="el-input__icon match-path-clear-btn"
                                     style="cursor: pointer;"
                                     @click.stop="switchToCustomPath(rule)"
                                   >
@@ -611,6 +612,15 @@ const saveGroupConfig = ({ form }) => {
 </template>
 
 <style scoped>
+.match-path-input :deep(.match-path-clear-btn) {
+  display: none;
+}
+
+.match-path-input:hover :deep(.match-path-clear-btn),
+.match-path-input:focus-within :deep(.match-path-clear-btn) {
+  display: inline-flex;
+}
+
 .rule-count-badge {
   display: inline-flex;
   align-items: center;
