@@ -464,7 +464,10 @@ const saveGroupConfig = ({ form }) => {
                                   </el-icon>
                                 </el-tooltip>
                               </template>
-                              <template #append>
+                              <template
+                                v-if="!isLocalMode"
+                                #append
+                              >
                                 <el-tooltip
                                   effect="dark"
                                   :content="$t('api.label.selectApi')"
@@ -490,6 +493,7 @@ const saveGroupConfig = ({ form }) => {
         </el-tab-pane>
 
         <el-tab-pane
+          v-if="!isLocalMode"
           :label="$t('api.label.loginApiConfig')"
           name="loginApi"
         >
