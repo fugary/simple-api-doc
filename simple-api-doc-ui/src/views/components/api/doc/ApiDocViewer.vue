@@ -187,7 +187,7 @@ const { isSmallContainer, containerRef } = useContainerCheck()
 const handleCopyMarkdown = () => {
   const name = apiDocDetail.value?.docName
   const markdown = apiDocDetail.value?.apiMarkdown || ''
-  const content = name ? `## ${name}\n\n${markdown}` : markdown
+  const content = name ? `# ${name}\n\n${markdown}` : markdown
   $copyText(content)
 }
 </script>

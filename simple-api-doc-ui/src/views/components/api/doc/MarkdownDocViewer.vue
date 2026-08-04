@@ -81,7 +81,7 @@ defineEmits(['updateHistory'])
 const handleCopyMarkdown = () => {
   const name = currentDoc.value?.docName
   const markdown = currentDoc.value?.docContent || ''
-  const content = name ? `## ${name}\n\n${markdown}` : markdown
+  const content = name ? `# ${name}\n\n${markdown}` : markdown
   $copyText(content)
 }
 </script>
