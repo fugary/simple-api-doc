@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   node: {
     type: Object,
     required: true
@@ -29,6 +31,20 @@ defineProps({
     default: true
   }
 })
+
+const leafIconClass = computed(() => {
+  const icon = props.iconLeaf
+  if (icon === 'custom-markdown' || icon === 'Document' || icon === 'md') {
+    return 'md-icon'
+  }
+  if (icon === 'custom-api' || icon === 'api') {
+    return 'api-icon'
+  }
+  if (icon === 'Folder' || icon === 'FolderOpened' || icon?.startsWith('Folder') || props.node?.data?.isDoc === false) {
+    return 'folder-icon'
+  }
+  return 'default-leaf-icon'
+})
 </script>
 
 <template>
@@ -40,19 +56,20 @@ defineProps({
     <template v-if="showIcon">
       <common-icon
         v-if="!node.isLeaf&&node.expanded"
-        class="tree-label-icon"
+        class="tree-label-icon folder-icon"
         :size="iconSize"
         :icon="iconExpand"
       />
       <common-icon
         v-if="!node.isLeaf&&!node.expanded"
-        class="tree-label-icon"
+        class="tree-label-icon folder-icon"
         :size="iconSize"
         :icon="iconClosed"
       />
       <common-icon
         v-if="node.isLeaf"
         class="tree-label-icon"
+        :class="leafIconClass"
         :size="iconSize"
         :icon="iconLeaf"
       />
@@ -97,6 +114,15 @@ defineProps({
   vertical-align: middle;
   margin-right: 4px;
   flex-shrink: 0;
+}
+.tree-label-icon.folder-icon {
+  color: #3b82f6;
+}
+.tree-label-icon.md-icon {
+  color: #8b5cf6;
+}
+.tree-label-icon.api-icon {
+  color: #10b981;
 }
 .tree-label-body {
   display: inline-flex;

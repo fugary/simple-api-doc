@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-08
+- **opt**: [2026-08-04] 代码审查与集中化精简重构：1. 将树形菜单（`.folder-schema-tree`）与单选树弹窗（`.tree-single-select`）的节点选中高亮样式集中收口至 `main.css` 中，移除 `TreeCheckConfig.vue` 中组件级的 `:deep` 样式重复覆盖，减少冗余代码；2. 精简 `TreeIconLabel.vue` 中 icon 类型判断及动态 class 计算属性，保持代码简练可读；3. 确认全量代码符合规范并通过 ESLint 静态检查。
 - **opt**: [2026-08-04] 优化接口调试页面及认证弹窗中“登录接口”与“变量”的下拉菜单交互体验：将 `ApiDocLoginApiDropdown.vue` 和 `ApiEnvPopover.vue` 中的下拉触发方式由 `click` 统一调整为 `hover`，使交互更加平滑优雅；同时优化了 `ApiRequestFormReq.vue` 中“服务端发送/浏览器发送”选择下拉框的宽度限制（由 `150px` 调整为 `115px`），节约屏幕空间并保证中英文双语环境下的正常显示；代码已通过 ESLint 校验。
 - **opt**: [2026-08-04] 优化分享页面“复制 Markdown”按钮的位置显示：在 `ApiDocViewer.vue` 与 `MarkdownDocViewer.vue` 中动态判断，当处于分享页面（`shareDoc` 存在，即没有全局全屏按钮）时，将悬浮复制按钮的 `bottom` 属性自适应调整为 `90px`，自动移动至原来全屏按钮的位置，使整体布局更加紧凑美观。
 - **feat**: [2026-08-04] 为普通 Markdown 类型的文档新增“复制”按钮功能：在 `MarkdownDocViewer.vue` 中添加与接口文档（`ApiDocViewer.vue`）一致的右下角悬浮「复制 Markdown」按钮，复用 `$copyText` 工具，支持提取文档名称作为 H1 标题并拼接 Markdown 内容一键复制到剪贴板，优化了纯 Markdown 文档的导出体验；代码已通过 ESLint 校验。

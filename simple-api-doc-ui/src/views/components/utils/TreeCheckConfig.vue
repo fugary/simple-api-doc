@@ -196,9 +196,3 @@ const filterNode = (keyword, data) => {
     </el-container>
   </el-container>
 </template>
-
-<style scoped>
-:deep(.tree-single-select .el-tree-node.is-current > .el-tree-node__content) {
-  border-left: 3px solid var(--el-color-primary);
-}
-</style>

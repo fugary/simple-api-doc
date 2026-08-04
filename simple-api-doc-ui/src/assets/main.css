@@ -677,8 +677,9 @@ body,
     height: unset;
 }
 
-.folder-schema-tree .el-tree-node.is-current>.el-tree-node__content {
-    border-left: 3px solid var(--el-color-primary);
+.folder-schema-tree .el-tree-node.is-current>.el-tree-node__content,
+.tree-single-select .el-tree-node.is-current>.el-tree-node__content {
+    box-shadow: inset 3px 0 0 var(--el-color-primary);
 }
 
 .doc-schema-tree .el-tree-node__content {
