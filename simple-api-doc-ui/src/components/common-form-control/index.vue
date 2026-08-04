@@ -3,7 +3,7 @@ import { computed, isVNode, ref, watch } from 'vue'
 import { $i18nBundle } from '@/messages'
 import ControlChild from '@/components/common-form-control/control-child.vue'
 import { toLabelByKey, useInputType } from '@/components/utils'
-import { cloneDeep, get, isFunction, set, isArray, isString } from 'lodash-es'
+import { cloneDeep, get, isFunction, set, isArray, isString, isEqual } from 'lodash-es'
 
 import dayjs from 'dayjs'
 
@@ -173,9 +173,14 @@ const rules = computed(() => {
       }, ..._rules]
     }
   }
-  formItemRef.value && formItemRef.value.clearValidate()
   return _rules
 })
+
+watch(rules, (newRules, oldRules) => {
+  if (formItemRef.value && !isEqual(newRules, oldRules)) {
+    formItemRef.value.clearValidate()
+  }
+}, { deep: true })
 
 const initFormModel = () => {
   if (formModel.value) {
