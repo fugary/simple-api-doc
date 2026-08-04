@@ -6,7 +6,7 @@ import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.v
 import { useCopyRight, useContainerCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
-import { $coreHideLoading, $coreShowLoading } from '@/utils'
+import { $copyText, $coreHideLoading, $coreShowLoading } from '@/utils'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
 import { calcSharePreference, useShareDocTheme } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
@@ -77,6 +77,13 @@ const copyRight = useCopyRight(props.shareDoc)
 
 const { isSmallContainer, containerRef } = useContainerCheck()
 defineEmits(['updateHistory'])
+
+const handleCopyMarkdown = () => {
+  const name = currentDoc.value?.docName
+  const markdown = currentDoc.value?.docContent || ''
+  const content = name ? `## ${name}\n\n${markdown}` : markdown
+  $copyText(content)
+}
 </script>
 
 <template>
@@ -121,12 +128,24 @@ defineEmits(['updateHistory'])
         <el-text><copy-right /></el-text>
       </span>
     </el-container>
-    <el-backtop
-      v-common-tooltip="$t('common.label.backtop')"
-      target=".md-editor-preview-wrapper"
-      :right="40"
-      :bottom="40"
-    />
+    <template v-if="currentDoc">
+      <div
+        v-common-tooltip="$t('api.label.copyMarkdown')"
+        class="floating-action-btn copy-md-btn"
+        @click="handleCopyMarkdown"
+      >
+        <common-icon
+          icon="CopyDocument"
+          :size="16"
+        />
+      </div>
+      <el-backtop
+        v-common-tooltip="$t('common.label.backtop')"
+        target=".md-editor-preview-wrapper"
+        :right="40"
+        :bottom="40"
+      />
+    </template>
   </el-container>
 </template>
 
