@@ -39,7 +39,7 @@ const handleOpenLoginApiDebug = (config) => {
 <template>
   <template v-if="showDropdown">
     <el-dropdown
-      trigger="click"
+      trigger="hover"
       :class="linkClass"
       :style="linkStyle"
       @command="handleOpenLoginApiDebug"

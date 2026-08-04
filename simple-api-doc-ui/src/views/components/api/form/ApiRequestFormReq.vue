@@ -217,7 +217,7 @@ const proxyModeOption = computed(() => {
     attrs: {
       clearable: false,
       style: {
-        width: '150px'
+        width: '125px'
       }
     }
   }

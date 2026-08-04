@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-08
+- **opt**: [2026-08-04] 优化接口调试页面及认证弹窗中“登录接口”与“变量”的下拉菜单交互体验：将 `ApiDocLoginApiDropdown.vue` 和 `ApiEnvPopover.vue` 中的下拉触发方式由 `click` 统一调整为 `hover`，使交互更加平滑优雅；同时优化了 `ApiRequestFormReq.vue` 中“服务端发送/浏览器发送”选择下拉框的宽度限制（由 `150px` 调整为 `115px`），节约屏幕空间并保证中英文双语环境下的正常显示；代码已通过 ESLint 校验。
 - **feat**: [2026-08-04] 为普通 Markdown 类型的文档新增“复制”按钮功能：在 `MarkdownDocViewer.vue` 中添加与接口文档（`ApiDocViewer.vue`）一致的右下角悬浮「复制 Markdown」按钮，复用 `$copyText` 工具，支持提取文档名称作为 H1 标题并拼接 Markdown 内容一键复制到剪贴板，优化了纯 Markdown 文档的导出体验；代码已通过 ESLint 校验。
 - **opt**: [2026-08-03] 优化及精简全局环境 URL 同步与调试参数合并代码逻辑：1. 抽取通用的 `NOT_SAVED_KEYS` 与 `mergeSavedParamTarget` 封装工具方法，消除 `ApiDocViewer.vue` 与 `ApiDocPreviewService.js` 中 10 余行重复的参数预处理合并逻辑；2. 精简 `ApiDocAuthorizationWindow.vue` 与 `ApiDocViewer.vue` 中无用的组件属性透传；3. 保证主详情页、接口调试弹窗、登录调试弹窗全链路 `targetUrl` 的响应式联动与数据单例存储；全量通过 ESLint 规范校验。
 - **bug**: [2026-08-03] 修复 API 树形菜单右键弹出上下文菜单后再次右键点击其他节点无反应及无法更新位置的问题：在 `ApiFolderTreeViewer.vue` 的 `handleNodeContextMenu` 中，利用 `showContextMenu` 状态控制上下文菜单 DOM 重新挂载，解决 Element Plus 下拉组件 Popper 位置缓存导致的右键点击其他位置菜单不移动/无法展开新节点菜单的 Bug；右键点击节点仅弹出菜单且不主动改变当前已选中的文档树节点（避免切换当前查看的接口），并在展开节点右侧 `more-actions` 菜单时自动隐藏关闭右键上下文菜单，防止弹窗菜单重叠；全量通过 ESLint 规范校验。

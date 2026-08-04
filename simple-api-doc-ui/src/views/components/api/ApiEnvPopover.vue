@@ -39,7 +39,8 @@ const openEditWindow = () => {
     placement="bottom-end"
     title=""
     :width="450"
-    trigger="click"
+    trigger="hover"
+    transition="el-zoom-in-top"
   >
     <template #reference>
       <el-link
