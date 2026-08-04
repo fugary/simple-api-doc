@@ -132,6 +132,7 @@ const handleCopyMarkdown = () => {
       <div
         v-common-tooltip="$t('api.label.copyMarkdown')"
         class="floating-action-btn copy-md-btn"
+        :style="shareDoc ? { bottom: '90px' } : {}"
         @click="handleCopyMarkdown"
       >
         <common-icon
