@@ -24,6 +24,8 @@ import { $i18nBundle } from '@/messages'
 import { InfoFilled } from '@vicons/material'
 import { isExternalLink } from '@/components/utils'
 import { loadDoc } from '@/api/ApiDocApi'
+import { loadShareDoc } from '@/api/SimpleShareApi'
+import router from '@/route/routes'
 import { ElMessage } from 'element-plus'
 
 export const getHeader = (headers, key) => {
@@ -1207,7 +1209,13 @@ export const mergeSavedParamTarget = (target, lastParamTarget) => {
 export const openLoginApiDebug = (config, currentParamTarget) => {
   if (!config?.apiId) return
   const shareConfigStore = useShareConfigStore()
-  loadDoc(config.apiId).then(data => {
+  const shareId = currentParamTarget?.apiShare?.shareId || router.currentRoute.value?.params?.shareId
+
+  const loadDocPromise = shareId
+    ? loadShareDoc({ shareId, docId: config.apiId })
+    : loadDoc(config.apiId)
+
+  loadDocPromise.then(data => {
     const docDetail = data?.resultData
     if (docDetail) {
       const pId = currentParamTarget?.projectId || currentParamTarget?.preferenceId

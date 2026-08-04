@@ -15,6 +15,8 @@
   3. **前端零修改**：前端代码恢复 100% 原始状态，无需任何前端改动，按原逻辑解析 `groupConfig.loginApiConfigs` 即可得到已授权的登录接口；
   4. 全量通过 Maven `test-compile` 构建校验。
 
+- **opt**: [2026-08-04] 深度审查并精简前后端分享配置合并与过滤代码逻辑，消除不必要的重复修改：1. 针对前端 `SimpleShareApi.js` 中复杂的 `mergeEnvConfigs` 逻辑，因后端 `SimpleShareController.java` 已利用 `SimpleModelUtils.filterShareProject` 统一完成了环境配置（envContent）与登录接口（loginApiConfigs）的安全过滤，前端无需进行二次循环交叉比对，将其大幅度简化，直接信任后端已过滤数据，彻底消除前后端逻辑重叠与冗余代码；2. 审查 `ApiDocPreviewService.js` 中 `paramTarget` 数据对象的构建逻辑，确保它始终保持轻量化，绝不引入 `apiShare` 等全量分享配置大对象，保障内存安全与交互流畅；3. 后端集中处理 JSON 解析转换（如 `filterShareEnvContent`），所有核心分享鉴权及敏感数据截断统一收口于 Controller 输出前，使架构更加清晰优雅；通过前端 ESLint 与后端 `test-compile` 全量检验。
+
 ### 2026-07
 - **opt**: [2026-07-31] 深度代码审查与 Vue 组件级重构优化：1. 在 `ApiEnvParams.vue` 中发现并抽取高度重复的 `<TreeConfigWindow>` 树形弹窗 DOM 结构，将其统一收口为单一弹窗实例，通过 `treeConfigContext` 状态与动态 `:single-select`、`:title` 属性动态复用于“登录接口选择”与“提取规则接口选择”两大场景，成功移除近 40 行重复冗余的 template 代码；2. 将重复的 `groupConfig` JSON 反序列化逻辑抽象提取为独立的 `parseGroupConfig` 工具函数，减少业务逻辑中的心智负担与重复代码，大幅提升代码优雅度、可读性与可维护性；3. 通过 ESLint 静态代码检查。
 - **opt**: [2026-07-31] 优化全局变量提取规则表单校验根因修复、一键清空与树选择同步：1. 彻底解决保存报错阻断（最终根因修复）：定位到 Element Plus `el-table` 在渲染布局与列宽度计算时，会使用空对象 `{}` 渲染虚拟测量行，调用 `item.extractRules.indexOf({})` 必然返回 `-1`，导致 `<el-form-item>` 误将 `envParams.0.extractRules.-1.apiPath` 注册进 `el-form` 校验表并触发 `fieldValue: undefined` 报错阻断保存；通过在 `matchPathSlot` 的 `<el-form-item>` 上添加 `v-if="item.extractRules && item.extractRules.indexOf(rule) !== -1"` 条件过滤，确保仅真实数据行渲染校验项，彻底根除了该问题；2. 解决清空需要点击两次的问题：在 `switchToCustomPath` 清空逻辑中同步重置 `rule.apiPath = ''`，实现一键同时清空已绑定接口与路径文本；3. 解决清空后重新打开选择树残留高亮节点问题：在 `TreeCheckConfig.vue` 中为 `selectedKeys` 添加深度 `watch` 监听，当绑定的已选 Array 为空时自动触发 `treeRef.value.setCurrentKey(null)`，保证弹窗高亮状态与底层绑定数据 100% 同步；4. 通过全量 ESLint 规范校验。

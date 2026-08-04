@@ -125,8 +125,8 @@ public class SimpleShareController {
                 .removeAuditFields(false)
                 .docIds(shareDocIds)
                 .includeDocs(true).build());
-        if (projectVo != null && CollectionUtils.isNotEmpty(shareDocIds)) {
-            projectVo.setGroupConfig(SimpleModelUtils.filterGroupConfigLoginApis(projectVo.getGroupConfig(), shareDocIds));
+        if (projectVo != null) {
+            SimpleModelUtils.filterShareProject(projectVo, apiShare);
         }
         return SimpleResultUtils.createSimpleResult(projectVo);
     }
@@ -196,9 +196,9 @@ public class SimpleShareController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
         }
         ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
-        if (apiProject != null && CollectionUtils.isNotEmpty(docIds)) {
+        if (apiProject != null) {
             apiProject = SimpleModelUtils.copy(apiProject, new ApiProject());
-            apiProject.setGroupConfig(SimpleModelUtils.filterGroupConfigLoginApis(apiProject.getGroupConfig(), docIds));
+            SimpleModelUtils.filterShareProject(apiProject, apiShare);
         }
         ApiProjectInfoDetailVo apiInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiDocVo);
         apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());

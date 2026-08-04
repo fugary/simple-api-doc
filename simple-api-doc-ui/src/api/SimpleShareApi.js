@@ -22,18 +22,8 @@ export const getShareConfig = (shareId) => {
  * @returns {any|*[]}
  */
 export const getEnvConfigs = (apiDocDetail) => {
-  const apiShare = apiDocDetail?.apiShare
   const project = apiDocDetail?.project || apiDocDetail?.projectInfoDetail
-  return mergeEnvConfigs(apiShare?.envContent, project?.envContent)
-}
-
-export const mergeEnvConfigs = (envContent, projectEnvContent) => {
-  const projectConfigs = calcEnvConfigs(projectEnvContent)
-  if (envContent) {
-    const sharedUrls = calcEnvConfigs(envContent).map(item => item.url)
-    return projectConfigs.filter(item => sharedUrls.includes(item.url))
-  }
-  return projectConfigs
+  return calcEnvConfigs(project?.envContent)
 }
 
 export const calcEnvConfigs = envContent => {

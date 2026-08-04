@@ -634,4 +634,58 @@ public class SimpleModelUtils {
         }
         return groupConfig;
     }
+
+    /**
+     * 根据分享配置过滤项目属性（包含登录接口和环境配置）
+     *
+     * @param project
+     * @param apiShare
+     */
+    public static void filterShareProject(ApiProject project, ApiProjectShare apiShare) {
+        if (project == null || apiShare == null) {
+            return;
+        }
+        Set<Integer> shareDocIds = getShareDocIds(apiShare.getShareDocs());
+        if (CollectionUtils.isNotEmpty(shareDocIds)) {
+            project.setGroupConfig(filterGroupConfigLoginApis(project.getGroupConfig(), shareDocIds));
+        }
+        if (StringUtils.isNotBlank(apiShare.getEnvContent())) {
+            project.setEnvContent(filterShareEnvContent(apiShare.getEnvContent(), project.getEnvContent()));
+        }
+    }
+
+    /**
+     * 过滤envContent（仅保留在shareEnvContent中存在的URL）
+     *
+     * @param shareEnvContent
+     * @param projectEnvContent
+     * @return
+     */
+    public static String filterShareEnvContent(String shareEnvContent, String projectEnvContent) {
+        if (StringUtils.isBlank(shareEnvContent) || StringUtils.isBlank(projectEnvContent)) {
+            return projectEnvContent;
+        }
+        try {
+            JsonNode shareNode = JsonUtils.getMapper().readTree(shareEnvContent);
+            JsonNode projectNode = JsonUtils.getMapper().readTree(projectEnvContent);
+            if (shareNode.isArray() && projectNode.isArray()) {
+                Set<String> sharedUrls = new HashSet<>();
+                for (JsonNode item : shareNode) {
+                    if (item.has("url")) {
+                        sharedUrls.add(item.get("url").asText());
+                    }
+                }
+                ArrayNode filteredArray = JsonUtils.getMapper().createArrayNode();
+                for (JsonNode item : projectNode) {
+                    if (item.has("url") && sharedUrls.contains(item.get("url").asText())) {
+                        filteredArray.add(item);
+                    }
+                }
+                return JsonUtils.toJson(filteredArray);
+            }
+        } catch (Exception e) {
+            log.error("过滤envContent解析错误", e);
+        }
+        return projectEnvContent;
+    }
 }
