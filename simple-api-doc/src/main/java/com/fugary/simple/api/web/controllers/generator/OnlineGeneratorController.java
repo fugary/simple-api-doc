@@ -136,6 +136,10 @@ public class OnlineGeneratorController {
         Files.write(tempSpecFile, specContent.getBytes(StandardCharsets.UTF_8));
         DefaultGenerator generator = new DefaultGenerator();
         CodegenConfigurator configurator = new CodegenConfigurator();
+        configurator.setValidateSpec(false);
+        configurator.addGlobalProperty(CodegenConstants.API_DOCS, "false");
+        configurator.addGlobalProperty(CodegenConstants.MODEL_DOCS, "false");
+        configurator.addGlobalProperty(CodegenConstants.MODEL_TESTS, "false");
         configurator.setInputSpec(tempSpecFile.toAbsolutePath().toString());
         configurator.setGeneratorName(language);
         configurator.setOutputDir(tempDir.toAbsolutePath().toString());
