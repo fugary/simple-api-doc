@@ -10,7 +10,6 @@
 * **${message('api.label.requestPath')}：** `${apiDocDetail.url}`
 
 <#if apiDocDetail.docContent?? || apiDocDetail.description??>
-### ${message('api.label.apiDescription')}
 
 <#if apiDocDetail.docContent??>
 ${apiDocDetail.docContent}

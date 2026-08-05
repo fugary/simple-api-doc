@@ -39,10 +39,10 @@ ${apiDoc.apiMarkdown!""}
 </#if>
 
 <#if schemasMap?? && (schemasMap?size > 0)>
-## ${message('api.label.apiModel')}
+# ${message('api.label.apiModel')}
 
 <#list schemasMap as name, schema>
-### ${name}
+## ${name}
 <#if utils.isNotBlank(utils.getSchemaDescription(schema))>
 ${utils.getSchemaDescription(schema)}
 </#if>

@@ -121,6 +121,9 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         if (context.isGenerateComponents()) {
             Map<String, Schema<?>> sortedSchemasMap = sortSchemasMap(schemasMap, requestSchemas, responseSchemas);
             model.put("schemasMap", sortedSchemasMap);
+        } else if (context.getDirectSchemaNames() != null) {
+            context.getDirectSchemaNames().addAll(collectDirectSchemaNames(requestSchemas));
+            context.getDirectSchemaNames().addAll(collectDirectSchemaNames(responseSchemas));
         }
         try {
             // 加载模板
@@ -141,42 +144,38 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
      * @param responseSchemas
      * @return
      */
-    protected Map<String, Schema<?>> sortSchemasMap(Map<String, Schema<?>> schemasMap,
-                                                    List<FmApiDocSchema> requestSchemas,
-                                                    List<FmApiDocSchema> responseSchemas) {
+    @Override
+    public Map<String, Schema<?>> sortSchemasMap(Map<String, Schema<?>> schemasMap, List<String> directSchemaNames) {
         if (schemasMap == null || schemasMap.isEmpty()) {
             return schemasMap;
         }
 
-        Set<String> directRequestNames = collectDirectSchemaNames(requestSchemas);
-        Set<String> directResponseNames = collectDirectSchemaNames(responseSchemas);
-
         Set<String> nestedNames = new LinkedHashSet<>();
-        Set<String> visited = new HashSet<>();
-        visited.addAll(directRequestNames);
-        visited.addAll(directResponseNames);
-
-        // 使用单独的 startNames 进行遍历，避免在循环体内修改 visited 触发 ConcurrentModificationException
-        List<String> startNames = new ArrayList<>(visited);
-        for (String name : startNames) {
-            if (schemasMap.containsKey(name)) {
-                traverseNestedSchema(schemasMap.get(name), schemasMap, nestedNames, visited);
+        Set<String> visited = new LinkedHashSet<>();
+        if (directSchemaNames != null) {
+            visited.addAll(directSchemaNames);
+            for (String name : directSchemaNames) {
+                if (schemasMap.containsKey(name)) {
+                    traverseNestedSchema(schemasMap.get(name), schemasMap, nestedNames, visited);
+                }
             }
         }
 
         Map<String, Schema<?>> sortedMap = new LinkedHashMap<>();
 
-        // 按四层优先级顺序充填 sortedMap：1.请求主模型 2.响应主模型 3.嵌套关联模型
-        List<Set<String>> priorityGroups = Arrays.asList(directRequestNames, directResponseNames, nestedNames);
-        for (Set<String> group : priorityGroups) {
-            for (String name : group) {
+        if (directSchemaNames != null) {
+            for (String name : directSchemaNames) {
                 if (schemasMap.containsKey(name) && !sortedMap.containsKey(name)) {
                     sortedMap.put(name, schemasMap.get(name));
                 }
             }
         }
+        for (String name : nestedNames) {
+            if (schemasMap.containsKey(name) && !sortedMap.containsKey(name)) {
+                sortedMap.put(name, schemasMap.get(name));
+            }
+        }
 
-        // 4.项目其余未引用的通用模型
         for (Map.Entry<String, Schema<?>> entry : schemasMap.entrySet()) {
             if (!sortedMap.containsKey(entry.getKey())) {
                 sortedMap.put(entry.getKey(), entry.getValue());
@@ -184,6 +183,23 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         }
 
         return sortedMap;
+    }
+
+    /**
+     * 智能重排 schemasMap，使请求主模型、响应主模型优先排在最前，其次为关联嵌套模型
+     *
+     * @param schemasMap
+     * @param requestSchemas
+     * @param responseSchemas
+     * @return
+     */
+    protected Map<String, Schema<?>> sortSchemasMap(Map<String, Schema<?>> schemasMap,
+                                                    List<FmApiDocSchema> requestSchemas,
+                                                    List<FmApiDocSchema> responseSchemas) {
+        List<String> directSchemaNames = new ArrayList<>();
+        directSchemaNames.addAll(collectDirectSchemaNames(requestSchemas));
+        directSchemaNames.addAll(collectDirectSchemaNames(responseSchemas));
+        return sortSchemasMap(schemasMap, directSchemaNames);
     }
 
     protected Set<String> collectDirectSchemaNames(List<FmApiDocSchema> docSchemas) {

@@ -113,6 +113,9 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
                 apiDocDetail.setApiMarkdown(apiMarkdown);
             }
         }
+        // 排序 schemasMap
+        schemasMap = apiDocViewGenerator.sortSchemasMap(schemasMap, context.getDirectSchemaNames());
+
         // 设置数据
         Map<String, Object> model = new HashMap<>();
         model.put("apiProject", detailVo);
