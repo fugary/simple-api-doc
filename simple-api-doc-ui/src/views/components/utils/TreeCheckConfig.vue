@@ -67,19 +67,11 @@ const getTreeKeys = (nodes, keys = []) => {
  * @type {ComputedRef<*[]>}
  */
 const checkedKeys = computed(() => {
-  let checkIds = []
-  if (treeRef.value && selectedKeys.value?.length) {
-    checkIds = selectedKeys.value.filter(key => {
-      const node = treeRef.value?.getNode(key)
-      return node && node.isLeaf
-    })
-    if (props.singleSelect) {
-      treeRef.value?.setCurrentKey(selectedKeys.value[0])
-    }
-  } else if (treeRef.value && props.singleSelect) {
-    treeRef.value?.setCurrentKey(null)
-  }
-  return checkIds
+  if (!treeRef.value || !selectedKeys.value?.length) return []
+  return selectedKeys.value.filter(key => {
+    const node = treeRef.value?.getNode(key)
+    return node && node.isLeaf
+  })
 })
 
 const selectedKeysSet = computed(() => {
@@ -123,13 +115,22 @@ const selectedStats = computed(() => {
   }
 })
 
+let isInternalChange = false
+
 watch(() => selectedKeys.value, (val) => {
-  nextTick(() => {
-    if (props.singleSelect && treeRef.value) {
-      const activeKey = val && val.length ? val[0] : null
-      treeRef.value.setCurrentKey(activeKey)
-    }
-  })
+  if (!isInternalChange) {
+    nextTick(() => {
+      if (treeRef.value) {
+        if (props.singleSelect) {
+          treeRef.value.setCurrentKey(val?.length ? val[0] : null)
+        } else {
+          treeRef.value.setCheckedKeys(checkedKeys.value)
+        }
+      }
+    })
+  }
+  isInternalChange = false
+
   if (onlySelected.value) {
     treeRef.value?.filter(filterModel.value.keyword)
   }
@@ -169,6 +170,7 @@ const nodeClick = (data, node) => {
 
 const checkChange = debounce(() => {
   if (!props.singleSelect) {
+    isInternalChange = true
     selectedKeys.value = [...treeRef.value?.getHalfCheckedKeys() || [], ...treeRef.value?.getCheckedKeys() || []]
   }
 }, 200)
@@ -260,7 +262,6 @@ const filterNode = (value, data) => {
       </div>
     </el-header>
     <el-container
-      class="padding-left3"
       style="overflow: auto;"
     >
       <el-scrollbar class="form-edit-width-100 flex-column">
