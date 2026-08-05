@@ -4,7 +4,8 @@ import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import lombok.Data;
 
 import java.io.Serializable;
-
+import java.util.Map;
+import io.swagger.v3.oas.models.media.Schema;
 @Data
 public class MdViewContext implements Serializable {
 
@@ -17,4 +18,5 @@ public class MdViewContext implements Serializable {
 
     private ApiDocDetailVo apiDocDetail;
     private boolean generateComponents = true;
+    private Map<String, Schema<?>> schemasMap;
 }

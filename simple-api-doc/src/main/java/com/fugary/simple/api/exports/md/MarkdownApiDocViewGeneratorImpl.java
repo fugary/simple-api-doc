@@ -57,7 +57,11 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         SpecVersion specVersion = SpecVersion.valueOf(apiDocDetail.getProjectInfoDetail().getSpecVersion());
         // 处理 schemasMap，传递给模板
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
-        SimpleModelUtils.processComponents(apiDocDetail, specVersion, schemasMap);
+        if (context.getSchemasMap() != null) {
+            schemasMap.putAll(context.getSchemasMap());
+        } else {
+            SimpleModelUtils.processComponents(apiDocDetail, specVersion, schemasMap);
+        }
         ApiProjectInfoDetail parametersSchema = apiDocDetail.getParametersSchema();
         if (parametersSchema != null && StringUtils.isNotBlank(parametersSchema.getSchemaContent())) {
             List<Parameter> parameters = SchemaJsonUtils.fromJson(parametersSchema.getSchemaContent(), new TypeReference<>() {

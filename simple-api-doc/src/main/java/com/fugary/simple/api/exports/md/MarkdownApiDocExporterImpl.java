@@ -93,6 +93,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         context.setGenerateComponents(false);
         SpecVersion specVersion = projectInfoDetailVo != null ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V31;
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
+        context.setSchemasMap(schemasMap);
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
                 context.setApiDocDetail(apiDocDetail);
