@@ -25,4 +25,6 @@ public class ApiDocDetailVo extends ApiDoc {
     private ApiProjectInfoDetailVo projectInfoDetail;
     private ApiProjectShareVo apiShare;
     private String apiMarkdown;
+    private String folderPath;
+    private String topLevelFolder;
 }

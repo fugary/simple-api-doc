@@ -94,7 +94,16 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         SpecVersion specVersion = projectInfoDetailVo != null ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V31;
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
         context.setSchemasMap(schemasMap);
+        // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
+        docDetailList.sort(Comparator.comparing(d -> getSortKey(folderMap.get(d.getFolderId()), folderMap) + "-0-" + String.format("%06d_%d", d.getSortId() == null ? 0 : d.getSortId(), d.getId())));
+
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
+            List<String> folderNames = getFolderNames(apiDocDetail.getFolderId(), folderMap);
+            String folderPath = String.join("/", folderNames);
+            String topLevelFolder = folderNames.isEmpty() ? "" : folderNames.get(0);
+            
+            apiDocDetail.setFolderPath(folderPath);
+            apiDocDetail.setTopLevelFolder(topLevelFolder);
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
                 context.setApiDocDetail(apiDocDetail);
                 apiDocDetail.setProject(detailVo);
@@ -109,7 +118,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         model.put("apiProject", detailVo);
         model.put("schemasMap", schemasMap);
         model.put("apiDocs", docDetailList);
-        model.put("apiVersion", StringUtils.defaultIfBlank(detailVo.getApiVersion(), projectInfoDetailVo.getVersion()));
+        model.put("apiVersion", StringUtils.defaultIfBlank(detailVo.getApiVersion(), projectInfoDetailVo != null ? projectInfoDetailVo.getVersion() : null));
         if (StringUtils.isNotBlank(detailVo.getEnvContent())) {
             List<ExportEnvConfigVo> envList = ApiDocParseUtils.getFilteredEnvConfigs(detailVo.getEnvContent(), exportFilter.getEnvContent());
             model.put("envList", envList);
@@ -123,6 +132,30 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
             log.error("模板渲染失败", e);
             throw new RuntimeException(e);
         }
+    }
+
+    private String getSortKey(ApiFolder folder, Map<Integer, ApiFolder> folderMap) {
+        if (folder == null) {
+            return "";
+        }
+        String parentKey = "";
+        if (folder.getParentId() != null) {
+            parentKey = getSortKey(folderMap.get(folder.getParentId()), folderMap) + "-1-";
+        }
+        return parentKey + String.format("%06d_%d", folder.getSortId() == null ? 0 : folder.getSortId(), folder.getId());
+    }
+
+    private List<String> getFolderNames(Integer folderId, Map<Integer, ApiFolder> folderMap) {
+        if (folderId == null) {
+            return Collections.emptyList();
+        }
+        ApiFolder folder = folderMap.get(folderId);
+        if (folder == null || Boolean.TRUE.equals(folder.getRootFlag())) {
+            return Collections.emptyList();
+        }
+        List<String> path = new ArrayList<>(getFolderNames(folder.getParentId(), folderMap));
+        path.add(folder.getFolderName());
+        return path;
     }
 
 }

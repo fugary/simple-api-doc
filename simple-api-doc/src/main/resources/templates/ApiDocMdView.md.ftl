@@ -1,5 +1,8 @@
 ### ${message('api.label.basicInfo')}
 
+<#if apiDocDetail.folderPath?? && apiDocDetail.folderPath?contains('/')>
+* **${message('api.label.folderPath')}**: ${apiDocDetail.folderPath}
+</#if>
 <#if apiDocDetail.docName??>
 * **${message('api.label.apiName')}：** ${apiDocDetail.docName}
 </#if>

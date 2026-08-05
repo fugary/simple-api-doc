@@ -3,6 +3,9 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发历程、功能迭代及维护记录。
 
 ### 2026-08
+- **feat**: [2026-08-05] 优化 Markdown 文档导出：将接口所在的文件夹层级（如 a/b/c，不包含根目录）合并作为 Markdown 的标题输出，并将相关接口分至各文件夹标题下，方便用户导航与浏览。
+- **opt**: [2026-08-05] 优化接口导出文档信息：如果接口处于多级文件夹中，将所属文件夹信息移入“接口信息”区域展示，去除单独占行显示，若只有一级文件夹则直接不显示，使排版更紧凑。
+- **feat**: [2026-08-05] 开放分享页面的 Markdown 导出功能：在 `ApiFolderService.js` 中移除对 `shareDoc` 的限制，使得文档分享页面也能支持 Markdown 格式的整体或单篇接口文档导出。
 - **bug**: [2026-08-05] 修复导出 Markdown 文档时由于 schema 为 null 导致 java.lang.NullPointerException 的问题：在 `MarkdownApiDocViewGeneratorImpl.java` 中增加对 `newSchema.getSchema()` 的空指针判断，防止由于 schema 未定义导致文档导出失败。
 - **feat**: [2026-08-05] 优化左侧树形菜单及顶部菜单图标样式：为 `ApiFolderTreeViewer.vue` 中的各个上下文菜单（新增、编辑、导出、生成代码等）及设置菜单的图标增加了动态主题色（`iconColor`），使界面图标更加生动且具有区分度；同时完善了基础组件 `MoreActionsLink.vue`，支持透传 `iconColor` 属性，通过了全面的 ESLint 静态代码检查。
 - **opt**: [2026-08-04] 代码审查与集中化精简重构：1. 将树形菜单（`.folder-schema-tree`）与单选树弹窗（`.tree-single-select`）的节点选中高亮样式集中收口至 `main.css` 中，移除 `TreeCheckConfig.vue` 中组件级的 `:deep` 样式重复覆盖，减少冗余代码；2. 精简 `TreeIconLabel.vue` 中 icon 类型判断及动态 class 计算属性，保持代码简练可读；3. 确认全量代码符合规范并通过 ESLint 静态检查。

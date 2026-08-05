@@ -19,15 +19,21 @@ ${env.name!''}: ${env.url!''}
 </#if>
 
 <#if apiDocs?? && (apiDocs?size > 0)>
-# ${message('api.label.docDetails')}
-
+<#assign currentFolder = "">
 <#list apiDocs as apiDoc>
+<#if apiDoc.topLevelFolder != currentFolder>
+<#assign currentFolder = apiDoc.topLevelFolder>
+<#if utils.isNotBlank(currentFolder)>
+
+# ${currentFolder}
+</#if>
+</#if>
+
 ## ${apiDoc.docName}
 <#if apiDoc.docType=='md'>
-${apiDoc.docContent}
-</#if>
-<#if apiDoc.docType=='api'>
-${apiDoc.apiMarkdown}
+${apiDoc.docContent!""}
+<#elseif apiDoc.docType=='api'>
+${apiDoc.apiMarkdown!""}
 </#if>
 </#list>
 </#if>
