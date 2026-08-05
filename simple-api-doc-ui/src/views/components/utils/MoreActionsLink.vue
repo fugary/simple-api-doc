@@ -54,6 +54,7 @@ defineEmits(['enterDropdown', 'leaveDropdown', 'showDropdown'])
           >
             <common-icon
               :icon="handler.icon"
+              :color="handler.iconColor"
             />
             {{ handler.label || $t(handler.labelKey) }}
           </el-link>

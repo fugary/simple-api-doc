@@ -31,6 +31,7 @@ export const calcShowDocLabelHandler = (folder, preference) => {
   return {
     enabled: !!folder.rootFlag,
     icon: preference.defaultShowLabel === 'docName' ? 'Link' : 'TextSnippetOutlined',
+    iconColor: 'var(--el-color-primary)',
     labelKey: preference.defaultShowLabel === 'docName' ? 'api.label.docLabelShowUrl' : 'api.label.docLabelShowName',
     handler: () => {
       preference.defaultShowLabel = preference.defaultShowLabel === 'url' ? 'docName' : 'url'
@@ -42,6 +43,7 @@ export const calcShowMergeAllOfHandler = (folder, preference) => {
   return {
     enabled: !!folder.rootFlag,
     icon: preference.showMergeAllOf ? 'CallSplitFilled' : 'MergeFilled',
+    iconColor: 'var(--el-color-primary)',
     labelKey: preference.showMergeAllOf ? 'api.label.unMergeAllOf' : 'api.label.mergeAllOf',
     handler: () => {
       preference.showMergeAllOf = !preference.showMergeAllOf
@@ -53,6 +55,7 @@ export const calcDebugInWindowHandler = (folder, preference) => {
   return {
     enabled: !!folder.rootFlag,
     icon: preference.debugInWindow ? 'VerticalSplitFilled' : 'DesktopWindowsFilled',
+    iconColor: 'var(--el-color-primary)',
     labelKey: preference.debugInWindow ? 'api.label.debugInFitScreen' : 'api.label.debugInModalWindow',
     handler: () => {
       preference.debugInWindow = !preference.debugInWindow
@@ -102,8 +105,14 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
       supportedTypes.push('md')
     }
     const results = supportedTypes.map(type => {
+      const typeColors = {
+        json: 'var(--el-color-warning)',
+        yaml: 'var(--el-color-success)',
+        md: '#8b5cf6'
+      }
       return {
         icon: `custom-icon-${type}`,
+        iconColor: typeColors[type],
         label: $i18nKey('common.label.commonExport', `common.label.${type}`),
         enabled: config.hasApiDoc?.value || type === 'md',
         handler: () => {
@@ -130,6 +139,7 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
     })
     results.push({
       icon: 'custom-icon-zip',
+      iconColor: 'var(--el-color-primary)',
       label: $i18nBundle('api.label.generateClientCode'),
       enabled: config.hasApiDoc?.value,
       handler: () => {
@@ -154,6 +164,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
   const statusLabel = folder.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
   return [{
     icon: 'FolderAdd',
+    iconColor: 'var(--el-color-primary)',
     label: $i18nKey('common.label.commonAdd', 'api.label.subFolder'),
     handler: () => {
       handlerData.addOrEditFolder(null, folder)
@@ -161,6 +172,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
   }, {
     enabled: !folder.rootFlag,
     icon: 'Edit',
+    iconColor: 'var(--el-color-primary)',
     label: $i18nKey('common.label.commonEdit', 'api.label.folder'),
     handler: () => {
       console.log('==============================folder', folder)
@@ -169,6 +181,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
   }, {
     enabled: !folder.rootFlag,
     icon: folder.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
+    iconColor: folder.status === 1 ? '' : 'var(--el-color-success)',
     type: folder.status === 1 ? 'warning' : '',
     label: $i18nKey(statusLabel, 'api.label.folder'),
     handler: () => {
@@ -179,6 +192,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
     }
   }, {
     icon: 'custom-markdown',
+    iconColor: '#8b5cf6',
     label: $i18nKey('common.label.commonAdd', 'api.label.mdDocument'),
     handler: () => {
       handlerData.showDocDetails({
@@ -192,6 +206,7 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
     }
   }, {
     icon: 'custom-api',
+    iconColor: '#10b981',
     label: $i18nKey('common.label.commonAdd', 'api.label.interfaces'),
     handler: () => {
       handlerData.showDocDetails({
@@ -244,12 +259,14 @@ export const getDocHandlers = (doc, preference, handlerData) => {
   const lockedLabel = $i18nBundle(doc.locked ? 'api.label.apiDocUnlock' : 'api.label.apiDocLock')
   return [{
     icon: 'Edit',
+    iconColor: 'var(--el-color-primary)',
     label: $i18nBundle('common.label.commonEdit', [label]),
     handler: () => {
       handlerData.showDocDetails(doc, true)
     }
   }, {
     icon: 'DocumentCopy',
+    iconColor: 'var(--el-color-primary)',
     label: $i18nBundle('common.label.commonCopy', [label]),
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle('common.label.commonCopy', [label])]))
@@ -263,6 +280,7 @@ export const getDocHandlers = (doc, preference, handlerData) => {
     }
   }, {
     icon: doc.locked ? 'LockOpenFilled' : 'LockFilled',
+    iconColor: doc.locked ? 'var(--el-color-success)' : 'var(--el-color-warning)',
     label: lockedLabel,
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [lockedLabel]))
@@ -271,6 +289,7 @@ export const getDocHandlers = (doc, preference, handlerData) => {
     }
   }, {
     icon: doc.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
+    iconColor: doc.status === 1 ? '' : 'var(--el-color-success)',
     type: doc.status === 1 ? 'warning' : '',
     label: $i18nBundle(statusLabel, [label]),
     handler: () => {

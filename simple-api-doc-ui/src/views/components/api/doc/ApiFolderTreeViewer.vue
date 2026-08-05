@@ -574,7 +574,10 @@ defineExpose(handlerData)
                 underline="never"
                 :type="handler.type || 'default'"
               >
-                <common-icon :icon="handler.icon" />
+                <common-icon
+                  :icon="handler.icon"
+                  :color="handler.iconColor"
+                />
                 {{ handler.label || $t(handler.labelKey) }}
               </el-link>
             </el-dropdown-item>
