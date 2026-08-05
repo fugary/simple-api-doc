@@ -35,6 +35,8 @@ const selectedKeys = defineModel('selectedKeys', {
   default: () => []
 })
 const treeRef = ref(null)
+const onlySelected = ref(false)
+
 const selectOrClearAll = (select) => {
   if (treeRef.value) {
     let treeKeys = []
@@ -80,6 +82,47 @@ const checkedKeys = computed(() => {
   return checkIds
 })
 
+const selectedKeysSet = computed(() => {
+  return new Set(selectedKeys.value || [])
+})
+
+const selectedStats = computed(() => {
+  let totalLeaf = 0
+  let totalSelected = 0
+  let apiSelected = 0
+  let mdSelected = 0
+
+  const set = selectedKeysSet.value
+
+  const traverse = (nodes) => {
+    if (!nodes || !nodes.length) return
+    nodes.forEach(node => {
+      const isLeaf = !node.children || node.children.length === 0
+      if (isLeaf) {
+        totalLeaf++
+        const isApi = node.docType === 'api'
+        const isMd = node.docType === 'md'
+
+        if (set.has(node[props.nodeKey])) {
+          totalSelected++
+          if (isApi) apiSelected++
+          if (isMd) mdSelected++
+        }
+      } else if (node.children) {
+        traverse(node.children)
+      }
+    })
+  }
+
+  traverse(props.treeNodes)
+  return {
+    totalLeaf,
+    totalSelected,
+    apiSelected,
+    mdSelected
+  }
+})
+
 watch(() => selectedKeys.value, (val) => {
   nextTick(() => {
     if (props.singleSelect && treeRef.value) {
@@ -87,6 +130,9 @@ watch(() => selectedKeys.value, (val) => {
       treeRef.value.setCurrentKey(activeKey)
     }
   })
+  if (onlySelected.value) {
+    treeRef.value?.filter(filterModel.value.keyword)
+  }
 }, { immediate: true, deep: true })
 
 const filterModel = ref({})
@@ -103,11 +149,14 @@ const filterOption = computed(() => {
       }
     },
     style: {
-      flexGrow: 1,
-      marginTop: '-10px'
+      flexGrow: 1
     }
   }
 })
+
+const handleOnlySelectedChange = () => {
+  treeRef.value?.filter(filterModel.value.keyword)
+}
 
 const nodeClick = (data, node) => {
   if (props.singleSelect && data?.isDoc) {
@@ -124,9 +173,13 @@ const checkChange = debounce(() => {
   }
 }, 200)
 
-const filterNode = (keyword, data) => {
-  if (!keyword) return true
-  keyword = keyword.toLowerCase().trim()
+const filterNode = (value, data) => {
+  const isLeaf = !data.children || data.children.length === 0
+  if (onlySelected.value && (!isLeaf || !selectedKeysSet.value.has(data[props.nodeKey]))) {
+    return false
+  }
+
+  const keyword = (value || '').toLowerCase().trim()
   if (!keyword) return true
   if (data._searchText) {
     return data._searchText.includes(keyword)
@@ -146,22 +199,65 @@ const filterNode = (keyword, data) => {
     class="flex-column"
     :style="{ height: treeHeight, maxHeight: 'calc(85vh - 160px)' }"
   >
-    <el-header style="display: flex;">
-      <el-button
+    <el-header class="tree-check-header">
+      <div class="tree-check-row-top">
+        <div class="tree-check-actions">
+          <el-button
+            v-if="!singleSelect"
+            type="primary"
+            @click="selectOrClearAll(true)"
+          >
+            {{ $t('common.label.selectAll') }}
+          </el-button>
+          <el-button @click="selectOrClearAll(false)">
+            {{ $t('common.label.clear') }}
+          </el-button>
+        </div>
+        <common-form-control
+          v-if="showFilter"
+          :option="filterOption"
+          :model="filterModel"
+        />
+      </div>
+      <div
         v-if="!singleSelect"
-        type="primary"
-        @click="selectOrClearAll(true)"
+        class="tree-check-row-bottom"
       >
-        {{ $t('common.label.selectAll') }}
-      </el-button>
-      <el-button @click="selectOrClearAll(false)">
-        {{ $t('common.label.clear') }}
-      </el-button>
-      <common-form-control
-        v-if="showFilter"
-        :option="filterOption"
-        :model="filterModel"
-      />
+        <div class="tree-check-filter-group">
+          <el-checkbox
+            v-model="onlySelected"
+            @change="handleOnlySelectedChange"
+          >
+            {{ $t('common.label.onlySelected') }}
+          </el-checkbox>
+        </div>
+        <div class="tree-check-stats-group">
+          <template v-if="selectedStats.apiSelected > 0 || selectedStats.mdSelected > 0">
+            <el-tag
+              v-if="selectedStats.apiSelected > 0"
+              size="small"
+              type="success"
+              effect="plain"
+              class="stats-tag"
+            >
+              {{ $t('common.label.apiCount', [selectedStats.apiSelected]) }}
+            </el-tag>
+            <el-tag
+              v-if="selectedStats.mdSelected > 0"
+              size="small"
+              type="warning"
+              effect="plain"
+              class="stats-tag"
+            >
+              {{ $t('common.label.docCount', [selectedStats.mdSelected]) }}
+            </el-tag>
+            <span class="stats-divider">|</span>
+          </template>
+          <span class="stats-label">
+            {{ selectedStats.totalLeaf > 0 ? $t('common.label.selectedCount', [selectedStats.totalSelected, selectedStats.totalLeaf]) : $t('common.label.selectedCountSimple', [selectedStats.totalSelected]) }}
+          </span>
+        </div>
+      </div>
     </el-header>
     <el-container
       class="padding-left3"
@@ -183,7 +279,7 @@ const filterNode = (keyword, data) => {
           @check-change="checkChange"
         >
           <template #empty>
-            <el-empty :description="$t('common.msg.noData')" />
+            <el-empty :description="onlySelected ? ($t('api.msg.noApiSelected') || $t('common.msg.noData')) : $t('common.msg.noData')" />
           </template>
           <template #default="scope">
             <slot
@@ -196,3 +292,66 @@ const filterNode = (keyword, data) => {
     </el-container>
   </el-container>
 </template>
+
+<style scoped>
+.tree-check-header {
+  display: flex;
+  flex-direction: column;
+  height: auto !important;
+  padding: 0 0 10px 0;
+  gap: 10px;
+}
+
+.tree-check-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.tree-check-row-top :deep(.el-form-item) {
+  margin-bottom: 0 !important;
+}
+
+.tree-check-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tree-check-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 2px 0 4px 0;
+  font-size: 13px;
+}
+
+.tree-check-filter-group {
+  display: flex;
+  align-items: center;
+}
+
+.tree-check-stats-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--el-text-color-regular);
+}
+
+.stats-label {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.stats-divider {
+  color: var(--el-border-color);
+  margin: 0 4px;
+}
+
+.stats-tag {
+  border-radius: 4px;
+}
+</style>
