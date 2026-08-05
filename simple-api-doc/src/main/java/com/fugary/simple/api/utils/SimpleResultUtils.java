@@ -252,7 +252,7 @@ public class SimpleResultUtils {
         fileName = prefixName + "-" + DateFormatUtils.format(System.currentTimeMillis(), OUTPUT_FILE_NAME) + "." + extension;
         // 设置响应头，准备文件下载
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20") + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .contentLength(tempFile.length())
                 .body(resource);
