@@ -100,10 +100,7 @@ export const calcShowCleanHandlers = (shareDoc, folder, preference, config = {})
 export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
   const isShareDoc = shareDoc && !!shareDoc.shareId
   if ((!isShareDoc || shareDoc?.exportEnabled)) {
-    const supportedTypes = ['json', 'yaml']
-    if (!isShareDoc) {
-      supportedTypes.push('md')
-    }
+    const supportedTypes = ['json', 'yaml', 'md']
     const results = supportedTypes.map(type => {
       const typeColors = {
         json: 'var(--el-color-warning)',
