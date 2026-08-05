@@ -147,7 +147,7 @@ public class SimpleShareController {
         Set<Integer> shareDocIds = SimpleModelUtils.getShareDocIds(apiShare.getShareDocs());
         if (CollectionUtils.isEmpty(downloadVo.getDocIds())) {
             downloadVo.setDocIds(new ArrayList<>(shareDocIds));
-        } else {
+        } else if (!shareDocIds.isEmpty()) {
             downloadVo.setDocIds(downloadVo.getDocIds().stream().filter(shareDocIds::contains).collect(Collectors.toList()));
         }
         downloadVo.setEnvContent(apiShare.getEnvContent());
