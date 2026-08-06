@@ -266,7 +266,7 @@ public class ApiDocParseUtils {
         List<ExportEnvConfigVo> results = new ArrayList<>();
         if (envConfigs != null) {
             for (ExportEnvConfigVo envConfig : envConfigs) {
-                int index = SimpleModelUtils.indexOf(results, envConfig, Comparator.comparing(ExportEnvConfigVo::getUrl));
+                int index = indexOfEnv(results, envConfig);
                 if (index > -1) {
                     results.set(index, envConfig);
                 } else {
@@ -279,14 +279,31 @@ public class ApiDocParseUtils {
 
     public static List<ExportEnvConfigVo> mergeEnvConfigs(List<ExportEnvConfigVo> savedEnvConfigs, List<ExportEnvConfigVo> envConfigs) {
         for (ExportEnvConfigVo envConfig : envConfigs) {
-            int index = SimpleModelUtils.indexOf(savedEnvConfigs, envConfig, Comparator.comparing(ExportEnvConfigVo::getUrl));
+            int index = indexOfEnv(savedEnvConfigs, envConfig);
             if (index > -1) {
                 SimpleModelUtils.copyNoneNullValue(savedEnvConfigs.get(index), envConfig);
             }
         }
-        savedEnvConfigs.removeIf(savedConfig -> !Boolean.TRUE.equals(savedConfig.getManual()));
+        savedEnvConfigs.removeIf(savedConfig -> indexOfEnv(envConfigs, savedConfig) > -1);
         savedEnvConfigs.addAll(0, envConfigs);
         return savedEnvConfigs;
+    }
+
+    private static int indexOfEnv(List<ExportEnvConfigVo> list, ExportEnvConfigVo target) {
+        for (int i = 0; i < list.size(); i++) {
+            if (isSameEnv(list.get(i), target)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static boolean isSameEnv(ExportEnvConfigVo env1, ExportEnvConfigVo env2) {
+        if (env1 == null || env2 == null) {
+            return false;
+        }
+        return (StringUtils.isNotBlank(env1.getUrl()) && StringUtils.equals(env1.getUrl(), env2.getUrl()))
+                || (StringUtils.isNotBlank(env1.getName()) && StringUtils.equals(env1.getName(), env2.getName()));
     }
 
     public static List<ExportEnvConfigVo> mergeEnvConfigs(String savedEnvConfigStr, String envConfigStr) {

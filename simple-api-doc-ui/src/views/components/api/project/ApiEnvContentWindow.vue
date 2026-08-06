@@ -34,9 +34,11 @@ const saveInfoEnvConfigs = ({ form }) => {
   form.validate(valid => {
     if (valid) {
       const envConfigs = infoConfig.value.envConfigs
-      if (uniqBy(envConfigs, 'name').length !== envConfigs.length) {
-        $coreError($i18nKey('common.msg.commonDuplicated', 'api.label.environmentName'))
-        return
+      for (const { prop, label } of [{ prop: 'name', label: 'api.label.environmentName' }, { prop: 'url', label: 'api.label.url' }]) {
+        if (uniqBy(envConfigs, prop).length !== envConfigs.length) {
+          $coreError($i18nKey('common.msg.commonDuplicated', label))
+          return
+        }
       }
       saveEnvConfigs(projectInfoItem.value.id, envConfigs, { loading: true })
         .then(() => {
@@ -162,7 +164,6 @@ useTabFocus(sortableRef)
             class="padding-left2 padding-top1"
           >
             <el-button
-              v-if="item.manual"
               type="danger"
               size="small"
               circle
