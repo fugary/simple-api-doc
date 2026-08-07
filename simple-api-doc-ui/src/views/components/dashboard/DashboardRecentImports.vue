@@ -3,6 +3,7 @@ import { ref, onMounted, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getRecentImports } from '@/api/dashboard/DashboardApi'
 import { formatDate } from '@/utils'
+import dayjs from 'dayjs'
 
 const router = useRouter()
 const all = inject('dashboard-all', ref(false))
@@ -44,6 +45,10 @@ const getStatusColor = (status) => {
     case 'stopped': return 'var(--el-color-warning)'
     default: return 'var(--el-color-info)'
   }
+}
+
+const getProjectName = (item) => {
+  return item.project?.projectName?.trim() || item.project?.projectCode
 }
 </script>
 
@@ -89,7 +94,7 @@ const getStatusColor = (status) => {
           :style="{ backgroundColor: getStatusColor(item.taskStatus), flexShrink: 0, marginRight: '12px' }"
         >
           <common-icon
-            icon="Download"
+            icon="DocumentAdd"
             :size="18"
           />
         </el-avatar>
@@ -103,11 +108,30 @@ const getStatusColor = (status) => {
             >
               {{ item.taskName }}
             </el-text>
+            <el-tooltip
+              v-if="item.taskType === 'auto'"
+              :content="$t('api.label.dashboardTypeAuto') + (item.scheduleRate ? ` (${dayjs.duration(item.scheduleRate, 'seconds').humanize()})` : '')"
+              placement="top"
+            >
+              <common-icon
+                icon="Timer"
+                :size="14"
+                style="color: var(--el-color-success); margin: 0 4px; cursor: help; align-self: center;"
+              />
+            </el-tooltip>
+            <el-tag
+              v-if="item.project?.projectCode"
+              size="small"
+              type="primary"
+              effect="plain"
+              class="dashboard-item-tag"
+            >
+              {{ getProjectName(item) }}
+            </el-tag>
           </div>
           <div class="dashboard-item-sub">
             <span class="dashboard-item-meta">
-              {{ $t('api.label.dashboardType') }}: {{ item.taskType === 'auto' ? $t('api.label.dashboardTypeAuto') : $t('api.label.dashboardTypeManual') }}
-              · {{ $t('api.label.dashboardExecutor') }}: {{ item.modifier || item.creator }}
+              {{ $t('api.label.dashboardExecutor') }}: {{ item.modifier || item.creator }}
             </span>
             <span class="dashboard-item-time">
               {{ formatDate(item.modifyDate || item.createDate) }}

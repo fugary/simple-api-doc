@@ -3,25 +3,18 @@ package com.fugary.simple.api.web.controllers.admin;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fugary.simple.api.entity.api.AiCache;
-import com.fugary.simple.api.entity.api.ApiDoc;
-import com.fugary.simple.api.entity.api.ApiProject;
-import com.fugary.simple.api.entity.api.ApiProjectShare;
-import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
-import com.fugary.simple.api.service.apidoc.ApiDocService;
-import com.fugary.simple.api.service.apidoc.ApiGroupService;
-import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
-import com.fugary.simple.api.service.apidoc.ApiProjectService;
-import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
-import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
-import com.fugary.simple.api.service.apidoc.ApiUserService;
+import com.fugary.simple.api.service.apidoc.*;
+import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
+import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.dashboard.DashboardMetricsVo;
-import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.web.vo.project.AdminProjectShareVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectTaskVo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -68,6 +61,9 @@ public class DashboardController {
     @Autowired
     private AiCacheMapper aiCacheMapper;
 
+    @Autowired
+    private SimpleTaskManager simpleTaskManager;
+
     /**
      * 判断是否为查询全部数据的权限条件
      */
@@ -101,8 +97,10 @@ public class DashboardController {
         vo.setApiCount(0);
         vo.setDocCount(0);
         docCounts.forEach(map -> {
-            String docType = (String) map.get("doc_type");
-            Integer count = ((Number) map.get("countValue")).intValue();
+            Object docTypeObj = map.getOrDefault("doc_type", map.getOrDefault("DOC_TYPE", map.get("docType")));
+            String docType = docTypeObj != null ? docTypeObj.toString() : null;
+            Object countObj = map.getOrDefault("countValue", map.getOrDefault("COUNTVALUE", map.get("countvalue")));
+            Integer count = countObj != null ? ((Number) countObj).intValue() : 0;
             if (ApiDocConstants.DOC_TYPE_API.equals(docType)) {
                 vo.setApiCount(count);
             } else if (ApiDocConstants.DOC_TYPE_MD.equals(docType)) {
@@ -155,7 +153,7 @@ public class DashboardController {
         // 内存中按日期分组
         Map<String, Long> docsMap = docs.stream().filter(d -> d.getCreateDate() != null)
                 .collect(Collectors.groupingBy(d -> DateFormatUtils.format(d.getCreateDate(), "yyyy-MM-dd"), Collectors.counting()));
-        
+
         Map<String, Long> projectsMap = projects.stream().filter(p -> p.getCreateDate() != null)
                 .collect(Collectors.groupingBy(p -> DateFormatUtils.format(p.getCreateDate(), "yyyy-MM-dd"), Collectors.counting()));
 
@@ -198,7 +196,7 @@ public class DashboardController {
         Page<ApiProjectShare> page = new Page<>(1, 10);
         QueryWrapper<ApiProjectShare> query = Wrappers.<ApiProjectShare>query()
                 .orderByDesc("create_date");
-        
+
         if (!shouldQueryAll(all)) {
             apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_share", "project_id", null, SecurityUtils.getLoginUserName());
         }
@@ -219,13 +217,24 @@ public class DashboardController {
     }
 
     @GetMapping("/recentImports")
-    public SimpleResult<List<ApiProjectTask>> recentImports(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
+    public SimpleResult<List<ApiProjectTaskVo>> recentImports(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
         String userName = getQueryUser(all);
         Page<ApiProjectTask> page = new Page<>(1, 10);
         QueryWrapper<ApiProjectTask> query = Wrappers.<ApiProjectTask>query()
                 .eq(StringUtils.isNotBlank(userName), "creator", userName)
                 .orderByDesc("modify_date");
-        apiProjectTaskService.page(page, query);
-        return SimpleResultUtils.createSimpleResult(page.getRecords());
+        Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, query);
+        List<ApiProjectTaskVo> taskList = new ArrayList<>();
+        if (!pageResult.getRecords().isEmpty()) {
+            Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id",
+                            pageResult.getRecords().stream().map(ApiProjectTask::getProjectId).collect(Collectors.toList())))
+                    .stream().collect(Collectors.toMap(ApiProject::getId, Function.identity()));
+            taskList = pageResult.getRecords().stream().map(task -> {
+                ApiProjectTaskVo taskVo = SimpleTaskUtils.calcTaskVo(task, simpleTaskManager);
+                taskVo.setProject(projectMap.get(taskVo.getProjectId()));
+                return taskVo;
+            }).collect(Collectors.toList());
+        }
+        return SimpleResultUtils.createSimpleResult(taskList);
     }
 }

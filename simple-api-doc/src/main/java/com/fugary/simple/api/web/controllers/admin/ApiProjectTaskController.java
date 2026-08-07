@@ -24,7 +24,6 @@ import com.fugary.simple.api.web.vo.project.ApiProjectTaskVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.config.ScheduledTask;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -80,21 +79,7 @@ public class ApiProjectTaskController {
                                 .collect(Collectors.toList())))
                 .stream().collect(Collectors.toMap(ApiProject::getId, Function.identity()));
         List<ApiProjectTask> apiTasks = pageResult.getRecords().stream().map(task -> {
-            String taskId = SimpleTaskUtils.getTaskId(task.getId());
-            ApiProjectTaskVo taskVo = SimpleModelUtils.copy(task, ApiProjectTaskVo.class);
-            taskVo.setTaskId(taskId);
-            if (ApiDocConstants.PROJECT_TASK_TYPE_AUTO.equals(task.getTaskType())) {
-                String scheduleStatus = ApiDocConstants.TASK_STATUS_STOPPED;
-                SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(taskId);
-                if (autoTask != null) {
-                    ScheduledTask scheduledTask = simpleTaskManager.getScheduledTask(taskId);
-                    if (scheduledTask != null) {
-                        scheduleStatus = ApiDocConstants.TASK_STATUS_STARTED;
-                    }
-                    taskVo.setTaskStatus(SimpleTaskUtils.calcTaskStatus(scheduledTask, autoTask.getTaskWrapper()));
-                }
-                taskVo.setScheduleStatus(scheduleStatus);
-            }
+            ApiProjectTaskVo taskVo = SimpleTaskUtils.calcTaskVo(task, simpleTaskManager);
             taskVo.setProject(projectMap.get(taskVo.getProjectId()));
             return taskVo;
         }).collect(Collectors.toList());

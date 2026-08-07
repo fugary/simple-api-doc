@@ -7,7 +7,10 @@ import com.fugary.simple.api.entity.api.ApiProjectTask;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.ProjectAutoImportTask;
 import com.fugary.simple.api.tasks.SimpleAutoTask;
+import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.tasks.SimpleTaskWrapper;
+import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.web.vo.project.ApiProjectTaskVo;
 import com.fugary.simple.api.web.vo.task.SimpleTaskVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -144,6 +147,32 @@ public class SimpleTaskUtils {
         }
         String status = SimpleTaskUtils.calcTaskStatus(scheduledTask, taskWrapper);
         taskVo.setTaskStatus(status);
+        return taskVo;
+    }
+
+    /**
+     * 计算 ApiProjectTaskVo
+     *
+     * @param task
+     * @param simpleTaskManager
+     * @return
+     */
+    public static ApiProjectTaskVo calcTaskVo(ApiProjectTask task, SimpleTaskManager simpleTaskManager) {
+        String taskId = getTaskId(task.getId());
+        ApiProjectTaskVo taskVo = SimpleModelUtils.copy(task, ApiProjectTaskVo.class);
+        taskVo.setTaskId(taskId);
+        if (ApiDocConstants.PROJECT_TASK_TYPE_AUTO.equals(task.getTaskType())) {
+            String scheduleStatus = ApiDocConstants.TASK_STATUS_STOPPED;
+            SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(taskId);
+            if (autoTask != null) {
+                ScheduledTask scheduledTask = simpleTaskManager.getScheduledTask(taskId);
+                if (scheduledTask != null) {
+                    scheduleStatus = ApiDocConstants.TASK_STATUS_STARTED;
+                }
+                taskVo.setTaskStatus(calcTaskStatus(scheduledTask, autoTask.getTaskWrapper()));
+            }
+            taskVo.setScheduleStatus(scheduleStatus);
+        }
         return taskVo;
     }
 }
