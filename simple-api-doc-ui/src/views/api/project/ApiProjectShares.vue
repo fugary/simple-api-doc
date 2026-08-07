@@ -118,6 +118,10 @@ const columns = [{
   },
   minWidth: '120px'
 }, {
+  labelKey: 'common.label.user',
+  prop: 'creator',
+  minWidth: '100px'
+}, {
   labelKey: 'common.label.status',
   minWidth: '100px',
   formatter (data) {

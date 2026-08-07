@@ -90,6 +90,10 @@ const columns = [{
   },
   minWidth: '120px'
 }, {
+  labelKey: 'common.label.user',
+  prop: 'creator',
+  minWidth: '100px'
+}, {
   labelKey: 'common.label.status',
   formatter (data) {
     return <DelFlagTag v-model={data.status} clickToToggle={data.isWritable}
