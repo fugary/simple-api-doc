@@ -17,7 +17,7 @@ import { useElementSize } from '@vueuse/core'
 import ApiProjectImportWindow from '@/views/components/api/project/ApiProjectImportWindow.vue'
 import ApiGroupUsersConfigWindow from '@/views/components/api/project/ApiGroupUsersConfigWindow.vue'
 import ApiGroupAuthorityList from '@/views/components/api/project/ApiGroupAuthorityList.vue'
-import { ElButton, ElLink, ElMessage, ElText, ElUpload } from 'element-plus'
+import { ElButton, ElLink, ElMessage, ElText, ElTooltip, ElUpload } from 'element-plus'
 import ApiProjectGroupApi, { renderProjectGroupLabel, useSelectProjectGroups } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
@@ -29,13 +29,18 @@ const route = useRoute()
 const currentUserName = useCurrentUserName()
 const { search, getById, deleteById, saveOrUpdate } = ApiProjectApi
 
+const projectCounts = ref({})
+
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { page: useDefaultPage(10) },
-  dataProcessor: data => (data?.resultData || []).map(project => {
-    project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
-    project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
-    return project
-  }),
+  dataProcessor: data => {
+    projectCounts.value = data?.addons?.counts || {}
+    return (data?.resultData || []).map(project => {
+      project.isDeletable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.DELETABLE)
+      project.isWritable = projectCheckAccess(project.groupCode, AUTHORITY_TYPE.WRITABLE) || project.isDeletable
+      return project
+    })
+  },
   searchMethod: search
 })
 const loadApiProjects = (pageNumber) => {
@@ -291,8 +296,32 @@ const tableProjectItems = computed(() => {
       projectItems: [{
         labelKey: 'common.label.status',
         formatter () {
-          return <DelFlagTag v-model={project.status} clickToToggle={project.isWritable}
+          const countsMap = projectCounts.value?.[project.id] || {}
+          const apiCount = countsMap.api || countsMap.apiCount || 0
+          const docCount = countsMap.md || countsMap.docCount || 0
+          const totalCount = apiCount + docCount
+          const tooltipContent = `${$i18nBundle('api.label.apiCount', [apiCount])} | ${$i18nBundle('api.label.docCount', [docCount])} | ${$i18nBundle('api.label.totalCount', [totalCount])}`
+
+          return <span class="project-status-container">
+            <DelFlagTag v-model={project.status} clickToToggle={project.isWritable}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
+            <ElTooltip content={tooltipContent} placement="top">
+              <span class="project-doc-count-tag pointer">
+                {apiCount > 0 && <span class="count-item">
+                  <CommonIcon icon="custom-api" style="color: #10b981;" size={15} />
+                  <span>{apiCount}</span>
+                </span>}
+                {docCount > 0 && <span class="count-item">
+                  <CommonIcon icon="custom-markdown" style="color: #8b5cf6;" size={15} />
+                  <span>{docCount}</span>
+                </span>}
+                <span class="count-item font-weight-bold">
+                  <CommonIcon icon="Files" style="color: #3b82f6;" size={15} />
+                  <span>{totalCount}</span>
+                </span>
+              </span>
+            </ElTooltip>
+          </span>
         }
       }, {
         enabled: project.userName !== currentUserName,
@@ -685,6 +714,39 @@ const pageAttrs = {
 .project-card :deep(.el-descriptions__label) {
   font-weight: 500;
   color: var(--el-text-color-secondary);
+}
+
+.project-card :deep(.project-status-container) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  vertical-align: middle;
+}
+
+.project-card :deep(.project-doc-count-tag) {
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+  background-color: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  padding: 2px 10px;
+  color: var(--el-text-color-regular);
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.project-card :deep(.count-item) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-card :deep(.project-doc-count-tag:hover) {
+  background-color: var(--el-fill-color);
+  border-color: var(--el-border-color);
 }
 
 .project-group-panel {

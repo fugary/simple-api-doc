@@ -134,4 +134,12 @@ public interface ApiDocService extends IService<ApiDoc> {
      * @param apiDoc
      */
     ApiDoc copyFromHistory(ApiDoc apiDocHistory, ApiDoc apiDoc);
+
+    /**
+     * 批量按项目 ID 统计接口与 Markdown 文档数量
+     *
+     * @param projectIds
+     * @return
+     */
+    Map<Integer, Map<String, Long>> countDocsByProjects(List<Integer> projectIds);
 }

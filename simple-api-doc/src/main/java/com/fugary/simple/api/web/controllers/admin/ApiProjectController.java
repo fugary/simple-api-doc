@@ -15,6 +15,7 @@ import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.exports.ApiDocExporter;
+import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.JsonUtils;
@@ -32,6 +33,7 @@ import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
 import io.swagger.v3.oas.models.OpenAPI;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,10 +44,12 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.fugary.simple.api.utils.security.SecurityUtils.getLoginUser;
 
@@ -69,6 +73,9 @@ public class ApiProjectController {
     private ApiProjectAccessService apiProjectAccessService;
 
     @Autowired
+    private ApiDocService apiDocService;
+
+    @Autowired
     private ApiDocExporter<OpenAPI> apiApiDocExporter;
 
     @Autowired
@@ -87,7 +94,15 @@ public class ApiProjectController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         addGroupCodeQuery(queryVo, queryWrapper, userName);
-        return SimpleResultUtils.createSimpleResult(apiProjectService.page(page, queryWrapper));
+        Page<ApiProject> projectPage = apiProjectService.page(page, queryWrapper);
+        List<ApiProject> projects = projectPage.getRecords();
+        SimpleResult<List<ApiProject>> result = SimpleResultUtils.createSimpleResult(projectPage);
+        if (CollectionUtils.isNotEmpty(projects)) {
+            List<Integer> projectIds = projects.stream().map(ApiProject::getId).collect(Collectors.toList());
+            Map<Integer, Map<String, Long>> countsMap = apiDocService.countDocsByProjects(projectIds);
+            result.add("counts", (Serializable) countsMap);
+        }
+        return result;
     }
 
     @GetMapping("/{id}")

@@ -13,16 +13,14 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 
 /**
@@ -203,5 +201,44 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         resultDoc.setModifyFrom(null);
         SimpleModelUtils.addAuditInfo(resultDoc);
         return resultDoc;
+    }
+
+    @Override
+    public Map<Integer, Map<String, Long>> countDocsByProjects(List<Integer> projectIds) {
+        if (CollectionUtils.isEmpty(projectIds)) {
+            return Collections.emptyMap();
+        }
+        List<Map<String, Object>> countList = this.listMaps(Wrappers.<ApiDoc>query()
+                .select("project_id", "doc_type", "COUNT(1) AS groupValue")
+                .eq("status", 1)
+                .isNull("modify_from")
+                .in("project_id", projectIds)
+                .groupBy("project_id", "doc_type"));
+        Map<Integer, Map<String, Long>> resultMap = new HashMap<>();
+        if (CollectionUtils.isNotEmpty(countList)) {
+            for (Map<String, Object> map : countList) {
+                Object projectIdObj = null;
+                Object docTypeObj = null;
+                Object groupValueObj = null;
+                for (Map.Entry<String, Object> entry : map.entrySet()) {
+                    String key = StringUtils.replace(entry.getKey(), "_", "");
+                    if (StringUtils.equalsIgnoreCase(key, "projectId")) {
+                        projectIdObj = entry.getValue();
+                    } else if (StringUtils.equalsIgnoreCase(key, "docType")) {
+                        docTypeObj = entry.getValue();
+                    } else if (StringUtils.equalsIgnoreCase(key, "groupValue")) {
+                        groupValueObj = entry.getValue();
+                    }
+                }
+                
+                if (projectIdObj != null && docTypeObj != null) {
+                    Integer projectId = Integer.valueOf(projectIdObj.toString());
+                    String docType = docTypeObj.toString();
+                    Long countNum = groupValueObj != null ? Long.valueOf(groupValueObj.toString()) : 0L;
+                    resultMap.computeIfAbsent(projectId, k -> new HashMap<>()).put(docType, countNum);
+                }
+            }
+        }
+        return resultMap;
     }
 }
