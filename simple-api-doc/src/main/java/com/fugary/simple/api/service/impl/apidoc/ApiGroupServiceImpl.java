@@ -55,6 +55,9 @@ public class ApiGroupServiceImpl extends ServiceImpl<ApiGroupMapper, ApiGroup> i
 
     @Override
     public List<ApiGroupVo> loadUserGroups(ApiUser apiUser) {
+        if (apiUser == null || apiUser.getId() == null) {
+            return new ArrayList<>();
+        }
         Integer userId = apiUser.getId();
         String userName = apiUser.getUserName();
         QueryWrapper<ApiGroup> queryWrapper = Wrappers.<ApiGroup>query().eq("status", ApiDocConstants.STATUS_ENABLED)

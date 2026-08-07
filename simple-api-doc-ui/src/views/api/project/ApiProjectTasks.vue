@@ -70,8 +70,13 @@ onActivated(initLoadOnce)
 
 const columns = [{
   labelKey: 'api.label.taskName',
-  prop: 'taskName',
-  minWidth: '120px'
+  minWidth: '120px',
+  formatter (data) {
+    return <>
+      {data.taskName}
+      {data.creator ? <ElText type="success" tag="b" class="margin-left1">({data.creator})</ElText> : ''}
+    </>
+  }
 }, {
   labelKey: 'api.label.project',
   formatter (data) {
@@ -89,10 +94,6 @@ const columns = [{
     </>
   },
   minWidth: '120px'
-}, {
-  labelKey: 'common.label.user',
-  prop: 'creator',
-  minWidth: '100px'
 }, {
   labelKey: 'common.label.status',
   formatter (data) {

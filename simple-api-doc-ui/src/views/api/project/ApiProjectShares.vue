@@ -91,7 +91,8 @@ const columns = [{
     }
     const docLen = data.shareDocs ? JSON.parse(data.shareDocs)?.length : 0
     return <>
-      {data.shareName}&nbsp;
+      {data.shareName}
+      {data.creator ? <ElText type="success" tag="b" class="margin-left1">({data.creator})</ElText> : ''}&nbsp;
       {docLen ? <ElText v-common-tooltip={$i18nBundle('api.label.shareSelectedDocs', [docLen])} type="info">({docLen}) </ElText> : ''}
       <UrlCopyLink urlPath={shareUrl} />&nbsp;
       <UrlCopyLink icon="OpenInNewFilled"
@@ -117,10 +118,6 @@ const columns = [{
     </>
   },
   minWidth: '120px'
-}, {
-  labelKey: 'common.label.user',
-  prop: 'creator',
-  minWidth: '100px'
 }, {
   labelKey: 'common.label.status',
   minWidth: '100px',

@@ -1,3 +1,5 @@
+﻿- **bug**: [2026-08-07] 修复加载项目分组时由不存在或非法的用户导致的 NullPointerException 问题：在 ApiGroupServiceImpl 的 loadUserGroups 方法中增加了对 piUser 及 piUser.getId() 的空指针判断，从而避免了无效用户查询时的系统异常。
+- **opt**: [2026-08-07] 优化分享和导入列表页面：参考项目分组页面，将独立的用户列合并至名称列（以绿色带括号的高亮形式展示），从而节省列表空间。
 # 寮€鍙戣繘搴︽棩蹇?(Detailed Development Log)
 
 鏈枃妗ｅ畬鏁磋褰曚簡 `simple-api-doc` 椤圭洰鐨勮缁嗗紑鍙戝巻绋嬨€佸姛鑳借凯浠ｅ強缁存姢璁板綍銆?
@@ -188,11 +190,12 @@
 - **opt**: [2026-08-07] 优化 dashboard 统计大盘代码结构与样式冗余：1. 在 `DashboardTrendChart.vue` 中修复暗黑模式下网格线过亮的问题，将坐标系背景网格线 `splitLine` 颜色重置为 Element Plus 动态 CSS 变量 `var(--el-border-color-lighter)`；2. 移除 `DashboardRecentShares.vue`、`DashboardRecentImports.vue` 等小组件中重复的 `.dashboard-card` 样式定义，改用内置属性 `body-style="flex: 1; padding: 0; overflow: hidden;"` 消除代码重复；3. 将活动列表行项重复样式 `.activity-item` 统一抽取沉淀至全局样式 `src/assets/main.css` 中；4. 所有修改均已通过严格的 ESLint 规范检验。
 - **opt**: [2026-08-07] 优化首页最近分享展示：1. 有效期格式化为仅显示日期，防止显示不全被截断；2. 有密码分享的链接自动拼接 \pwd\ 参数以便于快捷访问；3. 列表项上补充显示是否有密码状态小图标提示。
  
- # #   2 0 2 6 - 0 8 - 0 7   OS�N��u�Rh��ST�zC o n t r o l l e r ͑Y�Nx 
- -   OS�N  \ D a s h b o a r d R e c e n t I m p o r t s . v u e \   �v�N�R{|�W>f:y�1u  T a g   9e:N&^��r��v  I c o n   �c:y	��v^�fbc�NRh�4Y�P  I c o n   :N�f4�T�[eQ:Wof�v  \ D o c u m e n t A d d \ 0 
- -   \!jg-N�QT��vYBg	NCQh���_�b�S0R  \ < s c r i p t   s e t u p > \   -N:NN蕄v�e�l��cؚ�N�~�N�vtem�^0 
- -   �b�S�NT�z  \ A p i P r o j e c t T a s k C o n t r o l l e r \   �T  \ D a s h b o a r d C o n t r o l l e r \   sQ�N���{  \ A p i P r o j e c t T a s k V o \   ��^�r`�v͑Y;����v^�~ N>e(W  \ S i m p l e T a s k U t i l s \   -NۏL�Y(u0 
- -   �OY�N  \ D a s h b o a r d C o n t r o l l e r \   �v  m e t r i c s   �c�S-N�V  H 2   penc�^gbL�  C O U N T ( 1 )   T�Nu'Y�Q+RT_w��v  N P E   �b�0 
- -   9hnc�S���(W��u��yd��NKb�R�[eQ�N�R�e���v�Vh��N�OYuꁨR�N�R�vhƋ�v^\ꁨR�N�R�vgbL����s��Y  s c h e d u l e R a t e   X[(W	� Nv^<h_S���R0R�N  T o o l t i p   �c:y�Q�[-N�O�_u�b��f�Rn=rN�Oo`0N�[0 
- -   OS�NꁨR�[eQ�N�R���s�vUSMO>f:y�_eQ�N  \ d a y j s . d u r a t i o n ( x x x ,   ' s e c o n d s ' ) . h u m a n i z e ( ) \   N�N�RM�nRh�u��Oc�[hQ N�vUSMO;���0 
+ # #   2 0 2 6 - 0 8 - 0 7   OS�N��u�Rh��ST�zC o n t r o l l e r ͑Y�Nx 
+ -   OS�N  \ D a s h b o a r d R e c e n t I m p o r t s . v u e \   �v�N�R{|�W>f:y�1u  T a g   9e:N&^��r��v  I c o n   �c:y	��v^�fbc�NRh�4Y�P  I c o n   :N�f4�T�[eQ:Wof�v  \ D o c u m e n t A d d \ 0 
+ -   \!jg-N�QT��vYBg	NCQh���_�b�S0R  \ < s c r i p t   s e t u p > \   -N:NN蕄v�e�l��cؚ�N�~�N�vtem�^0 
+ -   �b�S�NT�z  \ A p i P r o j e c t T a s k C o n t r o l l e r \   �T  \ D a s h b o a r d C o n t r o l l e r \   sQ�N���{  \ A p i P r o j e c t T a s k V o \   ��^�r`�v͑Y;����v^�~ N>e(W  \ S i m p l e T a s k U t i l s \   -NۏL�Y(u0 
+ -   �OY�N  \ D a s h b o a r d C o n t r o l l e r \   �v  m e t r i c s   �c�S-N�V  H 2   penc�^gbL�  C O U N T ( 1 )   T�Nu'Y�Q+RT_w��v  N P E   �b�0 
+ -   9hnc�S���(W��u��yd��NKb�R�[eQ�N�R�e���v�Vh��N�OYuꁨR�N�R�vhƋ�v^\ꁨR�N�R�vgbL����s��Y  s c h e d u l e R a t e   X[(W	� Nv^<h_S���R0R�N  T o o l t i p   �c:y�Q�[-N�O�_u�b��f�Rn=rN�Oo`0N�[0 
+ -   OS�NꁨR�[eQ�N�R���s�vUSMO>f:y�_eQ�N  \ d a y j s . d u r a t i o n ( x x x ,   ' s e c o n d s ' ) . h u m a n i z e ( ) \   N�N�RM�nRh�u��Oc�[hQ N�vUSMO;���0 
  
+
