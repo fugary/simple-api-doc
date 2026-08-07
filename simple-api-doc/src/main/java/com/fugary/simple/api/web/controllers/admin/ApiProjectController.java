@@ -279,13 +279,7 @@ public class ApiProjectController {
      * @param userName
      */
     protected void addGroupCodeQuery(ProjectQueryVo queryVo, QueryWrapper<ApiProject> queryWrapper, String userName) {
-        if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
-            queryWrapper.eq("group_code", queryVo.getGroupCode());
-        } else {
-            String groupCodesStr = apiProjectAccessService.loadReadableGroupCodesSql(userName);
-            queryWrapper.and(wrapper -> wrapper.exists(StringUtils.isNotBlank(groupCodesStr), "select 1 from t_api_group g where g.group_code = t_api_project.group_code and g.group_code in ('" + groupCodesStr + "')")
-                    .or().eq("user_name", userName));
-        }
+        apiProjectAccessService.addProjectGroupCodeQuery(queryWrapper, queryVo.getGroupCode(), userName);
     }
 
     @PostMapping("/checkExportDownloadDocs")

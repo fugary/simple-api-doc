@@ -80,13 +80,7 @@ public class ApiProjectShareController {
      * @param userName
      */
     protected void addGroupCodeQuery(ProjectQueryVo queryVo, QueryWrapper<ApiProjectShare> queryWrapper, String userName) {
-        if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
-            queryWrapper.exists("select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.group_code={0}", queryVo.getGroupCode());
-        } else {
-            String groupCodesStr = apiProjectAccessService.loadReadableGroupCodesSql(userName);
-            queryWrapper.and(wrapper -> wrapper.exists(StringUtils.isNotBlank(groupCodesStr), "select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.group_code in ('" + groupCodesStr + "')")
-                    .or().exists("select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.user_name={0} and (p.group_code is null or p.group_code = '')", userName));
-        }
+        apiProjectAccessService.addProjectRelatedGroupCodeQuery(queryWrapper, "t_api_project_share", "project_id", queryVo.getGroupCode(), userName);
     }
 
     @GetMapping("/{id}")

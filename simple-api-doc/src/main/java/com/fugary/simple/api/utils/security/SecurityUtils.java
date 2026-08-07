@@ -149,8 +149,12 @@ public class SecurityUtils {
      */
     public static String getUserName(String queryUserName) {
         ApiUser loginUser = getLoginUser();
-        String userName = StringUtils.defaultIfBlank(queryUserName, loginUser != null ? loginUser.getUserName() : "");
-        userName = SecurityUtils.validateUserUpdate(userName) ? userName : "";
-        return userName;
+        if (loginUser != null) {
+            if (isAdmin(loginUser.getUserName())) {
+                return queryUserName == null ? "" : queryUserName;
+            }
+            return loginUser.getUserName();
+        }
+        return "";
     }
 }

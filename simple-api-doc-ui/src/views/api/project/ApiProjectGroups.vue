@@ -99,7 +99,7 @@ const searchFormOptions = computed(() => {
     enabled: isAdminUser(),
     children: userOptions.value,
     attrs: {
-      clearable: false
+      clearable: true
     },
     change () {
       loadProjectGroups(1)

@@ -60,11 +60,10 @@ public class ApiLogController {
                 .orderByDesc("id");
         if (!SecurityUtils.isAdmin() && queryVo.getProjectId() == null) {
             String userName = SecurityUtils.getLoginUserName();
-            String groupCodesStr = apiProjectAccessService.loadReadableGroupCodesSql(userName);
-            queryWrapper.and(wrapper -> wrapper.eq("user_name", userName)
-                    .or().exists("select 1 from t_api_project p where p.id = t_api_log.project_id and p.user_name={0} and (p.group_code is null or p.group_code = '')", userName)
-                    .or(StringUtils.isNotBlank(groupCodesStr),
-                            item -> item.exists("select 1 from t_api_project p where p.id = t_api_log.project_id and p.group_code in ('" + groupCodesStr + "')")));
+            queryWrapper.and(wrapper -> {
+                wrapper.eq("user_name", userName)
+                       .or(inner -> apiProjectAccessService.addProjectRelatedGroupCodeQuery(inner, "t_api_log", "project_id", null, userName));
+            });
         }
         return SimpleResultUtils.createSimpleResult(apiLogService.page(page, queryWrapper));
     }

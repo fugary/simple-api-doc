@@ -203,7 +203,7 @@ const searchFormOptions = computed(() => {
       enabled: !inProject && isAdminUser(),
       children: userOptions.value,
       attrs: {
-        clearable: false
+        clearable: true
       },
       change: async () => {
         await loadGroupsAndRefreshOptions()
