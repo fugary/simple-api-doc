@@ -6,10 +6,12 @@ import { useRouter } from 'vue-router'
 const metrics = ref({
   projectCount: 0,
   apiCount: 0,
+  docCount: 0,
   userCount: 0,
   groupCount: 0,
   shareCount: 0,
-  aiCacheCount: 0
+  aiCacheCount: 0,
+  taskCount: 0
 })
 
 const router = useRouter()
@@ -60,8 +62,8 @@ watch(all, () => {
             <div class="metric-title">
               {{ $t('api.label.dashboardProjectCount') }}
             </div>
-            <div class="metric-value">
-              {{ metrics.projectCount }}
+            <div class="metric-value metric-value--long">
+              {{ metrics.groupCount }}/{{ metrics.projectCount }}
             </div>
           </div>
           <div class="metric-icon">
@@ -85,8 +87,8 @@ watch(all, () => {
             <div class="metric-title">
               {{ $t('api.label.dashboardApiAndDocCount') }}
             </div>
-            <div class="metric-value">
-              {{ metrics.apiCount }}
+            <div class="metric-value metric-value--long">
+              {{ metrics.apiCount }}/{{ metrics.docCount }}/{{ metrics.apiCount + metrics.docCount }}
             </div>
           </div>
           <div class="metric-icon">
@@ -128,20 +130,20 @@ watch(all, () => {
       <el-card
         shadow="hover"
         class="metric-card metric-card--interactive bg-warning"
-        @click="openPage('AiCaches')"
+        @click="openPage('ApiProjectImportTasks')"
       >
         <div class="metric-content">
           <div class="metric-info">
             <div class="metric-title">
-              {{ $t('api.label.dashboardAiCacheCount') }}
+              {{ $t('api.label.dashboardTaskCount') }}
             </div>
             <div class="metric-value">
-              {{ metrics.aiCacheCount }}
+              {{ metrics.taskCount }}
             </div>
           </div>
           <div class="metric-icon">
             <common-icon
-              icon="Cpu"
+              icon="List"
               class="icon-svg"
             />
           </div>
@@ -226,6 +228,11 @@ watch(all, () => {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.metric-value--long {
+  font-size: 24px;
 }
 
 .metric-icon {

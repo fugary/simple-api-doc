@@ -24,6 +24,11 @@ public class DashboardMetricsVo implements Serializable {
     private Integer apiCount;
 
     /**
+     * 文档数
+     */
+    private Integer docCount;
+
+    /**
      * 用户/成员总数
      */
     private Integer userCount;
@@ -42,4 +47,9 @@ public class DashboardMetricsVo implements Serializable {
      * AI模拟数据/缓存总数
      */
     private Integer aiCacheCount;
+
+    /**
+     * 导入任务数
+     */
+    private Integer taskCount;
 }

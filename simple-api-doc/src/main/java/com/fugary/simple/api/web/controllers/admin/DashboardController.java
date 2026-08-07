@@ -72,7 +72,7 @@ public class DashboardController {
      * 判断是否为查询全部数据的权限条件
      */
     private boolean shouldQueryAll(Boolean all) {
-        return Boolean.TRUE.equals(all) && SecurityUtils.isAdmin();
+        return Boolean.TRUE.equals(all);
     }
 
     private String getQueryUser(Boolean all) {
@@ -93,9 +93,22 @@ public class DashboardController {
         }
         vo.setProjectCount(Math.toIntExact(apiProjectService.count(projectQuery)));
 
-        vo.setApiCount(Math.toIntExact(apiDocService.count(Wrappers.<ApiDoc>query()
+        List<Map<String, Object>> docCounts = apiDocService.listMaps(Wrappers.<ApiDoc>query()
+                .select("doc_type", "count(1) as countValue")
                 .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
-                .eq(StringUtils.isNotBlank(userName), "creator", userName))));
+                .eq(StringUtils.isNotBlank(userName), "creator", userName)
+                .groupBy("doc_type"));
+        vo.setApiCount(0);
+        vo.setDocCount(0);
+        docCounts.forEach(map -> {
+            String docType = (String) map.get("doc_type");
+            Integer count = ((Number) map.get("countValue")).intValue();
+            if (ApiDocConstants.DOC_TYPE_API.equals(docType)) {
+                vo.setApiCount(count);
+            } else if (ApiDocConstants.DOC_TYPE_MD.equals(docType)) {
+                vo.setDocCount(count);
+            }
+        });
 
         QueryWrapper<ApiProjectShare> shareQuery = Wrappers.<ApiProjectShare>query();
         if (!shouldQueryAll(all)) {
@@ -113,6 +126,9 @@ public class DashboardController {
 
         vo.setAiCacheCount(Math.toIntExact(aiCacheMapper.selectCount(Wrappers.<AiCache>query()
                 .eq(StringUtils.isNotBlank(userName), "user_name", userName))));
+
+        vo.setTaskCount(Math.toIntExact(apiProjectTaskService.count(Wrappers.<ApiProjectTask>query()
+                .eq(StringUtils.isNotBlank(userName), "creator", userName))));
 
         return SimpleResultUtils.createSimpleResult(vo);
     }

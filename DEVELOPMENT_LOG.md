@@ -3,6 +3,7 @@
 鏈枃妗ｅ畬鏁磋褰曚簡 `simple-api-doc` 椤圭洰鐨勮缁嗗紑鍙戝巻绋嬨€佸姛鑳借凯浠ｅ強缁存姢璁板綍銆?
 
 ### 2026-08
+- **feat**: [2026-08-07] 首页仪表盘(Dashboard)顶部统计模块深度调整与优化：1. 将首个模块“项目数量”扩展为“项目分组/项目数量”混合显示，直观展现系统组别规模；2. 将第二个模块升级为类似项目列表的“API/文档/总数”三项细分数据展示（`apiCount / docCount / total`），在后端 `DashboardController` 与 `DashboardMetricsVo` 中新增并单独剥离 `docCount` 统计，通过 `apiDocService.listMaps` 和 `groupBy("doc_type")` 将原先的两次 COUNT 查询合并为一次高效的聚合查询，大幅提升执行效率；3. 移除不常用且依赖配置的“AI数据缓存”统计模块，替换为更具普适性的“导入任务数量”统计，并跳转至 `ApiProjectImportTasks` 导入任务历史页；4. 优化【所有数据】的权限交互逻辑：将 `DashboardController` 中对于“所有数据”的强管控条件（`SecurityUtils.isAdmin()`）移除，使得普通用户在首页点击“所有数据”时同样可全局纵览整个系统的宏观统计数据及最新动态，但在点击相关项目或任务试图进行操作时，依然由底层的细粒度权限校验拦截，实现“数据全局可见、操作权限隔离”的最佳实践。代码变更已全量通过 ESLint 检测与 Maven 编译。
 - **feat**: [2026-08-07] 在项目列表卡片“状态”开关右侧新增接口与文档数量显示：1. 利用 MyBatis-Plus 的 `Wrappers.<ApiDoc>query()` 与 `listMaps` 功能在 `ApiDocServiceImpl.java` 中构建动态聚合查询（`COUNT(1)`），高性能地批量统计各项目的 API 接口数与 Markdown 文档数，避免大表实体内存拉取，同时贯彻了减少修改与无痕代码原则；在 `ApiProjectController.java` 中通过 `SimpleResult.add("counts", ...)` 批量返回至前端 `addons`；2. 前端 `ApiProjects.vue` 将统计展示的容器重构为行内标签（`inline-flex` 配合 `vertical-align`），确保与状态 Label 完美处于同一水平线；彻底替换默认的 `ElTag` 为深度定制的胶囊样式（适配明暗主题），去除斜杠分隔符采用更具呼吸感的留白（`gap: 10px`）；3. 统一并放大相关统计图标至 15px，为 API（绿色 `custom-api`）、Markdown（紫色 `custom-markdown`）及总数（蓝色 `Files`）配置对应的专属矢量图形，使得界面不仅辨识度大增，色彩也和谐统一；且当API或文档数为0时自动隐藏该项图标与数字；4. 补全 `api_cn.js` 与 `api_en.js` 国际化词条，且全量通过 ESLint 校验与 Maven 编译。
 
 
