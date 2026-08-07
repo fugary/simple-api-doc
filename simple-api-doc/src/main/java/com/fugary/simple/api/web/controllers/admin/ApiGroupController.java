@@ -129,7 +129,7 @@ public class ApiGroupController {
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         QueryWrapper<ApiGroup> queryWrapper = Wrappers.<ApiGroup>query()
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
-                .eq("user_name", userName)
+                .eq(StringUtils.isNotBlank(userName), "user_name", userName)
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("group_name", keyword)
                         .or().like("description", keyword));
         Page<ApiGroup> groupPage = apiGroupService.page(page, queryWrapper);

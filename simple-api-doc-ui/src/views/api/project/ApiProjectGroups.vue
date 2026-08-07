@@ -28,7 +28,7 @@ const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm(
 const loadProjectGroups = (pageNumber) => searchMethod(pageNumber)
 const { userOptions, loadUsersAndRefreshOptions } = useAllUsers(searchParam)
 const { initLoadOnce } = useInitLoadOnce(async () => {
-  loadUsersAndRefreshOptions()
+  await loadUsersAndRefreshOptions()
   loadProjectGroups()
 })
 
