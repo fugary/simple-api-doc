@@ -29,8 +29,7 @@ const router = createRouter({
         meta: {
           icon: 'HomeFilled',
           labelKey: 'common.label.index'
-        },
-        redirect: '/api/projects'
+        }
       }, {
         path: 'about',
         name: 'about',
