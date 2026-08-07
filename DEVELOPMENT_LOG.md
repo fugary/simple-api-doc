@@ -185,3 +185,4 @@
 *注：本日志基于完整的 Git 提交历史进行深度挖掘与分类汇总。*
 - **opt**: [2026-08-06] 优化项目分组与权限安全控制：重构 `DashboardController` 等控制器的后端查询 SQL 拼接逻辑，利用 `apiProjectAccessService` 方法处理分组权限，消除重复查询构造代码。
 - **opt**: [2026-08-07] 优化 dashboard 统计大盘代码结构与样式冗余：1. 在 `DashboardTrendChart.vue` 中修复暗黑模式下网格线过亮的问题，将坐标系背景网格线 `splitLine` 颜色重置为 Element Plus 动态 CSS 变量 `var(--el-border-color-lighter)`；2. 移除 `DashboardRecentShares.vue`、`DashboardRecentImports.vue` 等小组件中重复的 `.dashboard-card` 样式定义，改用内置属性 `body-style="flex: 1; padding: 0; overflow: hidden;"` 消除代码重复；3. 将活动列表行项重复样式 `.activity-item` 统一抽取沉淀至全局样式 `src/assets/main.css` 中；4. 所有修改均已通过严格的 ESLint 规范检验。
+- **opt**: [2026-08-07] 优化首页最近分享展示：1. 有效期格式化为仅显示日期，防止显示不全被截断；2. 有密码分享的链接自动拼接 \pwd\ 参数以便于快捷访问；3. 列表项上补充显示是否有密码状态小图标提示。

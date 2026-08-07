@@ -6,7 +6,7 @@ import {
   $coreConfirm,
   $openNewWin,
   $randomStr,
-  formatDate,
+  formatDay,
   useBackUrl,
   isAdminUser,
   getStyleGrow,
@@ -149,7 +149,7 @@ const columns = [{
   labelKey: 'api.label.expireDate',
   formatter: (row) => {
     if (row.expireDate) {
-      return formatDate(row.expireDate)
+      return formatDay(row.expireDate)
     }
     return $i18nBundle('api.label.noExpires')
   }

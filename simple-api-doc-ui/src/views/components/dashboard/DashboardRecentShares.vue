@@ -2,7 +2,7 @@
 import { ref, onMounted, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getRecentShares } from '@/api/dashboard/DashboardApi'
-import { formatDate } from '@/utils'
+import { formatDate, formatDay } from '@/utils'
 
 const router = useRouter()
 const all = inject('dashboard-all', ref(false))
@@ -30,7 +30,11 @@ watch(all, () => {
 })
 
 const getShareUrl = (share) => {
-  return router.resolve({ name: 'ShareDoc', params: { shareId: share.shareId || share.id } }).href
+  const routeLocation = { name: 'ShareDoc', params: { shareId: share.shareId || share.id } }
+  if (share.sharePassword) {
+    routeLocation.query = { pwd: share.sharePassword }
+  }
+  return router.resolve(routeLocation).href
 }
 
 const getShareDisplayName = (item) => {
@@ -104,6 +108,17 @@ const showShareProjectTag = (item) => {
             >
               {{ getShareDisplayName(item) }}
             </el-link>
+            <el-tooltip
+              v-if="item.sharePassword"
+              :content="$t('api.label.hasPassword')"
+              placement="top"
+            >
+              <common-icon
+                icon="Lock"
+                :size="14"
+                style="color: var(--el-color-warning); margin: 0 4px; cursor: help; align-self: center;"
+              />
+            </el-tooltip>
             <el-tag
               v-if="showShareProjectTag(item)"
               size="small"
@@ -117,7 +132,7 @@ const showShareProjectTag = (item) => {
           <div class="dashboard-item-sub">
             <span class="dashboard-item-meta">
               {{ $t('api.label.dashboardCreator') }}: {{ item.userName || item.creator }}
-              · {{ item.expireDate ? formatDate(item.expireDate) : $t('api.label.dashboardPermanent') }}
+              · {{ item.expireDate ? formatDay(item.expireDate) : $t('api.label.dashboardPermanent') }}
             </span>
             <span class="dashboard-item-time">
               {{ formatDate(item.createDate) }}
