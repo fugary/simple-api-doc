@@ -103,7 +103,14 @@ public class ApiProjectTaskController {
      * @param userName
      */
     protected void addGroupCodeQuery(ProjectQueryVo queryVo, QueryWrapper<ApiProjectTask> queryWrapper, String userName) {
-        apiProjectAccessService.addProjectRelatedGroupCodeQuery(queryWrapper, "t_api_project_task", "project_id", queryVo.getGroupCode(), userName);
+        if (SecurityUtils.isAdmin() && StringUtils.isNotBlank(queryVo.getUserName())) {
+            queryWrapper.eq("creator", queryVo.getUserName());
+            if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
+                queryWrapper.exists("select 1 from t_api_project p where p.id = t_api_project_task.project_id and p.group_code={0}", queryVo.getGroupCode());
+            }
+        } else {
+            apiProjectAccessService.addProjectRelatedGroupCodeQuery(queryWrapper, "t_api_project_task", "project_id", queryVo.getGroupCode(), userName);
+        }
     }
 
     @GetMapping("/{id}")
