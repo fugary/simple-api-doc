@@ -90,10 +90,18 @@ public class ApiProjectController {
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("project_name", keyword)
                         .or().like("description", keyword))
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
-        if (!checkGroupCodeQuery(queryVo)) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {
+            String loginUserName = SecurityUtils.getLoginUserName();
+            queryWrapper.eq("user_name", loginUserName);
+            if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
+                queryWrapper.eq("group_code", queryVo.getGroupCode());
+            }
+        } else {
+            if (!checkGroupCodeQuery(queryVo)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+            addGroupCodeQuery(queryVo, queryWrapper, userName);
         }
-        addGroupCodeQuery(queryVo, queryWrapper, userName);
         Page<ApiProject> projectPage = apiProjectService.page(page, queryWrapper);
         List<ApiProject> projects = projectPage.getRecords();
         SimpleResult<List<ApiProject>> result = SimpleResultUtils.createSimpleResult(projectPage);

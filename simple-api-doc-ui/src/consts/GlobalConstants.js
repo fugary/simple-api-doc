@@ -63,3 +63,12 @@ export const useFormDelay = (prop = 'delay') => {
     prop
   }
 }
+
+export const useSearchOnlyMine = ({ prop = 'onlyMine', change } = {}) => {
+  return {
+    labelKey: 'api.label.dashboardMyData',
+    prop,
+    type: 'switch',
+    change
+  }
+}

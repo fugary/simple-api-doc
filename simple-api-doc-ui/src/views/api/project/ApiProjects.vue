@@ -8,7 +8,7 @@ import ApiProjectApi, { calcProjectIconUrl, copyProject, uploadFiles } from '@/a
 import { $coreConfirm, $goto, formatDate, isAdminUser, useCurrentUserName } from '@/utils'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { $i18nBundle } from '@/messages'
-import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
+import { useFormStatus, useSearchOnlyMine, useSearchStatus } from '@/consts/GlobalConstants'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { chunk } from 'lodash-es'
 import CommonIcon from '@/components/common-icon/index.vue'
@@ -32,7 +32,7 @@ const { search, getById, deleteById, saveOrUpdate } = ApiProjectApi
 const projectCounts = ref({})
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
-  defaultParam: { page: useDefaultPage(10) },
+  defaultParam: { onlyMine: false, page: useDefaultPage(10) },
   dataProcessor: data => {
     projectCounts.value = data?.addons?.counts || {}
     return (data?.resultData || []).map(project => {
@@ -76,14 +76,17 @@ const changedUser = async (userName) => {
 }
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
-  return [{
+  return [useSearchOnlyMine({
+    change: () => loadApiProjects(1)
+  }), {
     labelKey: 'common.label.user',
     prop: 'userName',
     type: 'select',
     enabled: isAdminUser(),
     children: userOptions.value,
     attrs: {
-      clearable: true
+      clearable: true,
+      disabled: !!searchParam.value?.onlyMine
     },
     change: changedUser
   }, {
