@@ -237,7 +237,7 @@ const changeGroup = async groupCode => {
 const searchFormOptions = computed(() => {
   return [
     useSearchOnlyMine({
-      enabled: !inProject,
+      enabled: !inProject && !isAdminUser(),
       change: changeOnlyMine
     }),
     {
@@ -247,8 +247,7 @@ const searchFormOptions = computed(() => {
       enabled: !inProject && isAdminUser(),
       children: userOptions.value,
       attrs: {
-        clearable: true,
-        disabled: !!searchParam.value?.onlyMine
+        clearable: true
       },
       change: async () => {
         await loadGroupsAndRefreshOptions()

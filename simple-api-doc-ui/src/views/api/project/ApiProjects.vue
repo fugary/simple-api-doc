@@ -94,6 +94,7 @@ const changeOnlyMine = () => {
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
   return [useSearchOnlyMine({
+    enabled: !isAdminUser(),
     change: changeOnlyMine
   }), {
     labelKey: 'common.label.user',
@@ -102,8 +103,7 @@ const searchFormOptions = computed(() => {
     enabled: isAdminUser(),
     children: userOptions.value,
     attrs: {
-      clearable: true,
-      disabled: !!searchParam.value?.onlyMine
+      clearable: true
     },
     change: changedUser
   }, {
