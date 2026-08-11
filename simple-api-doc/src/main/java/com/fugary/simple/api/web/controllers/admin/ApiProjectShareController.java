@@ -55,8 +55,16 @@ public class ApiProjectShareController {
         QueryWrapper<ApiProjectShare> queryWrapper = Wrappers.<ApiProjectShare>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
                 .like(StringUtils.isNotBlank(keyword), "share_name", keyword)
-                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());;
-        addGroupCodeQuery(queryVo, queryWrapper, userName);
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
+        if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {
+            String loginUserName = SecurityUtils.getLoginUserName();
+            queryWrapper.eq("creator", loginUserName);
+            if (StringUtils.isNotBlank(groupCode)) {
+                queryWrapper.exists("select 1 from t_api_project p where p.id = t_api_project_share.project_id and p.group_code={0}", groupCode);
+            }
+        } else {
+            addGroupCodeQuery(queryVo, queryWrapper, userName);
+        }
         Page<ApiProjectShare> pageResult = apiProjectShareService.page(page, queryWrapper);
         if (!pageResult.getRecords().isEmpty()) {
             Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id",

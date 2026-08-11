@@ -9,6 +9,7 @@ import {
   formatDay,
   useBackUrl,
   isAdminUser,
+  useCurrentUserName,
   getStyleGrow,
   $goto
 } from '@/utils'
@@ -19,7 +20,7 @@ import ApiProjectShareApi, { copyProjectShare, getShareUrl } from '@/api/ApiProj
 import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
-import { useFormStatus, useSearchStatus } from '@/consts/GlobalConstants'
+import { useFormStatus, useSearchOnlyMine, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElTag, ElButton, ElText, ElLink } from 'element-plus'
@@ -43,7 +44,7 @@ const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: true })
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
-  defaultParam: { keyword: '', page: useDefaultPage() },
+  defaultParam: { onlyMine: false, keyword: '', page: useDefaultPage() },
   dataProcessor: data => (data?.resultData || []).map(dataItem => {
     dataItem.isDeletable = projectCheckAccess(dataItem.project.groupCode, AUTHORITY_TYPE.DELETABLE)
     dataItem.isWritable = projectCheckAccess(dataItem.project.groupCode, AUTHORITY_TYPE.WRITABLE) || dataItem.isDeletable
@@ -195,6 +196,37 @@ const buttons = computed(() => {
     }
   }]
 })
+const currentUserName = useCurrentUserName()
+
+const displayProjectGroupOptions = computed(() => {
+  if (!inProject && searchParam.value?.onlyMine) {
+    return (projectGroupOptions.value || []).filter(item => item.userName === currentUserName)
+  }
+  return projectGroupOptions.value
+})
+
+const displayProjectOptions = computed(() => {
+  if (!inProject && searchParam.value?.onlyMine) {
+    return (projectOptions.value || []).filter(item => item.userName === currentUserName)
+  }
+  return projectOptions.value
+})
+
+const changeOnlyMine = async () => {
+  if (searchParam.value?.onlyMine) {
+    const selectedGroup = (projectGroupOptions.value || []).find(group => group.value === searchParam.value.groupCode)
+    if (selectedGroup && selectedGroup.userName !== currentUserName) {
+      searchParam.value.groupCode = null
+    }
+    const selectedProject = (projectOptions.value || []).find(proj => proj.value === searchParam.value.projectId)
+    if (selectedProject && selectedProject.userName !== currentUserName) {
+      searchParam.value.projectId = null
+    }
+  }
+  await loadProjectsAndRefreshOptions()
+  return loadProjectShares(1)
+}
+
 const changeGroup = async groupCode => {
   searchParam.value.groupCode = groupCode
   tableData.value = []
@@ -204,6 +236,10 @@ const changeGroup = async groupCode => {
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
   return [
+    useSearchOnlyMine({
+      enabled: !inProject,
+      change: changeOnlyMine
+    }),
     {
       labelKey: 'common.label.user',
       prop: 'userName',
@@ -211,7 +247,8 @@ const searchFormOptions = computed(() => {
       enabled: !inProject && isAdminUser(),
       children: userOptions.value,
       attrs: {
-        clearable: true
+        clearable: true,
+        disabled: !!searchParam.value?.onlyMine
       },
       change: async () => {
         await loadGroupsAndRefreshOptions()
@@ -222,15 +259,15 @@ const searchFormOptions = computed(() => {
       labelKey: 'api.label.projectGroups1',
       prop: 'groupCode',
       type: 'select',
-      enabled: !inProject && !!projectGroupOptions.value?.length,
-      children: projectGroupOptions.value,
+      enabled: !inProject && !!displayProjectGroupOptions.value?.length,
+      children: displayProjectGroupOptions.value,
       change: changeGroup
     }, {
       labelKey: 'api.label.project',
       prop: 'projectId',
       type: 'select',
-      enabled: !inProject && !!projectOptions.value.length,
-      children: projectOptions.value,
+      enabled: !inProject && !!displayProjectOptions.value.length,
+      children: displayProjectOptions.value,
       change () {
         loadProjectShares(1)
       }

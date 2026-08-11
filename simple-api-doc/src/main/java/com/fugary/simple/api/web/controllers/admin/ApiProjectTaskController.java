@@ -70,8 +70,16 @@ public class ApiProjectTaskController {
         QueryWrapper<ApiProjectTask> queryWrapper = Wrappers.<ApiProjectTask>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
                 .like(StringUtils.isNotBlank(keyword), "task_name", keyword)
-                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());;
-        addGroupCodeQuery(queryVo, queryWrapper, userName);
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
+        if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {
+            String loginUserName = SecurityUtils.getLoginUserName();
+            queryWrapper.eq("creator", loginUserName);
+            if (StringUtils.isNotBlank(groupCode)) {
+                queryWrapper.exists("select 1 from t_api_project p where p.id = t_api_project_task.project_id and p.group_code={0}", groupCode);
+            }
+        } else {
+            addGroupCodeQuery(queryVo, queryWrapper, userName);
+        }
         Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, queryWrapper);
         Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query()
                         .in(!pageResult.getRecords().isEmpty(), "id",
