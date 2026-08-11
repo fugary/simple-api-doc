@@ -74,10 +74,27 @@ const changedUser = async (userName) => {
   await loadGroupsAndRefreshOptions()
   return loadApiProjects(1)
 }
+const displayProjectGroupOptions = computed(() => {
+  if (searchParam.value?.onlyMine) {
+    return (projectGroupOptions.value || []).filter(item => item.userName === currentUserName)
+  }
+  return projectGroupOptions.value
+})
+
+const changeOnlyMine = () => {
+  if (searchParam.value?.onlyMine) {
+    const selectedGroup = projectGroups.value?.find(group => group.groupCode === searchParam.value.groupCode)
+    if (selectedGroup && selectedGroup.userName !== currentUserName) {
+      searchParam.value.groupCode = null
+    }
+  }
+  return loadApiProjects(1)
+}
+
 //* ************搜索框**************//
 const searchFormOptions = computed(() => {
   return [useSearchOnlyMine({
-    change: () => loadApiProjects(1)
+    change: changeOnlyMine
   }), {
     labelKey: 'common.label.user',
     prop: 'userName',
@@ -93,8 +110,8 @@ const searchFormOptions = computed(() => {
     labelKey: 'api.label.projectGroups1',
     prop: 'groupCode',
     type: 'select',
-    enabled: !!projectGroupOptions.value?.length,
-    children: projectGroupOptions.value,
+    enabled: !!displayProjectGroupOptions.value?.length,
+    children: displayProjectGroupOptions.value,
     change () {
       loadApiProjects(1)
     }
