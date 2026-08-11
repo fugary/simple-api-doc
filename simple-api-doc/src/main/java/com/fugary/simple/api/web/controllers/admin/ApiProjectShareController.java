@@ -55,7 +55,8 @@ public class ApiProjectShareController {
         QueryWrapper<ApiProjectShare> queryWrapper = Wrappers.<ApiProjectShare>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
                 .like(StringUtils.isNotBlank(keyword), "share_name", keyword)
-                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
+                .orderByDesc("id");
         if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {
             String loginUserName = SecurityUtils.getLoginUserName();
             queryWrapper.eq("creator", loginUserName);

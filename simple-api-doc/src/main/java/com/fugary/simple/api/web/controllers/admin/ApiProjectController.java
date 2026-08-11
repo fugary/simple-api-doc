@@ -89,7 +89,8 @@ public class ApiProjectController {
         QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query()
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("project_name", keyword)
                         .or().like("description", keyword))
-                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
+                .orderByDesc("id");
         if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {
             String loginUserName = SecurityUtils.getLoginUserName();
             queryWrapper.eq("user_name", loginUserName);

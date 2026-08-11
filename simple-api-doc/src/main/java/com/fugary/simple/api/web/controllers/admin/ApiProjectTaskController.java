@@ -70,7 +70,8 @@ public class ApiProjectTaskController {
         QueryWrapper<ApiProjectTask> queryWrapper = Wrappers.<ApiProjectTask>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
                 .like(StringUtils.isNotBlank(keyword), "task_name", keyword)
-                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus());
+                .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
+                .orderByDesc("id");
         if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {
             String loginUserName = SecurityUtils.getLoginUserName();
             queryWrapper.eq("creator", loginUserName);

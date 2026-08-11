@@ -131,7 +131,8 @@ public class ApiGroupController {
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
                 .eq(StringUtils.isNotBlank(userName), "user_name", userName)
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("group_name", keyword)
-                        .or().like("description", keyword));
+                .or().like("description", keyword))
+                .orderByDesc("id");
         Page<ApiGroup> groupPage = apiGroupService.page(page, queryWrapper);
         List<String> groupCodes = groupPage.getRecords().stream().map(ApiGroup::getGroupCode).distinct().collect(Collectors.toList());
         List<ApiUserGroup> apiUserGroups = apiGroupService.loadGroupUsers(groupCodes);
