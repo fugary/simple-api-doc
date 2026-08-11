@@ -24,7 +24,7 @@ const emit = defineEmits(['selectExample', 'editExample', 'deleteExample'])
       v-common-tooltip="title||$i18nKey('common.label.commonView', 'common.label.example')"
       type="primary"
       underline="never"
-      class="margin-left1"
+      class="margin-left3"
     >
       <common-icon
         :size="18"

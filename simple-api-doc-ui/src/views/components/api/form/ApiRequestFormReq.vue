@@ -24,17 +24,17 @@ import ApiRequestFormAuthorization from '@/views/components/api/form/ApiRequestF
 import ApiDocLoginApiDropdown from '@/views/components/api/doc/comp/ApiDocLoginApiDropdown.vue'
 import { $i18nBundle, $i18nConcat, $i18nKey } from '@/messages'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
-import { getSingleSelectOptions, $corePrompt, $coreSuccess, $coreWarning, $copyText } from '@/utils'
+import { getSingleSelectOptions, $copyText } from '@/utils'
 import { showCodeWindow } from '@/utils/DynamicUtils'
-import { isString, isArray, cloneDeep } from 'lodash-es'
+import { isString, isArray } from 'lodash-es'
 import {
   calcEnvSuggestions,
   calcHeaderSuggestions,
   generateFormSample,
   generateSchemaSample,
+  promptSaveExample,
   removeSchemaRecursion
 } from '@/services/api/ApiCommonService'
-import { updateExamples } from '@/api/ApiProjectInfoDetailApi'
 
 import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
@@ -253,45 +253,18 @@ const getSchemaBodyId = () => {
   return body?.__id
 }
 
-const doSaveExamples = (newExamples) => {
-  const schemaId = getSchemaBodyId()
-  if (!schemaId) {
-    $coreWarning($i18nBundle('api.msg.saveExampleFailedNoId'))
-    return
-  }
-  updateExamples({ id: schemaId, examples: JSON.stringify(newExamples) }).then(res => {
-    if (res.success) {
-      $coreSuccess($i18nBundle('common.msg.saveSuccess'))
+const saveAsExample = () => {
+  promptSaveExample({
+    schemaId: getSchemaBodyId(),
+    examples: props.examples,
+    content: contentRef.value,
+    onSuccess (newExamples) {
       emit('updateExamples', newExamples)
       if (paramTarget.value) {
         paramTarget.value.requestExamples = [JSON.stringify(newExamples)]
       }
     }
   })
-}
-
-const saveAsExample = () => {
-  $corePrompt($i18nBundle('common.msg.commonInput', [$i18nBundle('common.label.example')]),
-    $i18nKey('common.label.commonSave', 'common.label.example'), {
-      inputValue: 'Custom Example'
-    }).then(({ value }) => {
-    if (!value) return
-    const newExamples = cloneDeep(props.examples || [])
-    const existingIndex = newExamples.findIndex(e => e.summary === value)
-    let exampleValue = contentRef.value
-    try {
-      exampleValue = JSON.parse(exampleValue)
-    } catch {
-      // Ignore invalid json
-    }
-    const newExample = { summary: value, value: exampleValue }
-    if (existingIndex >= 0) {
-      newExamples.splice(existingIndex, 1, newExample)
-    } else {
-      newExamples.push(newExample)
-    }
-    doSaveExamples(newExamples)
-  }).catch(() => {})
 }
 
 const resetRequestForm = () => {
@@ -549,7 +522,7 @@ const { monacoTheme } = useShareDocTheme()
             </template>
 
             <el-link
-              v-if="!isShare"
+              v-if="!isShare&&paramTarget?.isWritable"
               v-common-tooltip="$t('api.label.saveAsExample')"
               type="primary"
               underline="never"

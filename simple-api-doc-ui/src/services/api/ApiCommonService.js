@@ -6,6 +6,7 @@ import {
   isUserAdmin,
   $coreSuccess,
   $corePrompt,
+  $coreWarning,
   $coreConfirm,
   useCurrentUserName
 } from '@/utils'
@@ -293,45 +294,77 @@ export const showGenerateSchemaSample = async (requestsSchema, componentMap, con
         label: $i18nKey('common.label.commonSave', 'common.label.example'),
         type: 'warning',
         click () {
-          $corePrompt($i18nBundle('common.msg.commonInput', [$i18nBundle('common.label.example')]),
-            $i18nKey('common.label.commonSave', 'common.label.example'), {
-              inputValue: config?.selectedExample?.summary || 'Custom Example'
-            }).then(({ value }) => {
-            if (!value) return
-            const newExamples = requestsSchema.examples ? cloneDeep(JSON.parse(requestsSchema.examples)) : []
-            // Try to find by original name first (if editing an existing example)
-            let existingIndex = -1
-            if (config?.selectedExample?.summary) {
-              existingIndex = newExamples.findIndex(e => e.summary === config.selectedExample.summary)
+          promptSaveExample({
+            schemaId: requestsSchema.id,
+            examples: requestsSchema.examples,
+            content: currentContent.value,
+            selectedExample: config?.selectedExample,
+            onSuccess (newExamples) {
+              requestsSchema.examples = JSON.stringify(newExamples)
             }
-            // If not found by original name (e.g. force generate), try to find by the new name
-            if (existingIndex < 0) {
-              existingIndex = newExamples.findIndex(e => e.summary === value)
-            }
-            let exampleValue = currentContent.value
-            try {
-              exampleValue = JSON.parse(exampleValue)
-            } catch {
-              // Ignore invalid json
-            }
-            const newExample = { summary: value, value: exampleValue }
-            if (existingIndex >= 0) {
-              newExamples.splice(existingIndex, 1, newExample)
-            } else {
-              newExamples.push(newExample)
-            }
-            updateExamples({ id: requestsSchema.id, examples: JSON.stringify(newExamples) }).then(res => {
-              if (res.success) {
-                $coreSuccess($i18nBundle('common.msg.saveSuccess'))
-                requestsSchema.examples = JSON.stringify(newExamples)
-              }
-            })
-          }).catch(() => {})
+          })
         }
       }, ...(config.buttons || [])]
     }
     return showCodeWindow(sampleStr, windowConfig)
   }
+}
+
+/**
+ * 弹出框提示输入示例名称并保存/更新示例数据
+ * @param {Object} options
+ * @param {string|number} options.schemaId - Schema ID
+ * @param {Array|string} options.examples - 当前示例列表 (Array 或 JSON 字符串)
+ * @param {*} options.content - 示例内容 (格式化对象或字符串)
+ * @param {Object} [options.selectedExample] - 当前正在编辑的原示例项 (可选)
+ * @param {Function} [options.onSuccess] - 保存成功后的回调函数 callback(newExamples)
+ */
+export const promptSaveExample = ({ schemaId, examples, content, selectedExample, onSuccess }) => {
+  if (!schemaId) {
+    $coreWarning($i18nBundle('api.msg.saveExampleFailedNoId'))
+    return
+  }
+  $corePrompt($i18nBundle('common.msg.commonInput', [$i18nBundle('common.label.example')]),
+    $i18nKey('common.label.commonSave', 'common.label.example'), {
+      inputValue: selectedExample?.summary || '',
+      inputValidator: (val) => {
+        if (!val || !val.trim()) {
+          return $i18nBundle('common.msg.commonInput', [$i18nBundle('common.label.example')])
+        }
+        return true
+      }
+    }).then(({ value }) => {
+    value = value?.trim()
+    if (!value) return
+    const newExamples = isString(examples) ? (examples ? cloneDeep(JSON.parse(examples)) : []) : cloneDeep(examples || [])
+    let existingIndex = -1
+    if (selectedExample?.summary) {
+      existingIndex = newExamples.findIndex(e => e.summary === selectedExample.summary)
+    }
+    if (existingIndex < 0) {
+      existingIndex = newExamples.findIndex(e => e.summary === value)
+    }
+    let exampleValue = content
+    if (isString(exampleValue)) {
+      try {
+        exampleValue = JSON.parse(exampleValue)
+      } catch {
+        // Ignore invalid json
+      }
+    }
+    const newExample = { summary: value, value: exampleValue }
+    if (existingIndex >= 0) {
+      newExamples.splice(existingIndex, 1, newExample)
+    } else {
+      newExamples.push(newExample)
+    }
+    updateExamples({ id: schemaId, examples: JSON.stringify(newExamples) }).then(res => {
+      if (res.success) {
+        $coreSuccess($i18nBundle('common.msg.saveSuccess'))
+        onSuccess?.(newExamples)
+      }
+    })
+  }).catch(() => {})
 }
 
 export const getParsedExamples = (schema) => {

@@ -13,8 +13,10 @@ import {
   BEARER_KEY,
   SCHEMA_SELECT_TYPE,
   ALL_CONTENT_TYPES_LIST,
-  REQUEST_SEND_MODES
+  REQUEST_SEND_MODES,
+  AUTHORITY_TYPE
 } from '@/consts/ApiConstants'
+import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { processEvnParams, useScreenCheck, getExtractedEnvParams, cacheExtractedEnvParams, isJson, isXml } from '@/services/api/ApiCommonService'
 import { nextTick, ref, watch, computed, markRaw, reactive } from 'vue'
 import { previewApiRequest } from '@/utils/DynamicUtils'
@@ -310,10 +312,13 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   syncCachedParamsToTarget(preferenceId, groupConfig)
   const componentMap = calcComponentMap(projectInfoDetail.componentSchemas || [])
   const sharePreference = useShareConfigStore().sharePreferenceView[preferenceId]
+  const project = apiDocDetail?.project || projectInfoDetail
+  const isWritable = !sharePreference?.isShare && inProjectCheckAccess(project, AUTHORITY_TYPE.WRITABLE)
   const target = {
     projectId: apiDocDetail?.projectId,
     docId: apiDocDetail?.id,
     preferenceId,
+    isWritable,
     pathParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'path'),
     requestParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap),
     headerParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'header'),
@@ -1195,7 +1200,7 @@ export const parseLoginApiConfigs = (target) => {
   return gConfig?.loginApiConfigs || (gConfig?.loginApiConfig ? [gConfig.loginApiConfig] : [])
 }
 
-export const NOT_SAVED_KEYS = ['targetUrl', 'requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig']
+export const NOT_SAVED_KEYS = ['targetUrl', 'requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig', 'isWritable']
 
 export const mergeSavedParamTarget = (target, lastParamTarget) => {
   const savedTarget = { ...lastParamTarget }
