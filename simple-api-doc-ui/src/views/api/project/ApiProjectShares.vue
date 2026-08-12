@@ -100,6 +100,7 @@ const columns = [{
                    tooltip={$i18nBundle('api.label.openLink')}
                    v-open-new-window={shareUrl}
                    onClick={() => $openNewWin(shareUrl)} />
+      {data.description ? <><br/><ElText type="info" size="small">{data.description}</ElText></> : ''}
       </>
   }
 }, {
@@ -482,6 +483,13 @@ const editFormOptions = computed(() => {
       value: 'url',
       labelKey: 'api.label.docLabelShowUrl'
     }]
+  }, {
+    labelKey: 'common.label.description',
+    prop: 'description',
+    attrs: {
+      type: 'textarea',
+      rows: 2
+    }
   }])
 })
 

@@ -54,7 +54,7 @@ public class ApiProjectShareController {
         }
         QueryWrapper<ApiProjectShare> queryWrapper = Wrappers.<ApiProjectShare>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
-                .like(StringUtils.isNotBlank(keyword), "share_name", keyword)
+                .and(StringUtils.isNotBlank(keyword), w -> w.like("share_name", keyword).or().like("description", keyword))
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
                 .orderByDesc("id");
         if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {

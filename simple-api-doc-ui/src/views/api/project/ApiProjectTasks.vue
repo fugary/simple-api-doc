@@ -75,6 +75,7 @@ const columns = [{
     return <>
       {data.taskName}
       {data.creator ? <ElText type="success" tag="b" class="margin-left1">({data.creator})</ElText> : ''}
+      {data.description ? <><br/><ElText type="info" size="small">{data.description}</ElText></> : ''}
     </>
   }
 }, {
@@ -436,6 +437,13 @@ const editFormOptions = computed(() => {
         }
       })
       event.preventDefault()
+    }
+  }, {
+    labelKey: 'common.label.description',
+    prop: 'description',
+    attrs: {
+      type: 'textarea',
+      rows: 2
     }
   }])
 })

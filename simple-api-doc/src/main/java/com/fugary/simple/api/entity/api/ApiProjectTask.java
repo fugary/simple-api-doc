@@ -24,4 +24,5 @@ public class ApiProjectTask extends ModelBase {
     private String authType;
     private String authContent;
     private Date execDate;
+    private String description;
 }

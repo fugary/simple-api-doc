@@ -28,4 +28,5 @@ public class ApiProjectShare extends ModelBase {
     private String copyRight;
     private String waterMark;
     private Date expireDate;
+    private String description;
 }
