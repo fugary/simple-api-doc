@@ -643,7 +643,28 @@ public class SimpleModelUtils {
      * @return
      */
     public static String remapGroupConfigDocIds(String groupConfig, Map<Integer, Integer> docMappings) {
-        if (StringUtils.isBlank(groupConfig) || docMappings == null || docMappings.isEmpty()) {
+        if (docMappings == null || docMappings.isEmpty()) {
+            return groupConfig;
+        }
+        return processGroupConfigApiIds(groupConfig, docMappings::get, "重映射groupConfig接口ID错误");
+    }
+
+    /**
+     * 清理 groupConfig 中在 validDocIds 里不存在的 apiId
+     *
+     * @param groupConfig
+     * @param validDocIds
+     * @return
+     */
+    public static String cleanInvalidGroupConfigDocIds(String groupConfig, Set<Integer> validDocIds) {
+        if (validDocIds == null) {
+            return groupConfig;
+        }
+        return processGroupConfigApiIds(groupConfig, id -> validDocIds.contains(id) ? id : null, "清理groupConfig无效接口ID错误");
+    }
+
+    private static String processGroupConfigApiIds(String groupConfig, java.util.function.Function<Integer, Integer> apiIdMapper, String errorMsg) {
+        if (StringUtils.isBlank(groupConfig)) {
             return groupConfig;
         }
         try {
@@ -651,15 +672,20 @@ public class SimpleModelUtils {
             if (rootNode instanceof ObjectNode) {
                 ObjectNode root = (ObjectNode) rootNode;
                 if (root.has("loginApiConfigs") && root.get("loginApiConfigs").isArray()) {
-                    for (JsonNode item : root.get("loginApiConfigs")) {
-                        remapDocId(item, docMappings);
+                    ArrayNode loginArray = (ArrayNode) root.get("loginApiConfigs");
+                    ArrayNode newArray = JsonUtils.getMapper().createArrayNode();
+                    for (JsonNode item : loginArray) {
+                        if (processApiIdNode(item, apiIdMapper, true)) {
+                            newArray.add(item);
+                        }
                     }
+                    root.set("loginApiConfigs", newArray);
                 }
                 if (root.has("envParams") && root.get("envParams").isArray()) {
                     for (JsonNode param : root.get("envParams")) {
                         if (param.has("extractRules") && param.get("extractRules").isArray()) {
                             for (JsonNode rule : param.get("extractRules")) {
-                                remapDocId(rule, docMappings);
+                                processApiIdNode(rule, apiIdMapper, false);
                             }
                         }
                     }
@@ -667,21 +693,30 @@ public class SimpleModelUtils {
                 return JsonUtils.toJson(root);
             }
         } catch (Exception e) {
-            log.error("重映射groupConfig接口ID错误", e);
+            log.error(errorMsg, e);
         }
         return groupConfig;
     }
 
-    private static void remapDocId(JsonNode node, Map<Integer, Integer> docMappings) {
+    private static boolean processApiIdNode(JsonNode node, java.util.function.Function<Integer, Integer> apiIdMapper, boolean isStrict) {
         if (node instanceof ObjectNode) {
             ObjectNode objNode = (ObjectNode) node;
             if (objNode.has("apiId")) {
-                Integer newApiId = docMappings.get(objNode.get("apiId").asInt());
+                int apiId = objNode.get("apiId").asInt();
+                Integer newApiId = apiIdMapper.apply(apiId);
                 if (newApiId != null) {
-                    objNode.put("apiId", newApiId);
+                    if (newApiId != apiId) {
+                        objNode.put("apiId", newApiId);
+                    }
+                } else {
+                    objNode.remove("apiId");
+                    if (isStrict) {
+                        return false;
+                    }
                 }
             }
         }
+        return true;
     }
 
 

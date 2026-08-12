@@ -120,6 +120,8 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
                 List<ApiDoc> docs = forceEnabled ? apiDocService.loadEnabledByProject(apiProject.getId(), queryVo.isIncludeDocContent())
                         : apiDocService.loadByProject(apiProject.getId(), queryVo.isIncludeDocContent());
                 apiProjectVo.setDocs(docs);
+                Set<Integer> validDocIds = docs.stream().map(ApiDoc::getId).collect(Collectors.toSet());
+                apiProjectVo.setGroupConfig(SimpleModelUtils.cleanInvalidGroupConfigDocIds(apiProjectVo.getGroupConfig(), validDocIds));
                 if (CollectionUtils.isNotEmpty(queryVo.getDocIds())) {
                     List<ApiDoc> docList = docs.stream().filter(doc -> queryVo.getDocIds().contains(doc.getId()))
                             .collect(Collectors.toList());
