@@ -90,6 +90,7 @@ public class ApiProjectController {
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("project_name", keyword)
                         .or().like("description", keyword))
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
+                .orderByDesc("top_flag")
                 .orderByDesc("id");
         if (Boolean.TRUE.equals(queryVo.getOnlyMine())) {
             String loginUserName = SecurityUtils.getLoginUserName();

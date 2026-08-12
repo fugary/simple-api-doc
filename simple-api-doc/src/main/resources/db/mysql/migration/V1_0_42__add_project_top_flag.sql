@@ -1,0 +1,1 @@
+ALTER TABLE t_api_project ADD top_flag bit(1) DEFAULT b'0';

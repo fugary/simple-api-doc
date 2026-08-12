@@ -21,4 +21,5 @@ public class ApiProject extends ModelBase {
     private String groupConfig;
     private String iconUrl;
     private String description;
+    private Boolean topFlag = false;
 }

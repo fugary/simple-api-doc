@@ -1,0 +1,1 @@
+ALTER TABLE t_api_project ADD COLUMN top_flag bit DEFAULT 0;

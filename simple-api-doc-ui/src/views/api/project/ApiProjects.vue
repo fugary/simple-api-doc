@@ -299,6 +299,22 @@ const saveProjectItem = (item) => {
   return saveOrUpdate(item).then(() => loadApiProjects())
 }
 
+const toggleTopFlag = (project, $event) => {
+  $event?.stopPropagation()
+  const isPinning = !project.topFlag
+  const confirmMessage = isPinning
+    ? $i18nBundle('api.msg.confirmPin', [project.projectName])
+    : $i18nBundle('api.msg.confirmUnpin', [project.projectName])
+
+  $coreConfirm(confirmMessage).then(() => {
+    const toUpdate = { ...project, topFlag: isPinning }
+    saveOrUpdate(toUpdate, { loading: true }).then(() => {
+      ElMessage.success($i18nBundle('common.msg.operationSuccess'))
+      loadApiProjects()
+    })
+  })
+}
+
 const colSize = computed(() => {
   return Math.floor(width.value / 350) || 1
 })
@@ -341,6 +357,27 @@ const tableProjectItems = computed(() => {
                 </span>
               </span>
             </ElTooltip>
+            {(project.topFlag || (project.isWritable && project.showOperations)) && <ElTooltip
+              content={project.topFlag ? $i18nBundle('api.label.unpin') : $i18nBundle('api.label.pin')}
+              placement="top"
+              disabled={!project.isWritable}
+            >
+              <CommonIcon
+                icon={project.topFlag ? 'StarFilled' : 'Star'}
+                style={{
+                  color: project.topFlag ? 'var(--el-color-warning)' : 'var(--el-text-color-placeholder)',
+                  fontSize: '18px',
+                  marginLeft: '5px',
+                  cursor: project.isWritable ? 'pointer' : 'default',
+                  outline: 'none'
+                }}
+                onClick={(e) => {
+                  if (project.isWritable) {
+                    toggleTopFlag(project, e)
+                  }
+                }}
+              />
+            </ElTooltip>}
           </span>
         }
       }, {
