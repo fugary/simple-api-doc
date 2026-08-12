@@ -296,6 +296,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         Map<Integer, Pair<ApiFolder, ApiFolder>> foldersMap = apiFolderService.copyProjectFolders(lastProjectId, project.getId(), null);
         Map<Integer, Pair<ApiProjectInfo, ApiProjectInfo>> infosMap = apiProjectInfoService.copyProjectInfos(lastProjectId, project.getId(), foldersMap);
         Map<Integer, Integer> docMappings = apiDocService.copyProjectDocs(lastProjectId, project.getId(), foldersMap, infosMap);
+        if (StringUtils.isNotBlank(project.getGroupConfig())) {
+            String newGroupConfig = SimpleModelUtils.remapGroupConfigDocIds(project.getGroupConfig(), docMappings);
+            if (!Objects.equals(newGroupConfig, project.getGroupConfig())) {
+                project.setGroupConfig(newGroupConfig);
+                updateById(project);
+            }
+        }
         // share和task比较好处理
         apiProjectShareService.copyProjectShares(lastProjectId, project.getId(), null, docMappings);
         Map<Integer, ApiProjectTask> copyTasks = apiProjectTaskService.copyProjectTasks(lastProjectId, project.getId(), null, foldersMap);

@@ -636,6 +636,56 @@ public class SimpleModelUtils {
     }
 
     /**
+     * 重映射groupConfig中的docId
+     *
+     * @param groupConfig
+     * @param docMappings
+     * @return
+     */
+    public static String remapGroupConfigDocIds(String groupConfig, Map<Integer, Integer> docMappings) {
+        if (StringUtils.isBlank(groupConfig) || docMappings == null || docMappings.isEmpty()) {
+            return groupConfig;
+        }
+        try {
+            JsonNode rootNode = JsonUtils.getMapper().readTree(groupConfig);
+            if (rootNode instanceof ObjectNode) {
+                ObjectNode root = (ObjectNode) rootNode;
+                if (root.has("loginApiConfigs") && root.get("loginApiConfigs").isArray()) {
+                    for (JsonNode item : root.get("loginApiConfigs")) {
+                        remapDocId(item, docMappings);
+                    }
+                }
+                if (root.has("envParams") && root.get("envParams").isArray()) {
+                    for (JsonNode param : root.get("envParams")) {
+                        if (param.has("extractRules") && param.get("extractRules").isArray()) {
+                            for (JsonNode rule : param.get("extractRules")) {
+                                remapDocId(rule, docMappings);
+                            }
+                        }
+                    }
+                }
+                return JsonUtils.toJson(root);
+            }
+        } catch (Exception e) {
+            log.error("重映射groupConfig接口ID错误", e);
+        }
+        return groupConfig;
+    }
+
+    private static void remapDocId(JsonNode node, Map<Integer, Integer> docMappings) {
+        if (node instanceof ObjectNode) {
+            ObjectNode objNode = (ObjectNode) node;
+            if (objNode.has("apiId")) {
+                Integer newApiId = docMappings.get(objNode.get("apiId").asInt());
+                if (newApiId != null) {
+                    objNode.put("apiId", newApiId);
+                }
+            }
+        }
+    }
+
+
+    /**
      * 根据分享配置过滤项目属性（包含登录接口和环境配置）
      *
      * @param project

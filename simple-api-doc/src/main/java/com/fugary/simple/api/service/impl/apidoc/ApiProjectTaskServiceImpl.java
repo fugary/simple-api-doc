@@ -60,9 +60,8 @@ public class ApiProjectTaskServiceImpl extends ServiceImpl<ApiProjectTaskMapper,
                 task.setTaskName(task.getTaskName() + ApiDocConstants.COPY_SUFFIX);
             }
             Pair<ApiFolder, ApiFolder> folderPair = foldersMap.get(task.getToFolder());
-            ApiFolder newFolder = folderPair.getRight();
-            if (newFolder != null) {
-                task.setToFolder(newFolder.getId());
+            if (folderPair != null && folderPair.getRight() != null) {
+                task.setToFolder(folderPair.getRight().getId());
             }
             SimpleModelUtils.cleanCreateModel(task);
             task.setExecDate(null);
