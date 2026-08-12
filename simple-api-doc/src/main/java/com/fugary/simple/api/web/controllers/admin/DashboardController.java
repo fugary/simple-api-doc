@@ -218,11 +218,12 @@ public class DashboardController {
 
     @GetMapping("/recentImports")
     public SimpleResult<List<ApiProjectTaskVo>> recentImports(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
-        String userName = getQueryUser(all);
         Page<ApiProjectTask> page = new Page<>(1, 10);
         QueryWrapper<ApiProjectTask> query = Wrappers.<ApiProjectTask>query()
-                .eq(StringUtils.isNotBlank(userName), "creator", userName)
                 .orderByDesc("modify_date");
+        if (!shouldQueryAll(all)) {
+            apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_task", "project_id", null, SecurityUtils.getLoginUserName());
+        }
         Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, query);
         List<ApiProjectTaskVo> taskList = new ArrayList<>();
         if (!pageResult.getRecords().isEmpty()) {
