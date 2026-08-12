@@ -102,6 +102,9 @@ public class ApiProjectController {
             if (!checkGroupCodeQuery(queryVo)) {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
             }
+            if (SecurityUtils.isAdmin() && StringUtils.isNotBlank(queryVo.getUserName())) {
+                queryWrapper.eq("user_name", queryVo.getUserName());
+            }
             addGroupCodeQuery(queryVo, queryWrapper, userName);
         }
         Page<ApiProject> projectPage = apiProjectService.page(page, queryWrapper);

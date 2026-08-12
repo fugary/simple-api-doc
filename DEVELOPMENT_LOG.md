@@ -1,3 +1,4 @@
+﻿- **bug**: [2026-08-12] 修复在项目列表页面，管理员过滤特定用户时错误显示该用户拥有权限的项目（而非仅显示其创建的项目）的问题：在 ApiProjectController 的 search 接口中，针对管理员精确过滤特定用户时增加了 queryWrapper.eq('user_name', queryVo.getUserName()) 的条件，使得在不影响下拉选项（/selectProjects 接口仍保持显示所有可访问项目）的前提下，项目列表可以进行精确创建者过滤。
 - **bug**: [2026-08-12] 修复在导入管理和分享管理等页面切换用户或分组时，下拉项目会错误地强制回跳到第一个(或历史)项目的问题：在 ApiProjectApi.js 的 loadProjectsAndRefreshOptions 中优化了寻找当前选中项目的逻辑，现在将优先根据 projectId 进行精确匹配，而不是在 projectId 已变更时仍被旧的 projectCode 误导。
 - **bug**: [2026-08-12] 修复管理员在导入管理和分享管理中切换用户或分组时项目列表及选定用户被异常重置的问题：移除了 ApiProjectApi.js 和 ApiProjectGroupApi.js 中拉取项目选项后在不适当时机强制覆盖原 searchParam.userName 与 groupCode 的逻辑，防止下拉选单选中非期望的用户选项或清空后自动回跳到 admin；同时优化了 searchParam.userName 为空时的管理员回退逻辑，使得清空用户后能正确地获取到全量项目。
 # 开发进度日志 (Detailed Development Log)
@@ -187,3 +188,4 @@
 
 ---
 *注：本日志基于完整的 Git 提交历史进行深度挖掘与分类汇总。*
+
