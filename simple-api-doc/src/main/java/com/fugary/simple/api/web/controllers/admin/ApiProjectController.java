@@ -303,14 +303,17 @@ public class ApiProjectController {
      * @param userName
      */
     protected void addGroupCodeQuery(ProjectQueryVo queryVo, QueryWrapper<ApiProject> queryWrapper, String userName) {
-        if (SecurityUtils.isAdmin() && StringUtils.isNotBlank(queryVo.getUserName())) {
-            queryWrapper.eq("user_name", queryVo.getUserName());
-            if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
-                queryWrapper.eq("group_code", queryVo.getGroupCode());
+        if (SecurityUtils.isAdmin()) {
+            String targetUser = StringUtils.defaultIfBlank(queryVo.getUserName(), SecurityUtils.getLoginUserName());
+            if (SecurityUtils.isAdmin(targetUser)) {
+                if (StringUtils.isNotBlank(queryVo.getGroupCode())) {
+                    queryWrapper.eq("group_code", queryVo.getGroupCode());
+                }
+                return;
             }
-        } else {
-            apiProjectAccessService.addProjectGroupCodeQuery(queryWrapper, queryVo.getGroupCode(), userName);
+            userName = targetUser;
         }
+        apiProjectAccessService.addProjectGroupCodeQuery(queryWrapper, queryVo.getGroupCode(), userName);
     }
 
     @PostMapping("/checkExportDownloadDocs")
