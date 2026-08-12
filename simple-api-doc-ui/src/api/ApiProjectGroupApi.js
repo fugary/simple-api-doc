@@ -92,10 +92,10 @@ export const useSelectProjectGroups = (searchParam) => {
     })
   }
   const loadGroupsAndRefreshOptions = async () => {
-    const userName = (isAdminUser() && searchParam.value?.userName) ? searchParam.value.userName : useCurrentUserName()
+    const userName = isAdminUser() ? searchParam.value?.userName : useCurrentUserName()
     await loadSelectGroups({ userName })
     const currentGroup = projectGroups.value.find(group => group.groupCode === searchParam.value.groupCode)
-    searchParam.value.projectCode = currentGroup?.projectCode
+    searchParam.value.groupCode = currentGroup?.groupCode
   }
 
   const projectCheckAccess = (groupCode, authority) => {

@@ -1,3 +1,5 @@
+- **bug**: [2026-08-12] 修复在导入管理和分享管理等页面切换用户或分组时，下拉项目会错误地强制回跳到第一个(或历史)项目的问题：在 ApiProjectApi.js 的 loadProjectsAndRefreshOptions 中优化了寻找当前选中项目的逻辑，现在将优先根据 projectId 进行精确匹配，而不是在 projectId 已变更时仍被旧的 projectCode 误导。
+- **bug**: [2026-08-12] 修复管理员在导入管理和分享管理中切换用户或分组时项目列表及选定用户被异常重置的问题：移除了 ApiProjectApi.js 和 ApiProjectGroupApi.js 中拉取项目选项后在不适当时机强制覆盖原 searchParam.userName 与 groupCode 的逻辑，防止下拉选单选中非期望的用户选项或清空后自动回跳到 admin；同时优化了 searchParam.userName 为空时的管理员回退逻辑，使得清空用户后能正确地获取到全量项目。
 # 开发进度日志 (Detailed Development Log)
 
 本文档完整记录了 `simple-api-doc` 项目的详细开发进程、功能迭代及维护记录。

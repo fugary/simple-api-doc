@@ -127,15 +127,15 @@ export const useSelectProjects = (searchParam) => {
   }
   const loadProjectsAndRefreshOptions = async () => {
     await loadSelectProjects({
-      userName: searchParam.value?.userName || useCurrentUserName(),
+      userName: isAdminUser() ? searchParam.value?.userName : useCurrentUserName(),
       groupCode: searchParam.value?.groupCode
     })
-    const currentProj = projects.value.find(proj => proj.projectCode === searchParam.value.projectCode || proj.id === searchParam.value.projectId)
+    const currentProj = projects.value.find(proj => searchParam.value.projectId
+      ? proj.id === searchParam.value.projectId
+      : (searchParam.value.projectCode && proj.projectCode === searchParam.value.projectCode)
+    )
     searchParam.value.projectCode = currentProj?.projectCode
     searchParam.value.projectId = currentProj?.id
-    if (isAdminUser() && currentProj?.userName) {
-      searchParam.value.userName = currentProj.userName
-    }
   }
 
   return {
