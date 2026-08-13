@@ -31,7 +31,11 @@ watch(all, () => {
 
 const getShareUrl = (share) => {
   const routeLocation = { name: 'ShareDoc', params: { shareId: share.shareId || share.id } }
-  return router.resolve(routeLocation).href
+  let url = router.resolve(routeLocation).href
+  if (share.sharePassword) {
+    url = `${url}?pwd=${share.sharePassword}`
+  }
+  return url
 }
 
 const getShareDisplayName = (item) => {
