@@ -9,4 +9,5 @@ public class AdminProjectShareVo extends ApiProjectShare {
 
     private static final long serialVersionUID = 7016926965888466762L;
     private ApiProject project;
+    private Boolean hasPassword;
 }

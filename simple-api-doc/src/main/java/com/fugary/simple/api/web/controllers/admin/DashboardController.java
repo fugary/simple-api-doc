@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.service.apidoc.*;
@@ -210,7 +211,7 @@ public class DashboardController {
             shareList = pageResult.getRecords().stream().map(share -> {
                 AdminProjectShareVo shareVo = com.fugary.simple.api.utils.SimpleModelUtils.copy(share, AdminProjectShareVo.class);
                 shareVo.setProject(projectMap.get(shareVo.getProjectId()));
-                return shareVo;
+                return apiProjectAccessService.maskSharePassword(shareVo);
             }).collect(Collectors.toList());
         }
         return SimpleResultUtils.createSimpleResult(shareList);

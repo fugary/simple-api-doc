@@ -133,8 +133,9 @@ const columns = [{
   labelKey: 'api.label.hasPassword',
   minWidth: '100px',
   formatter (data) {
-    const type = data.sharePassword ? 'success' : 'danger'
-    const text = data.sharePassword ? $i18nBundle('common.label.yes') : $i18nBundle('common.label.no')
+    const hasPwd = data.hasPassword ?? !!data.sharePassword
+    const type = hasPwd ? 'success' : 'danger'
+    const text = hasPwd ? $i18nBundle('common.label.yes') : $i18nBundle('common.label.no')
     return <ElTag type={type}>
       {text}
     </ElTag>

@@ -31,9 +31,6 @@ watch(all, () => {
 
 const getShareUrl = (share) => {
   const routeLocation = { name: 'ShareDoc', params: { shareId: share.shareId || share.id } }
-  if (share.sharePassword) {
-    routeLocation.query = { pwd: share.sharePassword }
-  }
   return router.resolve(routeLocation).href
 }
 
@@ -109,7 +106,7 @@ const showShareProjectTag = (item) => {
               {{ getShareDisplayName(item) }}
             </el-link>
             <el-tooltip
-              v-if="item.sharePassword"
+              v-if="item.hasPassword || item.sharePassword"
               :content="$t('api.label.hasPassword')"
               placement="top"
             >

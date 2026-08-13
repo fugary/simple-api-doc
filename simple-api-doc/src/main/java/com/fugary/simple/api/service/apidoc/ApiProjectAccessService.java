@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.apidoc;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.utils.security.SecurityUtils;
+import com.fugary.simple.api.web.vo.project.AdminProjectShareVo;
 import com.fugary.simple.api.web.vo.task.SimpleTaskVo;
 import org.apache.commons.lang3.StringUtils;
 
@@ -34,6 +35,16 @@ public interface ApiProjectAccessService {
 
     default boolean canAccessShare(ApiProjectShare apiShare, ApiGroupAuthority authority) {
         return apiShare != null && canAccessProject(apiShare.getProjectId(), authority);
+    }
+
+    default AdminProjectShareVo maskSharePassword(AdminProjectShareVo shareVo) {
+        if (shareVo != null) {
+            shareVo.setHasPassword(StringUtils.isNotBlank(shareVo.getSharePassword()));
+            if (!canAccessShare(shareVo, ApiGroupAuthority.WRITABLE)) {
+                shareVo.setSharePassword(null);
+            }
+        }
+        return shareVo;
     }
 
     default boolean canAccessSimpleTask(SimpleTaskVo taskVo, ApiGroupAuthority authority) {

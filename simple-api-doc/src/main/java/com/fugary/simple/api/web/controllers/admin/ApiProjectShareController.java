@@ -74,7 +74,7 @@ public class ApiProjectShareController {
             List<ApiProjectShare> shareList = pageResult.getRecords().stream().map(share -> {
                 AdminProjectShareVo shareVo = SimpleModelUtils.copy(share, AdminProjectShareVo.class);
                 shareVo.setProject(projectMap.get(shareVo.getProjectId()));
-                return shareVo;
+                return apiProjectAccessService.maskSharePassword(shareVo);
             }).collect(Collectors.toList());
             pageResult.setRecords(shareList);
         }
@@ -107,6 +107,9 @@ public class ApiProjectShareController {
         }
         if (!apiProjectAccessService.canAccessShare(apiShare, ApiGroupAuthority.READABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+        }
+        if (!apiProjectAccessService.canAccessShare(apiShare, ApiGroupAuthority.WRITABLE)) {
+            apiShare.setSharePassword(null);
         }
         return SimpleResultUtils.createSimpleResult(apiShare);
     }
