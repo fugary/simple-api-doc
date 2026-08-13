@@ -72,7 +72,7 @@ const { initLoadOnce } = useInitLoadOnce(async () => {
     editShareProject.value = projectItem.value
     await loadGroupsAndRefreshOptions()
   } else {
-    await Promise.allSettled([loadUsersAndRefreshOptions(), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
+    await Promise.allSettled([loadUsersAndRefreshOptions(!isAdminUser()), loadGroupsAndRefreshOptions(), loadProjectsAndRefreshOptions()])
   }
   await loadProjectShares()
 })
