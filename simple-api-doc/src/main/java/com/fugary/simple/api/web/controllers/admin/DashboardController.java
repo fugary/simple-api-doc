@@ -86,7 +86,7 @@ public class DashboardController {
 
         QueryWrapper<ApiProject> projectQuery = Wrappers.<ApiProject>query();
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectGroupCodeQuery(projectQuery, null, SecurityUtils.getLoginUserName());
+            projectQuery.eq("user_name", userName);
         }
         vo.setProjectCount(Math.toIntExact(apiProjectService.count(projectQuery)));
 
@@ -111,7 +111,7 @@ public class DashboardController {
 
         QueryWrapper<ApiProjectShare> shareQuery = Wrappers.<ApiProjectShare>query();
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectRelatedGroupCodeQuery(shareQuery, "t_api_project_share", "project_id", null, SecurityUtils.getLoginUserName());
+            shareQuery.eq("creator", userName);
         }
         vo.setShareCount(Math.toIntExact(apiProjectShareService.count(shareQuery)));
 
@@ -128,7 +128,7 @@ public class DashboardController {
 
         QueryWrapper<ApiProjectTask> taskQuery = Wrappers.<ApiProjectTask>query();
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectRelatedGroupCodeQuery(taskQuery, "t_api_project_task", "project_id", null, SecurityUtils.getLoginUserName());
+            taskQuery.eq("creator", userName);
         }
         vo.setTaskCount(Math.toIntExact(apiProjectTaskService.count(taskQuery)));
 
@@ -182,12 +182,13 @@ public class DashboardController {
 
     @GetMapping("/recentProjects")
     public SimpleResult<List<ApiProject>> recentProjects(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
+        String userName = getQueryUser(all);
         Page<ApiProject> page = new Page<>(1, 10);
         QueryWrapper<ApiProject> query = Wrappers.<ApiProject>query()
                 .orderByDesc("modify_date");
 
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectGroupCodeQuery(query, null, SecurityUtils.getLoginUserName());
+            query.eq("user_name", userName);
         }
 
         apiProjectService.page(page, query);
@@ -202,7 +203,7 @@ public class DashboardController {
                 .orderByDesc("create_date");
 
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_share", "project_id", null, SecurityUtils.getLoginUserName());
+            query.eq("creator", userName);
         }
 
         Page<ApiProjectShare> pageResult = apiProjectShareService.page(page, query);
@@ -222,11 +223,12 @@ public class DashboardController {
 
     @GetMapping("/recentImports")
     public SimpleResult<List<ApiProjectTaskVo>> recentImports(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
+        String userName = getQueryUser(all);
         Page<ApiProjectTask> page = new Page<>(1, 10);
         QueryWrapper<ApiProjectTask> query = Wrappers.<ApiProjectTask>query()
                 .orderByDesc("modify_date");
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_task", "project_id", null, SecurityUtils.getLoginUserName());
+            query.eq("creator", userName);
         }
         Page<ApiProjectTask> pageResult = apiProjectTaskService.page(page, query);
         List<ApiProjectTaskVo> taskList = new ArrayList<>();
@@ -245,11 +247,12 @@ public class DashboardController {
 
     @GetMapping("/importTaskRatio")
     public SimpleResult<List<Map<String, Object>>> importTaskRatio(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
+        String userName = getQueryUser(all);
         QueryWrapper<ApiProjectTask> query = Wrappers.<ApiProjectTask>query()
                 .select("task_type", "count(1) as countValue")
                 .groupBy("task_type");
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_task", "project_id", null, SecurityUtils.getLoginUserName());
+            query.eq("creator", userName);
         }
         List<Map<String, Object>> list = apiProjectTaskService.listMaps(query);
         List<Map<String, Object>> result = new ArrayList<>();
@@ -270,12 +273,13 @@ public class DashboardController {
 
     @GetMapping("/projectShareRatio")
     public SimpleResult<List<Map<String, Object>>> projectShareRatio(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
+        String userName = getQueryUser(all);
         QueryWrapper<ApiProjectShare> query = Wrappers.<ApiProjectShare>query()
                 .select("project_id", "count(1) as countValue")
                 .groupBy("project_id")
                 .orderByDesc("countValue");
         if (!shouldQueryAll(all)) {
-            apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_share", "project_id", null, SecurityUtils.getLoginUserName());
+            query.eq("creator", userName);
         }
         List<Map<String, Object>> shareCounts = apiProjectShareService.listMaps(query);
         List<Map<String, Object>> result = new ArrayList<>();
