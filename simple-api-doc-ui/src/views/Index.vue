@@ -3,6 +3,8 @@ import { computed, provide } from 'vue'
 import { useGlobalSaveSearchParam } from '@/hooks/CommonHooks'
 import DashboardMetrics from './components/dashboard/DashboardMetrics.vue'
 import DashboardTrendChart from './components/dashboard/DashboardTrendChart.vue'
+import DashboardProjectShareChart from './components/dashboard/DashboardProjectShareChart.vue'
+import DashboardImportRatioChart from './components/dashboard/DashboardImportRatioChart.vue'
 import DashboardProjectActivity from './components/dashboard/DashboardProjectActivity.vue'
 import DashboardRecentShares from './components/dashboard/DashboardRecentShares.vue'
 import DashboardRecentImports from './components/dashboard/DashboardRecentImports.vue'
@@ -40,6 +42,18 @@ provide('dashboard-all', all)
     >
       <el-col :span="24">
         <dashboard-trend-chart />
+      </el-col>
+    </el-row>
+
+    <el-row
+      :gutter="20"
+      class="margin-top3"
+    >
+      <el-col :span="12">
+        <dashboard-project-share-chart />
+      </el-col>
+      <el-col :span="12">
+        <dashboard-import-ratio-chart />
       </el-col>
     </el-row>
 

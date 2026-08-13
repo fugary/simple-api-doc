@@ -24,3 +24,13 @@ export const getRecentShares = (all) => $httpGet('/admin/dashboard/recentShares'
  * 获取最近导入
  */
 export const getRecentImports = (all) => $httpGet('/admin/dashboard/recentImports', { params: { all } })
+
+/**
+ * 获取导入任务分布（手动 vs 定时）
+ */
+export const getImportTaskRatio = (all) => $httpGet('/admin/dashboard/importTaskRatio', { params: { all } })
+
+/**
+ * 获取项目分享数统计
+ */
+export const getProjectShareRatio = (all) => $httpGet('/admin/dashboard/projectShareRatio', { params: { all } })

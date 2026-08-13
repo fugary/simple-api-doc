@@ -98,9 +98,9 @@ public class DashboardController {
         vo.setApiCount(0);
         vo.setDocCount(0);
         docCounts.forEach(map -> {
-            Object docTypeObj = map.getOrDefault("doc_type", map.getOrDefault("DOC_TYPE", map.get("docType")));
+            Object docTypeObj = getMapValue(map, "doc_type", "docType");
             String docType = docTypeObj != null ? docTypeObj.toString() : null;
-            Object countObj = map.getOrDefault("countValue", map.getOrDefault("COUNTVALUE", map.get("countvalue")));
+            Object countObj = getMapValue(map, "countValue", "countvalue");
             Integer count = countObj != null ? ((Number) countObj).intValue() : 0;
             if (ApiDocConstants.DOC_TYPE_API.equals(docType)) {
                 vo.setApiCount(count);
@@ -126,8 +126,11 @@ public class DashboardController {
         vo.setAiCacheCount(Math.toIntExact(aiCacheMapper.selectCount(Wrappers.<AiCache>query()
                 .eq(StringUtils.isNotBlank(userName), "user_name", userName))));
 
-        vo.setTaskCount(Math.toIntExact(apiProjectTaskService.count(Wrappers.<ApiProjectTask>query()
-                .eq(StringUtils.isNotBlank(userName), "creator", userName))));
+        QueryWrapper<ApiProjectTask> taskQuery = Wrappers.<ApiProjectTask>query();
+        if (!shouldQueryAll(all)) {
+            apiProjectAccessService.addProjectRelatedGroupCodeQuery(taskQuery, "t_api_project_task", "project_id", null, SecurityUtils.getLoginUserName());
+        }
+        vo.setTaskCount(Math.toIntExact(apiProjectTaskService.count(taskQuery)));
 
         return SimpleResultUtils.createSimpleResult(vo);
     }
@@ -238,5 +241,75 @@ public class DashboardController {
             }).collect(Collectors.toList());
         }
         return SimpleResultUtils.createSimpleResult(taskList);
+    }
+
+    @GetMapping("/importTaskRatio")
+    public SimpleResult<List<Map<String, Object>>> importTaskRatio(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
+        QueryWrapper<ApiProjectTask> query = Wrappers.<ApiProjectTask>query()
+                .select("task_type", "count(1) as countValue")
+                .groupBy("task_type");
+        if (!shouldQueryAll(all)) {
+            apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_task", "project_id", null, SecurityUtils.getLoginUserName());
+        }
+        List<Map<String, Object>> list = apiProjectTaskService.listMaps(query);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> map : list) {
+            Object taskTypeObj = getMapValue(map, "task_type", "taskType");
+            Object countObj = getMapValue(map, "countValue", "countvalue");
+            String taskType = taskTypeObj != null ? taskTypeObj.toString() : null;
+            if (StringUtils.isBlank(taskType)) {
+                taskType = ApiDocConstants.PROJECT_TASK_TYPE_MANUAL;
+            }
+            Map<String, Object> item = new HashMap<>();
+            item.put("taskType", taskType);
+            item.put("count", countObj != null ? ((Number) countObj).intValue() : 0);
+            result.add(item);
+        }
+        return SimpleResultUtils.createSimpleResult(result);
+    }
+
+    @GetMapping("/projectShareRatio")
+    public SimpleResult<List<Map<String, Object>>> projectShareRatio(@RequestParam(value = "all", defaultValue = "false") Boolean all) {
+        QueryWrapper<ApiProjectShare> query = Wrappers.<ApiProjectShare>query()
+                .select("project_id", "count(1) as countValue")
+                .groupBy("project_id")
+                .orderByDesc("countValue");
+        if (!shouldQueryAll(all)) {
+            apiProjectAccessService.addProjectRelatedGroupCodeQuery(query, "t_api_project_share", "project_id", null, SecurityUtils.getLoginUserName());
+        }
+        List<Map<String, Object>> shareCounts = apiProjectShareService.listMaps(query);
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (!shareCounts.isEmpty()) {
+            List<Map<String, Object>> topShareCounts = shareCounts.stream().limit(10).collect(Collectors.toList());
+            List<Integer> projectIds = topShareCounts.stream()
+                    .map(m -> {
+                        Object pidObj = getMapValue(m, "project_id", "projectId");
+                        return pidObj != null ? ((Number) pidObj).intValue() : null;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            if (!projectIds.isEmpty()) {
+                Map<Integer, ApiProject> projectMap = apiProjectService.list(Wrappers.<ApiProject>query().in("id", projectIds))
+                        .stream().collect(Collectors.toMap(ApiProject::getId, Function.identity()));
+                for (Map<String, Object> map : topShareCounts) {
+                    Object pidObj = getMapValue(map, "project_id", "projectId");
+                    Integer pid = pidObj != null ? ((Number) pidObj).intValue() : null;
+                    if (pid != null && projectMap.containsKey(pid)) {
+                        Object countObj = getMapValue(map, "countValue", "countvalue");
+                        Integer count = countObj != null ? ((Number) countObj).intValue() : 0;
+                        Map<String, Object> item = new HashMap<>();
+                        item.put("projectId", pid);
+                        item.put("projectName", projectMap.get(pid).getProjectName());
+                        item.put("count", count);
+                        result.add(item);
+                    }
+                }
+            }
+        }
+        return SimpleResultUtils.createSimpleResult(result);
+    }
+
+    private Object getMapValue(Map<String, Object> map, String snakeCaseKey, String camelCaseKey) {
+        return map.getOrDefault(snakeCaseKey, map.getOrDefault(snakeCaseKey.toUpperCase(), map.get(camelCaseKey)));
     }
 }

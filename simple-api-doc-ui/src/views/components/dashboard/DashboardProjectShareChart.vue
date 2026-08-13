@@ -1,14 +1,13 @@
 <script setup>
 import { ref, onMounted, inject, watch, computed } from 'vue'
-import { getTrend } from '@/api/dashboard/DashboardApi'
+import { getProjectShareRatio } from '@/api/dashboard/DashboardApi'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { storeToRefs } from 'pinia'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart } from 'echarts/charts'
+import { BarChart } from 'echarts/charts'
 import {
   TooltipComponent,
-  LegendComponent,
   GridComponent
 } from 'echarts/components'
 import VChart from 'vue-echarts'
@@ -16,9 +15,8 @@ import { useI18n } from 'vue-i18n'
 
 use([
   CanvasRenderer,
-  LineChart,
+  BarChart,
   TooltipComponent,
-  LegendComponent,
   GridComponent
 ])
 
@@ -27,14 +25,14 @@ const loading = ref(false)
 const { t } = useI18n()
 const { isDarkTheme } = storeToRefs(useGlobalConfigStore())
 
-const trendData = ref({ dates: [], docs: [], projects: [] })
+const rawData = ref([])
 
-const loadTrend = async () => {
+const loadData = async () => {
   loading.value = true
   try {
-    const res = await getTrend(all.value, 30)
+    const res = await getProjectShareRatio(all.value)
     if (res && res.success) {
-      trendData.value = res.resultData || { dates: [], docs: [], projects: [] }
+      rawData.value = res.resultData || []
     }
   } finally {
     loading.value = false
@@ -46,35 +44,43 @@ const chartOption = computed(() => {
   const textColor = isDark ? '#E5EAF3' : '#606266'
   const splitLineColor = isDark ? '#363637' : '#E4E7ED'
 
+  const projectNames = rawData.value.map(item => item.projectName || t('api.label.dashboardUnnamedProject'))
+  const counts = rawData.value.map(item => item.count)
+
   return {
     tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: [t('api.label.dashboardTrendProjects'), t('api.label.dashboardTrendApis')],
-      top: 0,
-      right: 0,
-      textStyle: {
-        color: textColor
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      formatter: (params) => {
+        if (!params || !params.length) return ''
+        const p = params[0]
+        return `${p.name}<br/>${t('api.label.dashboardShareCount')}: <b>${p.value}</b>`
       }
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
-      top: '12%',
+      bottom: '24%',
+      top: '10%',
       containLabel: true
     },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
-      data: trendData.value.dates,
+      data: projectNames,
       axisLabel: {
-        color: textColor
+        interval: 0,
+        rotate: projectNames.length > 5 ? 25 : 0,
+        color: textColor,
+        formatter: (val) => {
+          return val && val.length > 12 ? `${val.substring(0, 12)}...` : val
+        }
       }
     },
     yAxis: {
       type: 'value',
+      minInterval: 1,
       axisLabel: {
         color: textColor
       },
@@ -87,59 +93,25 @@ const chartOption = computed(() => {
     },
     series: [
       {
-        name: t('api.label.dashboardTrendProjects'),
-        type: 'line',
-        smooth: true,
-        data: trendData.value.projects,
-        itemStyle: { color: '#409EFF' },
-        lineStyle: { width: 3 },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [{
-              offset: 0, color: 'rgba(64,158,255,0.3)'
-            }, {
-              offset: 1, color: 'rgba(64,158,255,0.1)'
-            }]
-          }
-        }
-      },
-      {
-        name: t('api.label.dashboardTrendApis'),
-        type: 'line',
-        smooth: true,
-        data: trendData.value.docs,
-        itemStyle: { color: '#67C23A' },
-        lineStyle: { width: 3 },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [{
-              offset: 0, color: 'rgba(103,194,58,0.3)'
-            }, {
-              offset: 1, color: 'rgba(103,194,58,0.1)'
-            }]
-          }
-        }
+        name: t('api.label.dashboardShareCount'),
+        type: 'bar',
+        data: counts,
+        itemStyle: {
+          color: '#409EFF',
+          borderRadius: [4, 4, 0, 0]
+        },
+        barMaxWidth: 32
       }
     ]
   }
 })
 
 onMounted(() => {
-  loadTrend()
+  loadData()
 })
 
 watch(all, () => {
-  loadTrend()
+  loadData()
 })
 </script>
 
@@ -151,8 +123,8 @@ watch(all, () => {
     <template #header>
       <div class="card-header">
         <span class="card-title">
-          <common-icon icon="TrendCharts" />
-          {{ $t('api.label.dashboardTrendChart') }}
+          <common-icon icon="DataAnalysis" />
+          {{ $t('api.label.dashboardProjectShareChart') }}
         </span>
       </div>
     </template>
@@ -171,7 +143,7 @@ watch(all, () => {
 
 <style scoped>
 .chart-container {
-  height: 340px;
+  height: 280px;
   width: 100%;
 }
 
