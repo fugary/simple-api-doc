@@ -14,7 +14,7 @@ VERSION=$1
 
 # 更新 simple-api-doc 版本号
 echo "更新 simple-api-doc 版本号"
-mvn versions:set -DnewVersion=$VERSION
+mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
 
 # 进入 simple-api-doc-ui 目录
 cd simple-api-doc-ui || exit
