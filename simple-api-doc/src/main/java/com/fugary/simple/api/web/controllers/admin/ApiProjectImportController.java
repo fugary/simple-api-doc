@@ -80,13 +80,13 @@ public class ApiProjectImportController {
             }
             SimpleResult<String> contentResult = streamDocContentProvider.getContent(file.getInputStream());
             if (!contentResult.isSuccess()) {
-                return SimpleResultUtils.createSimpleResult(contentResult.getCode());
+                return SimpleResultUtils.createError(contentResult.getCode(), contentResult.getMessage());
             }
             content = contentResult.getResultData();
         } else if (isUrlMode) {
             SimpleResult<String> contentResult = urlDocContentProvider.getContent(importVo);
             if (!contentResult.isSuccess()) {
-                return SimpleResultUtils.createSimpleResult(contentResult.getCode());
+                return SimpleResultUtils.createError(contentResult.getCode(), contentResult.getMessage());
             }
             content = contentResult.getResultData();
         }

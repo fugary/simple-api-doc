@@ -236,32 +236,31 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         if (importer == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2004);
         }
+        boolean isUrlMode = ApiDocConstants.IMPORT_TYPE_URL.equals(importVo.getImportType());
+        int errorCode = isUrlMode ? SystemErrorConstants.CODE_2005 : SystemErrorConstants.CODE_2003;
+        String errorMsgKey = isUrlMode ? "simple.error.code.2005.invalid" : "simple.error.code.2003.invalid";
         String currentTypeName = ApiDocImporter.getTypeName(apiDocImporters, importVo.getSourceType());
         if (!importer.match(content)) {
-            String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
-                    new Object[]{currentTypeName});
-            return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
+            String msg = SimpleResultUtils.getErrorMsg(errorMsgKey, new Object[]{currentTypeName});
+            return SimpleResultUtils.createError(errorCode, msg);
         }
         ExportApiProjectVo exportVo;
         try {
             if ((exportVo = importer.doImport(content)) == null) {
-                String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
-                        new Object[]{currentTypeName});
-                return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
+                String msg = SimpleResultUtils.getErrorMsg(errorMsgKey, new Object[]{currentTypeName});
+                return SimpleResultUtils.createError(errorCode, msg);
             }
         } catch (SimpleRuntimeException e) {
             log.error("解析文档失败", e);
-            String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
-                    new Object[]{currentTypeName});
+            String msg = SimpleResultUtils.getErrorMsg(errorMsgKey, new Object[]{currentTypeName});
             if (StringUtils.isNotBlank(e.getMessage())) {
                 msg += " (" + e.getMessage() + ")";
             }
             return SimpleResult.<ExportApiProjectVo>builder().code(e.getCode()).message(msg).build();
         } catch (Exception e) {
             log.error("解析文档失败", e);
-            String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
-                    new Object[]{currentTypeName});
-            return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
+            String msg = SimpleResultUtils.getErrorMsg(errorMsgKey, new Object[]{currentTypeName});
+            return SimpleResultUtils.createError(errorCode, msg);
         }
         exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
         exportVo.setIconUrl(StringUtils.defaultIfBlank(importVo.getIconUrl(), exportVo.getIconUrl()));

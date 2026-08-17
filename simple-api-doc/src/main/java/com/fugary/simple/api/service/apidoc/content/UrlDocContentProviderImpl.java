@@ -64,7 +64,7 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
             String baseMsg = SimpleResultUtils.getErrorMsg(SystemErrorConstants.CODE_2009);
             String detail = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             String errorMsg = StringUtils.isNotBlank(detail) ? baseMsg + ": " + detail : baseMsg;
-            return SimpleResultUtils.createError(errorMsg);
+            return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, errorMsg);
         }
         if (resultPair != null) {
             HttpResponse httpResponse = resultPair.getRight();
@@ -76,7 +76,7 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
                 String statusLineStr = httpResponse.getStatusLine().toString();
                 log.error("URL数据下载失败: url={}, status={}", source.getUrl(), statusLineStr);
                 String baseMsg = SimpleResultUtils.getErrorMsg(SystemErrorConstants.CODE_2009);
-                return SimpleResultUtils.createError(baseMsg + ": " + statusLineStr);
+                return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, baseMsg + ": " + statusLineStr);
             }
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2005);
         }
