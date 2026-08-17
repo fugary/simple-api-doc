@@ -4,10 +4,13 @@
 * **${message('api.label.folderPath')}**: ${apiDocDetail.folderPath}
 </#if>
 <#if apiDocDetail.docName??>
-* **${message('api.label.apiName')}：** ${apiDocDetail.docName}
+* **${message('api.label.apiName')}：** <#if apiDocDetail.deprecated?? && apiDocDetail.deprecated>~~${apiDocDetail.docName}~~ (${message('api.label.deprecated')})<#else>${apiDocDetail.docName}</#if>
 </#if>
 * **${message('api.label.method')}：** `${apiDocDetail.method}`
-* **${message('api.label.requestPath')}：** `${apiDocDetail.url}`
+* **${message('api.label.requestPath')}：** <#if apiDocDetail.deprecated?? && apiDocDetail.deprecated>~~`${apiDocDetail.url}`~~<#else>`${apiDocDetail.url}`</#if>
+<#if apiDocDetail.deprecated?? && apiDocDetail.deprecated>
+* **${message('api.label.deprecated')}：** `${message('api.label.deprecated')}`
+</#if>
 
 <#if apiDocDetail.docContent?? || apiDocDetail.description??>
 

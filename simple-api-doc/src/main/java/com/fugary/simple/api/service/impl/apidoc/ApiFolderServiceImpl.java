@@ -228,6 +228,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             if (StringUtils.isNotBlank(existsDoc.getDocContent())) { // 修改过docContent
                 apiDocVo.setDocContent(existsDoc.getDocContent());
             }
+            if (apiDocVo.getDeprecated() == null && existsDoc.getDeprecated() != null) { // 导入无deprecated时保留已有deprecated状态
+                apiDocVo.setDeprecated(existsDoc.getDeprecated());
+            }
         }
     }
 

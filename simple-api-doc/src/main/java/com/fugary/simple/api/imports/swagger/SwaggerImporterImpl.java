@@ -273,6 +273,7 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         apiDocVo.setUrl(url);
         ApiDocParseUtils.calcNewDocKey(apiDocVo, folder);
         apiDocVo.setStatus(ApiDocConstants.STATUS_ENABLED);
+        apiDocVo.setDeprecated(operation.getDeprecated());
         apiDocVo.setDescription(operation.getDescription());
         calcDocSchemas(openAPI, apiDocVo, operation);
         return apiDocVo;

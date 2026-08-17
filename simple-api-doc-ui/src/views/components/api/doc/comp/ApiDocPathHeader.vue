@@ -76,7 +76,8 @@ const requestUrl = computed(() => {
         type="primary"
         @click="$copyText(requestUrl)"
       >
-        {{ apiDocDetail?.url }}
+        <del v-if="apiDocDetail?.deprecated">{{ apiDocDetail?.url }}</del>
+        <span v-else>{{ apiDocDetail?.url }}</span>
       </el-link>
     </span>
     <el-button

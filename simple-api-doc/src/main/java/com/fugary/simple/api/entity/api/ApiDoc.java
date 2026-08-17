@@ -19,6 +19,7 @@ public class ApiDoc extends ModelBase implements HistoryBase {
     private String specVersion;
     private Integer sortId;
     private Boolean locked;
+    private Boolean deprecated;
     private String docType;
     private String docName;
     private String docKey;

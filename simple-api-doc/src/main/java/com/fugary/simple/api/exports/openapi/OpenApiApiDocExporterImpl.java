@@ -148,7 +148,8 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         Operation operation = new Operation().addTagsItem(apiFolder.getFolderName())
                 .summary(apiDocDetail.getDocName())
                 .operationId(apiDocDetail.getOperationId())
-                .description(StringUtils.defaultIfBlank(apiDocDetail.getDocContent(), apiDocDetail.getDescription()));
+                .description(StringUtils.defaultIfBlank(apiDocDetail.getDocContent(), apiDocDetail.getDescription()))
+                .deprecated(Boolean.TRUE.equals(apiDocDetail.getDeprecated()) ? true : null);
         ApiProjectInfoDetail parametersSchema = apiDocDetail.getParametersSchema();
         if (parametersSchema != null && StringUtils.isNotBlank(parametersSchema.getSchemaContent())) {
             List<Parameter> parameters = SchemaJsonUtils.fromJson(parametersSchema.getSchemaContent(), new TypeReference<>() {

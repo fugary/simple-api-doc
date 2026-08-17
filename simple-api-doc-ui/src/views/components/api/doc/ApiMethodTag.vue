@@ -33,5 +33,7 @@ const methodColors = Object.fromEntries(ALL_METHODS.map(method => [method.method
 <style scoped>
 .el-tag {
   flex-shrink: 0;
+  display: inline-flex;
+  text-decoration: none;
 }
 </style>

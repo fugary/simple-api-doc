@@ -2,8 +2,12 @@ package com.fugary.simple.api.imports;
 
 import com.fugary.simple.api.imports.swagger.SwaggerImporterImpl;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
+import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 public class ApiProjectImportFileTest {
 
@@ -73,5 +77,42 @@ public class ApiProjectImportFileTest {
         Assertions.assertFalse(importer.match(""));
         Assertions.assertFalse(importer.match(null));
         Assertions.assertFalse(importer.match("   "));
+    }
+
+    @Test
+    public void testSwaggerImporterDeprecated() {
+        SwaggerImporterImpl importer = new SwaggerImporterImpl();
+        String openapiYaml = "openapi: 3.0.0\n" +
+                "info:\n" +
+                "  title: Sample API\n" +
+                "  version: 1.0.0\n" +
+                "paths:\n" +
+                "  /users:\n" +
+                "    get:\n" +
+                "      summary: Get users (deprecated)\n" +
+                "      deprecated: true\n" +
+                "      responses:\n" +
+                "        '200':\n" +
+                "          description: OK\n" +
+                "    post:\n" +
+                "      summary: Create user\n" +
+                "      responses:\n" +
+                "        '200':\n" +
+                "          description: OK\n";
+        ExportApiProjectVo projectVo = importer.doImport(openapiYaml);
+        Assertions.assertNotNull(projectVo);
+        List<ExportApiDocVo> docs = projectVo.getDocs();
+        if (docs.isEmpty() && !projectVo.getFolders().isEmpty()) {
+            docs = projectVo.getFolders().get(0).getDocs();
+        }
+        Assertions.assertFalse(docs.isEmpty());
+        ExportApiDocVo getDoc = docs.stream().filter(d -> "GET".equalsIgnoreCase(d.getMethod())).findFirst().orElse(null);
+        ExportApiDocVo postDoc = docs.stream().filter(d -> "POST".equalsIgnoreCase(d.getMethod())).findFirst().orElse(null);
+
+        Assertions.assertNotNull(getDoc);
+        Assertions.assertTrue(Boolean.TRUE.equals(getDoc.getDeprecated()));
+
+        Assertions.assertNotNull(postDoc);
+        Assertions.assertNull(postDoc.getDeprecated());
     }
 }

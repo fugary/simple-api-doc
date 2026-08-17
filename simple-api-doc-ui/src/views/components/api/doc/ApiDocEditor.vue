@@ -45,7 +45,13 @@ const formOptions = computed(() => {
     type: 'switch',
     prop: 'locked',
     tooltip: $i18nBundle('api.msg.apiDocLocked'),
-    style: getStyleGrow(6)
+    style: getStyleGrow(3)
+  }, {
+    labelKey: 'api.label.deprecated',
+    type: 'switch',
+    prop: 'deprecated',
+    tooltip: $i18nBundle('api.msg.apiDocDeprecated'),
+    style: getStyleGrow(3)
   }, {
     label: 'Operation ID',
     prop: 'operationId',

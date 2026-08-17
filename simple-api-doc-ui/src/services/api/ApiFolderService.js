@@ -254,6 +254,10 @@ export const getDocHandlers = (doc, preference, handlerData) => {
   const label = isApi ? $i18nBundle('api.label.interfaces') : $i18nBundle('api.label.mdDocument')
   const statusLabel = doc.status === 1 ? 'common.label.commonDisable' : 'common.label.commonEnable'
   const lockedLabel = $i18nBundle(doc.locked ? 'api.label.apiDocUnlock' : 'api.label.apiDocLock')
+  const deprecatedKey = doc.deprecated
+    ? (isApi ? 'api.label.apiDocUndeprecated' : 'api.label.mdDocUndeprecated')
+    : (isApi ? 'api.label.apiDocDeprecated' : 'api.label.mdDocDeprecated')
+  const deprecatedLabel = $i18nBundle(deprecatedKey)
   return [{
     icon: 'Edit',
     iconColor: 'var(--el-color-primary)',
@@ -282,6 +286,16 @@ export const getDocHandlers = (doc, preference, handlerData) => {
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [lockedLabel]))
         .then(() => docHandlerSaveDoc(doc, { locked: doc.locked ? 0 : 1 }))
+        .then(() => handlerData.refreshProjectItem())
+    }
+  }, {
+    icon: doc.deprecated ? 'FlashOnFilled' : 'FlashOffFilled',
+    iconColor: doc.deprecated ? 'var(--el-color-success)' : 'var(--el-color-warning)',
+    type: doc.deprecated ? '' : 'warning',
+    label: deprecatedLabel,
+    handler: () => {
+      $coreConfirm($i18nBundle('common.msg.commonConfirm', [deprecatedLabel]))
+        .then(() => docHandlerSaveDoc(doc, { deprecated: doc.deprecated ? 0 : 1 }))
         .then(() => handlerData.refreshProjectItem())
     }
   }, {

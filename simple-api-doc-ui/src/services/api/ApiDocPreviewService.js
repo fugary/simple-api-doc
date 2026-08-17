@@ -1100,6 +1100,10 @@ export const getDocHistoryViewOptions = (doc, history) => {
       labelKey: 'api.label.lockStatus',
       prop: () => doc.locked ? $i18nBundle('api.label.locked') : $i18nBundle('api.label.unlocked')
     },
+    {
+      labelKey: 'api.label.deprecated',
+      prop: () => doc.deprecated ? $i18nBundle('api.label.deprecated') : $i18nBundle('api.label.notDeprecated')
+    },
     { labelKey: 'common.label.sortId', prop: 'sortId' },
     {
       labelKey: isApi ? 'api.label.apiDescription' : 'api.label.docContent',

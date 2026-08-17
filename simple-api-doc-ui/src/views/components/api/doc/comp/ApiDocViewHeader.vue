@@ -77,9 +77,16 @@ const toShowHistoryWindow = (current) => {
                                    style="vertical-align: middle;"
                                    v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}/>
         }
+        let deprecatedStatus = <></>
+        if (data.deprecated) {
+          deprecatedStatus = <ElTag type="warning" size="small" class="margin-left1" round={true}>
+            {$i18nBundle('api.label.deprecated')}
+          </ElTag>
+        }
         return <>
           <DelFlagTag v-model={data.status}/>
           {lockStatus}
+          {deprecatedStatus}
         </>
       },
       attrs: {
@@ -153,7 +160,16 @@ const showAffixBtn = inject('showAffixBtn', null)
       </el-breadcrumb-item>
     </el-breadcrumb>
     <h2 class="margin-bottom1">
-      {{ currentDoc?.docName || currentDoc?.url }}
+      <el-text
+        v-if="currentDoc?.deprecated"
+        tag="del"
+        type="warning"
+        size="large"
+        style="font-size: inherit; font-weight: inherit;"
+      >
+        {{ currentDoc?.docName || currentDoc?.url }}
+      </el-text>
+      <span v-else>{{ currentDoc?.docName || currentDoc?.url }}</span>
       <el-button
         v-if="editable"
         class="margin-left2"

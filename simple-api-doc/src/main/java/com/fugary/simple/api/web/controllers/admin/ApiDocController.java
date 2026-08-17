@@ -157,6 +157,9 @@ public class ApiDocController {
         if (!Boolean.TRUE.equals(apiDoc.getLocked()) && !Boolean.TRUE.equals(existsDoc.getLocked())) {
             apiDoc.setLocked(existsDoc.getLocked());
         }
+        if (apiDoc.getDeprecated() == null && existsDoc.getDeprecated() != null) {
+            apiDoc.setDeprecated(existsDoc.getDeprecated());
+        }
         if (ApiDocConstants.DOC_TYPE_API.equals(apiDoc.getDocType()) && StringUtils.isBlank(existsDoc.getDocContent())
                 && StringUtils.equals(apiDoc.getDocContent(), existsDoc.getDescription())) {
             apiDoc.setDocContent(existsDoc.getDocContent());
@@ -173,7 +176,8 @@ public class ApiDocController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         if (Objects.equals(apiDoc.getStatus(), existsDoc.getStatus())
-                && Objects.equals(apiDoc.getLocked(), existsDoc.getLocked())) {
+                && Objects.equals(apiDoc.getLocked(), existsDoc.getLocked())
+                && Objects.equals(apiDoc.getDeprecated(), existsDoc.getDeprecated())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2000, existsDoc);
         }
         if (apiDoc.getVersion() == null) {
@@ -187,6 +191,7 @@ public class ApiDocController {
                 .set(ApiDocConstants.STATUS_KEY, apiDoc.getStatus())
                 .set(ApiDocConstants.MODIFIER_KEY, SecurityUtils.getLoginUserName())
                 .set("locked", apiDoc.getLocked())
+                .set("deprecated", apiDoc.getDeprecated())
                 .set("doc_version", apiDoc.getVersion())
                 .set("modify_date", new Date()));
         return SimpleResultUtils.createSimpleResult(apiDoc);
