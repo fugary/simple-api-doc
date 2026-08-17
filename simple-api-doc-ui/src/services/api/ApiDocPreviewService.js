@@ -1014,14 +1014,14 @@ export const generateSampleCheckResults = schemaBody => {
   return results
 }
 
-export const useApiDocDebugConfig = (editable = false) => {
+export const useApiDocDebugConfig = () => {
   const apiDocPreviewRef = ref()
   const splitSizes = ref([20, 80])
   const previewLoading = ref(false)
   const defaultMinSizes = ref([0, 500, 600])
   const defaultMaxSizes = ref([500, Infinity, Infinity])
   const isShowDebug = computed(() => splitSizes.value?.length === 3)
-  const { isSmallScreen, isMediumScreen, isLargeScreen } = useScreenCheck()
+  const { isSmallScreen, isLargeScreen } = useScreenCheck()
   const hideDebugSplit = () => {
     if (isShowDebug.value) {
       splitSizes.value = [20, 80]
@@ -1030,7 +1030,7 @@ export const useApiDocDebugConfig = (editable = false) => {
   const forceShowWindow = ref()
   const changeForceShowWindow = ref()
   const toDebugApi = (projectInfo, apiDoc, ...args) => {
-    let showDebugWindow = editable ? isMediumScreen.value : isSmallScreen.value
+    let showDebugWindow = !isLargeScreen.value
     const preferenceId = calcDetailPreferenceId(apiDoc)
     const shareConfigStore = useShareConfigStore()
     if (shareConfigStore?.sharePreferenceView?.[preferenceId]?.debugInWindow) {

@@ -74,7 +74,6 @@ const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = sha
   defaultTheme: props.shareDoc?.defaultTheme || 'dark',
   defaultShowLabel: props.shareDoc?.defaultShowLabel || 'docName',
   showMergeAllOf: true,
-  debugInWindow: false,
   isShare: !!props.shareDoc?.shareId,
   preferenceId
 })

@@ -60,7 +60,7 @@ watch(() => currentDoc.value?.editing, (newEditing, oldEditing) => {
     currentDoc.value = lastDocInfo.value
   }
 })
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig(true)
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
 const folderContainerHeight = computed(() => {
   const offset = calcAffixOffset()
   return `calc(100vh - ${170 + offset}px)`

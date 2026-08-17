@@ -508,13 +508,13 @@ export const useContentTypeOption = (prop = 'contentType') => {
 
 /**
  * 屏幕大小判断
- * @returns {{isMediumScreen: vue_demi.Ref<boolean>, isSmallScreen: vue_demi.Ref<boolean>, isMobile: vue_demi.Ref<boolean>}}
+ * @returns {{isLargeScreen: vue_demi.Ref<boolean>, isMediumScreen: vue_demi.Ref<boolean>, isSmallScreen: vue_demi.Ref<boolean>, isMobile: vue_demi.Ref<boolean>}}
  */
 export const useScreenCheck = () => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isSmallScreen = useMediaQuery('(max-width: 1200px)')
   const isMediumScreen = useMediaQuery('(max-width: 1400px)')
-  const isLargeScreen = useMediaQuery('(min-width: 1400px)')
+  const isLargeScreen = useMediaQuery('(min-width: 1800px)')
   return {
     isMobile,
     isSmallScreen,
