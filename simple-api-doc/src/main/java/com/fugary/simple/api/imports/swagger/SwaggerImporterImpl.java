@@ -33,18 +33,49 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class SwaggerImporterImpl implements ApiDocImporter {
 
+    public static final String OPENAPI_TYPE = "openapi";
+    public static final Pattern SWAGGER_YAML_PATTERN = Pattern.compile("(?m)^\\s*['\"]?(openapi|swagger)['\"]?\\s*:");
+
     public SwaggerImporterImpl() {
     }
 
     @Override
+    public String getType() {
+        return OPENAPI_TYPE;
+    }
+
+    @Override
     public boolean isSupport(String type) {
-        return "openapi".equals(type);
+        return OPENAPI_TYPE.equals(type);
+    }
+
+    @Override
+    public boolean match(String data) {
+        if (StringUtils.isBlank(data)) {
+            return false;
+        }
+        String trimmed = data.trim();
+        // JSON 格式判断
+        if (trimmed.startsWith("{")) {
+            if (trimmed.contains("\"openapi\"") || trimmed.contains("\"swagger\"")) {
+                return true;
+            }
+            if (trimmed.contains("\"paths\"") && trimmed.contains("\"info\"")) {
+                return true;
+            }
+        }
+        // YAML 格式判断
+        if (SWAGGER_YAML_PATTERN.matcher(trimmed).find()) {
+            return true;
+        }
+        return trimmed.contains("paths:") && trimmed.contains("info:");
     }
 
     @Override

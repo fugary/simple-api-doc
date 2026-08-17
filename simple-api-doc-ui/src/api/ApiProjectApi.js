@@ -191,6 +191,55 @@ export const importProject = (files, params = {}, config = {}) => {
     formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 60000 }, config))
 }
 
+/**
+ * 快速嗅探文件或文本的数据格式类型
+ * @param {File|Blob|string} fileOrText 上传文件或字符串
+ * @returns {Promise<string|null>} 'openapi' | null
+ */
+export const detectImportFileType = async (fileOrText) => {
+  if (!fileOrText) {
+    return null
+  }
+  let text = ''
+  if (typeof fileOrText === 'string') {
+    text = fileOrText.length > 64 * 1024 ? fileOrText.slice(0, 64 * 1024) : fileOrText
+  } else if (fileOrText.slice && typeof fileOrText.slice === 'function') {
+    const sliceBlob = fileOrText.slice(0, 64 * 1024)
+    if (typeof sliceBlob.text === 'function') {
+      text = await sliceBlob.text()
+    } else {
+      text = await new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result || '')
+        reader.onerror = () => resolve('')
+        reader.readAsText(sliceBlob)
+      })
+    }
+  }
+  const trimmed = (text || '').trim()
+  if (!trimmed) {
+    return null
+  }
+
+  // 1. JSON 对象格式：包含 openapi / swagger，或同时包含 paths 与 info
+  if (trimmed.startsWith('{')) {
+    if (trimmed.includes('"openapi"') || trimmed.includes('"swagger"') ||
+       (trimmed.includes('"paths"') && trimmed.includes('"info"'))) {
+      return 'openapi'
+    }
+  }
+
+  // 2. Swagger / OpenAPI (YAML 格式)
+  if (/^openapi\s*:\s*['"]?3\./m.test(trimmed) ||
+      /^swagger\s*:\s*['"]?2\./m.test(trimmed) ||
+      (/^\s*['"]?(openapi|swagger)['"]?\s*:/m.test(trimmed)) ||
+      (/^paths\s*:/m.test(trimmed) && /^info\s*:/m.test(trimmed))) {
+    return 'openapi'
+  }
+
+  return null
+}
+
 export const generateJWT = function (data, config) {
   return $http(Object.assign({
     url: `${API_PROJECT_URL}/generateJwt`,

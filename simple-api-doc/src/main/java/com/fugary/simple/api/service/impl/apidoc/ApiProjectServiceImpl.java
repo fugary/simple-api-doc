@@ -233,17 +233,35 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     @Override
     public SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo) {
         ApiDocImporter importer = ApiDocImporter.findImporter(apiDocImporters, importVo.getSourceType());
-        ExportApiProjectVo exportVo;
         if (importer == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2004);
         }
+        String currentTypeName = ApiDocImporter.getTypeName(apiDocImporters, importVo.getSourceType());
+        if (!importer.match(content)) {
+            String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
+                    new Object[]{currentTypeName});
+            return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
+        }
+        ExportApiProjectVo exportVo;
         try {
             if ((exportVo = importer.doImport(content)) == null) {
-                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2006);
+                String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
+                        new Object[]{currentTypeName});
+                return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
             }
         } catch (SimpleRuntimeException e) {
             log.error("解析文档失败", e);
-            return SimpleResult.<ExportApiProjectVo>builder().code(e.getCode()).message(e.getMessage()).build();
+            String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
+                    new Object[]{currentTypeName});
+            if (StringUtils.isNotBlank(e.getMessage())) {
+                msg += " (" + e.getMessage() + ")";
+            }
+            return SimpleResult.<ExportApiProjectVo>builder().code(e.getCode()).message(msg).build();
+        } catch (Exception e) {
+            log.error("解析文档失败", e);
+            String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.invalid",
+                    new Object[]{currentTypeName});
+            return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
         }
         exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
         exportVo.setIconUrl(StringUtils.defaultIfBlank(importVo.getIconUrl(), exportVo.getIconUrl()));

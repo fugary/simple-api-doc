@@ -15,6 +15,7 @@ import {
 import { ElButton, ElUpload, ElText } from 'element-plus'
 import {
   calcProjectIconUrl,
+  detectImportFileType,
   importProject, uploadFiles
 } from '@/api/ApiProjectApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -123,18 +124,28 @@ const isOversizedFile = (file) => {
   const raw = file?.raw || file
   return raw?.size && raw.size > DEFAULT_MAX_IMPORT_FILE_SIZE
 }
+const validateFileContent = async (file) => {
+  const detected = await detectImportFileType(file?.raw || file)
+  return detected === 'openapi'
+}
 
-const onFileListUpdate = (files) => {
+const onFileListUpdate = async (files) => {
   const validFiles = []
   const oversizedFiles = []
   const invalidExtFiles = []
+  const invalidContentFiles = []
   for (const file of files || []) {
     if (!isSupportedFile(file)) {
       invalidExtFiles.push(file)
     } else if (isOversizedFile(file)) {
       oversizedFiles.push(file)
     } else {
-      validFiles.push(file)
+      const isValid = await validateFileContent(file)
+      if (!isValid) {
+        invalidContentFiles.push(file)
+      } else {
+        validFiles.push(file)
+      }
     }
   }
   if (invalidExtFiles.length > 0) {
@@ -146,6 +157,10 @@ const onFileListUpdate = (files) => {
       .map(f => `${getFileName(f)} (${formatFileSize(f.size || f.raw?.size)})`)
       .join(', ')
     $coreError($i18nBundle('api.msg.importFileSizeExceed', [detail, formatFileSize(DEFAULT_MAX_IMPORT_FILE_SIZE)]))
+  }
+  if (invalidContentFiles.length > 0) {
+    const detail = invalidContentFiles.map(getFileName).join(', ')
+    $coreError($i18nBundle('api.msg.importFileTypeInvalidDetail', [detail, $i18nBundle('api.label.importTypeSwagger')]))
   }
   importFiles.value = validFiles
 }
@@ -326,7 +341,7 @@ const formOptions = computed(() => {
 const emit = defineEmits(['import-success'])
 const importFormRef = useTemplateRef('importForm')
 const doImportProject = (autoAlert = true) => {
-  importFormRef.value?.form.validate((valid) => {
+  importFormRef.value?.form.validate(async (valid) => {
     if (valid) {
       if (importModel.value.importType === 'file') {
         if (!importFiles.value?.length) {
@@ -346,6 +361,14 @@ const doImportProject = (autoAlert = true) => {
           $coreError($i18nBundle('api.msg.importFileSizeExceed', [
             `${getFileName(oversizedFile)} (${formatFileSize(oversizedFile.size || oversizedFile.raw?.size)})`,
             formatFileSize(DEFAULT_MAX_IMPORT_FILE_SIZE)
+          ]))
+          return
+        }
+        const isValid = await validateFileContent(importFiles.value[0])
+        if (!isValid) {
+          $coreError($i18nBundle('api.msg.importFileTypeInvalidDetail', [
+            getFileName(importFiles.value[0]),
+            $i18nBundle('api.label.importTypeSwagger')
           ]))
           return
         }

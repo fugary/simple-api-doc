@@ -330,6 +330,7 @@ api.msg.duplicateStrategy = '路径是全局唯一的，所有用户共享，因
 api.msg.importFileTitle = '导入数据'
 api.msg.importFileLimit = '支持 {0} 格式，文件大小最大限制为 {1}'
 api.msg.importFileTypeInvalid = '上传文件格式不支持：文件【{0}】格式不支持，仅支持【{1}】格式'
+api.msg.importFileTypeInvalidDetail = '上传文件格式不支持：文件【{0}】不是有效的【{1}】格式数据'
 api.msg.importFileSizeExceed = '上传文件大小超过限制：文件【{0}】超过最大限制【{1}】'
 api.msg.importFileSuccess = '导入成功【{0}】'
 api.msg.importFileNoFile = '请选择导入文件'

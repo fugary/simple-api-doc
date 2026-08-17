@@ -331,6 +331,7 @@ api.msg.duplicateStrategy = 'The path is globally unique, and all users share it
 api.msg.importFileTitle = 'Import data'
 api.msg.importFileLimit = 'Supports {0} formats, file size limit is {1}'
 api.msg.importFileTypeInvalid = 'Unsupported file format: File [{0}] is not supported, only [{1}] formats are allowed.'
+api.msg.importFileTypeInvalidDetail = 'Unsupported file format: File [{0}] is not valid [{1}] format data.'
 api.msg.importFileSizeExceed = 'File size exceeds limit: File [{0}] exceeds maximum limit [{1}].'
 api.msg.importFileSuccess = 'Imported successfully [{0}].'
 api.msg.importFileNoFile = 'Please select import file'
