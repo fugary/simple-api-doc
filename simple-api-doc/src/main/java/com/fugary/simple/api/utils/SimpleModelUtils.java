@@ -320,6 +320,25 @@ public class SimpleModelUtils {
     }
 
     /**
+     * 校验文件名是否为支持的导入格式
+     *
+     * @param fileName
+     * @return
+     */
+    public static boolean isSupportedImportFile(String fileName) {
+        if (StringUtils.isBlank(fileName)) {
+            return false;
+        }
+        String lower = fileName.toLowerCase();
+        for (String ext : ApiDocConstants.SUPPORTED_IMPORT_EXTENSIONS) {
+            if (lower.endsWith(ext)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 转换成ShareVo
      * @param apiShare
      * @return

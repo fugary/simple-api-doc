@@ -3,6 +3,7 @@ package com.fugary.simple.api.contants;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -54,6 +55,11 @@ public class ApiDocConstants {
     public static final String IMPORT_TYPE_FILE = "file";
 
     public static final String IMPORT_TYPE_URL = "url";
+
+    /**
+     * 支持导入的文件扩展名列表
+     */
+    public static final List<String> SUPPORTED_IMPORT_EXTENSIONS = List.of(".json", ".yaml", ".yml");
 
     public static final String FOLDER_PATH_SEPARATOR = "/";
 

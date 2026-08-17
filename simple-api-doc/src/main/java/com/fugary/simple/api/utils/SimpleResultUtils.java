@@ -171,6 +171,19 @@ public class SimpleResultUtils {
                 .message(msg).build();
     }
 
+    /**
+     * 自定义错误代码和消息
+     *
+     * @param code
+     * @param msg
+     * @return
+     */
+    public static <T> SimpleResult<T> createError(int code, String msg) {
+        return SimpleResult.<T>builder()
+                .code(code)
+                .message(msg).build();
+    }
+
     public static String getErrorMsg(Integer code, Locale locale) {
         String messageKey = "simple.error.code." + code;
         if (messageSource != null) {
@@ -181,6 +194,17 @@ public class SimpleResultUtils {
 
     public static String getErrorMsg(Integer code) {
         return getErrorMsg(code, LocaleContextHolder.getLocale());
+    }
+
+    public static String getErrorMsg(String messageKey, Object[] args, Locale locale) {
+        if (messageSource != null) {
+            return messageSource.getMessage(messageKey, args, messageKey, locale);
+        }
+        return messageKey;
+    }
+
+    public static String getErrorMsg(String messageKey, Object[] args) {
+        return getErrorMsg(messageKey, args, LocaleContextHolder.getLocale());
     }
 
     /**

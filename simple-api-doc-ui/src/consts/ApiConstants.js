@@ -127,6 +127,12 @@ export const IMPORT_TYPES = [{
   labelKey: 'api.label.importTypeUrl'
 }]
 
+export const DEFAULT_MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
+export const SUPPORTED_IMPORT_FILE_EXTS = ['.json', '.yaml', '.yml']
+
+export const SUPPORTED_IMPORT_FILE_ACCEPT = SUPPORTED_IMPORT_FILE_EXTS.join(',')
+
 export const IMPORT_TASK_TYPES = [{
   value: 'manual',
   labelKey: 'api.label.manualImportData1'

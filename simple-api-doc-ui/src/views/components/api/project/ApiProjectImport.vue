@@ -1,13 +1,16 @@
 <script setup lang="jsx">
 import { computed, ref, useTemplateRef } from 'vue'
-import { $coreAlert, $coreError, getStyleGrow, isAdminUser, useCurrentUserName } from '@/utils'
+import { $coreAlert, $coreError, formatFileSize, getStyleGrow, isAdminUser, useCurrentUserName } from '@/utils'
 import { defineFormOptions } from '@/components/utils'
 import {
   IMPORT_AUTH_TYPES,
   IMPORT_DUPLICATE_STRATEGY,
   IMPORT_SOURCE_TYPES,
-  IMPORT_TYPES
-  , AUTH_TYPE
+  IMPORT_TYPES,
+  AUTH_TYPE,
+  DEFAULT_MAX_IMPORT_FILE_SIZE,
+  SUPPORTED_IMPORT_FILE_EXTS,
+  SUPPORTED_IMPORT_FILE_ACCEPT
 } from '@/consts/ApiConstants'
 import { ElButton, ElUpload, ElText } from 'element-plus'
 import {
@@ -110,6 +113,42 @@ loadValidFolders(props.project?.id).then(() => {
 const importFolders = computed(() => props.project?.infoList?.map(info => info.folderId) || [])
 
 const importFiles = ref([])
+
+const getFileName = (file) => file?.name || file?.raw?.name || ''
+const isSupportedFile = (file) => {
+  const lowerName = getFileName(file).toLowerCase()
+  return SUPPORTED_IMPORT_FILE_EXTS.some(ext => lowerName.endsWith(ext))
+}
+const isOversizedFile = (file) => {
+  const raw = file?.raw || file
+  return raw?.size && raw.size > DEFAULT_MAX_IMPORT_FILE_SIZE
+}
+
+const onFileListUpdate = (files) => {
+  const validFiles = []
+  const oversizedFiles = []
+  const invalidExtFiles = []
+  for (const file of files || []) {
+    if (!isSupportedFile(file)) {
+      invalidExtFiles.push(file)
+    } else if (isOversizedFile(file)) {
+      oversizedFiles.push(file)
+    } else {
+      validFiles.push(file)
+    }
+  }
+  if (invalidExtFiles.length > 0) {
+    const detail = invalidExtFiles.map(getFileName).join(', ')
+    $coreError($i18nBundle('api.msg.importFileTypeInvalid', [detail, SUPPORTED_IMPORT_FILE_EXTS.join(', ')]))
+  }
+  if (oversizedFiles.length > 0) {
+    const detail = oversizedFiles
+      .map(f => `${getFileName(f)} (${formatFileSize(f.size || f.raw?.size)})`)
+      .join(', ')
+    $coreError($i18nBundle('api.msg.importFileSizeExceed', [detail, formatFileSize(DEFAULT_MAX_IMPORT_FILE_SIZE)]))
+  }
+  importFiles.value = validFiles
+}
 const formOptions = computed(() => {
   const existsProj = !!props.project
   const urlMode = importModel.value.importType === 'url'
@@ -189,20 +228,19 @@ const formOptions = computed(() => {
     labelKey: 'api.label.importFile',
     type: 'upload',
     attrs: {
+      accept: SUPPORTED_IMPORT_FILE_ACCEPT,
       fileList: importFiles.value,
-      'onUpdate:fileList': (files) => {
-        importFiles.value = files
-      },
+      'onUpdate:fileList': onFileListUpdate,
       limit: 1,
       showFileList: false,
       autoUpload: false,
       onExceed (files) {
-        importFiles.value = [...files.map(file => ({
+        onFileListUpdate([...files.map(file => ({
           name: file.name,
           status: 'ready',
           size: file.size,
           raw: file
-        }))] // 文件覆盖
+        }))])
       }
     },
     slots: {
@@ -215,7 +253,7 @@ const formOptions = computed(() => {
           <span style="display: inline-block; margin-left: 10px;">{importFiles.value?.[0]?.name}</span>
         </>
       },
-      tip: () => <div class="el-upload__tip">{$i18nBundle('api.msg.importFileLimit')}</div>
+      tip: () => <div class="el-upload__tip">{$i18nBundle('api.msg.importFileLimit', [SUPPORTED_IMPORT_FILE_EXTS.join('/'), formatFileSize(DEFAULT_MAX_IMPORT_FILE_SIZE)])}</div>
     }
   }, {
     enabled: !!props.project?.id,
@@ -290,6 +328,28 @@ const importFormRef = useTemplateRef('importForm')
 const doImportProject = (autoAlert = true) => {
   importFormRef.value?.form.validate((valid) => {
     if (valid) {
+      if (importModel.value.importType === 'file') {
+        if (!importFiles.value?.length) {
+          $coreError($i18nBundle('api.msg.importFileNoFile'))
+          return
+        }
+        const invalidExtFile = importFiles.value.find(file => !isSupportedFile(file))
+        if (invalidExtFile) {
+          $coreError($i18nBundle('api.msg.importFileTypeInvalid', [
+            getFileName(invalidExtFile),
+            SUPPORTED_IMPORT_FILE_EXTS.join(', ')
+          ]))
+          return
+        }
+        const oversizedFile = importFiles.value.find(file => isOversizedFile(file))
+        if (oversizedFile) {
+          $coreError($i18nBundle('api.msg.importFileSizeExceed', [
+            `${getFileName(oversizedFile)} (${formatFileSize(oversizedFile.size || oversizedFile.raw?.size)})`,
+            formatFileSize(DEFAULT_MAX_IMPORT_FILE_SIZE)
+          ]))
+          return
+        }
+      }
       if (importFiles.value?.length || importModel.value.importType === 'url') {
         importModel.value.projectId = props.project?.id
         const modelParam = { ...importModel.value }

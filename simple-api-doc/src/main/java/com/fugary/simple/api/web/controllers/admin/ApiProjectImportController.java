@@ -72,6 +72,12 @@ public class ApiProjectImportController {
             }
             MultipartFile file = files.get(0);
             fileName = file.getOriginalFilename();
+            if (!SimpleModelUtils.isSupportedImportFile(fileName)) {
+                String supportedExts = String.join(", ", ApiDocConstants.SUPPORTED_IMPORT_EXTENSIONS);
+                String msg = SimpleResultUtils.getErrorMsg("simple.error.code.2003.unsupported",
+                        new Object[]{fileName, supportedExts});
+                return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
+            }
             SimpleResult<String> contentResult = streamDocContentProvider.getContent(file.getInputStream());
             if (!contentResult.isSuccess()) {
                 return SimpleResultUtils.createSimpleResult(contentResult.getCode());
