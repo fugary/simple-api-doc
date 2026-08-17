@@ -592,20 +592,26 @@ const saveGroupConfig = ({ form }) => {
       @submit-keys="handleTreeSelectSubmit"
     >
       <template #default="{ node, data }">
-        <TreeIconLabel
-          :show-icon="true"
-          :node="node"
-          :icon-leaf="calcNodeLeaf(data)"
-          :url="data.isDoc ? data.url : ''"
+        <el-text
+          :type="!data.enabled ? 'danger' : (data.deprecated ? 'warning' : '')"
+          class="custom-tree-node"
         >
-          <ApiMethodTag
-            v-if="data.method"
-            :method="data.method"
-            size="small"
-            style="margin-right: 6px;"
-          />
-          {{ data.docName || data.folderName || node.label }}
-        </TreeIconLabel>
+          <TreeIconLabel
+            :show-icon="true"
+            :node="node"
+            :icon-leaf="calcNodeLeaf(data)"
+            :url="data.isDoc ? data.url : ''"
+          >
+            <ApiMethodTag
+              v-if="data.method"
+              :method="data.method"
+              size="small"
+              style="margin-right: 6px;"
+            />
+            <del v-if="data.deprecated">{{ data.docName || data.folderName || node.label }}</del>
+            <span v-else>{{ data.docName || data.folderName || node.label }}</span>
+          </TreeIconLabel>
+        </el-text>
       </template>
     </TreeConfigWindow>
   </common-window>

@@ -682,6 +682,14 @@ body,
     box-shadow: inset 3px 0 0 var(--el-color-primary);
 }
 
+.custom-tree-node {
+    display: inline-flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+}
+
 .doc-schema-tree .el-tree-node__content {
     min-height: 40px;
     height: unset;

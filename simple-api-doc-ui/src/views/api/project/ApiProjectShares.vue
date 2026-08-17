@@ -575,17 +575,23 @@ const saveProjectShare = (item) => {
       @submit-keys="showTreeConfigWindow=false"
     >
       <template #default="{node, data}">
-        <tree-icon-label
-          :node="node"
-          :icon-leaf="calcNodeLeaf(data)"
-          :url="data.isDoc ? data.url : ''"
+        <el-text
+          :type="!data.enabled ? 'danger' : (data.deprecated ? 'warning' : '')"
+          class="custom-tree-node"
         >
-          <api-method-tag
-            v-if="data.docType==='api'"
-            :method="data.method"
-          />
-          {{ data.docName || node.label }}
-        </tree-icon-label>
+          <tree-icon-label
+            :node="node"
+            :icon-leaf="calcNodeLeaf(data)"
+            :url="data.isDoc ? data.url : ''"
+          >
+            <api-method-tag
+              v-if="data.docType==='api'"
+              :method="data.method"
+            />
+            <del v-if="data.deprecated">{{ data.docName || node.label }}</del>
+            <span v-else>{{ data.docName || node.label }}</span>
+          </tree-icon-label>
+        </el-text>
       </template>
     </tree-config-window>
   </el-container>
