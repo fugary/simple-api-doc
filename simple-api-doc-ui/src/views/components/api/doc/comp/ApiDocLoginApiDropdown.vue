@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { openLoginApiDebug } from '@/services/api/ApiDocPreviewService'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 
 const props = defineProps({
   loginApiConfigs: {
@@ -26,8 +27,26 @@ const props = defineProps({
   }
 })
 
-const showDropdown = computed(() => !props.isCurrentLoginApi && props.loginApiConfigs?.length > 1)
-const showSingleLink = computed(() => !props.isCurrentLoginApi && props.loginApiConfigs?.length === 1)
+const shareConfigStore = useShareConfigStore()
+
+const getApiStatus = (api) => {
+  const prefId = props.paramTarget?.preferenceId
+  const statusMap = (prefId && shareConfigStore.sharePreferenceView[prefId]?.docStatusMap) || {}
+  const docStatus = api?.apiId ? statusMap[String(api.apiId)] : null
+  const enabled = docStatus ? docStatus.enabled : (api.enabled !== false && api.status !== 0 && api.deleted !== true)
+  const deprecated = docStatus ? docStatus.deprecated : Boolean(api.deprecated)
+  return { enabled, deprecated }
+}
+
+const validLoginApiConfigs = computed(() => {
+  return (props.loginApiConfigs || []).filter(api => {
+    if (!api) return false
+    return getApiStatus(api).enabled
+  })
+})
+
+const showDropdown = computed(() => !props.isCurrentLoginApi && validLoginApiConfigs.value.length > 1)
+const showSingleLink = computed(() => !props.isCurrentLoginApi && validLoginApiConfigs.value.length === 1)
 
 const handleOpenLoginApiDebug = (config) => {
   if (config) {
@@ -53,7 +72,7 @@ const handleOpenLoginApiDebug = (config) => {
       <template #dropdown>
         <el-dropdown-menu>
           <el-dropdown-item
-            v-for="api in loginApiConfigs"
+            v-for="api in validLoginApiConfigs"
             :key="api.apiId"
             :command="api"
           >
@@ -64,19 +83,27 @@ const handleOpenLoginApiDebug = (config) => {
                 size="small"
                 style="flex-shrink: 0;"
               />
-              <span
-                style="font-weight: 500; font-size: 13px; color: var(--el-text-color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                :title="api.summary || api.url"
+              <el-text
+                :type="getApiStatus(api).deprecated ? 'warning' : ''"
+                style="display: inline-flex; align-items: center; gap: 8px; flex: 1; min-width: 0;"
               >
-                {{ api.summary || api.url }}
-              </span>
-              <span
-                v-if="api.url"
-                style="font-size: 12px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: auto;"
-                :title="api.url"
-              >
-                {{ api.url }}
-              </span>
+                <component
+                  :is="getApiStatus(api).deprecated ? 'del' : 'span'"
+                  style="font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                  :title="api.summary || api.url"
+                >
+                  {{ api.summary || api.url }}
+                </component>
+                <component
+                  :is="getApiStatus(api).deprecated ? 'del' : 'span'"
+                  v-if="api.url"
+                  class="dropdown-api-url"
+                  style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: auto;"
+                  :title="api.url"
+                >
+                  {{ api.url }}
+                </component>
+              </el-text>
             </div>
           </el-dropdown-item>
         </el-dropdown-menu>
@@ -89,9 +116,19 @@ const handleOpenLoginApiDebug = (config) => {
       :underline="false"
       :class="linkClass"
       :style="linkStyle"
-      @click="handleOpenLoginApiDebug(loginApiConfigs[0])"
+      @click="handleOpenLoginApiDebug(validLoginApiConfigs[0])"
     >
       <span>{{ $t('api.label.loginApi') }}</span>
     </el-link>
   </template>
 </template>
+
+<style scoped>
+.dropdown-api-url {
+  color: var(--el-text-color-secondary);
+}
+.el-text--warning .dropdown-api-url {
+  color: inherit;
+  opacity: 0.85;
+}
+</style>

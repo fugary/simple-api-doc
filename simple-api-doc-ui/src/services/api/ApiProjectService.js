@@ -90,7 +90,16 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
       preference.lastExpandKeys.push(docTreeNodes[0]?.treeId)
     }
     currentSelectDoc = docs.find(doc => doc.id === preference?.lastDocId) || docs[0]
-    preference && (preference.lastDocId = currentSelectDoc?.id)
+    if (preference) {
+      preference.lastDocId = currentSelectDoc?.id
+      preference.docStatusMap = Object.fromEntries(docs.map(doc => [
+        String(doc.id),
+        {
+          enabled: doc.enabled !== false && doc.status !== 0 && doc.deleted !== true,
+          deprecated: Boolean(doc.deprecated)
+        }
+      ]))
+    }
   }
   return {
     docTreeNodes,

@@ -91,7 +91,9 @@ const buildLoginApiConfig = (node) => ({
   apiId: node.id,
   url: node.url,
   method: node.method,
-  summary: node.docName || node.label || node.url
+  summary: node.docName || node.label || node.url,
+  deprecated: Boolean(node.deprecated),
+  enabled: node.enabled !== false && node.status !== 0 && node.deleted !== true
 })
 
 const enrichLoginApiConfigs = (configs) => {
@@ -110,6 +112,8 @@ const applyApiToExtractRule = (rule, node) => {
   rule.apiPath = node.url
   rule.apiMethod = node.method
   rule.apiSummary = node.docName || node.label || node.url
+  rule.deprecated = Boolean(node.deprecated)
+  rule.enabled = node.enabled !== false && node.status !== 0 && node.deleted !== true
 }
 
 const enrichExtractRules = (envParams) => {
@@ -121,6 +125,7 @@ const enrichExtractRules = (envParams) => {
           applyApiToExtractRule(rule, found)
         } else if (rule.matchType === 'api') {
           rule.apiSummary = rule.apiSummary || $i18nBundle('api.label.invalidApi')
+          rule.enabled = false
         }
       } else if (!rule.matchType) {
         rule.matchType = 'path'
@@ -434,6 +439,10 @@ const saveGroupConfig = ({ form }) => {
                               clearable
                               style="width: 100%;"
                               class="match-path-input"
+                              :class="{
+                                'is-deprecated': rule.matchType === 'api' && rule.deprecated,
+                                'is-disabled-api': rule.matchType === 'api' && rule.enabled === false
+                              }"
                             >
                               <template
                                 v-if="rule.apiMethod"
@@ -539,19 +548,27 @@ const saveGroupConfig = ({ form }) => {
                         size="small"
                         style="flex-shrink: 0;"
                       />
-                      <span
-                        style="font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; color: var(--el-text-color-primary);"
-                        :title="apiConfig.summary || apiConfig.url"
+                      <el-text
+                        :type="!apiConfig.enabled ? 'danger' : (apiConfig.deprecated ? 'warning' : '')"
+                        style="min-width: 0; display: inline-flex; align-items: center; gap: 8px; flex: 1;"
                       >
-                        {{ apiConfig.summary || apiConfig.url }}
-                      </span>
-                      <span
-                        v-if="apiConfig.url"
-                        style="font-size: 12px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;"
-                        :title="apiConfig.url"
-                      >
-                        {{ apiConfig.url }}
-                      </span>
+                        <component
+                          :is="apiConfig.deprecated ? 'del' : 'span'"
+                          style="font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%;"
+                          :title="apiConfig.summary || apiConfig.url"
+                        >
+                          {{ apiConfig.summary || apiConfig.url }}
+                        </component>
+                        <component
+                          :is="apiConfig.deprecated ? 'del' : 'span'"
+                          v-if="apiConfig.url"
+                          class="login-api-url"
+                          style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;"
+                          :title="apiConfig.url"
+                        >
+                          {{ apiConfig.url }}
+                        </component>
+                      </el-text>
                     </div>
                     <el-button
                       type="danger"
@@ -627,6 +644,15 @@ const saveGroupConfig = ({ form }) => {
   display: inline-flex;
 }
 
+.match-path-input.is-deprecated :deep(input) {
+  color: var(--el-color-warning) !important;
+  text-decoration: line-through;
+}
+
+.match-path-input.is-disabled-api :deep(input) {
+  color: var(--el-color-danger) !important;
+}
+
 .rule-count-badge {
   display: inline-flex;
   align-items: center;
@@ -642,5 +668,15 @@ const saveGroupConfig = ({ form }) => {
   background-color: var(--el-color-primary);
   margin-left: 4px;
   margin-right: 2px;
+}
+
+.login-api-url {
+  color: var(--el-text-color-secondary);
+}
+
+.el-text--danger .login-api-url,
+.el-text--warning .login-api-url {
+  color: inherit;
+  opacity: 0.85;
 }
 </style>
