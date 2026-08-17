@@ -486,7 +486,7 @@ defineExpose(handlerData)
           </template>
           <template #default="{node, data}">
             <el-text
-              :type="(!data.enabled || data.deprecated)?'warning':''"
+              :type="!data.enabled ? 'danger' : (data.deprecated ? 'warning' : '')"
               class="custom-tree-node"
               @mouseenter="showDropdown(data, false)"
               @mouseleave="leaveDropdown(data)"
@@ -507,7 +507,7 @@ defineExpose(handlerData)
                   v-if="data.docType==='api'"
                   :method="data.method"
                 />
-                <del v-if="!data.enabled || data.deprecated">{{ node.label }}</del>
+                <del v-if="data.deprecated">{{ node.label }}</del>
                 <span v-else>{{ node.label }}</span>
                 <el-text
                   v-if="data.childDocCount&&shareDoc?.showChildrenLength!==false"

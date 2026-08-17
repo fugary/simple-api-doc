@@ -169,6 +169,14 @@ const showAffixBtn = inject('showAffixBtn', null)
       >
         {{ currentDoc?.docName || currentDoc?.url }}
       </el-text>
+      <el-text
+        v-else-if="currentDoc?.status === 0"
+        type="danger"
+        size="large"
+        style="font-size: inherit; font-weight: inherit;"
+      >
+        {{ currentDoc?.docName || currentDoc?.url }}
+      </el-text>
       <span v-else>{{ currentDoc?.docName || currentDoc?.url }}</span>
       <el-button
         v-if="editable"

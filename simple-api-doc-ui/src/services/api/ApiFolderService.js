@@ -178,8 +178,8 @@ export const getFolderHandlers = (folder, preference, handlerData) => {
   }, {
     enabled: !folder.rootFlag,
     icon: folder.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
-    iconColor: folder.status === 1 ? '' : 'var(--el-color-success)',
-    type: folder.status === 1 ? 'warning' : '',
+    iconColor: folder.status === 1 ? 'var(--el-color-danger)' : 'var(--el-color-success)',
+    type: folder.status === 1 ? 'danger' : '',
     label: $i18nKey(statusLabel, 'api.label.folder'),
     handler: () => {
       console.log('==============================folder', folder)
@@ -300,8 +300,8 @@ export const getDocHandlers = (doc, preference, handlerData) => {
     }
   }, {
     icon: doc.status === 1 ? 'CheckBoxOutlined' : 'CheckBoxOutlineBlankFilled',
-    iconColor: doc.status === 1 ? '' : 'var(--el-color-success)',
-    type: doc.status === 1 ? 'warning' : '',
+    iconColor: doc.status === 1 ? 'var(--el-color-danger)' : 'var(--el-color-success)',
+    type: doc.status === 1 ? 'danger' : '',
     label: $i18nBundle(statusLabel, [label]),
     handler: () => {
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle(statusLabel, [label])]))
