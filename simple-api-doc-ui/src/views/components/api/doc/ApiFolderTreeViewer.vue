@@ -146,13 +146,13 @@ const shareTopHandlers = computed(() => {
 const exportTopHandlers = computed(() => getDownloadDocsHandlers(projectItem.value, props.shareDoc, handlerData))
 
 const expandOrCollapse = (nodeData, expand) => {
+  const expandedKeys = new Set(sharePreference.lastExpandKeys)
   if (expand) {
-    sharePreference.lastExpandKeys = [...sharePreference.lastExpandKeys, nodeData.treeId]
+    expandedKeys.add(nodeData.treeId)
   } else {
-    getFolderTreeIds(nodeData).forEach(nodeId => {
-      sharePreference.lastExpandKeys = sharePreference.lastExpandKeys.filter(item => item !== nodeId)
-    })
+    getFolderTreeIds(nodeData).forEach(nodeId => expandedKeys.delete(nodeId))
   }
+  sharePreference.lastExpandKeys = [...expandedKeys]
 }
 
 const loadTreeNode = (node, resolve) => {
@@ -516,8 +516,7 @@ defineExpose(handlerData)
                 </el-text>
               </tree-icon-label>
               <span
-                v-if="editable"
-                v-show="data.showOperations"
+                v-if="editable&&data.showOperations"
                 class="more-actions"
               >
                 <more-actions-link
