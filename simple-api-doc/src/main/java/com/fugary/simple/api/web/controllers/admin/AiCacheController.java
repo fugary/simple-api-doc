@@ -107,16 +107,35 @@ public class AiCacheController {
         String schemaContent = Objects.toString(payload.get("schemaContent"), null);
         String lang = (String) payload.get("lang");
         String extraPrompt = (String) payload.get("prompt");
+        String mode = Objects.toString(payload.get("mode"), "missing");
         String languageDesc = "zh-CN".equalsIgnoreCase(lang) ? "中文" : "英文";
-        String systemPrompt = "你是一个资深的 API 文档专家。基于提供的 JSON Schema 结构及参考提示信息，推断字段的业务含义，生成准确的" + languageDesc + "描述。\n" +
-                "规则：\n" +
-                "1. 严格返回 JSON 对象格式。\n" +
-                "2. Key 为 JSON Schema 中的层级路径（如 properties.username），Value 为生成的描述。\n" +
-                "3. 不要包含任何多余的解释文字或 markdown 格式，只返回纯 JSON。";
-        String userMessage = StringUtils.isNotBlank(extraPrompt)
-                ? "【参考文档/附加提示词】：\n" + extraPrompt.trim() + "\n\n【JSON Schema 结构】：\n" + schemaContent
-                : schemaContent;
-        return executeTask(systemPrompt, userMessage, "generate_desc", payload, "生成描述失败");
+        boolean withExample = payload.get("withExample") == null || Boolean.parseBoolean(payload.get("withExample").toString());
+        StringBuilder systemPrompt = new StringBuilder();
+        systemPrompt.append("你是一个资深的 API 与 OpenAPI 设计专家。基于用户提供的现有 JSON Schema 结构与参考提示信息（如业务需求、文档、表格、示例数据等），智能补全与完善 JSON Schema。\n")
+                .append("规则：\n")
+                .append("1. 必须只返回合法的纯 JSON Schema 对象，严禁包含任何 markdown 格式标记（如 ```json）或额外的解释文字。\n")
+                .append("2. 规范性：输出直接为 OpenAPI 3.0 / JSON Schema 规范的对象结构，顶层必须包含 type（如 \"object\" 或 \"array\"），对象类型必须包含 properties 结构。\n")
+                .append("3. 严格保持已有顺序、结构与引用：严格保留已有属性字段的顺序、字段名、数据类型（type）以及模型引用（$ref），切勿打乱已有顺序或随意更改/删除已有属性的类型和 $ref 引用结构。\n")
+                .append("4. 描述（description）：为字段生成准确的").append(languageDesc).append("业务描述。\n")
+                .append("5. 枚举提取（enum）：若提示文本、表格列或字段说明中包含枚举候选值（如 `success/failed`、`1: 成功, 0: 失败`、`枚举值: A, B, C`、`可选值：...`、`true/false` 等），必须准确提取并填入该字段的 `enum` 数组（例如 `[\"success\", \"failed\"]` 或 `[1, 0]`）。\n");
+        if (withExample) {
+            systemPrompt.append("6. 示例（example）：若属性包含枚举 `enum`，可自动将首个枚举值设为 example；若提示词/表格中包含明确示例列或示例数据（如 Sample JSON、具体字段值），准确提取填入 example；若均未提供具体示例，保持 example 为空即可，严禁凭空编造无依据的虚假示例值。\n");
+        } else {
+            systemPrompt.append("6. 示例（example）：本次补全无需生成任何 example 字段，严禁在 Schema 中添加 example 属性。\n");
+        }
+        systemPrompt.append("7. 表格与多列文本识别：若用户粘贴的是表格或制表符/空格分隔的多列文本（如 字段名 类型 描述 示例），准确对应各列并补全相应属性名、类型映射、描述、枚举及示例值。\n")
+                .append("8. 增量扩充：如果参考提示信息中包含已有 Schema 中未定义的新字段或示例数据，可在相应 properties 中合理追加新属性并给出对应 type, description 等。\n");
+        if ("all".equalsIgnoreCase(mode)) {
+            systemPrompt.append("9. 生成模式为【全量重新补全】：对所有字段重新生成完善的").append(languageDesc).append("描述及枚举").append(withExample ? "（及提示词中提供的示例值）" : "").append("，并严格保留现有字段顺序、类型与 $ref 结构。");
+        } else {
+            systemPrompt.append("9. 生成模式为【补全缺失信息】：保留已有的 description").append(withExample ? " 和 example" : "").append("，主要针对缺失 description").append(withExample ? "、example" : "").append("、enum 的字段以及参考提示中的新字段进行补全。");
+        }
+        StringBuilder userMessage = new StringBuilder();
+        if (StringUtils.isNotBlank(extraPrompt)) {
+            userMessage.append("【参考文档/示例数据/附加提示词】：\n").append(extraPrompt.trim()).append("\n\n");
+        }
+        userMessage.append("【当前 JSON Schema】：\n").append(StringUtils.isNotBlank(schemaContent) ? schemaContent : "{}");
+        return executeTask(systemPrompt.toString(), userMessage.toString(), "generate_desc", payload, "智能补全 Schema 失败");
     }
 
     @PostMapping("/generate-model")
@@ -124,14 +143,17 @@ public class AiCacheController {
         String prompt = Objects.toString(payload.get("prompt"), null);
         String lang = (String) payload.get("lang");
         String languageDesc = "zh-CN".equalsIgnoreCase(lang) ? "中文" : "英文";
-        String systemPrompt = "你是一个资深的 API 与 OpenAPI 设计专家。基于用户提供的业务需求描述，生成一个完整且规范的数据模型（JSON Schema）对象。\n" +
+        String systemPrompt = "你是一个资深的 API 与 OpenAPI 设计专家。基于用户提供的业务需求描述、表格文本或文档，生成一个完整且规范的数据模型（JSON Schema）对象。\n" +
                 "规则：\n" +
                 "1. 必须只返回合法的纯 JSON 对象，不要包含任何 markdown 格式标记（如 ```json）或额外的解释文字。\n" +
                 "2. 返回的 JSON 对象包含以下 3 个根属性：\n" +
                 "   - \"schemaName\": 模型的英文名称，推荐采用 PascalCase 大驼峰命名规范（如 UserInfoVo, CreateOrderReq）。\n" +
                 "   - \"description\": 模型的业务与功能描述（使用" + languageDesc + "）。\n" +
-                "   - \"schema\": 符合 OpenAPI 3.0 / JSON Schema 规范的对象结构，必须包含 type (\"object\"), properties (属性列表), optional required (必填字段数组)，并且每个属性节点需指定 type, description (" + languageDesc + "描述), example (可选示例值), format (可选格式) 等。\n" +
-                "3. 字段命名合理，类型推断准确（如 integer, string, boolean, array, object 等）。";
+                "   - \"schema\": 符合 OpenAPI 3.0 / JSON Schema 规范的对象结构，必须包含 type (\"object\"), properties (属性列表), optional required (必填字段数组)，并且每个属性节点需指定 type, description (" + languageDesc + "描述), example (可选示例值), format (可选格式), enum (可选枚举数组) 等。\n" +
+                "3. 表格与多列文本识别：若用户粘贴的是表格或制表符/空格分隔的多列文本（如 字段名 类型 描述 示例），必须准确对应解析出字段名、类型、描述、枚举值与示例值。\n" +
+                "4. 枚举提取（enum）：若提示文本或字段描述中包含枚举取值范围（如 `success/failed`、`1:成功, 0:失败`、`枚举值: A, B, C`、`可选值：...` 等），必须准确提取为 `enum` 数组（如 `[\"success\", \"failed\"]`），并将首个枚举值作为 `example`。\n" +
+                "5. 复合类型识别：若字段类型为自定义对象或列表（如 `StlInfo`、`Array<ErrorInfo>`），合理推断为 object 或 array 结构。\n" +
+                "6. 字段命名合理，类型推断准确（如 integer, string, boolean, array, object 等）。";
         return executeTask(systemPrompt, prompt, "generate_model", payload, "生成模型失败");
     }
 }

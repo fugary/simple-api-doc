@@ -76,7 +76,7 @@ const schemaModel = defineModel({
 })
 
 const aiDialogVisible = ref(false)
-const aiFormModel = ref({ mode: 'missing', prompt: '', configId: null })
+const aiFormModel = ref({ mode: 'missing', prompt: '', configId: null, withExample: true })
 const aiFormOptions = computed(() => {
   const options = [
     {
@@ -101,6 +101,11 @@ const aiFormOptions = computed(() => {
     })
   }
   options.push({
+    prop: 'withExample',
+    labelKey: 'api.msg.aiWithExample',
+    type: 'switch'
+  })
+  options.push({
     prop: 'prompt',
     labelKey: 'api.msg.aiExtraPrompt',
     attrs: {
@@ -118,7 +123,9 @@ const openAiDialog = () => {
   }
   aiDialogVisible.value = true
 }
-const checkNeedGenerate = (schema, mode) => {
+
+const checkNeedGenerate = (schema, mode, prompt) => {
+  if (prompt?.trim()) return true
   let hasProps = false
   let hasMissing = false
   const walk = (s) => {
@@ -126,7 +133,7 @@ const checkNeedGenerate = (schema, mode) => {
       Object.keys(s.properties).filter(k => k !== '').forEach(k => {
         hasProps = true
         const p = s.properties[k]
-        if (!p?.description && (!p?.properties || !Object.keys(p.properties).some(c => c !== ''))) hasMissing = true
+        if (!p?.description || p?.example === undefined) hasMissing = true
         walk(p)
       })
     }
@@ -136,9 +143,143 @@ const checkNeedGenerate = (schema, mode) => {
   return hasProps && (mode === 'all' || hasMissing)
 }
 
+const calcSchemaPropertyCount = (schema) => {
+  let count = 0
+  const walk = (s) => {
+    if (s?.properties) {
+      Object.keys(s.properties).forEach(k => {
+        if (k) {
+          count++
+          walk(s.properties[k])
+        }
+      })
+    }
+    if (s?.items) walk(s.items)
+  }
+  walk(schema)
+  return count
+}
+
+const mergeCompletedSchema = (targetSchema, sourceSchema, mode = 'missing', withExample = true) => {
+  if (!targetSchema || typeof targetSchema !== 'object' || Object.keys(targetSchema).length === 0) {
+    const directSchema = cloneDeep(sourceSchema) || {}
+    return { merged: directSchema, count: calcSchemaPropertyCount(directSchema) }
+  }
+  if (!sourceSchema || typeof sourceSchema !== 'object') {
+    return { merged: targetSchema, count: 0 }
+  }
+
+  let count = 0
+
+  const mergeNode = (target, source) => {
+    if (!target || typeof target !== 'object' || !source || typeof source !== 'object') {
+      return target
+    }
+
+    // 1. Merge metadata properties: description, example, format, title, default
+    const metaKeys = withExample
+      ? ['description', 'example', 'format', 'title', 'default']
+      : ['description', 'format', 'title', 'default']
+    for (const key of metaKeys) {
+      if (source[key] !== undefined && source[key] !== null && source[key] !== '') {
+        if (mode === 'all' || target[key] === undefined || target[key] === null || target[key] === '') {
+          if (target[key] !== source[key]) {
+            target[key] = source[key]
+            count++
+          }
+        }
+      }
+    }
+
+    // 2. Merge enum if present
+    if (Array.isArray(source.enum) && source.enum.length > 0) {
+      if (mode === 'all' || !Array.isArray(target.enum) || target.enum.length === 0) {
+        target.enum = cloneDeep(source.enum)
+        count++
+      }
+    }
+
+    // 3. Preserve $ref - strictly preserve target's $ref if it exists
+    if (!target.$ref && source.$ref && !target.type) {
+      target.$ref = source.$ref
+      count++
+    }
+
+    // 4. Preserve type - strictly preserve target's type if it exists
+    if (!target.type && source.type && !target.$ref) {
+      target.type = source.type
+    }
+
+    // 5. Merge properties (preserving original key order, appending new keys at the end)
+    if (source.properties && typeof source.properties === 'object') {
+      const originalProps = (target.properties && typeof target.properties === 'object') ? target.properties : {}
+      const orderedProps = {}
+
+      // Keep original keys in exact original order
+      for (const [key, origVal] of Object.entries(originalProps)) {
+        if (source.properties[key]) {
+          orderedProps[key] = mergeNode(origVal, source.properties[key])
+        } else {
+          orderedProps[key] = origVal
+        }
+      }
+
+      // Append any new properties from source at the end
+      for (const [key, sourceVal] of Object.entries(source.properties)) {
+        if (key && !originalProps[key]) {
+          orderedProps[key] = cloneDeep(sourceVal)
+          count++
+        }
+      }
+
+      target.properties = orderedProps
+      if (!target.type && !target.$ref) {
+        target.type = 'object'
+      }
+    }
+
+    // 6. Merge items (for array types)
+    if (source.items && typeof source.items === 'object') {
+      if (!target.items || typeof target.items !== 'object') {
+        target.items = cloneDeep(source.items)
+        count++
+      } else {
+        target.items = mergeNode(target.items, source.items)
+      }
+      if (!target.type && !target.$ref) {
+        target.type = 'array'
+      }
+    }
+
+    // 7. Merge required fields
+    if (Array.isArray(source.required) && source.required.length > 0) {
+      if (!Array.isArray(target.required)) {
+        const validRequired = source.required.filter(r => target.properties && target.properties[r] !== undefined)
+        if (validRequired.length > 0) {
+          target.required = validRequired
+        }
+      } else {
+        for (const r of source.required) {
+          if (target.properties && target.properties[r] !== undefined && !target.required.includes(r)) {
+            target.required.push(r)
+          }
+        }
+      }
+    }
+
+    return target
+  }
+
+  const resultTarget = cloneDeep(targetSchema)
+  mergeNode(resultTarget, sourceSchema)
+  return { merged: resultTarget, count }
+}
+
 const doGenerateDescriptions = async () => {
   const mode = aiFormModel.value.mode
-  if (!checkNeedGenerate(schemaModel.value, mode)) {
+  const prompt = aiFormModel.value.prompt
+  const withExample = aiFormModel.value.withExample
+  if (!checkNeedGenerate(schemaModel.value, mode, prompt)) {
     ElMessage.warning($i18nBundle('api.msg.aiNoMissingDesc'))
     aiDialogVisible.value = false
     return false
@@ -148,27 +289,41 @@ const doGenerateDescriptions = async () => {
   }
   try {
     const res = await generateDescriptions({
-      schemaContent: JSON.stringify(schemaModel.value),
+      schemaContent: JSON.stringify(schemaModel.value || {}),
       projectId: props.currentInfoDetail.projectId,
-      prompt: aiFormModel.value.prompt,
+      prompt,
+      mode,
+      withExample,
       configId: aiFormModel.value.configId,
       lang: useGlobalConfigStore().currentLocale
     }, { loading: true, timeout: 60000 })
     if (res?.success && res.resultData) {
       const jsonStr = res.resultData.replace(/^[^{]*/, '').replace(/[^}]*$/, '')
-      let count = 0
-      for (let [path, desc] of Object.entries(JSON.parse(jsonStr))) {
-        if (typeof desc !== 'string') continue
-        path = path.replace(/\.description$/, '')
-        path = (!path.startsWith('properties.') && !path.includes('items.')) ? `properties.${path}` : path
-        const targetPath = `${path}.description`
-        if (get(schemaModel.value, path) !== undefined && (mode === 'all' || !get(schemaModel.value, targetPath))) {
-          set(schemaModel.value, targetPath, desc)
-          count++
+      const parsed = JSON.parse(jsonStr)
+      // Legacy key-value compatibility check
+      const isLegacyMap = Object.keys(parsed).some(k => k.startsWith('properties.') || k.includes('.')) ||
+        (!parsed.type && !parsed.properties && !parsed.items && !parsed.$ref && Object.values(parsed).every(v => typeof v === 'string'))
+
+      if (isLegacyMap) {
+        let count = 0
+        for (let [path, desc] of Object.entries(parsed)) {
+          if (typeof desc !== 'string') continue
+          path = path.replace(/\.description$/, '')
+          path = (!path.startsWith('properties.') && !path.includes('items.')) ? `properties.${path}` : path
+          const targetPath = `${path}.description`
+          if (get(schemaModel.value, path) !== undefined && (mode === 'all' || !get(schemaModel.value, targetPath))) {
+            set(schemaModel.value, targetPath, desc)
+            count++
+          }
         }
+        if (count > 0) schemaModel.value = cloneDeep(schemaModel.value)
+        ElMessage.success($i18nBundle('api.msg.aiGenerateSuccess', [count]))
+      } else {
+        const sourceSchema = parsed.schema && typeof parsed.schema === 'object' ? parsed.schema : parsed
+        const { merged, count } = mergeCompletedSchema(schemaModel.value, sourceSchema, mode, withExample)
+        schemaModel.value = merged
+        ElMessage.success($i18nBundle('api.msg.aiGenerateSuccess', [count]))
       }
-      if (count > 0) schemaModel.value = cloneDeep(schemaModel.value)
-      ElMessage.success($i18nBundle('api.msg.aiGenerateSuccess', [count]))
       aiDialogVisible.value = false
     }
   } catch (e) {
