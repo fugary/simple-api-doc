@@ -350,7 +350,7 @@ const xxxOfOptions = computed(() => {
           dataTypeCache[key] = value
         },
         attrs: {
-          style: { width: '440px' },
+          style: { width: '400px' },
           clearable: false,
           filterable: true,
           options: typeOptions
@@ -402,6 +402,7 @@ defineExpose({
             v-for="(xxxOf, index) in vModel[vModel.type]"
             :key="index"
             class="common-subform el-form--inline"
+            style="flex-wrap: nowrap; align-items: center;"
           >
             <common-form-control
               v-for="(option, optIdx) in xxxOfOptions"
