@@ -1,5 +1,6 @@
 package com.fugary.simple.api.web.vo;
 
+import com.fugary.simple.api.entity.api.AiConfig;
 import lombok.Data;
 
 @Data
@@ -33,4 +34,14 @@ public class AiGenericTaskReq {
      * Selected AI Config ID
      */
     private Integer configId;
+
+    /**
+     * Override model for testing (optional)
+     */
+    private String model;
+
+    /**
+     * Optional custom AI config (for testing unsaved configs)
+     */
+    private AiConfig config;
 }

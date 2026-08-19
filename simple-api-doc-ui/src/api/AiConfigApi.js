@@ -17,8 +17,11 @@ export const searchHistories = (id, data, config) => {
   return $httpPost(`${BASE_URL}/histories/${id}`, data, config)
 }
 
-export const testAiConfig = (id, data, config) => {
-  return $httpPost(`${BASE_URL}/${id}/test`, data, config)
+export const testAiConfig = (idOrConfig, data, config) => {
+  if (typeof idOrConfig === 'number') {
+    return $httpPost(`${BASE_URL}/${idOrConfig}/test`, data, config)
+  }
+  return $httpPost(`${BASE_URL}/test`, { ...data, config: idOrConfig }, config)
 }
 
 export const loadAiModels = (idOrConfig, config) => {

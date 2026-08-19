@@ -248,13 +248,28 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public AiChatResponse testAiConfig(Integer configId, String prompt) {
-        AiConfig aiConfig = aiConfigService.getById(configId);
-        if (aiConfig == null) {
+    public AiChatResponse testAiConfig(Integer configId, AiGenericTaskReq req) {
+        AiConfig aiConfig = resolveAiConfig(configId);
+        return testAiConfig(aiConfig, req);
+    }
+
+    @Override
+    public AiChatResponse testAiConfig(AiConfig config, AiGenericTaskReq req) {
+        if (config == null) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2012);
         }
+        AiConfig targetConfig = config;
+        if (req != null && StringUtils.isNotBlank(req.getModel())) {
+            targetConfig = SimpleModelUtils.copy(targetConfig, AiConfig.class);
+            targetConfig.setDefaultModel(req.getModel());
+        }
+        if (StringUtils.isBlank(targetConfig.getBaseUrl()) || StringUtils.isBlank(targetConfig.getApiKey())
+                || StringUtils.isBlank(targetConfig.getDefaultModel())) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2014);
+        }
 
-        AiChatProvider provider = getChatProvider(aiConfig.getProvider());
+        String prompt = req != null ? req.getUserMessage() : null;
+        AiChatProvider provider = getChatProvider(targetConfig.getProvider());
         AiChatRequest chatRequest = new AiChatRequest();
         chatRequest.setSystemPrompt("你是一个有用的 AI 助手。");
         chatRequest.setUserMessage(prompt);
@@ -262,14 +277,14 @@ public class AiServiceImpl implements AiService {
 
         String cacheKey = UUID.randomUUID().toString();
         try {
-            initAiCache(cacheKey, chatRequest.getSystemPrompt(), prompt, null, null, "test_config", aiConfig, false);
+            initAiCache(cacheKey, chatRequest.getSystemPrompt(), prompt, null, null, "test_config", targetConfig, false);
         } catch (Exception e) {
             log.error("写入 AI 缓存状态失败", e);
         }
 
         try {
             long startTime = System.currentTimeMillis();
-            AiChatResponse chatResponse = provider.chat(aiConfig, chatRequest);
+            AiChatResponse chatResponse = provider.chat(targetConfig, chatRequest);
             long endTime = System.currentTimeMillis();
             chatResponse.setElapsedTime(endTime - startTime);
 
@@ -308,27 +323,11 @@ public class AiServiceImpl implements AiService {
         if (config == null) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2012);
         }
-        AiConfig targetConfig = config;
-        if (config.getId() != null) {
-            AiConfig exists = aiConfigService.getById(config.getId());
-            if (exists != null) {
-                targetConfig = SimpleModelUtils.copy(exists, AiConfig.class);
-                if (StringUtils.isNotBlank(config.getProvider())) {
-                    targetConfig.setProvider(config.getProvider());
-                }
-                if (StringUtils.isNotBlank(config.getBaseUrl())) {
-                    targetConfig.setBaseUrl(config.getBaseUrl());
-                }
-                if (StringUtils.isNotBlank(config.getApiKey())) {
-                    targetConfig.setApiKey(config.getApiKey());
-                }
-            }
-        }
-        if (StringUtils.isBlank(targetConfig.getBaseUrl()) || StringUtils.isBlank(targetConfig.getApiKey())) {
+        if (StringUtils.isBlank(config.getBaseUrl()) || StringUtils.isBlank(config.getApiKey())) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2014);
         }
-        AiChatProvider provider = getChatProvider(targetConfig.getProvider());
-        return provider.loadModels(targetConfig);
+        AiChatProvider provider = getChatProvider(config.getProvider());
+        return provider.loadModels(config);
     }
 
     @Override

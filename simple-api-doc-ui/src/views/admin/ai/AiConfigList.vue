@@ -291,10 +291,10 @@ const columns = computed(() => {
 })
 
 const testDialogVisible = ref(false)
-const testConfigId = ref(null)
+const testConfig = ref(null)
 
 const showTestDialog = (row) => {
-  testConfigId.value = row.id
+  testConfig.value = row
   testDialogVisible.value = true
 }
 
@@ -414,6 +414,7 @@ const editFormOptions = computed(() => {
     prop: 'apiKey',
     type: 'input',
     disabled: isSystem,
+    required: true,
     attrs: {
       type: 'password',
       showPassword: true
@@ -453,6 +454,21 @@ const editFormOptions = computed(() => {
   }
   ]
 })
+
+const editWindowAttrs = computed(() => ({
+  buttons: [{
+    labelKey: 'common.label.test',
+    type: 'success',
+    click: () => {
+      if (!editForm.value.baseUrl || !editForm.value.apiKey) {
+        ElMessage.warning($i18nBundle('api.msg.loadModelsNeedKey'))
+        return false
+      }
+      showTestDialog(editForm.value)
+      return false
+    }
+  }]
+}))
 
 </script>
 
@@ -499,13 +515,14 @@ const editFormOptions = computed(() => {
       :form-options="editFormOptions"
       :name="$t('api.label.aiConfigManagement')"
       :save-current-item="saveConfig"
-      width="600px"
-      label-width="120px"
+      :window-attrs="editWindowAttrs"
+      width="800px"
+      label-width="140px"
     />
     <AiConfigTestWindow
       v-if="testDialogVisible"
       v-model="testDialogVisible"
-      :config-id="testConfigId"
+      :config="testConfig"
     />
   </el-container>
 </template>

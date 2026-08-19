@@ -1,14 +1,34 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { testAiConfig } from '@/api/AiConfigApi'
+import { ref, computed, onMounted } from 'vue'
+import { testAiConfig, loadAiModels, AiConfigApi } from '@/api/AiConfigApi'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 
 const props = defineProps({
+  config: {
+    type: [Number, Object],
+    default: null
+  },
   configId: {
-    type: Number,
-    required: true
+    type: [Number, Object],
+    default: null
   }
+})
+
+const targetConfig = computed(() => props.config || props.configId)
+const initialConfig = typeof targetConfig.value === 'object' ? targetConfig.value : null
+
+const loadedConfig = ref(null)
+const currentConfig = computed(() => loadedConfig.value || (typeof targetConfig.value === 'object' ? targetConfig.value : null))
+const configName = computed(() => currentConfig.value?.configName || '')
+const provider = computed(() => currentConfig.value?.provider || '')
+const providerTagType = computed(() => {
+  const typeMap = {
+    OPENAI: 'success',
+    ANTHROPIC: 'warning',
+    GEMINI: ''
+  }
+  return typeMap[provider.value] !== undefined ? typeMap[provider.value] : 'info'
 })
 
 const visible = defineModel({
@@ -18,13 +38,79 @@ const visible = defineModel({
 
 const formData = ref({
   prompt: $i18nBundle('api.msg.defaultPrompt'),
+  model: initialConfig?.defaultModel || '',
   result: ''
 })
 
 const testMetrics = ref(null)
+const modelListLoading = ref(false)
+const modelList = ref(initialConfig?.defaultModel ? [initialConfig.defaultModel] : [])
+
+const fetchModels = async () => {
+  if (!targetConfig.value) {
+    return
+  }
+  modelListLoading.value = true
+  try {
+    const res = await loadAiModels(targetConfig.value, { showErrorMessage: false }).catch(err => err?.data || err)
+    if (res?.success && Array.isArray(res.resultData)) {
+      modelList.value = [
+        ...new Set([
+          ...(formData.value.model?.trim() ? [formData.value.model.trim()] : []),
+          ...res.resultData
+        ])
+      ]
+    } else {
+      ElMessage.error(res?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.unknownError')]))
+    }
+  } catch (err) {
+    ElMessage.error(err?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.networkError')]))
+  } finally {
+    modelListLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  if (typeof targetConfig.value === 'number') {
+    const res = await AiConfigApi.getById(targetConfig.value)
+    if (res.success && res.resultData) {
+      loadedConfig.value = res.resultData
+      if (!formData.value.model && res.resultData.defaultModel) {
+        formData.value.model = res.resultData.defaultModel
+      }
+      if (res.resultData.defaultModel && !modelList.value.includes(res.resultData.defaultModel)) {
+        modelList.value = [res.resultData.defaultModel, ...modelList.value]
+      }
+    }
+  }
+  fetchModels()
+})
 
 const formOptions = computed(() => {
   return [
+    {
+      labelKey: 'api.label.testModel',
+      prop: 'model',
+      type: 'select',
+      tooltip: $i18nBundle('api.label.loadModels'),
+      tooltipIcon: 'Refresh',
+      tooltipFunc: fetchModels,
+      required: true,
+      attrs: {
+        filterable: true,
+        allowCreate: true,
+        defaultFirstOption: true,
+        loading: modelListLoading.value,
+        clearable: true,
+        placeholder: $i18nBundle('api.msg.selectOrInputModel')
+      },
+      children: [
+        ...new Set([
+          ...(formData.value.model?.trim() ? [formData.value.model.trim()] : []),
+          ...modelList.value
+        ])
+      ].map(m => ({ label: m, value: m }))
+    },
     {
       labelKey: 'api.label.testPrompt',
       prop: 'prompt',
@@ -58,7 +144,12 @@ const handleTest = () => {
   testMetrics.value = null
   testLoading.value = true
 
-  testAiConfig(props.configId, { userMessage: formData.value.prompt.trim() }, { timeout: 30000 }).then(res => {
+  const reqBody = {
+    userMessage: formData.value.prompt.trim(),
+    model: formData.value.model || undefined
+  }
+
+  testAiConfig(targetConfig.value, reqBody, { timeout: 30000 }).then(res => {
     if (res.success) {
       formData.value.result = res.resultData?.content || $i18nBundle('api.msg.noContent')
       testMetrics.value = res.resultData
@@ -87,13 +178,33 @@ const handleTest = () => {
     :ok-click="handleTest"
     :cancel-label="$t('common.label.close')"
   >
+    <template #header="{ titleId, titleClass }">
+      <span
+        :id="titleId"
+        class="el-dialog__title"
+        :class="titleClass"
+      >
+        <span class="margin-right2">{{ $t('common.label.test') }}</span>
+        <span
+          v-if="configName"
+          class="margin-right2"
+        >{{ configName }}</span>
+        <el-tag
+          v-if="provider"
+          :type="providerTagType"
+          size="small"
+        >
+          {{ provider }}
+        </el-tag>
+      </span>
+    </template>
     <el-container class="flex-column">
       <common-form
         class="form-edit-width-100"
         :model="formData"
         :options="formOptions"
         :show-buttons="false"
-        label-width="100px"
+        label-width="140px"
       />
       <div
         v-if="testMetrics"

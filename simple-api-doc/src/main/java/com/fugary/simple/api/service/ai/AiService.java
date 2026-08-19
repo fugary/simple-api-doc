@@ -31,10 +31,19 @@ public interface AiService {
      * 测试指定的 AI 配置
      *
      * @param configId AI 配置 ID
-     * @param prompt 测试提示词
+     * @param req 测试请求（含 prompt 及可选的 model 覆盖）
      * @return AI 返回的内容及耗时/Token使用情况
      */
-    AiChatResponse testAiConfig(Integer configId, String prompt);
+    AiChatResponse testAiConfig(Integer configId, AiGenericTaskReq req);
+
+    /**
+     * 测试指定的 AI 配置（支持未保存的配置）
+     *
+     * @param config AI 配置对象
+     * @param req 测试请求（含 prompt 及可选的 model 覆盖）
+     * @return AI 返回的内容及耗时/Token使用情况
+     */
+    AiChatResponse testAiConfig(AiConfig config, AiGenericTaskReq req);
 
     /**
      * 获取指定配置可用的模型列表

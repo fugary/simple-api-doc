@@ -42,15 +42,22 @@ public class AiConfigController {
     @Autowired
     private AiService aiService;
 
-    @PostMapping("/{id}/test")
-    public SimpleResult<AiChatResponse> test(@PathVariable("id") Integer id, @RequestBody AiGenericTaskReq req) {
+    @PostMapping({"/test", "/{id}/test"})
+    public SimpleResult<AiChatResponse> test(@PathVariable(value = "id", required = false) Integer id,
+                                             @RequestBody AiGenericTaskReq req) {
         String prompt = req != null ? req.getUserMessage() : null;
         if (StringUtils.isBlank(prompt)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2015);
         }
+        Integer configId = ObjectUtils.defaultIfNull(id, req != null ? req.getConfigId() : null);
+        return testResult(() -> configId != null
+                ? aiService.testAiConfig(configId, req)
+                : aiService.testAiConfig(req != null ? req.getConfig() : null, req));
+    }
+
+    private SimpleResult<AiChatResponse> testResult(Supplier<AiChatResponse> supplier) {
         try {
-            AiChatResponse result = aiService.testAiConfig(id, prompt);
-            return SimpleResultUtils.createSimpleResult(result);
+            return SimpleResultUtils.createSimpleResult(supplier.get());
         } catch (SimpleRuntimeException e) {
             return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
