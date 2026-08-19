@@ -30,4 +30,9 @@ public class AiGenerateSampleReq implements Serializable {
      * AI 配置 ID
      */
     private Integer configId;
+
+    /**
+     * AI 模型名称（可选覆盖）
+     */
+    private String model;
 }

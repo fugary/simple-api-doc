@@ -21,9 +21,10 @@ import { ALL_CONTENT_TYPES, ALL_CONTENT_TYPES_LIST, CHARSET_LIST, LANGUAGE_LIST1
 import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { processSchemas } from '@/services/api/ApiDocPreviewService'
 import { APP_VERSION } from '@/config'
-import { ref, h, computed } from 'vue'
+import { ref, h, computed, watch, isRef } from 'vue'
 import { showCodeWindow, showGenerateSampleWindow } from '@/utils/DynamicUtils'
 import { aiGenerateSample } from '@/api/AiCacheApi'
+import { loadAiModels } from '@/api/AiConfigApi'
 import { $i18nMsg, $i18nBundle, $i18nKey } from '@/messages'
 
 import { updateExamples } from '@/api/ApiProjectInfoDetailApi'
@@ -168,7 +169,7 @@ export const generateSchemaSample = async (schemaBody, type, config) => {
   const projectId = config?.projectId
   const docId = config?.docId
   return showGenerateSampleWindow(schemaBody, type, preferenceId).then(async (result) => {
-    const { mode, configId, useExample, useDescription } = result
+    const { mode, configId, model, useExample, useDescription } = result
     let schema = isString(schemaBody) ? JSON.parse(schemaBody) : cloneDeep(schemaBody)
     schema = removeSchemaRecursion(schema)
     if (!useExample) {
@@ -205,7 +206,7 @@ export const generateSchemaSample = async (schemaBody, type, config) => {
           schema: compressNode(schema),
           components: { schemas: components }
         })
-        const res = await aiGenerateSample({ schemaContent: payload, projectId, docId, configId }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
+        const res = await aiGenerateSample({ schemaContent: payload, projectId, docId, configId, model }, { loading: true, timeout: 125000, preferenceId, showErrorMessage: false }).catch(err => err?.data)
         if (res?.resultData) {
           try {
             json = JSON.parse(res.resultData)
@@ -695,4 +696,92 @@ export const buildAiConfigOptions = (configs = [], defaultId = null) => {
       }
     }
   })
+}
+
+/**
+ * 封装通用 AI 模型选择与按需加载 Hook
+ * @param {Ref<Object>|Object} formModel 表单模型（需包含 configId, model）
+ * @param {Ref<Array>|Array} aiConfigs AI 配置列表
+ * @return {{ aiModelList: Ref<Array>, aiModelLoading: Ref<Boolean>, fetchAiModels: Function, syncModelFromConfig: Function, buildModelFormOption: Function }}
+ */
+export const useAiModelSelector = (formModel, aiConfigs) => {
+  const aiModelList = ref([])
+  const aiModelLoading = ref(false)
+
+  const fetchAiModels = async () => {
+    const configId = isRef(formModel) ? formModel.value.configId : formModel.configId
+    if (!configId) return
+    aiModelLoading.value = true
+    try {
+      const res = await loadAiModels(configId, { showErrorMessage: false }).catch(err => err?.data || err)
+      if (res?.success && Array.isArray(res.resultData)) {
+        const curModel = isRef(formModel) ? formModel.value.model : formModel.model
+        aiModelList.value = [
+          ...new Set([
+            ...(curModel?.trim() ? [curModel.trim()] : []),
+            ...res.resultData
+          ])
+        ]
+      } else {
+        ElMessage.error(res?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.unknownError')]))
+      }
+    } catch (err) {
+      ElMessage.error(err?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.networkError')]))
+    } finally {
+      aiModelLoading.value = false
+    }
+  }
+
+  const syncModelFromConfig = (newId) => {
+    if (!newId) return
+    const configs = isRef(aiConfigs) ? aiConfigs.value : aiConfigs
+    const cfg = configs?.find(c => c.id === newId)
+    if (cfg?.defaultModel) {
+      if (isRef(formModel)) {
+        formModel.value.model = cfg.defaultModel
+      } else {
+        formModel.model = cfg.defaultModel
+      }
+      aiModelList.value = [cfg.defaultModel]
+    }
+  }
+
+  watch(() => (isRef(formModel) ? formModel.value.configId : formModel.configId), (newId) => {
+    syncModelFromConfig(newId)
+  })
+
+  const buildModelFormOption = (attrs = {}) => {
+    const curModel = isRef(formModel) ? formModel.value.model : formModel.model
+    return {
+      prop: 'model',
+      labelKey: 'api.label.testModel',
+      type: 'select',
+      tooltip: $i18nBundle('api.label.loadModels'),
+      tooltipIcon: 'Refresh',
+      tooltipFunc: fetchAiModels,
+      attrs: {
+        filterable: true,
+        allowCreate: true,
+        defaultFirstOption: true,
+        loading: aiModelLoading.value,
+        clearable: true,
+        placeholder: $i18nBundle('api.msg.selectOrInputModel'),
+        ...attrs
+      },
+      children: [
+        ...new Set([
+          ...(curModel?.trim() ? [curModel.trim()] : []),
+          ...aiModelList.value
+        ])
+      ].map(m => ({ label: m, value: m }))
+    }
+  }
+
+  return {
+    aiModelList,
+    aiModelLoading,
+    fetchAiModels,
+    syncModelFromConfig,
+    buildModelFormOption
+  }
 }

@@ -84,6 +84,7 @@ public class AiCacheController {
         String projectId = Objects.toString(payload.get("projectId"), null);
         Object configIdObj = payload.get("configId");
         Integer configId = configIdObj != null ? Integer.valueOf(configIdObj.toString()) : null;
+        String model = Objects.toString(payload.get("model"), null);
 
         AiGenericTaskReq genericReq = new AiGenericTaskReq();
         genericReq.setSystemPrompt(systemPrompt);
@@ -91,6 +92,7 @@ public class AiCacheController {
         genericReq.setCacheType(cacheType);
         genericReq.setProjectId(projectId);
         genericReq.setConfigId(configId);
+        genericReq.setModel(model);
         try {
             String result = aiService.executeGenericTask(genericReq);
             return SimpleResultUtils.createSimpleResult(result);

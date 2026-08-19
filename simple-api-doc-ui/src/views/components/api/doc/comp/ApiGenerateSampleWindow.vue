@@ -2,7 +2,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { getAiStatus } from '@/api/AiCacheApi'
-import { buildAiConfigOptions } from '@/services/api/ApiCommonService'
+import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
 import { defineFormOptions } from '@/components/utils'
 
 const showDialog = ref(false)
@@ -11,6 +11,7 @@ const shareConfigStore = useShareConfigStore()
 const formData = reactive({
   provider: 'openapi-sampler',
   configId: null,
+  model: '',
   useExample: true,
   useDescription: false
 })
@@ -19,6 +20,8 @@ const schemaType = ref('')
 const currentPreferenceId = ref('')
 const aiConfigs = ref([])
 const defaultAiConfigId = ref(null)
+
+const { syncModelFromConfig, buildModelFormOption } = useAiModelSelector(formData, aiConfigs)
 
 watch(() => formData.provider, (val) => {
   if (val === 'ai' && !formData.configId) {
@@ -60,6 +63,7 @@ const formOptions = computed(() => {
         clearable: false
       }
     })
+    options.push(buildModelFormOption())
   }
   options.push(
     {
@@ -86,6 +90,7 @@ const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
   Object.assign(formData, {
     provider: 'openapi-sampler',
     configId: null,
+    model: '',
     useExample: true,
     useDescription: false,
     ...savedConfig
@@ -110,6 +115,7 @@ const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
         if (enabled && (!formData.configId || !aiConfigs.value.some(c => c.id === formData.configId))) {
           formData.configId = savedConfig.configId || defaultAiConfigId.value
         }
+        syncModelFromConfig(formData.configId)
       }
     }).catch(() => {
       if (aiOption) aiOption.disabled = true
@@ -134,6 +140,7 @@ const handleOk = () => {
     promiseResolve({
       mode: formData.provider,
       configId: formData.configId,
+      model: formData.model || undefined,
       useExample: formData.useExample,
       useDescription: formData.useDescription
     })

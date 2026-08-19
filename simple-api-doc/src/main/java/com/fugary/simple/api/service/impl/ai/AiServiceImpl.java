@@ -93,7 +93,12 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public String executeGenericTask(AiGenericTaskReq req) {
-        final AiConfig targetAiConfig = resolveAiConfig(req.getConfigId());
+        AiConfig config = resolveAiConfig(req.getConfigId());
+        if (req != null && StringUtils.isNotBlank(req.getModel())) {
+            config = SimpleModelUtils.copy(config, AiConfig.class);
+            config.setDefaultModel(req.getModel());
+        }
+        final AiConfig targetAiConfig = config;
         if (StringUtils.isBlank(targetAiConfig.getApiKey())) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2014);
         }
@@ -183,6 +188,7 @@ public class AiServiceImpl implements AiService {
         genericReq.setProjectId(req.getProjectId());
         genericReq.setDocId(req.getDocId());
         genericReq.setConfigId(req.getConfigId());
+        genericReq.setModel(req.getModel());
 
         return executeGenericTask(genericReq);
     }

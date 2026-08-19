@@ -23,7 +23,7 @@ import { defineFormOptions, defineTableColumns } from '@/components/utils'
 import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { generateModel, getAiStatus } from '@/api/AiCacheApi'
-import { buildAiConfigOptions } from '@/services/api/ApiCommonService'
+import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
 
 const props = defineProps({
   currentProject: {
@@ -353,7 +353,10 @@ const aiEnabled = ref(false)
 const aiConfigs = ref([])
 const defaultAiConfigId = ref(null)
 const aiDialogVisible = ref(false)
-const aiFormModel = ref({ prompt: '', configId: null, withExample: true })
+const aiFormModel = ref({ prompt: '', configId: null, model: '', withExample: true })
+
+const { syncModelFromConfig, buildModelFormOption } = useAiModelSelector(aiFormModel, aiConfigs)
+
 getAiStatus().then(res => {
   if (res && res.success) {
     const data = res.resultData || {}
@@ -362,6 +365,7 @@ getAiStatus().then(res => {
     defaultAiConfigId.value = data.defaultConfigId || null
     if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
       aiFormModel.value.configId = defaultAiConfigId.value
+      syncModelFromConfig(aiFormModel.value.configId)
     }
   }
 }).catch(console.error)
@@ -377,6 +381,7 @@ const aiFormOptions = computed(() => {
         clearable: false
       }
     })
+    options.push(buildModelFormOption())
   }
   options.push({
     prop: 'withExample',
@@ -400,6 +405,7 @@ const openAiDialog = () => {
   if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
     aiFormModel.value.configId = defaultAiConfigId.value
   }
+  syncModelFromConfig(aiFormModel.value.configId)
   aiDialogVisible.value = true
 }
 
@@ -421,6 +427,7 @@ const doGenerateModel = async () => {
       prompt: aiFormModel.value.prompt.trim(),
       projectId: currentComponentModel.value?.projectId,
       configId: aiFormModel.value.configId,
+      model: aiFormModel.value.model || undefined,
       withExample: aiFormModel.value.withExample,
       lang: useGlobalConfigStore().currentLocale
     }, { loading: true, timeout: 60000 })

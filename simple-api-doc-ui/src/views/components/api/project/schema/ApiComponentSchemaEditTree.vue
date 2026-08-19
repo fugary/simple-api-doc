@@ -24,24 +24,13 @@ import {
 import { cleanSchemaExamples, useComponentSchemas } from '@/services/api/ApiDocEditService'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { generateDescriptions, getAiStatus } from '@/api/AiCacheApi'
-import { buildAiConfigOptions } from '@/services/api/ApiCommonService'
+import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
 import { defineFormOptions } from '@/components/utils'
 import { ElMessage } from 'element-plus'
 
 const aiEnabled = ref(false)
 const aiConfigs = ref([])
 const defaultAiConfigId = ref(null)
-getAiStatus().then(res => {
-  if (res && res.success) {
-    const data = res.resultData || {}
-    aiEnabled.value = data.enabled ?? !!data
-    aiConfigs.value = data.configs || []
-    defaultAiConfigId.value = data.defaultConfigId || null
-    if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
-      aiFormModel.value.configId = defaultAiConfigId.value
-    }
-  }
-}).catch(console.error)
 
 const props = defineProps({
   rootName: {
@@ -76,7 +65,23 @@ const schemaModel = defineModel({
 })
 
 const aiDialogVisible = ref(false)
-const aiFormModel = ref({ mode: 'missing', prompt: '', configId: null, withExample: true })
+const aiFormModel = ref({ mode: 'missing', prompt: '', configId: null, model: '', withExample: true })
+
+const { syncModelFromConfig, buildModelFormOption } = useAiModelSelector(aiFormModel, aiConfigs)
+
+getAiStatus().then(res => {
+  if (res && res.success) {
+    const data = res.resultData || {}
+    aiEnabled.value = data.enabled ?? !!data
+    aiConfigs.value = data.configs || []
+    defaultAiConfigId.value = data.defaultConfigId || null
+    if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
+      aiFormModel.value.configId = defaultAiConfigId.value
+      syncModelFromConfig(aiFormModel.value.configId)
+    }
+  }
+}).catch(console.error)
+
 const aiFormOptions = computed(() => {
   const options = [
     {
@@ -99,6 +104,7 @@ const aiFormOptions = computed(() => {
         clearable: false
       }
     })
+    options.push(buildModelFormOption())
   }
   options.push({
     prop: 'withExample',
@@ -121,6 +127,7 @@ const openAiDialog = () => {
   if (!aiFormModel.value.configId || !aiConfigs.value.some(c => c.id === aiFormModel.value.configId)) {
     aiFormModel.value.configId = defaultAiConfigId.value
   }
+  syncModelFromConfig(aiFormModel.value.configId)
   aiDialogVisible.value = true
 }
 
@@ -298,6 +305,7 @@ const doGenerateDescriptions = async () => {
       mode,
       withExample,
       configId: aiFormModel.value.configId,
+      model: aiFormModel.value.model || undefined,
       lang: useGlobalConfigStore().currentLocale
     }, { loading: true, timeout: 60000 })
     if (res?.success && res.resultData) {
