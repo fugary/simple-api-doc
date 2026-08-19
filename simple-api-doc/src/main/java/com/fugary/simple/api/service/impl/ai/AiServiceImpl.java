@@ -22,9 +22,11 @@ import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import com.fugary.simple.api.service.ai.provider.AbstractAiChatProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.Date;
 import java.util.List;
@@ -33,10 +35,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 public class AiServiceImpl implements AiService {
+
+    private static final Pattern EXCEPTION_PREFIX_PATTERN = Pattern.compile("^([a-zA-Z0-9_.$]+(Exception|Error):\\s*)+");
 
     @Autowired
     private AiConfigProperties aiConfigProperties;
@@ -234,7 +239,7 @@ public class AiServiceImpl implements AiService {
 
     private void updateCacheOnFailure(String cacheKey, Throwable ex, long costTime) {
         try {
-            String errorMessage = ex.getMessage();
+            String errorMessage = getSimpleErrorMessage(ex);
             if (errorMessage != null && errorMessage.length() > 1000) {
                 errorMessage = errorMessage.substring(0, 1000);
             }
@@ -300,16 +305,52 @@ public class AiServiceImpl implements AiService {
         }
     }
 
-    private String getSimpleErrorMessage(Throwable e) {
-        if (e instanceof org.springframework.web.client.HttpStatusCodeException) {
-            org.springframework.web.client.HttpStatusCodeException httpEx = (org.springframework.web.client.HttpStatusCodeException) e;
-            return httpEx.getRawStatusCode() + " " + httpEx.getStatusText();
+    public static String getSimpleErrorMessage(Throwable e) {
+        if (e == null) {
+            return "未知错误";
         }
-        String message = e.getMessage();
+        
+        Throwable current = e;
+        String fallbackJsonMsg = null;
+        // 1. 遍历异常链查找 RestClientResponseException 或提取嵌套的 JSON 错误
+        while (current != null) {
+            if (current instanceof RestClientResponseException) {
+                return AbstractAiChatProvider.extractErrorMessage((RestClientResponseException) current);
+            }
+            if (fallbackJsonMsg == null && StringUtils.isNotBlank(current.getMessage())) {
+                String jsonMsg = AbstractAiChatProvider.extractJsonErrorMessage(current.getMessage());
+                if (StringUtils.isNotBlank(jsonMsg)) {
+                    fallbackJsonMsg = jsonMsg;
+                }
+            }
+            current = current.getCause();
+        }
+        
+        if (fallbackJsonMsg != null) {
+            return fallbackJsonMsg;
+        }
+
+        // 2. 剥离无意义的包装异常（如 ExecutionException），寻找顶层有意义的错误信息
+        Throwable target = e;
+        while (target.getCause() != null && target.getCause() != target) {
+            if (StringUtils.isNotBlank(target.getMessage())
+                    && !(target instanceof java.util.concurrent.ExecutionException)
+                    && !(target instanceof java.util.concurrent.CompletionException)) {
+                break;
+            }
+            target = target.getCause();
+        }
+        
+        String message = target.getMessage();
         if (StringUtils.isBlank(message)) {
-            return e.getClass().getSimpleName();
+            return target.getClass().getSimpleName();
         }
-        return StringUtils.abbreviate(message, 100);
+        
+        message = EXCEPTION_PREFIX_PATTERN.matcher(message.trim()).replaceFirst("").trim();
+        if (StringUtils.isBlank(message)) {
+            return target.getClass().getSimpleName();
+        }
+        return StringUtils.abbreviate(message, 500);
     }
 
     @Override

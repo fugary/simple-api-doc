@@ -42,41 +42,36 @@ public class AnthropicChatProvider extends AbstractAiChatProvider {
             requestBody.put("temperature", request.getTemperature());
         }
 
-        try {
-            String url = config.getBaseUrl().replaceAll("/+$", "") + "/messages";
-            String rawResponse = callApi(url, headers, requestBody);
-            JsonNode root = objectMapper.readTree(rawResponse);
+        String url = config.getBaseUrl().replaceAll("/+$", "") + "/messages";
+        String rawResponse = callApi(url, headers, requestBody);
+        JsonNode root = parseJson(rawResponse);
 
-            // Anthropic extended thinking 模式下 content 数组可能包含 "thinking" 类型块，需取第一个 type=text 的块
-            JsonNode contentArr = root.path("content");
-            String text = null;
-            if (contentArr.isArray()) {
-                for (JsonNode block : contentArr) {
-                    if ("text".equals(block.path("type").asText())) {
-                        text = block.path("text").asText();
-                        break;
-                    }
+        // Anthropic extended thinking 模式下 content 数组可能包含 "thinking" 类型块，需取第一个 type=text 的块
+        JsonNode contentArr = root.path("content");
+        String text = null;
+        if (contentArr.isArray()) {
+            for (JsonNode block : contentArr) {
+                if ("text".equals(block.path("type").asText())) {
+                    text = block.path("text").asText();
+                    break;
                 }
             }
-            if (text == null) {
-                throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
-            }
-            AiChatResponse chatResponse = new AiChatResponse();
-            chatResponse.setRawResponse(rawResponse);
-            chatResponse.setContent(cleanGeneratedContent(text));
-            JsonNode usageNode = root.path("usage");
-            if (!usageNode.isMissingNode()) {
-                int promptTokens = usageNode.path("input_tokens").asInt();
-                int completionTokens = usageNode.path("output_tokens").asInt();
-                chatResponse.setPromptTokens(promptTokens);
-                chatResponse.setCompletionTokens(completionTokens);
-                chatResponse.setTotalTokens(promptTokens + completionTokens);
-            }
-            return chatResponse;
-        } catch (Exception e) {
-            log.error("调用 ANTHROPIC 接口失败", e);
-            throw new RuntimeException(e);
         }
+        if (text == null) {
+            throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
+        }
+        AiChatResponse chatResponse = new AiChatResponse();
+        chatResponse.setRawResponse(rawResponse);
+        chatResponse.setContent(cleanGeneratedContent(text));
+        JsonNode usageNode = root.path("usage");
+        if (!usageNode.isMissingNode()) {
+            int promptTokens = usageNode.path("input_tokens").asInt();
+            int completionTokens = usageNode.path("output_tokens").asInt();
+            chatResponse.setPromptTokens(promptTokens);
+            chatResponse.setCompletionTokens(completionTokens);
+            chatResponse.setTotalTokens(promptTokens + completionTokens);
+        }
+        return chatResponse;
     }
 
     @Override
@@ -85,12 +80,7 @@ public class AnthropicChatProvider extends AbstractAiChatProvider {
         headers.add("x-api-key", config.getApiKey());
         headers.add("anthropic-version", ANTHROPIC_VERSION);
         String url = config.getBaseUrl().replaceAll("/+$", "") + "/models";
-        try {
-            String rawResponse = callApiGet(url, headers);
-            return extractModelIdsFromData(rawResponse);
-        } catch (Exception e) {
-            log.error("获取 Anthropic 模型列表失败, url: {}", url, e);
-            throw new RuntimeException("获取模型列表失败: " + e.getMessage(), e);
-        }
+        String rawResponse = callApiGet(url, headers);
+        return extractModelIdsFromData(rawResponse);
     }
 }

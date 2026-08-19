@@ -39,28 +39,23 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
             requestBody.put("max_tokens", request.getMaxTokens());
         }
 
-        try {
-            String url = config.getBaseUrl().replaceAll("/+$", "") + "/chat/completions";
-            String rawResponse = callApi(url, headers, requestBody);
-            JsonNode root = objectMapper.readTree(rawResponse);
-            JsonNode messageNode = root.path("choices").path(0).path("message").path("content");
-            if (messageNode.isMissingNode()) {
-                throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
-            }
-            AiChatResponse chatResponse = new AiChatResponse();
-            chatResponse.setRawResponse(rawResponse);
-            chatResponse.setContent(cleanGeneratedContent(messageNode.asText()));
-            JsonNode usageNode = root.path("usage");
-            if (!usageNode.isMissingNode()) {
-                chatResponse.setPromptTokens(usageNode.path("prompt_tokens").asInt());
-                chatResponse.setCompletionTokens(usageNode.path("completion_tokens").asInt());
-                chatResponse.setTotalTokens(usageNode.path("total_tokens").asInt());
-            }
-            return chatResponse;
-        } catch (Exception e) {
-            log.error("调用 OPENAI 接口失败", e);
-            throw new RuntimeException(e);
+        String url = config.getBaseUrl().replaceAll("/+$", "") + "/chat/completions";
+        String rawResponse = callApi(url, headers, requestBody);
+        JsonNode root = parseJson(rawResponse);
+        JsonNode messageNode = root.path("choices").path(0).path("message").path("content");
+        if (messageNode.isMissingNode()) {
+            throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
         }
+        AiChatResponse chatResponse = new AiChatResponse();
+        chatResponse.setRawResponse(rawResponse);
+        chatResponse.setContent(cleanGeneratedContent(messageNode.asText()));
+        JsonNode usageNode = root.path("usage");
+        if (!usageNode.isMissingNode()) {
+            chatResponse.setPromptTokens(usageNode.path("prompt_tokens").asInt());
+            chatResponse.setCompletionTokens(usageNode.path("completion_tokens").asInt());
+            chatResponse.setTotalTokens(usageNode.path("total_tokens").asInt());
+        }
+        return chatResponse;
     }
 
     @Override
@@ -68,12 +63,7 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(config.getApiKey());
         String url = config.getBaseUrl().replaceAll("/+$", "") + "/models";
-        try {
-            String rawResponse = callApiGet(url, headers);
-            return extractModelIdsFromData(rawResponse);
-        } catch (Exception e) {
-            log.error("获取 OpenAI 模型列表失败, url: {}", url, e);
-            throw new RuntimeException("获取模型列表失败: " + e.getMessage(), e);
-        }
+        String rawResponse = callApiGet(url, headers);
+        return extractModelIdsFromData(rawResponse);
     }
 }

@@ -45,56 +45,46 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
             requestBody.put("generationConfig", generationConfig);
         }
 
-        try {
-            String url = config.getBaseUrl().replaceAll("/+$", "") + "/models/" + config.getDefaultModel()
-                    + ":generateContent?key=" + config.getApiKey();
-            String rawResponse = callApi(url, headers, requestBody);
-            JsonNode root = objectMapper.readTree(rawResponse);
-            JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
-            if (textNode.isMissingNode()) {
-                throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
-            }
-            AiChatResponse chatResponse = new AiChatResponse();
-            chatResponse.setRawResponse(rawResponse);
-            chatResponse.setContent(cleanGeneratedContent(textNode.asText()));
-            JsonNode usageNode = root.path("usageMetadata");
-            if (!usageNode.isMissingNode()) {
-                chatResponse.setPromptTokens(usageNode.path("promptTokenCount").asInt());
-                chatResponse.setCompletionTokens(usageNode.path("candidatesTokenCount").asInt());
-                chatResponse.setTotalTokens(usageNode.path("totalTokenCount").asInt());
-            }
-            return chatResponse;
-        } catch (Exception e) {
-            log.error("调用 GEMINI 接口失败", e);
-            throw new RuntimeException(e);
+        String url = config.getBaseUrl().replaceAll("/+$", "") + "/models/" + config.getDefaultModel()
+                + ":generateContent?key=" + config.getApiKey();
+        String rawResponse = callApi(url, headers, requestBody);
+        JsonNode root = parseJson(rawResponse);
+        JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
+        if (textNode.isMissingNode()) {
+            throw new RuntimeException("生成内容失败，AI 返回格式无法解析");
         }
+        AiChatResponse chatResponse = new AiChatResponse();
+        chatResponse.setRawResponse(rawResponse);
+        chatResponse.setContent(cleanGeneratedContent(textNode.asText()));
+        JsonNode usageNode = root.path("usageMetadata");
+        if (!usageNode.isMissingNode()) {
+            chatResponse.setPromptTokens(usageNode.path("promptTokenCount").asInt());
+            chatResponse.setCompletionTokens(usageNode.path("candidatesTokenCount").asInt());
+            chatResponse.setTotalTokens(usageNode.path("totalTokenCount").asInt());
+        }
+        return chatResponse;
     }
 
     @Override
     public List<String> loadModels(AiConfig config) {
         String url = config.getBaseUrl().replaceAll("/+$", "") + "/models?key=" + config.getApiKey();
-        try {
-            String rawResponse = callApiGet(url, new HttpHeaders());
-            JsonNode root = objectMapper.readTree(rawResponse);
-            JsonNode modelsNode = root.path("models");
-            List<String> models = new ArrayList<>();
-            if (modelsNode.isArray()) {
-                for (JsonNode item : modelsNode) {
-                    if (!supportsGenerateContent(item)) {
-                        continue;
-                    }
-                    String name = item.path("name").asText();
-                    if (name != null && !name.isBlank()) {
-                        models.add(name.startsWith("models/") ? name.substring(7) : name);
-                    }
+        String rawResponse = callApiGet(url, new HttpHeaders());
+        JsonNode root = parseJson(rawResponse);
+        JsonNode modelsNode = root.path("models");
+        List<String> models = new ArrayList<>();
+        if (modelsNode.isArray()) {
+            for (JsonNode item : modelsNode) {
+                if (!supportsGenerateContent(item)) {
+                    continue;
+                }
+                String name = item.path("name").asText();
+                if (name != null && !name.isBlank()) {
+                    models.add(name.startsWith("models/") ? name.substring(7) : name);
                 }
             }
-            Collections.sort(models);
-            return models;
-        } catch (Exception e) {
-            log.error("获取 Gemini 模型列表失败, url: {}", url, e);
-            throw new RuntimeException("获取模型列表失败: " + e.getMessage(), e);
         }
+        Collections.sort(models);
+        return models;
     }
 
     private boolean supportsGenerateContent(JsonNode item) {

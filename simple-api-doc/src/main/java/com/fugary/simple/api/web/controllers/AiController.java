@@ -69,6 +69,9 @@ public class AiController {
             String sample = aiService.generateSampleBySchema(req);
             return SimpleResultUtils.createSimpleResult(sample);
         } catch (SimpleRuntimeException e) {
+            if (StringUtils.isNotBlank(e.getMessage())) {
+                return SimpleResultUtils.createError(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500, e.getMessage());
+            }
             return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
             return SimpleResultUtils.createError(e.getMessage());

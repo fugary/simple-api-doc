@@ -95,6 +95,9 @@ public class AiCacheController {
             String result = aiService.executeGenericTask(genericReq);
             return SimpleResultUtils.createSimpleResult(result);
         } catch (SimpleRuntimeException e) {
+            if (StringUtils.isNotBlank(e.getMessage())) {
+                return SimpleResultUtils.createError(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500, e.getMessage());
+            }
             return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
             log.error(errorLogMsg, e);

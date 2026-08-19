@@ -59,6 +59,9 @@ public class AiConfigController {
         try {
             return SimpleResultUtils.createSimpleResult(supplier.get());
         } catch (SimpleRuntimeException e) {
+            if (StringUtils.isNotBlank(e.getMessage())) {
+                return SimpleResultUtils.createError(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500, e.getMessage());
+            }
             return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
             return SimpleResultUtils.createError(e.getMessage());
@@ -79,6 +82,9 @@ public class AiConfigController {
         try {
             return SimpleResultUtils.createSimpleResult(supplier.get());
         } catch (SimpleRuntimeException e) {
+            if (StringUtils.isNotBlank(e.getMessage())) {
+                return SimpleResultUtils.createError(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500, e.getMessage());
+            }
             return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
             return SimpleResultUtils.createError(e.getMessage());

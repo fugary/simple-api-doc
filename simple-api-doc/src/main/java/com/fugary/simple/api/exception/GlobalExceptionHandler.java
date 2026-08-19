@@ -1,8 +1,10 @@
 package com.fugary.simple.api.exception;
 
+import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,6 +30,9 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler({SimpleRuntimeException.class})
 	public <T> SimpleResult<T> exceptionHandler(SimpleRuntimeException e) {
 		log.error("全局异常处理", e);
-		return SimpleResultUtils.createSimpleResult(e.getCode().intValue());
+		if (StringUtils.isNotBlank(e.getMessage())) {
+			return SimpleResultUtils.createError(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500, e.getMessage());
+		}
+		return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
 	}
 }
