@@ -83,7 +83,6 @@ onMounted(async () => {
       }
     }
   }
-  fetchModels()
 })
 
 const formOptions = computed(() => {
