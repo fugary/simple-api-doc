@@ -439,11 +439,20 @@ const deleteProperty = (data, parent) => {
 const currentEdit = ref()
 const newOrEdit = (data, parent, dataType) => {
   console.log('=======================newOrEdit', data?.path, data, parent)
-  data = initEditData(data, dataType)
-  currentEdit.value = data
-  toEditJsonSchema(data, props.currentInfoDetail, {
+  let editData
+  if (currentModel.value && (data?.id === currentModel.value?.id || data === currentModel.value)) {
+    editData = cloneDeep(currentModel.value)
+    if (dataType) {
+      editData.dataType = dataType
+    }
+  } else {
+    editData = initEditData(data, dataType)
+  }
+  currentEdit.value = editData
+  toEditJsonSchema(editData, props.currentInfoDetail, {
     onSaveJsonSchema (toSaveData) {
       saveEditSchemaData(data, parent, toSaveData)
+      currentModel.value = null
     },
     onEditComponentSchemas (componentSchemas) {
       editComponentSchemas.value = componentSchemas
@@ -732,6 +741,7 @@ defineEmits(['gotoComponent'])
             :options="getInlineEditOptions(data, node.parent?.data)"
             :show-submit="false"
             @click.stop
+            @submit-form="saveInlineEditSchemaData($event, data, node.parent?.data)"
           >
             <template #buttons="{form}">
               <el-button
