@@ -224,3 +224,15 @@ export const useComponentSchemas = () => {
     loadComponents
   }
 }
+
+export const cleanSchemaExamples = (schema) => {
+  if (!schema || typeof schema !== 'object') return
+  delete schema.example
+  delete schema.examples
+  if (schema.properties && typeof schema.properties === 'object') {
+    Object.values(schema.properties).forEach(cleanSchemaExamples)
+  }
+  if (schema.items && typeof schema.items === 'object') {
+    cleanSchemaExamples(schema.items)
+  }
+}

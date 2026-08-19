@@ -14,6 +14,7 @@ import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
 import {
   checkAndSaveDocInfoDetail,
+  cleanSchemaExamples,
   processProjectInfos,
   useComponentSchemas
 } from '@/services/api/ApiDocEditService'
@@ -352,7 +353,7 @@ const aiEnabled = ref(false)
 const aiConfigs = ref([])
 const defaultAiConfigId = ref(null)
 const aiDialogVisible = ref(false)
-const aiFormModel = ref({ prompt: '', configId: null })
+const aiFormModel = ref({ prompt: '', configId: null, withExample: true })
 getAiStatus().then(res => {
   if (res && res.success) {
     const data = res.resultData || {}
@@ -377,6 +378,11 @@ const aiFormOptions = computed(() => {
       }
     })
   }
+  options.push({
+    prop: 'withExample',
+    labelKey: 'api.msg.aiWithExample',
+    type: 'switch'
+  })
   options.push({
     prop: 'prompt',
     labelKey: 'api.msg.aiGenerateModelPrompt',
@@ -415,6 +421,7 @@ const doGenerateModel = async () => {
       prompt: aiFormModel.value.prompt.trim(),
       projectId: currentComponentModel.value?.projectId,
       configId: aiFormModel.value.configId,
+      withExample: aiFormModel.value.withExample,
       lang: useGlobalConfigStore().currentLocale
     }, { loading: true, timeout: 60000 })
     if (res?.success && res.resultData) {
@@ -422,7 +429,12 @@ const doGenerateModel = async () => {
       const { schemaName, description, schema } = JSON.parse(jsonStr) || {}
       if (schemaName) currentComponentModel.value.schemaName = schemaName
       if (description) currentComponentModel.value.description = description
-      if (schema) schemaContentObj.value = schema
+      if (schema) {
+        if (!aiFormModel.value.withExample) {
+          cleanSchemaExamples(schema)
+        }
+        schemaContentObj.value = schema
+      }
       ElMessage.success($i18nBundle('api.msg.aiGenerateModelSuccess'))
       aiDialogVisible.value = false
     }

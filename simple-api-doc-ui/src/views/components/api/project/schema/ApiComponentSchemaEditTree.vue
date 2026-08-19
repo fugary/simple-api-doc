@@ -21,7 +21,7 @@ import {
   SCHEMA_SELECT_TYPE,
   SCHEMA_SELECT_TYPES
 } from '@/consts/ApiConstants'
-import { useComponentSchemas } from '@/services/api/ApiDocEditService'
+import { cleanSchemaExamples, useComponentSchemas } from '@/services/api/ApiDocEditService'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { generateDescriptions, getAiStatus } from '@/api/AiCacheApi'
 import { buildAiConfigOptions } from '@/services/api/ApiCommonService'
@@ -163,6 +163,9 @@ const calcSchemaPropertyCount = (schema) => {
 const mergeCompletedSchema = (targetSchema, sourceSchema, mode = 'missing', withExample = true) => {
   if (!targetSchema || typeof targetSchema !== 'object' || Object.keys(targetSchema).length === 0) {
     const directSchema = cloneDeep(sourceSchema) || {}
+    if (!withExample) {
+      cleanSchemaExamples(directSchema)
+    }
     return { merged: directSchema, count: calcSchemaPropertyCount(directSchema) }
   }
   if (!sourceSchema || typeof sourceSchema !== 'object') {
