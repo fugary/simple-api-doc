@@ -52,13 +52,13 @@ watch(currentInfoDetail, async model => {
     })
   } else {
     currentComponentModel.value = currentInfoDetail.value
-    if (!componentSchemas.value.length && currentInfoDetail.value?.schemaContent?.includes(SCHEMA_COMPONENT_PREFIX)) {
+    if (!componentSchemas.value.length && (currentInfoDetail.value?.projectId || currentInfoDetail.value?.schemaContent?.includes(SCHEMA_COMPONENT_PREFIX))) {
       await loadComponents(currentInfoDetail.value)
     }
   }
-  const projectId = currentComponentModel.value.projectId
+  const projectId = currentComponentModel.value?.projectId
   console.log('=============================data', currentComponentModel.value, projectItemMap, projectId)
-  if (!projectItemMap[projectId]) {
+  if (projectId && !projectItemMap[projectId]) {
     loadDetailById(projectId)
       .then((data) => {
         projectItemMap[projectId] = data
@@ -495,7 +495,7 @@ defineExpose({
               {{ $t('common.label.save') }}
             </el-button>
             <el-button
-              v-if="aiEnabled"
+              v-if="aiEnabled && !currentComponentModel?.id"
               type="success"
               @click="openAiDialog"
             >
@@ -635,7 +635,7 @@ defineExpose({
     <common-form
       :model="aiFormModel"
       :options="aiFormOptions"
-      label-width="140px"
+      label-width="150px"
       class="form-edit-width-100"
       :show-buttons="false"
     />

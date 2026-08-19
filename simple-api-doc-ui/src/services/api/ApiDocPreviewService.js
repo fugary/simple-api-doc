@@ -539,10 +539,15 @@ export const checkParamsFilled = (params) => {
 
 //* **************************schema处理***************************
 
-export const calcComponentMap = (componentSchemas) => {
-  return componentSchemas.reduce((res, apiSchema) => {
+export const calcComponentMap = (componentSchemas = []) => {
+  return (componentSchemas || []).reduce((res, apiSchema) => {
+    if (!apiSchema) return res
     if (!apiSchema.schema && apiSchema.schemaContent) {
-      apiSchema.schema = JSON.parse(apiSchema.schemaContent) // 从文本解析出来
+      try {
+        apiSchema.schema = JSON.parse(apiSchema.schemaContent) // 从文本解析出来
+      } catch (e) {
+        console.error(e)
+      }
     }
     res[apiSchema.schemaKey || `#/components/schemas/${apiSchema.schemaName}`] = apiSchema
     return res
@@ -736,7 +741,7 @@ export const processSchemas = (docSchema, componentsMap, recursive = false) => {
   return resultArr
 }
 
-export const processSchema = (apiSchema, componentsMap, recursive = false) => {
+export const processSchema = (apiSchema, componentsMap = {}, recursive = false) => {
   if (apiSchema) {
     let parent = {}
     let schema = apiSchema
@@ -755,14 +760,14 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
     // processSchemaAllOf(schema)
     processSchemaXxxOf(schema, componentsMap, recursive)
     parent.isLeaf = checkLeaf(schema)
-    const schemaCache = componentsMap.__schemaCache__ = componentsMap.__schemaCache__ || {}
-    if (schema.name) {
+    const schemaCache = componentsMap ? (componentsMap.__schemaCache__ = componentsMap.__schemaCache__ || {}) : {}
+    if (schema?.name) {
       if (schemaCache[schema.name]) {
         return apiSchema
       }
       schemaCache[schema.name] = schema
     }
-    const properties = schema.properties
+    const properties = schema?.properties
     if (properties) {
       Object.keys(properties).forEach(key => {
         const property = properties[key]
@@ -780,23 +785,27 @@ export const processSchema = (apiSchema, componentsMap, recursive = false) => {
   return apiSchema
 }
 
-export const processSchemaRef = (schema, componentsMap) => {
-  if (schema.$ref) {
-    const refCache = componentsMap.__refCache__ = componentsMap.__refCache__ || {}
-    const apiSchema = refCache[schema.$ref] || cloneDeep(componentsMap[schema.$ref]?.schema)
-    if (!apiSchema) {
-      console.log('==============================$ref-null', schema.$ref, apiSchema)
+export const processSchemaRef = (schema, componentsMap = {}) => {
+  if (schema?.$ref) {
+    if (componentsMap) {
+      const refCache = (componentsMap.__refCache__ = componentsMap.__refCache__ || {})
+      const apiSchema = refCache[schema.$ref] || cloneDeep(componentsMap[schema.$ref]?.schema)
+      if (apiSchema) {
+        apiSchema.name = $ref2Schema(schema.$ref)
+        apiSchema.schema$ref = schema.$ref
+        refCache[schema.$ref] = apiSchema
+        Object.assign(schema, apiSchema)
+        delete schema.$ref
+        return schema
+      }
     }
-    apiSchema.name = $ref2Schema(schema.$ref)
-    apiSchema.schema$ref = schema.$ref
-    refCache[schema.$ref] = apiSchema
-    Object.assign(schema, apiSchema)
-    delete schema.$ref
+    schema.name = schema.name || $ref2Schema(schema.$ref)
+    schema.schema$ref = schema.$ref
   }
   return schema
 }
 
-export const processSchemaXxxOf = (schema, componentsMap, recursive) => {
+export const processSchemaXxxOf = (schema, componentsMap = {}, recursive) => {
   ['allOf', 'anyOf', 'oneOf'].forEach(xxxOf => {
     if (schema?.[xxxOf]?.length) {
       schema[xxxOf].forEach(child => {

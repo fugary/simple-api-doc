@@ -24,15 +24,15 @@ const schemaModel = defineModel({
   default: () => ({})
 })
 
+const componentsMap = computed(() => calcComponentMap(props.componentSchemas))
+
 const showTree = ref(false)
-watch(schemaModel, () => {
+watch([schemaModel, componentsMap], () => {
   showTree.value = false
   nextTick(() => {
     showTree.value = true
   })
 }, { immediate: true })
-
-const componentsMap = computed(() => calcComponentMap(props.componentSchemas))
 
 const loadTreeNode = (node, resolve) => {
   if (!node.parent) { // 第一级

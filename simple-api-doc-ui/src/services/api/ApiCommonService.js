@@ -754,7 +754,7 @@ export const useAiModelSelector = (formModel, aiConfigs) => {
     const curModel = isRef(formModel) ? formModel.value.model : formModel.model
     return {
       prop: 'model',
-      labelKey: 'api.label.testModel',
+      labelKey: 'api.label.model',
       type: 'select',
       tooltip: $i18nBundle('api.label.loadModels'),
       tooltipIcon: 'Refresh',

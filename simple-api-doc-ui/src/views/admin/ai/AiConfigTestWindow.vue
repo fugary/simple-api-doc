@@ -88,7 +88,7 @@ onMounted(async () => {
 const formOptions = computed(() => {
   return [
     {
-      labelKey: 'api.label.testModel',
+      labelKey: 'api.label.model',
       prop: 'model',
       type: 'select',
       tooltip: $i18nBundle('api.label.loadModels'),

@@ -368,9 +368,12 @@ const scrollToAndFocusNewRow = () => {
   setTimeout(tryScrollAndFocus, 50)
 }
 
+const { componentSchemas: editComponentSchemas, loadComponents } = useComponentSchemas()
+const componentsMap = computed(() => calcComponentMap(editComponentSchemas.value?.length ? editComponentSchemas.value : props.componentSchemas))
+
 const isAddingInline = ref(false)
 const showTree = ref(false)
-watch([schemaModel, () => props.rootName], () => {
+watch([schemaModel, () => props.rootName, componentsMap], () => {
   showTree.value = false
   nextTick(() => {
     showTree.value = true
@@ -382,9 +385,6 @@ watch([schemaModel, () => props.rootName], () => {
     }
   })
 }, { immediate: true, deep: true })
-
-const { componentSchemas: editComponentSchemas, loadComponents } = useComponentSchemas()
-const componentsMap = computed(() => calcComponentMap(editComponentSchemas.value?.length ? editComponentSchemas.value : props.componentSchemas))
 
 const loadTreeNode = (node, resolve) => {
   if (!node.parent) { // 第一级
@@ -909,7 +909,7 @@ defineEmits(['gotoComponent'])
     <common-form
       :model="aiFormModel"
       :options="aiFormOptions"
-      label-width="140px"
+      label-width="150px"
       class="form-edit-width-100"
       :show-buttons="false"
     />
