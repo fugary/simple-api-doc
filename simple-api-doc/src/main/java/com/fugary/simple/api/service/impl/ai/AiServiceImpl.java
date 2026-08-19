@@ -14,6 +14,7 @@ import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.service.ai.provider.AiChatProvider;
 import com.fugary.simple.api.service.ai.provider.AiChatRequest;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
@@ -294,6 +295,40 @@ public class AiServiceImpl implements AiService {
             return e.getClass().getSimpleName();
         }
         return StringUtils.abbreviate(message, 100);
+    }
+
+    @Override
+    public List<String> loadModels(Integer configId) {
+        AiConfig config = resolveAiConfig(configId);
+        return loadModels(config);
+    }
+
+    @Override
+    public List<String> loadModels(AiConfig config) {
+        if (config == null) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2012);
+        }
+        AiConfig targetConfig = config;
+        if (config.getId() != null) {
+            AiConfig exists = aiConfigService.getById(config.getId());
+            if (exists != null) {
+                targetConfig = SimpleModelUtils.copy(exists, AiConfig.class);
+                if (StringUtils.isNotBlank(config.getProvider())) {
+                    targetConfig.setProvider(config.getProvider());
+                }
+                if (StringUtils.isNotBlank(config.getBaseUrl())) {
+                    targetConfig.setBaseUrl(config.getBaseUrl());
+                }
+                if (StringUtils.isNotBlank(config.getApiKey())) {
+                    targetConfig.setApiKey(config.getApiKey());
+                }
+            }
+        }
+        if (StringUtils.isBlank(targetConfig.getBaseUrl()) || StringUtils.isBlank(targetConfig.getApiKey())) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_2014);
+        }
+        AiChatProvider provider = getChatProvider(targetConfig.getProvider());
+        return provider.loadModels(targetConfig);
     }
 
     @Override

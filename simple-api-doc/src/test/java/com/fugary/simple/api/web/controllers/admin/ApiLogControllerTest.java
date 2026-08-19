@@ -20,8 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ApiLogControllerTest {
@@ -43,6 +42,7 @@ class ApiLogControllerTest {
     @Test
     void normalUserDefaultSearchIncludesOwnAndReadableProjectLogs() {
         loginAs(2, "alice");
+        doCallRealMethod().when(apiProjectAccessService).addProjectRelatedGroupCodeQuery(any(), any(), any(), any(), any());
         when(apiProjectAccessService.loadReadableGroupCodesSql("alice")).thenReturn("team");
         when(apiLogService.page(any(Page.class), any())).thenReturn(new Page<>());
 

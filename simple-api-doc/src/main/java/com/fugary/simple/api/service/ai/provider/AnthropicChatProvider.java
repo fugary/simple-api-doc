@@ -78,4 +78,19 @@ public class AnthropicChatProvider extends AbstractAiChatProvider {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public List<String> loadModels(AiConfig config) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("x-api-key", config.getApiKey());
+        headers.add("anthropic-version", ANTHROPIC_VERSION);
+        String url = config.getBaseUrl().replaceAll("/+$", "") + "/models";
+        try {
+            String rawResponse = callApiGet(url, headers);
+            return extractModelIdsFromData(rawResponse);
+        } catch (Exception e) {
+            log.error("获取 Anthropic 模型列表失败, url: {}", url, e);
+            throw new RuntimeException("获取模型列表失败: " + e.getMessage(), e);
+        }
+    }
 }

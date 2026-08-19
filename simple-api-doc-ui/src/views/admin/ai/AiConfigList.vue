@@ -3,7 +3,7 @@ import { ref, onMounted, onActivated, computed } from 'vue'
 import { omit } from 'lodash-es'
 import { formatDate, $coreConfirm } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
-import { AiConfigApi, recoverAiConfigFromHistory, loadHistoryDiff, searchHistories } from '@/api/AiConfigApi'
+import { AiConfigApi, recoverAiConfigFromHistory, loadHistoryDiff, searchHistories, loadAiModels } from '@/api/AiConfigApi'
 import { ElMessage, ElTag, ElText, ElSwitch } from 'element-plus'
 import { useDefaultPage } from '@/config'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -28,12 +28,15 @@ onActivated(initLoadOnce)
 
 const editDialogVisible = ref(false)
 const editForm = ref({})
+const modelListLoading = ref(false)
+const modelList = ref([])
 
 const showEditDialog = async (row) => {
   if (row && row.id) {
     const res = await AiConfigApi.getById(row.id)
     if (res.success) {
       editForm.value = res.resultData
+      modelList.value = editForm.value.defaultModel ? [editForm.value.defaultModel] : []
     }
   } else {
     editForm.value = {
@@ -41,8 +44,33 @@ const showEditDialog = async (row) => {
       status: 1,
       isDefault: 0
     }
+    modelList.value = []
   }
   editDialogVisible.value = true
+}
+
+const fetchModels = async () => {
+  if (!editForm.value.baseUrl || !editForm.value.apiKey) {
+    ElMessage.warning($i18nBundle('api.msg.loadModelsNeedKey'))
+    return
+  }
+  modelListLoading.value = true
+  try {
+    const res = await loadAiModels(editForm.value, { showErrorMessage: false }).catch(err => err?.data || err)
+    if (res?.success && Array.isArray(res.resultData)) {
+      modelList.value = res.resultData
+      ElMessage.success($i18nBundle('api.msg.loadModelsSuccess', [res.resultData.length]))
+      if (modelList.value.length > 0 && !editForm.value.defaultModel) {
+        editForm.value.defaultModel = modelList.value[0]
+      }
+    } else {
+      ElMessage.error(res?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.unknownError')]))
+    }
+  } catch (err) {
+    ElMessage.error(err?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.networkError')]))
+  } finally {
+    modelListLoading.value = false
+  }
 }
 
 const copyConfig = async (row) => {
@@ -367,7 +395,10 @@ const editFormOptions = computed(() => {
       { label: 'OpenAI (含兼容模型)', value: 'OPENAI' },
       { label: 'Anthropic Claude', value: 'ANTHROPIC' },
       { label: 'Google Gemini', value: 'GEMINI' }
-    ]
+    ],
+    change () {
+      modelList.value = []
+    }
   }, {
     labelKey: 'api.label.baseUrl',
     prop: 'baseUrl',
@@ -390,8 +421,25 @@ const editFormOptions = computed(() => {
   }, {
     labelKey: 'api.label.defaultModel',
     prop: 'defaultModel',
+    type: 'select',
     disabled: isSystem,
-    required: true
+    required: true,
+    tooltip: $i18nBundle('api.label.loadModels'),
+    tooltipIcon: 'Refresh',
+    tooltipFunc: !isSystem ? fetchModels : undefined,
+    attrs: {
+      filterable: true,
+      allowCreate: true,
+      defaultFirstOption: true,
+      loading: modelListLoading.value,
+      placeholder: $i18nBundle('api.msg.selectOrInputModel')
+    },
+    children: [
+      ...new Set([
+        ...(editForm.value.defaultModel?.trim() ? [editForm.value.defaultModel.trim()] : []),
+        ...modelList.value
+      ])
+    ].map(m => ({ label: m, value: m }))
   },
   useFormStatus(),
   {

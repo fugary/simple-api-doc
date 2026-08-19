@@ -1,5 +1,6 @@
 package com.fugary.simple.api.service.ai.provider;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,6 +42,20 @@ public abstract class AbstractAiChatProvider implements AiChatProvider {
         throw new RuntimeException("AI 接口调用失败，状态码: " + response.getStatusCode());
     }
 
+    /**
+     * Execute HTTP GET and return raw response body
+     */
+    protected String callApiGet(String url, HttpHeaders headers) {
+        RestTemplate restTemplate = createRestTemplate();
+        ResponseEntity<String> response = restTemplate.exchange(url,
+                org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(headers), String.class);
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return response.getBody();
+        }
+        throw new RuntimeException("AI 接口调用失败，状态码: " + response.getStatusCode());
+    }
+
     private RestTemplate createRestTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(aiConfigProperties.getTimeout());
@@ -45,6 +63,29 @@ public abstract class AbstractAiChatProvider implements AiChatProvider {
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.setRequestFactory(factory);
         return restTemplate;
+    }
+
+    /**
+     * Parse and extract sorted model ids from standard {"data": [{"id": "..."}, ...]} JSON response
+     */
+    protected List<String> extractModelIdsFromData(String rawResponse) {
+        try {
+            JsonNode root = objectMapper.readTree(rawResponse);
+            JsonNode dataNode = root.path("data");
+            List<String> models = new ArrayList<>();
+            if (dataNode.isArray()) {
+                for (JsonNode item : dataNode) {
+                    String id = item.path("id").asText();
+                    if (id != null && !id.isBlank()) {
+                        models.add(id);
+                    }
+                }
+            }
+            Collections.sort(models);
+            return models;
+        } catch (Exception e) {
+            throw new RuntimeException("解析模型列表失败: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -66,3 +107,4 @@ public abstract class AbstractAiChatProvider implements AiChatProvider {
         return content;
     }
 }
+

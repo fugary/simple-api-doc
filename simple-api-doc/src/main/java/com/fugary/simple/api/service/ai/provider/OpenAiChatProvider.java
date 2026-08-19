@@ -62,4 +62,18 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public List<String> loadModels(AiConfig config) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(config.getApiKey());
+        String url = config.getBaseUrl().replaceAll("/+$", "") + "/models";
+        try {
+            String rawResponse = callApiGet(url, headers);
+            return extractModelIdsFromData(rawResponse);
+        } catch (Exception e) {
+            log.error("获取 OpenAI 模型列表失败, url: {}", url, e);
+            throw new RuntimeException("获取模型列表失败: " + e.getMessage(), e);
+        }
+    }
 }

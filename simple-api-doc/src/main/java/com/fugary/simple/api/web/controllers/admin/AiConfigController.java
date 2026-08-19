@@ -21,9 +21,10 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
+import java.util.function.Supplier;
 
 /**
  * AI Config 管理 Controller
@@ -50,6 +51,26 @@ public class AiConfigController {
         try {
             AiChatResponse result = aiService.testAiConfig(id, prompt);
             return SimpleResultUtils.createSimpleResult(result);
+        } catch (SimpleRuntimeException e) {
+            return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
+        } catch (Exception e) {
+            return SimpleResultUtils.createError(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/models")
+    public SimpleResult<List<String>> loadModels(@PathVariable("id") Integer id) {
+        return loadModelsResult(() -> aiService.loadModels(id));
+    }
+
+    @PostMapping("/models")
+    public SimpleResult<List<String>> loadModels(@RequestBody AiConfig config) {
+        return loadModelsResult(() -> aiService.loadModels(config));
+    }
+
+    private SimpleResult<List<String>> loadModelsResult(Supplier<List<String>> supplier) {
+        try {
+            return SimpleResultUtils.createSimpleResult(supplier.get());
         } catch (SimpleRuntimeException e) {
             return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {

@@ -7,6 +7,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,5 +68,45 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
             log.error("调用 GEMINI 接口失败", e);
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public List<String> loadModels(AiConfig config) {
+        String url = config.getBaseUrl().replaceAll("/+$", "") + "/models?key=" + config.getApiKey();
+        try {
+            String rawResponse = callApiGet(url, new HttpHeaders());
+            JsonNode root = objectMapper.readTree(rawResponse);
+            JsonNode modelsNode = root.path("models");
+            List<String> models = new ArrayList<>();
+            if (modelsNode.isArray()) {
+                for (JsonNode item : modelsNode) {
+                    if (!supportsGenerateContent(item)) {
+                        continue;
+                    }
+                    String name = item.path("name").asText();
+                    if (name != null && !name.isBlank()) {
+                        models.add(name.startsWith("models/") ? name.substring(7) : name);
+                    }
+                }
+            }
+            Collections.sort(models);
+            return models;
+        } catch (Exception e) {
+            log.error("获取 Gemini 模型列表失败, url: {}", url, e);
+            throw new RuntimeException("获取模型列表失败: " + e.getMessage(), e);
+        }
+    }
+
+    private boolean supportsGenerateContent(JsonNode item) {
+        JsonNode methodsNode = item.path("supportedGenerationMethods");
+        if (!methodsNode.isArray()) {
+            return true;
+        }
+        for (JsonNode m : methodsNode) {
+            if ("generateContent".equals(m.asText())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

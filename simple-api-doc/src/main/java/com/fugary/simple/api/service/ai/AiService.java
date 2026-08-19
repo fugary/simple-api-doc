@@ -1,10 +1,11 @@
 package com.fugary.simple.api.service.ai;
 
+import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
 import com.fugary.simple.api.web.vo.AiGenericTaskReq;
-
-
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
+
+import java.util.List;
 
 /**
  * AI 生成服务
@@ -36,9 +37,26 @@ public interface AiService {
     AiChatResponse testAiConfig(Integer configId, String prompt);
 
     /**
+     * 获取指定配置可用的模型列表
+     *
+     * @param configId AI 配置 ID
+     * @return 模型名称列表
+     */
+    List<String> loadModels(Integer configId);
+
+    /**
+     * 获取指定 AI 配置可用的模型列表（支持未保存的配置）
+     *
+     * @param config AI 配置
+     * @return 模型名称列表
+     */
+    List<String> loadModels(AiConfig config);
+
+    /**
      * 是否开启
      *
      * @return
      */
     boolean isEnabled();
 }
+
