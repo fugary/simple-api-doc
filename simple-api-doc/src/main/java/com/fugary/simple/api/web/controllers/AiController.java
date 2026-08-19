@@ -8,9 +8,10 @@ import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
-import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
+import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import com.fugary.simple.api.web.vo.AiStatusVo;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +19,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * AI 相关接口
  */
+@Slf4j
 @RestController
 @RequestMapping({"/admin/ai", "/shares/ai"})
 public class AiController {
@@ -59,22 +62,36 @@ public class AiController {
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_0, vo);
     }
 
-    @PostMapping("/generate-sample")
-    public SimpleResult<String> generateSample(@RequestBody AiGenerateSampleReq req) {
-        String schemaContent = req.getSchemaContent();
-        if (StringUtils.isBlank(schemaContent)) {
-            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2018);
-        }
+    private <T> SimpleResult<T> executeAiTask(Supplier<T> supplier, String errorLogMsg) {
         try {
-            String sample = aiService.generateSampleBySchema(req);
-            return SimpleResultUtils.createSimpleResult(sample);
+            return SimpleResultUtils.createSimpleResult(supplier.get());
         } catch (SimpleRuntimeException e) {
             if (StringUtils.isNotBlank(e.getMessage())) {
                 return SimpleResultUtils.createError(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500, e.getMessage());
             }
             return SimpleResultUtils.createSimpleResult(e.getCode() != null ? e.getCode() : SystemErrorConstants.CODE_500);
         } catch (Exception e) {
+            log.error(errorLogMsg, e);
             return SimpleResultUtils.createError(e.getMessage());
         }
+    }
+
+    @PostMapping("/generate-sample")
+    public SimpleResult<String> generateSample(@RequestBody AiGenericTaskReq req) {
+        String schemaContent = req != null ? req.getSchemaContent() : null;
+        if (StringUtils.isBlank(schemaContent)) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2018);
+        }
+        return executeAiTask(() -> aiService.generateSample(req), "AI 生成示例数据失败");
+    }
+
+    @PostMapping({"/generate-descriptions", "/caches/generate-descriptions"})
+    public SimpleResult<String> generateDescriptions(@RequestBody AiGenericTaskReq req) {
+        return executeAiTask(() -> aiService.generateDescriptions(req), "智能补全 Schema 失败");
+    }
+
+    @PostMapping({"/generate-model", "/caches/generate-model"})
+    public SimpleResult<String> generateModel(@RequestBody AiGenericTaskReq req) {
+        return executeAiTask(() -> aiService.generateModel(req), "生成模型失败");
     }
 }

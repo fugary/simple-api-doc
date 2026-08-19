@@ -1,7 +1,6 @@
 package com.fugary.simple.api.service.ai;
 
 import com.fugary.simple.api.entity.api.AiConfig;
-import com.fugary.simple.api.web.vo.AiGenerateSampleReq;
 import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
 
@@ -20,12 +19,28 @@ public interface AiService {
     String executeGenericTask(AiGenericTaskReq req);
 
     /**
-     * 根据 JSON Schema 生成示例数据
+     * 根据 JSON Schema 生成示例 Mock 数据
      *
      * @param req 请求参数
      * @return 生成的示例数据 (JSON格式)
      */
-    String generateSampleBySchema(AiGenerateSampleReq req);
+    String generateSample(AiGenericTaskReq req);
+
+    /**
+     * 智能补全与完善 JSON Schema 描述与枚举
+     *
+     * @param req 请求参数
+     * @return 补全后的 JSON Schema 字符串
+     */
+    String generateDescriptions(AiGenericTaskReq req);
+
+    /**
+     * 根据业务需求描述生成数据模型 (JSON Schema)
+     *
+     * @param req 请求参数
+     * @return 生成的模型 JSON 字符串
+     */
+    String generateModel(AiGenericTaskReq req);
 
     /**
      * 测试指定的 AI 配置

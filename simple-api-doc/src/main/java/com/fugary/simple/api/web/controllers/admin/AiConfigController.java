@@ -45,7 +45,7 @@ public class AiConfigController {
     @PostMapping({"/test", "/{id}/test"})
     public SimpleResult<AiChatResponse> test(@PathVariable(value = "id", required = false) Integer id,
                                              @RequestBody AiGenericTaskReq req) {
-        String prompt = req != null ? req.getUserMessage() : null;
+        String prompt = req != null ? StringUtils.defaultIfBlank(req.getUserMessage(), req.getPrompt()) : null;
         if (StringUtils.isBlank(prompt)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2015);
         }
