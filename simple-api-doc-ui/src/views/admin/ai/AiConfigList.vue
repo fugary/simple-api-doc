@@ -407,7 +407,8 @@ const editFormOptions = computed(() => {
     disabled: isSystem,
     attrs: {
       fetchSuggestions: queryBaseUrlSuggestions,
-      clearable: true
+      clearable: true,
+      autocomplete: 'off'
     }
   }, {
     labelKey: 'api.label.apiKey',
@@ -417,7 +418,8 @@ const editFormOptions = computed(() => {
     required: true,
     attrs: {
       type: 'password',
-      showPassword: true
+      showPassword: true,
+      autocomplete: 'new-password'
     }
   }, {
     labelKey: 'api.label.defaultModel',
