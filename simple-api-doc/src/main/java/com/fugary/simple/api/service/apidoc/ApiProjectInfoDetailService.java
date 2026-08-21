@@ -155,6 +155,24 @@ public interface ApiProjectInfoDetailService extends IService<ApiProjectInfoDeta
     boolean existsInfoDetail(ApiProjectInfoDetail infoDetail);
 
     /**
+     * 保存ProjectInfoDetail信息（包含历史版本归档与最新数据更新，处于同一事务中）
+     *
+     * @param infoDetail
+     * @param existsInfoDetail
+     * @return
+     */
+    boolean saveProjectInfoDetail(ApiProjectInfoDetail infoDetail, ApiProjectInfoDetail existsInfoDetail);
+
+    /**
+     * 保存Examples更新（包含历史版本归档与最新数据更新，处于同一事务中）
+     *
+     * @param infoDetail
+     * @param existsInfoDetail
+     * @return
+     */
+    boolean saveDetailExamples(ApiProjectInfoDetail infoDetail, ApiProjectInfoDetail existsInfoDetail);
+
+    /**
      * 复制模型
      *
      * @param infoDetail

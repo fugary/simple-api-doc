@@ -230,14 +230,46 @@ public class ApiProjectInfoDetailServiceImpl extends ServiceImpl<ApiProjectInfoD
     @Override
     public boolean existsInfoDetail(ApiProjectInfoDetail infoDetail) {
         QueryWrapper<ApiProjectInfoDetail> queryWrapper = Wrappers.<ApiProjectInfoDetail>query()
-                .eq("schema_name", infoDetail.getSchemaName())
+                .select("id")
+                .eq(infoDetail.getProjectId() != null, "project_id", infoDetail.getProjectId())
+                .eq(infoDetail.getInfoId() != null, "info_id", infoDetail.getInfoId())
                 .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
-                .eq("body_type", infoDetail.getBodyType()).eq("info_id", infoDetail.getInfoId());
+                .eq("body_type", infoDetail.getBodyType())
+                .eq("schema_name", infoDetail.getSchemaName())
+                .ne(infoDetail.getId() != null, "id", infoDetail.getId());
         if (infoDetail.getDocId() != null) {
             queryWrapper.eq("doc_id", infoDetail.getDocId());
         }
-        List<ApiProjectInfoDetail> existProjects = list(queryWrapper);
-        return existProjects.stream().anyMatch(existProject -> !existProject.getId().equals(infoDetail.getId()));
+        return this.count(queryWrapper) > 0;
+    }
+
+    @Override
+    public boolean saveProjectInfoDetail(ApiProjectInfoDetail infoDetail, ApiProjectInfoDetail existsInfoDetail) {
+        if (existsInfoDetail != null) {
+            if (existsInfoDetail.getVersion() == null) {
+                this.update(Wrappers.<ApiProjectInfoDetail>update()
+                        .eq("id", existsInfoDetail.getId()).set("data_version", 1));
+                existsInfoDetail.setVersion(1);
+            }
+            saveApiHistory(existsInfoDetail);
+            infoDetail.setVersion(existsInfoDetail.getVersion());
+        } else if (infoDetail.getVersion() == null) {
+            infoDetail.setVersion(1);
+        }
+        return this.saveOrUpdate(SimpleModelUtils.addAuditInfo(infoDetail));
+    }
+
+    @Override
+    public boolean saveDetailExamples(ApiProjectInfoDetail infoDetail, ApiProjectInfoDetail existsInfoDetail) {
+        if (existsInfoDetail.getVersion() == null) {
+            this.update(Wrappers.<ApiProjectInfoDetail>update()
+                    .eq("id", existsInfoDetail.getId()).set("data_version", 1));
+            existsInfoDetail.setVersion(1);
+        }
+        saveApiHistory(existsInfoDetail);
+        existsInfoDetail.setExamples(infoDetail.getExamples());
+        SimpleModelUtils.addAuditInfo(existsInfoDetail);
+        return this.updateById(existsInfoDetail);
     }
 
     @Override
