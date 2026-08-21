@@ -69,7 +69,7 @@ const buttons = defineTableButtons([{
   },
   click (item) {
     $coreConfirm($i18nBundle('api.msg.recoverFromHistory'))
-      .then(() => props.recoverFunc?.({ queryId: item.id }))
+      .then(() => props.recoverFunc?.({ queryId: item.id }, { loading: true }))
       .then(() => searchHistories())
       .then(() => emit('updateHistory', target.value))
   }

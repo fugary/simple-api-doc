@@ -196,7 +196,7 @@ const deleteComponent = () => {
 }
 const copyComponent = () => {
   return $coreConfirm($i18nBundle('common.msg.confirmCopy'))
-    .then(() => copyApiModel(currentComponentModel.value.id))
+    .then(() => copyApiModel(currentComponentModel.value.id, { loading: true }))
     .then(result => {
       if (result.resultData?.id) {
         emit('saveComponent', result.resultData)

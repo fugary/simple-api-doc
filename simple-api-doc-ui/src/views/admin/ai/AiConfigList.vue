@@ -217,7 +217,7 @@ const showHistoryDialog = (row) => {
         historyOptionsMethod
       })
     },
-    recoverFunc: (param) => recoverAiConfigFromHistory(param),
+    recoverFunc: (param, config) => recoverAiConfigFromHistory(param, config),
     onUpdateHistory: () => searchMethod()
   })
 }

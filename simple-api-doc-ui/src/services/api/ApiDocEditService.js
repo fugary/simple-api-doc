@@ -81,7 +81,7 @@ export const toParametersSchemaContent = (paramsModel) => {
   return JSON.stringify(parameters)
 }
 
-export const checkAndSaveDocInfoDetail = (data) => {
+export const checkAndSaveDocInfoDetail = (data, config = { loading: true }) => {
   try {
     JSON.parse(data.schemaContent)
   } catch (e) {
@@ -89,7 +89,7 @@ export const checkAndSaveDocInfoDetail = (data) => {
     $coreError($i18nBundle('common.msg.jsonError'))
     return
   }
-  return ApiProjectInfoDetailApi.saveOrUpdate(data)
+  return ApiProjectInfoDetailApi.saveOrUpdate(data, config)
     .then((data) => {
       if (data.success) {
         ElMessage.success($i18nBundle('common.msg.saveSuccess'))
