@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { testAiConfig, loadAiModels, AiConfigApi } from '@/api/AiConfigApi'
+import { useAiConfigStore } from '@/stores/AiConfigStore'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 
@@ -15,6 +16,7 @@ const props = defineProps({
   }
 })
 
+const aiConfigStore = useAiConfigStore()
 const targetConfig = computed(() => props.config || props.configId)
 const initialConfig = typeof targetConfig.value === 'object' ? targetConfig.value : null
 
@@ -44,7 +46,19 @@ const formData = ref({
 
 const testMetrics = ref(null)
 const modelListLoading = ref(false)
-const modelList = ref(initialConfig?.defaultModel ? [initialConfig.defaultModel] : [])
+const getInitialModels = () => {
+  const cached = aiConfigStore.getCachedModels(targetConfig.value)
+  if (cached && cached.length > 0) {
+    return [
+      ...new Set([
+        ...(initialConfig?.defaultModel ? [initialConfig.defaultModel] : []),
+        ...cached
+      ])
+    ]
+  }
+  return initialConfig?.defaultModel ? [initialConfig.defaultModel] : []
+}
+const modelList = ref(getInitialModels())
 
 const fetchModels = async () => {
   if (!targetConfig.value) {
@@ -60,6 +74,10 @@ const fetchModels = async () => {
           ...res.resultData
         ])
       ]
+      aiConfigStore.saveCachedModels(targetConfig.value, res.resultData)
+      if (loadedConfig.value) {
+        aiConfigStore.saveCachedModels(loadedConfig.value, res.resultData)
+      }
     } else {
       ElMessage.error(res?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.unknownError')]))
     }
@@ -78,9 +96,15 @@ onMounted(async () => {
       if (!formData.value.model && res.resultData.defaultModel) {
         formData.value.model = res.resultData.defaultModel
       }
-      if (res.resultData.defaultModel && !modelList.value.includes(res.resultData.defaultModel)) {
-        modelList.value = [res.resultData.defaultModel, ...modelList.value]
-      }
+      const cached = aiConfigStore.getCachedModels(res.resultData)
+      const baseModels = res.resultData.defaultModel ? [res.resultData.defaultModel] : []
+      modelList.value = [
+        ...new Set([
+          ...baseModels,
+          ...cached,
+          ...modelList.value
+        ])
+      ]
     }
   }
 })

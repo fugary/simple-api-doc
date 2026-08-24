@@ -17,6 +17,7 @@ import { fakerZH_CN as faker } from '@faker-js/faker'
 import { XMLBuilder } from 'fast-xml-parser'
 import { cloneDeep, isArray, isFunction, isObject, isString, isPlainObject } from 'lodash-es'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import { useAiConfigStore } from '@/stores/AiConfigStore'
 import { ALL_CONTENT_TYPES, ALL_CONTENT_TYPES_LIST, CHARSET_LIST, LANGUAGE_LIST1 } from '@/consts/ApiConstants'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
 import { processSchemas } from '@/services/api/ApiDocPreviewService'
@@ -705,6 +706,7 @@ export const buildAiConfigOptions = (configs = [], defaultId = null) => {
  * @return {{ aiModelList: Ref<Array>, aiModelLoading: Ref<Boolean>, fetchAiModels: Function, syncModelFromConfig: Function, buildModelFormOption: Function }}
  */
 export const useAiModelSelector = (formModel, aiConfigs) => {
+  const aiConfigStore = useAiConfigStore()
   const aiModelList = ref([])
   const aiModelLoading = ref(false)
 
@@ -722,6 +724,7 @@ export const useAiModelSelector = (formModel, aiConfigs) => {
             ...res.resultData
           ])
         ]
+        aiConfigStore.saveCachedModels(configId, res.resultData)
       } else {
         ElMessage.error(res?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.unknownError')]))
       }
@@ -738,10 +741,24 @@ export const useAiModelSelector = (formModel, aiConfigs) => {
     const cfg = configs?.find(c => c.id === newId)
     if (cfg?.defaultModel) {
       if (isRef(formModel)) {
-        formModel.value.model = cfg.defaultModel
+        if (!formModel.value.model) {
+          formModel.value.model = cfg.defaultModel
+        }
       } else {
-        formModel.model = cfg.defaultModel
+        if (!formModel.model) {
+          formModel.model = cfg.defaultModel
+        }
       }
+    }
+    const cached = aiConfigStore.getCachedModels(newId)
+    if (cached && cached.length > 0) {
+      aiModelList.value = [
+        ...new Set([
+          ...(cfg?.defaultModel ? [cfg.defaultModel] : []),
+          ...cached
+        ])
+      ]
+    } else if (cfg?.defaultModel) {
       aiModelList.value = [cfg.defaultModel]
     }
   }

@@ -4,6 +4,7 @@ import { omit } from 'lodash-es'
 import { formatDate, $coreConfirm } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { AiConfigApi, recoverAiConfigFromHistory, loadHistoryDiff, searchHistories, loadAiModels } from '@/api/AiConfigApi'
+import { useAiConfigStore } from '@/stores/AiConfigStore'
 import { ElMessage, ElTag, ElText, ElSwitch } from 'element-plus'
 import { useDefaultPage } from '@/config'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -13,6 +14,8 @@ import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
 import AiConfigTestWindow from './AiConfigTestWindow.vue'
+
+const aiConfigStore = useAiConfigStore()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { configName: '', status: '', isDefault: '', page: useDefaultPage() },
@@ -36,7 +39,8 @@ const showEditDialog = async (row) => {
     const res = await AiConfigApi.getById(row.id)
     if (res.success) {
       editForm.value = res.resultData
-      modelList.value = editForm.value.defaultModel ? [editForm.value.defaultModel] : []
+      const cached = aiConfigStore.getCachedModels(res.resultData)
+      modelList.value = cached.length > 0 ? cached : (editForm.value.defaultModel ? [editForm.value.defaultModel] : [])
     }
   } else {
     editForm.value = {
@@ -59,6 +63,7 @@ const fetchModels = async () => {
     const res = await loadAiModels(editForm.value, { showErrorMessage: false }).catch(err => err?.data || err)
     if (res?.success && Array.isArray(res.resultData)) {
       modelList.value = res.resultData
+      aiConfigStore.saveCachedModels(editForm.value, res.resultData)
       ElMessage.success($i18nBundle('api.msg.loadModelsSuccess', [res.resultData.length]))
       if (modelList.value.length > 0 && !editForm.value.defaultModel) {
         editForm.value.defaultModel = modelList.value[0]
@@ -81,11 +86,18 @@ const copyConfig = async (row) => {
     configName: `${rest.configName || ''}-copy`,
     isDefault: 0
   }
+  const cached = aiConfigStore.getCachedModels(editForm.value)
+  if (cached.length > 0) {
+    modelList.value = cached
+  }
 }
 
 const saveConfig = async (data) => {
   const res = await AiConfigApi.saveOrUpdate(data)
   if (res.success) {
+    if (res.resultData?.id && modelList.value?.length > 0) {
+      aiConfigStore.saveCachedModels(res.resultData.id, modelList.value)
+    }
     searchMethod()
     return res
   } else {
@@ -440,7 +452,8 @@ const editFormOptions = computed(() => {
     children: [
       ...new Set([
         ...(editForm.value.defaultModel?.trim() ? [editForm.value.defaultModel.trim()] : []),
-        ...modelList.value
+        ...modelList.value,
+        ...aiConfigStore.getCachedModels(editForm.value)
       ])
     ].map(m => ({ label: m, value: m }))
   },
