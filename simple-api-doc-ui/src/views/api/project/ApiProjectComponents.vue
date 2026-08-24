@@ -9,6 +9,7 @@ import ApiProjectInfoDetailApi, { copyApiModel, removeByQuery } from '@/api/ApiP
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import ApiProjectComponent from '@/views/components/api/project/ApiProjectComponent.vue'
+import ApiProjectClearComponentsWindow from '@/views/components/api/project/ApiProjectClearComponentsWindow.vue'
 import { processProjectInfos } from '@/services/api/ApiDocEditService'
 import { $i18nBundle } from '@/messages'
 import { ElMessage } from 'element-plus'
@@ -55,21 +56,20 @@ const newOrEdit = (id) => {
   }
 }
 
-const confirmRemoveAllByQuery = async () => {
+const clearWindowVisible = ref(false)
+const clearStat = ref(null)
+
+const openClearComponentsWindow = async () => {
   const stat = await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: true }), { loading: true }).then(res => res?.resultData)
   if (!stat || !stat.totalCount) {
     ElMessage.warning($i18nBundle('api.msg.noComponentsToDelete'))
     return
   }
-  let msg = $i18nBundle('api.msg.clearComponentsConfirm', [stat.totalCount])
-  if (stat.lockedCount > 0) {
-    msg += '<br/>' + $i18nBundle('api.msg.clearComponentsLockedNotice', [stat.lockedCount])
-  }
-  msg += '<br/><span class="text-danger margin-top2 inline-block">' + $i18nBundle('common.msg.deleteConfirm') + '</span>'
+  clearStat.value = stat
+  clearWindowVisible.value = true
+}
 
-  await $coreConfirm(msg, $i18nBundle('common.label.reminder'))
-  await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: false }), { loading: true })
-  ElMessage.success($i18nBundle('common.msg.deleteSuccess'))
+const onClearSuccess = () => {
   currentInfoDetail.value = null
   loadProjectComponents(1)
 }
@@ -300,7 +300,7 @@ const handleRowContextMenu = (row, column, event) => {
             <el-button
               v-if="isDeletable"
               type="danger"
-              @click="confirmRemoveAllByQuery()"
+              @click="openClearComponentsWindow()"
             >
               {{ $t('api.label.clearComponents') }}
             </el-button>
@@ -390,6 +390,13 @@ const handleRowContextMenu = (row, column, event) => {
         </template>
       </el-dropdown>
     </div>
+    <api-project-clear-components-window
+      v-model="clearWindowVisible"
+      :project-item="projectItem"
+      :search-param="searchParam"
+      :stat="clearStat"
+      @success="onClearSuccess"
+    />
   </el-container>
 </template>
 

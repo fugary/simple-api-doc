@@ -18,4 +18,5 @@ public class ProjectComponentQueryVo extends ProjectQueryVo{
     private String schemaName;
     private Boolean locked;
     private Boolean checkOnly;
+    private Boolean keepLocked;
 }

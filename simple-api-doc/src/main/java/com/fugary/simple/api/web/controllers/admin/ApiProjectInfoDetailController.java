@@ -92,21 +92,28 @@ public class ApiProjectInfoDetailController {
         QueryWrapper<ApiProjectInfoDetail> queryWrapper = buildComponentQueryWrapper(queryVo);
         List<ApiProjectInfoDetail> list = apiProjectInfoDetailService.list(queryWrapper);
         long lockedCount = list.stream().filter(item -> Boolean.TRUE.equals(item.getLocked())).count();
+        long unlockedCount = list.size() - lockedCount;
+        boolean keepLocked = Boolean.TRUE.equals(queryVo.getKeepLocked());
+        List<ApiProjectInfoDetail> targetList = keepLocked
+                ? list.stream().filter(item -> !Boolean.TRUE.equals(item.getLocked())).collect(Collectors.toList())
+                : list;
+
         Map<String, Object> result = new HashMap<>();
         result.put("totalCount", list.size());
         result.put("lockedCount", lockedCount);
-        result.put("unlockedCount", list.size() - lockedCount);
+        result.put("unlockedCount", unlockedCount);
+        result.put("targetCount", targetList.size());
         result.put("deletedCount", 0);
         result.put("success", true);
 
         boolean checkOnly = Boolean.TRUE.equals(queryVo.getCheckOnly());
-        if (!checkOnly && !list.isEmpty()) {
-            List<Integer> ids = list.stream().map(ApiProjectInfoDetail::getId).collect(Collectors.toList());
+        if (!checkOnly && !targetList.isEmpty()) {
+            List<Integer> ids = targetList.stream().map(ApiProjectInfoDetail::getId).collect(Collectors.toList());
             boolean success = apiProjectInfoDetailService.remove(Wrappers.<ApiProjectInfoDetail>query()
                     .in("id", ids)
                     .or()
                     .in("modify_from", ids));
-            result.put("deletedCount", list.size());
+            result.put("deletedCount", targetList.size());
             result.put("success", success);
         }
         return SimpleResultUtils.createSimpleResult(result);
