@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { testAiConfig, loadAiModels, AiConfigApi } from '@/api/AiConfigApi'
 import { useAiConfigStore } from '@/stores/AiConfigStore'
+import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 
@@ -13,24 +14,11 @@ const props = defineProps({
   configId: {
     type: [Number, Object],
     default: null
+  },
+  allowChangeConfig: {
+    type: Boolean,
+    default: undefined
   }
-})
-
-const aiConfigStore = useAiConfigStore()
-const targetConfig = computed(() => props.config || props.configId)
-const initialConfig = typeof targetConfig.value === 'object' ? targetConfig.value : null
-
-const loadedConfig = ref(null)
-const currentConfig = computed(() => loadedConfig.value || (typeof targetConfig.value === 'object' ? targetConfig.value : null))
-const configName = computed(() => currentConfig.value?.configName || '')
-const provider = computed(() => currentConfig.value?.provider || '')
-const providerTagType = computed(() => {
-  const typeMap = {
-    OPENAI: 'success',
-    ANTHROPIC: 'warning',
-    GEMINI: ''
-  }
-  return typeMap[provider.value] !== undefined ? typeMap[provider.value] : 'info'
 })
 
 const visible = defineModel({
@@ -38,102 +26,116 @@ const visible = defineModel({
   default: false
 })
 
+const aiConfigStore = useAiConfigStore()
+const targetConfig = computed(() => props.config || props.configId)
+const isSwitchable = computed(() => {
+  if (props.allowChangeConfig !== undefined) {
+    return props.allowChangeConfig
+  }
+  return !props.config && !props.configId
+})
+
+const aiConfigs = ref([])
+const defaultAiConfigId = ref(null)
+
 const formData = ref({
+  configId: null,
   prompt: $i18nBundle('api.msg.defaultPrompt'),
-  model: initialConfig?.defaultModel || '',
+  model: '',
   result: ''
 })
 
 const testMetrics = ref(null)
-const modelListLoading = ref(false)
-const getInitialModels = () => {
-  const cached = aiConfigStore.getCachedModels(targetConfig.value)
-  if (cached && cached.length > 0) {
-    return [
-      ...new Set([
-        ...(initialConfig?.defaultModel ? [initialConfig.defaultModel] : []),
-        ...cached
-      ])
-    ]
-  }
-  return initialConfig?.defaultModel ? [initialConfig.defaultModel] : []
-}
-const modelList = ref(getInitialModels())
 
-const fetchModels = async () => {
-  if (!targetConfig.value) {
-    return
-  }
-  modelListLoading.value = true
+const {
+  aiModelList,
+  aiModelLoading,
+  syncModelFromConfig,
+  buildModelFormOption
+} = useAiModelSelector(formData, aiConfigs)
+
+const fetchCustomAiModels = async () => {
+  const curConfig = aiConfigs.value.find(c => c.id === formData.value.configId) || (typeof targetConfig.value === 'object' ? targetConfig.value : null)
+  const targetParam = (typeof curConfig?.id === 'number') ? curConfig.id : curConfig
+  if (!targetParam) return
+  aiModelLoading.value = true
   try {
-    const res = await loadAiModels(targetConfig.value, { showErrorMessage: false }).catch(err => err?.data || err)
+    const res = await loadAiModels(targetParam, { showErrorMessage: false }).catch(err => err?.data || err)
     if (res?.success && Array.isArray(res.resultData)) {
-      modelList.value = [
+      formData.value.model = formData.value.model || curConfig?.defaultModel || res.resultData[0] || ''
+      aiModelList.value = [
         ...new Set([
           ...(formData.value.model?.trim() ? [formData.value.model.trim()] : []),
           ...res.resultData
         ])
       ]
-      aiConfigStore.saveCachedModels(targetConfig.value, res.resultData)
-      if (loadedConfig.value) {
-        aiConfigStore.saveCachedModels(loadedConfig.value, res.resultData)
-      }
+      aiConfigStore.saveCachedModels(targetParam, res.resultData)
     } else {
       ElMessage.error(res?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.unknownError')]))
     }
   } catch (err) {
     ElMessage.error(err?.message || $i18nBundle('api.msg.loadModelsFailed', [$i18nBundle('common.msg.networkError')]))
   } finally {
-    modelListLoading.value = false
+    aiModelLoading.value = false
   }
 }
 
 onMounted(async () => {
-  if (typeof targetConfig.value === 'number') {
-    const res = await AiConfigApi.getById(targetConfig.value)
-    if (res.success && res.resultData) {
-      loadedConfig.value = res.resultData
-      if (!formData.value.model && res.resultData.defaultModel) {
-        formData.value.model = res.resultData.defaultModel
+  const res = await AiConfigApi.search({ status: 1 })
+  let list = (res.success && Array.isArray(res.resultData)) ? res.resultData : []
+
+  if (!isSwitchable.value && targetConfig.value) {
+    let current = typeof targetConfig.value === 'object' ? { ...targetConfig.value } : null
+    if (typeof targetConfig.value === 'number') {
+      const getRes = await AiConfigApi.getById(targetConfig.value)
+      if (getRes.success && getRes.resultData) {
+        current = getRes.resultData
       }
-      const cached = aiConfigStore.getCachedModels(res.resultData)
-      const baseModels = res.resultData.defaultModel ? [res.resultData.defaultModel] : []
-      modelList.value = [
-        ...new Set([
-          ...baseModels,
-          ...cached,
-          ...modelList.value
-        ])
-      ]
     }
+    if (current) {
+      const existsIndex = list.findIndex(item => item.id && item.id === current.id)
+      const targetId = current.id ?? 'temp_current'
+      current.id = targetId
+      if (existsIndex >= 0) {
+        list[existsIndex] = current
+      } else {
+        list = [current, ...list]
+      }
+      aiConfigs.value = list
+      formData.value.configId = targetId
+      syncModelFromConfig(targetId)
+      return
+    }
+  }
+
+  aiConfigs.value = list
+  const defConfig = list.find(c => c.isDefault === 1) || list[0]
+  if (defConfig) {
+    defaultAiConfigId.value = defConfig.id
+    formData.value.configId = defConfig.id
+    syncModelFromConfig(defConfig.id)
+  } else if (!isSwitchable.value) {
+    ElMessage.warning($i18nBundle('api.msg.noDefaultConfig'))
   }
 })
 
 const formOptions = computed(() => {
   return [
     {
-      labelKey: 'api.label.model',
-      prop: 'model',
+      labelKey: 'api.label.aiConfigSelect',
+      prop: 'configId',
       type: 'select',
-      tooltip: $i18nBundle('api.label.loadModels'),
-      tooltipIcon: 'Refresh',
-      tooltipFunc: fetchModels,
       required: true,
+      disabled: !isSwitchable.value,
+      children: buildAiConfigOptions(aiConfigs.value, defaultAiConfigId.value),
       attrs: {
-        filterable: true,
-        allowCreate: true,
-        defaultFirstOption: true,
-        loading: modelListLoading.value,
-        clearable: true,
-        placeholder: $i18nBundle('api.msg.selectOrInputModel')
-      },
-      children: [
-        ...new Set([
-          ...(formData.value.model?.trim() ? [formData.value.model.trim()] : []),
-          ...modelList.value
-        ])
-      ].map(m => ({ label: m, value: m }))
+        clearable: false
+      }
     },
+    buildModelFormOption({
+      required: true,
+      tooltipFunc: fetchCustomAiModels
+    }),
     {
       labelKey: 'api.label.testPrompt',
       prop: 'prompt',
@@ -156,10 +158,18 @@ const formOptions = computed(() => {
     }
   ]
 })
+
 const testLoading = ref(false)
 const handleTest = () => {
   if (!formData.value.prompt?.trim()) {
     ElMessage.warning($i18nBundle('api.msg.inputPrompt'))
+    return false
+  }
+
+  const curConfig = aiConfigs.value.find(c => c.id === formData.value.configId) || (typeof targetConfig.value === 'object' ? targetConfig.value : null)
+  const target = (typeof curConfig?.id === 'number') ? curConfig.id : curConfig
+  if (!target) {
+    ElMessage.warning($i18nBundle('api.msg.noDefaultConfig'))
     return false
   }
 
@@ -172,7 +182,7 @@ const handleTest = () => {
     model: formData.value.model || undefined
   }
 
-  testAiConfig(targetConfig.value, reqBody, { timeout: 30000 }).then(res => {
+  testAiConfig(target, reqBody, { timeout: 30000 }).then(res => {
     if (res.success) {
       formData.value.result = res.resultData?.content || $i18nBundle('api.msg.noContent')
       testMetrics.value = res.resultData
@@ -201,26 +211,6 @@ const handleTest = () => {
     :ok-click="handleTest"
     :cancel-label="$t('common.label.close')"
   >
-    <template #header="{ titleId, titleClass }">
-      <span
-        :id="titleId"
-        class="el-dialog__title"
-        :class="titleClass"
-      >
-        <span class="margin-right2">{{ $t('common.label.test') }}</span>
-        <span
-          v-if="configName"
-          class="margin-right2"
-        >{{ configName }}</span>
-        <el-tag
-          v-if="provider"
-          :type="providerTagType"
-          size="small"
-        >
-          {{ provider }}
-        </el-tag>
-      </span>
-    </template>
     <el-container class="flex-column">
       <common-form
         class="form-edit-width-100"

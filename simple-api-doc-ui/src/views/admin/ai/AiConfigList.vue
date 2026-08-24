@@ -305,18 +305,9 @@ const columns = computed(() => {
 const testDialogVisible = ref(false)
 const testConfig = ref(null)
 
-const showTestDialog = (row) => {
+const showTestDialog = (row = null) => {
   testConfig.value = row
   testDialogVisible.value = true
-}
-
-const testDefaultConfig = async () => {
-  const res = await AiConfigApi.search({ isDefault: 1, status: 1 })
-  if (res.success && res.resultData?.length > 0) {
-    showTestDialog(res.resultData[0])
-  } else {
-    ElMessage.warning($i18nBundle('api.msg.noDefaultConfig'))
-  }
 }
 
 const buttons = computed(() => {
@@ -499,7 +490,7 @@ const editWindowAttrs = computed(() => ({
       <template #buttons>
         <el-button
           type="success"
-          @click="testDefaultConfig()"
+          @click="showTestDialog()"
         >
           {{ $t('common.label.test') }}
         </el-button>
