@@ -162,7 +162,7 @@ defineExpose({ showGenerateSampleWindow })
   <common-window
     v-model="showDialog"
     :title="$t('common.label.generateData') || '生成测试数据'"
-    width="600px"
+    width="800px"
     :ok-click="handleOk"
     :cancel-click="handleCancel"
     :close-click="handleCancel"
@@ -170,7 +170,7 @@ defineExpose({ showGenerateSampleWindow })
     <common-form
       :model="formData"
       :options="formOptions"
-      label-width="160px"
+      label-width="150px"
       class="form-edit-width-100"
       :show-buttons="false"
     />

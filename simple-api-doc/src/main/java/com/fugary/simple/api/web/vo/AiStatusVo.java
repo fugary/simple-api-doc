@@ -34,6 +34,7 @@ public class AiStatusVo implements Serializable {
         private Integer id;
         private String configName;
         private String provider;
+        private String baseUrl;
         private String defaultModel;
         private Integer isDefault;
     }

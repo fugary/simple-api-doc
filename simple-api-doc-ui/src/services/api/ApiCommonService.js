@@ -671,7 +671,7 @@ export const calcHeaderSuggestions = name => {
  */
 export const renderAiConfigLabel = (item, isDefault) => {
   if (!item) return ''
-  const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
+  const name = item.configName ? (item.baseUrl ? `${item.configName} (${item.baseUrl})` : item.configName) : (item.baseUrl || item.defaultModel || '')
   if (!isDefault) return name
   return h('span', [
     name,
@@ -688,7 +688,7 @@ export const renderAiConfigLabel = (item, isDefault) => {
 export const buildAiConfigOptions = (configs = [], defaultId = null) => {
   return (configs || []).map(item => {
     const isDefault = item.isDefault === 1 || item.id === defaultId
-    const name = item.configName ? `${item.configName} (${item.defaultModel})` : item.defaultModel
+    const name = item.configName ? (item.baseUrl ? `${item.configName} (${item.baseUrl})` : item.configName) : (item.baseUrl || item.defaultModel || '')
     return {
       label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
       value: item.id,
