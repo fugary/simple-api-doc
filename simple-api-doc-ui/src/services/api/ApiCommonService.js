@@ -735,23 +735,27 @@ export const useAiModelSelector = (formModel, aiConfigs) => {
     }
   }
 
-  const syncModelFromConfig = (newId) => {
+  const syncModelFromConfig = (newId, forceOverwrite = false) => {
     if (!newId) return
     const configs = isRef(aiConfigs) ? aiConfigs.value : aiConfigs
     const cfg = configs?.find(c => c.id === newId)
-    if (cfg?.defaultModel) {
-      if (isRef(formModel)) {
-        if (!formModel.value.model) {
-          formModel.value.model = cfg.defaultModel
-        }
-      } else {
-        if (!formModel.model) {
-          formModel.model = cfg.defaultModel
-        }
-      }
+
+    const currentModel = isRef(formModel) ? formModel.value.model : formModel.model
+    const updateModel = (val) => {
+      if (isRef(formModel)) formModel.value.model = val
+      else formModel.model = val
     }
+
+    if (cfg?.defaultModel) {
+      if (!currentModel || forceOverwrite) {
+        updateModel(cfg.defaultModel)
+      }
+    } else if (forceOverwrite) {
+      updateModel('')
+    }
+
     const cached = aiConfigStore.getCachedModels(newId)
-    if (cached && cached.length > 0) {
+    if (cached?.length > 0) {
       aiModelList.value = [
         ...new Set([
           ...(cfg?.defaultModel ? [cfg.defaultModel] : []),
@@ -760,11 +764,13 @@ export const useAiModelSelector = (formModel, aiConfigs) => {
       ]
     } else if (cfg?.defaultModel) {
       aiModelList.value = [cfg.defaultModel]
+    } else {
+      aiModelList.value = []
     }
   }
 
-  watch(() => (isRef(formModel) ? formModel.value.configId : formModel.configId), (newId) => {
-    syncModelFromConfig(newId)
+  watch(() => (isRef(formModel) ? formModel.value.configId : formModel.configId), (newId, oldId) => {
+    syncModelFromConfig(newId, !!(oldId && newId !== oldId))
   })
 
   const buildModelFormOption = (attrs = {}) => {
