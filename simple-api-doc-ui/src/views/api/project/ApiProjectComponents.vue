@@ -1,17 +1,18 @@
 <script setup lang="jsx">
-import { computed, onActivated, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, nextTick, onActivated, onMounted, reactive, ref, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { useBackUrl, $coreConfirm } from '@/utils'
 import { useApiProjectItem } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectInfoDetailApi, { removeByQuery } from '@/api/ApiProjectInfoDetailApi'
+import ApiProjectInfoDetailApi, { copyApiModel, removeByQuery } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
 import { AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import ApiProjectComponent from '@/views/components/api/project/ApiProjectComponent.vue'
 import { processProjectInfos } from '@/services/api/ApiDocEditService'
 import { $i18nBundle } from '@/messages'
 import { ElMessage } from 'element-plus'
+import CommonIcon from '@/components/common-icon/index.vue'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -129,7 +130,23 @@ const searchFormOptions = computed(() => {
 const columns = [{
   headerSlot: 'buttonHeader',
   labelKey: 'api.label.dataModel',
-  prop: 'schemaName'
+  prop: 'schemaName',
+  formatter (data) {
+    let lockIcon = null
+    if (data.locked) {
+      lockIcon = <CommonIcon
+        icon="LockFilled"
+        size={16}
+        class="margin-right1"
+        style="flex-shrink: 0;"
+        v-common-tooltip={$i18nBundle('api.msg.apiDocLocked')}
+      />
+    }
+    return <span class="flex-center-col">
+      {lockIcon}
+      <span class="ellipsis" title={data.schemaName}>{data.schemaName}</span>
+    </span>
+  }
 }]
 
 const pageAttrs = {
@@ -149,6 +166,98 @@ const saveComponent = (data) => {
   console.log('===========================data', data)
   currentInfoDetail.value = data
   loadProjectComponents()
+}
+
+const showContextMenu = ref(false)
+const contextMenuPos = reactive({ x: 0, y: 0 })
+const contextMenuHandlers = ref([])
+const contextMenuDropdownRef = ref()
+
+const handleContextMenuVisibleChange = (visible) => {
+  if (!visible) {
+    showContextMenu.value = false
+  }
+}
+
+const handleContextItemClick = (handler) => {
+  showContextMenu.value = false
+  handler.handler?.()
+}
+
+const getRowHandlers = (row) => {
+  const modelLabel = $i18nBundle('api.label.dataModel')
+  const lockLabel = row.locked ? $i18nBundle('api.label.apiModelUnlock') : $i18nBundle('api.label.apiModelLock')
+  return [{
+    icon: 'Edit',
+    iconColor: 'var(--el-color-primary)',
+    label: $i18nBundle('common.label.commonEdit', [modelLabel]),
+    handler: () => {
+      newOrEdit(row.id)
+    }
+  }, {
+    enabled: isWritable.value,
+    icon: 'DocumentCopy',
+    iconColor: 'var(--el-color-primary)',
+    label: $i18nBundle('common.label.commonCopy', [modelLabel]),
+    handler: () => {
+      $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle('common.label.commonCopy', [modelLabel])]))
+        .then(() => copyApiModel(row.id, { loading: true }))
+        .then(result => {
+          if (result?.resultData?.id) {
+            saveComponent(result.resultData)
+          }
+        })
+    }
+  }, {
+    enabled: isWritable.value,
+    icon: row.locked ? 'LockOpenFilled' : 'LockFilled',
+    iconColor: row.locked ? 'var(--el-color-success)' : 'var(--el-color-warning)',
+    label: lockLabel,
+    handler: () => {
+      $coreConfirm($i18nBundle('common.msg.commonConfirm', [lockLabel]))
+        .then(() => ApiProjectInfoDetailApi.saveOrUpdate({ ...row, locked: !row.locked }, { loading: true }))
+        .then(() => {
+          if (currentInfoDetail.value?.id === row.id) {
+            currentInfoDetail.value.locked = !row.locked
+          }
+          loadProjectComponents()
+        })
+    }
+  }, {
+    enabled: isDeletable.value,
+    icon: 'Delete',
+    type: 'danger',
+    label: $i18nBundle('common.label.commonDelete', [modelLabel]),
+    handler: () => {
+      const alertMsg = row.schemaName ? $i18nBundle('common.msg.commonDeleteConfirm', [row.schemaName]) : $i18nBundle('common.msg.deleteConfirm')
+      $coreConfirm(alertMsg)
+        .then(() => ApiProjectInfoDetailApi.deleteById(row.id, { loading: true }))
+        .then(() => {
+          if (currentInfoDetail.value?.id === row.id) {
+            currentInfoDetail.value = null
+          }
+          loadProjectComponents()
+        })
+    }
+  }].filter(item => item.enabled !== false)
+}
+
+const handleRowContextMenu = (row, column, event) => {
+  event.preventDefault()
+  if (!isWritable.value && !isDeletable.value) {
+    return
+  }
+  componentsTableRef.value?.table?.setCurrentRow(row)
+  showContextMenu.value = false
+  contextMenuHandlers.value = getRowHandlers(row)
+  contextMenuPos.x = event.clientX
+  contextMenuPos.y = event.clientY
+  nextTick(() => {
+    showContextMenu.value = true
+    nextTick(() => {
+      contextMenuDropdownRef.value?.handleOpen?.()
+    })
+  })
 }
 
 </script>
@@ -216,6 +325,7 @@ const saveComponent = (data) => {
               @page-size-change="loadProjectComponents()"
               @current-page-change="loadProjectComponents()"
               @current-change="$event?newOrEdit($event?.id):undefined"
+              @row-contextmenu="handleRowContextMenu"
             >
               <template #buttonHeader>
                 {{ $t('api.label.dataModel') }}
@@ -245,6 +355,41 @@ const saveComponent = (data) => {
         </common-split>
       </div>
     </el-container>
+    <div
+      v-if="showContextMenu"
+      style="position: fixed; pointer-events: none; z-index: 3000;"
+      :style="{ left: contextMenuPos.x + 'px', top: contextMenuPos.y + 'px' }"
+    >
+      <el-dropdown
+        ref="contextMenuDropdownRef"
+        trigger="contextmenu"
+        @visible-change="handleContextMenuVisibleChange"
+      >
+        <span style="display: inline-block; width: 0; height: 0;" />
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item
+              v-for="(handler, index) in contextMenuHandlers"
+              :key="index"
+              :disabled="handler.disabled"
+              :divided="handler.divided"
+              @click="handleContextItemClick(handler)"
+            >
+              <el-link
+                underline="never"
+                :type="handler.type || 'default'"
+              >
+                <common-icon
+                  :icon="handler.icon"
+                  :color="handler.iconColor"
+                />
+                {{ handler.label || $t(handler.labelKey) }}
+              </el-link>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
   </el-container>
 </template>
 
