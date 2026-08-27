@@ -78,11 +78,15 @@ public class ApiProjectImportController {
                         new Object[]{fileName, supportedExts});
                 return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
             }
-            SimpleResult<String> contentResult = streamDocContentProvider.getContent(file.getInputStream());
-            if (!contentResult.isSuccess()) {
-                return SimpleResultUtils.createError(contentResult.getCode(), contentResult.getMessage());
+            if (fileName != null && fileName.toLowerCase().endsWith(".zip")) {
+                content = java.util.Base64.getEncoder().encodeToString(file.getBytes());
+            } else {
+                SimpleResult<String> contentResult = streamDocContentProvider.getContent(file.getInputStream());
+                if (!contentResult.isSuccess()) {
+                    return SimpleResultUtils.createError(contentResult.getCode(), contentResult.getMessage());
+                }
+                content = contentResult.getResultData();
             }
-            content = contentResult.getResultData();
         } else if (isUrlMode) {
             SimpleResult<String> contentResult = urlDocContentProvider.getContent(importVo);
             if (!contentResult.isSuccess()) {

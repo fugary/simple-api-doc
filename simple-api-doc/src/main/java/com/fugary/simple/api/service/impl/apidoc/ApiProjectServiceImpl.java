@@ -232,9 +232,14 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Override
     public SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo) {
-        ApiDocImporter importer = ApiDocImporter.findImporter(apiDocImporters, importVo.getSourceType());
+        ApiDocImporter importer = StringUtils.isNotBlank(importVo.getSourceType()) ?
+                ApiDocImporter.findImporter(apiDocImporters, importVo.getSourceType()) :
+                ApiDocImporter.detectImporter(apiDocImporters, content);
         if (importer == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2004);
+        }
+        if (StringUtils.isBlank(importVo.getSourceType())) {
+            importVo.setSourceType(importer.getType());
         }
         boolean isUrlMode = ApiDocConstants.IMPORT_TYPE_URL.equals(importVo.getImportType());
         int errorCode = isUrlMode ? SystemErrorConstants.CODE_2005 : SystemErrorConstants.CODE_2003;

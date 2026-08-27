@@ -117,6 +117,9 @@ export const IMPORT_DUPLICATE_STRATEGY = [{
 export const IMPORT_SOURCE_TYPES = [{
   value: 'openapi',
   labelKey: 'api.label.importTypeSwagger'
+}, {
+  value: 'markdown',
+  labelKey: 'api.label.importTypeMarkdown'
 }]
 
 export const IMPORT_TYPES = [{
@@ -129,7 +132,7 @@ export const IMPORT_TYPES = [{
 
 export const DEFAULT_MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-export const SUPPORTED_IMPORT_FILE_EXTS = ['.json', '.yaml', '.yml']
+export const SUPPORTED_IMPORT_FILE_EXTS = ['.json', '.yaml', '.yml', '.md', '.markdown', '.zip']
 
 export const SUPPORTED_IMPORT_FILE_ACCEPT = SUPPORTED_IMPORT_FILE_EXTS.join(',')
 

@@ -124,9 +124,13 @@ const isOversizedFile = (file) => {
   const raw = file?.raw || file
   return raw?.size && raw.size > DEFAULT_MAX_IMPORT_FILE_SIZE
 }
+const getSourceTypeLabel = () => {
+  const key = importModel.value.sourceType === 'markdown' ? 'api.label.importTypeMarkdown' : 'api.label.importTypeSwagger'
+  return $i18nBundle(key)
+}
 const validateFileContent = async (file) => {
   const detected = await detectImportFileType(file?.raw || file)
-  return detected === 'openapi'
+  return detected === importModel.value.sourceType
 }
 
 const onFileListUpdate = async (files) => {
@@ -160,7 +164,7 @@ const onFileListUpdate = async (files) => {
   }
   if (invalidContentFiles.length > 0) {
     const detail = invalidContentFiles.map(getFileName).join(', ')
-    $coreError($i18nBundle('api.msg.importFileTypeInvalidDetail', [detail, $i18nBundle('api.label.importTypeSwagger')]))
+    $coreError($i18nBundle('api.msg.importFileTypeInvalidDetail', [detail, getSourceTypeLabel()]))
   }
   importFiles.value = validFiles
 }
@@ -368,7 +372,7 @@ const doImportProject = (autoAlert = true) => {
         if (!isValid) {
           $coreError($i18nBundle('api.msg.importFileTypeInvalidDetail', [
             getFileName(importFiles.value[0]),
-            $i18nBundle('api.label.importTypeSwagger')
+            getSourceTypeLabel()
           ]))
           return
         }

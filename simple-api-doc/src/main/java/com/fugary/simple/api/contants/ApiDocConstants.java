@@ -56,10 +56,14 @@ public class ApiDocConstants {
 
     public static final String IMPORT_TYPE_URL = "url";
 
+    public static final String SOURCE_TYPE_OPENAPI = "openapi";
+
+    public static final String SOURCE_TYPE_MARKDOWN = "markdown";
+
     /**
      * 支持导入的文件扩展名列表
      */
-    public static final List<String> SUPPORTED_IMPORT_EXTENSIONS = List.of(".json", ".yaml", ".yml");
+    public static final List<String> SUPPORTED_IMPORT_EXTENSIONS = List.of(".json", ".yaml", ".yml", ".md", ".markdown", ".zip");
 
     public static final String FOLDER_PATH_SEPARATOR = "/";
 

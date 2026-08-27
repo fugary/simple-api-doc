@@ -194,11 +194,15 @@ export const importProject = (files, params = {}, config = {}) => {
 /**
  * 快速嗅探文件或文本的数据格式类型
  * @param {File|Blob|string} fileOrText 上传文件或字符串
- * @returns {Promise<string|null>} 'openapi' | null
+ * @returns {Promise<string|null>} 'openapi' | 'markdown' | null
  */
 export const detectImportFileType = async (fileOrText) => {
   if (!fileOrText) {
     return null
+  }
+  const fileName = (fileOrText?.name || fileOrText?.raw?.name || '').toLowerCase()
+  if (fileName.endsWith('.zip') || fileName.endsWith('.md') || fileName.endsWith('.markdown')) {
+    return 'markdown'
   }
   let text = ''
   if (typeof fileOrText === 'string') {
@@ -235,6 +239,11 @@ export const detectImportFileType = async (fileOrText) => {
       (/^\s*['"]?(openapi|swagger)['"]?\s*:/m.test(trimmed)) ||
       (/^paths\s*:/m.test(trimmed) && /^info\s*:/m.test(trimmed))) {
     return 'openapi'
+  }
+
+  // 3. Markdown / ZIP 特征
+  if (trimmed.startsWith('UEsDB') || trimmed.startsWith('#') || trimmed.startsWith('---') || trimmed.startsWith('```')) {
+    return 'markdown'
   }
 
   return null

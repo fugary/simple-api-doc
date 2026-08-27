@@ -58,9 +58,10 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] 数据模型 ContextMenu 与锁定状态：数据模型左侧列表支持与文档树一致的锁定状态图标及 Tooltip 提示，支持右键快捷菜单（ContextMenu）实现编辑、复制、锁定/解锁及删除操作。
 - [x] 清空数据模型选项与安全防护：清空数据模型支持展示清空范围与锁定统计，新增“保留已锁定模型”选项（默认开启），提供实时动态影响反馈与全锁定防御拦截，杜绝误删关键模型。
 - [x] AI 模型列表持久化缓存与自动恢复：通过 `AiConfigStore` 建立持久化模型缓存与双重特征索引（`configId` 与 `URL+APIKey`），实现 AI 配置、测试及业务中模型选择下拉列表的秒级自动恢复与按需刷新更新。
+- [x] 多级 Markdown 文件夹与 ZIP 导入支持：新增 `MarkdownDocImporterImpl` 支持解析多级 Markdown 目录及 `.zip` 压缩包，自动过滤系统垃圾文件，支持 YAML Frontmatter 元数据提取、一级标题/序号排序智能解析及 README.md 根文档置顶展示。
 
 ---
-*Last Updated: 2026-08-24*
+*Last Updated: 2026-08-27*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：

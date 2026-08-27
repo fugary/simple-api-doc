@@ -20,6 +20,11 @@ public class ApiProjectImportFileTest {
         Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("test.yml"));
         Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("test.YML"));
         Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("openapi.v3.json"));
+        Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("test.md"));
+        Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("test.MD"));
+        Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("test.markdown"));
+        Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("test.zip"));
+        Assertions.assertTrue(SimpleModelUtils.isSupportedImportFile("test.ZIP"));
 
         Assertions.assertFalse(SimpleModelUtils.isSupportedImportFile("test.xlsx"));
         Assertions.assertFalse(SimpleModelUtils.isSupportedImportFile("test.xls"));
