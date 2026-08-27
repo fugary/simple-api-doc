@@ -12,7 +12,7 @@ import {
   SUPPORTED_IMPORT_FILE_EXTS,
   SUPPORTED_IMPORT_FILE_ACCEPT
 } from '@/consts/ApiConstants'
-import { ElButton, ElUpload, ElText } from 'element-plus'
+import { ElButton, ElUpload, ElText, ElAlert } from 'element-plus'
 import {
   calcProjectIconUrl,
   detectImportFileType,
@@ -114,6 +114,7 @@ loadValidFolders(props.project?.id).then(() => {
 const importFolders = computed(() => props.project?.infoList?.map(info => info.folderId) || [])
 
 const importFiles = ref([])
+const detectedTypeNotice = ref('')
 
 const getFileName = (file) => file?.name || file?.raw?.name || ''
 const isSupportedFile = (file) => {
@@ -124,9 +125,9 @@ const isOversizedFile = (file) => {
   const raw = file?.raw || file
   return raw?.size && raw.size > DEFAULT_MAX_IMPORT_FILE_SIZE
 }
-const getSourceTypeLabel = () => {
-  const key = importModel.value.sourceType === 'markdown' ? 'api.label.importTypeMarkdown' : 'api.label.importTypeSwagger'
-  return $i18nBundle(key)
+const getSourceTypeLabel = (sourceType = importModel.value.sourceType) => {
+  const labelKey = IMPORT_SOURCE_TYPES.find(item => item.value === sourceType)?.labelKey || 'api.label.importTypeSwagger'
+  return $i18nBundle(labelKey)
 }
 const validateFileContent = async (file) => {
   const detected = await detectImportFileType(file?.raw || file)
@@ -138,17 +139,27 @@ const onFileListUpdate = async (files) => {
   const oversizedFiles = []
   const invalidExtFiles = []
   const invalidContentFiles = []
+  detectedTypeNotice.value = ''
   for (const file of files || []) {
     if (!isSupportedFile(file)) {
       invalidExtFiles.push(file)
     } else if (isOversizedFile(file)) {
       oversizedFiles.push(file)
     } else {
-      const isValid = await validateFileContent(file)
-      if (!isValid) {
-        invalidContentFiles.push(file)
-      } else {
+      const detected = await detectImportFileType(file?.raw || file)
+      if (detected) {
+        importModel.value.sourceType = detected
+        detectedTypeNotice.value = $i18nBundle('api.msg.autoDetectTypeNotice', [getSourceTypeLabel(detected)])
         validFiles.push(file)
+        if (!props.project?.id && !importModel.value.projectName) {
+          const fileName = getFileName(file)
+          const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '')
+          if (nameWithoutExt) {
+            importModel.value.projectName = nameWithoutExt
+          }
+        }
+      } else {
+        invalidContentFiles.push(file)
       }
     }
   }
@@ -409,6 +420,14 @@ defineExpose({
 
 <template>
   <el-container class="flex-column">
+    <el-alert
+      v-if="detectedTypeNotice && importModel.importType === 'file'"
+      type="success"
+      :closable="false"
+      show-icon
+      class="margin-bottom2"
+      :title="detectedTypeNotice"
+    />
     <common-form
       ref="importForm"
       label-width="130px"
