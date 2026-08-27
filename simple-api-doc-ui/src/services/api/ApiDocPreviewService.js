@@ -317,6 +317,7 @@ export const calcParamTarget = (projectInfoDetail, apiDocDetail) => {
   const target = {
     projectId: apiDocDetail?.projectId,
     docId: apiDocDetail?.id,
+    openedDocIds: apiDocDetail?.id ? [apiDocDetail.id] : [],
     preferenceId,
     isWritable,
     pathParams: calcSchemaParameters(apiDocDetail.parametersSchema, componentMap, item => item.in === 'path'),
@@ -1213,7 +1214,7 @@ export const parseLoginApiConfigs = (target) => {
   return gConfig?.loginApiConfigs || (gConfig?.loginApiConfig ? [gConfig.loginApiConfig] : [])
 }
 
-export const NOT_SAVED_KEYS = ['targetUrl', 'requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig', 'isWritable']
+export const NOT_SAVED_KEYS = ['targetUrl', 'requestBodySchema', 'securityRequirements', 'requestExamples', 'groupConfig', 'isWritable', 'openedDocIds']
 
 export const mergeSavedParamTarget = (target, lastParamTarget) => {
   const savedTarget = { ...lastParamTarget }
@@ -1243,12 +1244,16 @@ export const openLoginApiDebug = (config, currentParamTarget) => {
       const docPrefId = calcDetailPreferenceId(docDetail)
       const paramTargetId = `${docPrefId}-${docDetail.id}`
       const lastParamTarget = shareConfigStore.shareParamTargets[paramTargetId] = shareConfigStore.shareParamTargets[paramTargetId] || reactive({})
+      const currentDocId = currentParamTarget?.docId || currentParamTarget?.id
+      const currentOpenedDocIds = currentParamTarget?.openedDocIds || (currentDocId ? [currentDocId] : [])
+      const chainOpenedDocIds = Array.from(new Set([...currentOpenedDocIds, currentDocId, docDetail.id].filter(Boolean)))
       const handlerConfig = {
         preHandler: target => {
           mergeSavedParamTarget(target, lastParamTarget)
           if (sharePreference?.targetUrl) {
             target.targetUrl = sharePreference.targetUrl
           }
+          target.openedDocIds = chainOpenedDocIds
           return target
         },
         changeHandler: target => {

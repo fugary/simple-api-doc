@@ -9,10 +9,6 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  isCurrentLoginApi: {
-    type: Boolean,
-    default: false
-  },
   paramTarget: {
     type: Object,
     default: undefined
@@ -39,14 +35,19 @@ const getApiStatus = (api) => {
 }
 
 const validLoginApiConfigs = computed(() => {
+  const currentDocId = props.paramTarget?.docId || props.paramTarget?.id
+  const openedDocIds = props.paramTarget?.openedDocIds || (currentDocId ? [currentDocId] : [])
+  const openedSet = new Set((openedDocIds || []).map(id => String(id)))
+  if (currentDocId) {
+    openedSet.add(String(currentDocId))
+  }
   return (props.loginApiConfigs || []).filter(api => {
-    if (!api) return false
+    if (!api?.apiId || openedSet.has(String(api.apiId))) return false
     return getApiStatus(api).enabled
   })
 })
 
-const showDropdown = computed(() => !props.isCurrentLoginApi && validLoginApiConfigs.value.length > 1)
-const showSingleLink = computed(() => !props.isCurrentLoginApi && validLoginApiConfigs.value.length === 1)
+const showDropdown = computed(() => validLoginApiConfigs.value.length > 0)
 
 const handleOpenLoginApiDebug = (config) => {
   if (config) {
@@ -56,71 +57,59 @@ const handleOpenLoginApiDebug = (config) => {
 </script>
 
 <template>
-  <template v-if="showDropdown">
-    <el-dropdown
-      trigger="hover"
-      :class="linkClass"
-      :style="linkStyle"
-      @command="handleOpenLoginApiDebug"
-    >
-      <el-link
-        type="primary"
-        :underline="false"
-      >
-        <span>{{ $t('api.label.loginApi') }}</span>
-      </el-link>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item
-            v-for="api in validLoginApiConfigs"
-            :key="api.apiId"
-            :command="api"
-          >
-            <div style="display: flex; align-items: center; gap: 8px; max-width: 450px;">
-              <ApiMethodTag
-                v-if="api.method"
-                :method="api.method"
-                size="small"
-                style="flex-shrink: 0;"
-              />
-              <el-text
-                :type="getApiStatus(api).deprecated ? 'warning' : ''"
-                style="display: inline-flex; align-items: center; gap: 8px; flex: 1; min-width: 0;"
-              >
-                <component
-                  :is="getApiStatus(api).deprecated ? 'del' : 'span'"
-                  style="font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                  :title="api.summary || api.url"
-                >
-                  {{ api.summary || api.url }}
-                </component>
-                <component
-                  :is="getApiStatus(api).deprecated ? 'del' : 'span'"
-                  v-if="api.url"
-                  class="dropdown-api-url"
-                  style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: auto;"
-                  :title="api.url"
-                >
-                  {{ api.url }}
-                </component>
-              </el-text>
-            </div>
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
-  </template>
-  <template v-else-if="showSingleLink">
+  <el-dropdown
+    v-if="showDropdown"
+    trigger="hover"
+    :class="linkClass"
+    :style="linkStyle"
+    @command="handleOpenLoginApiDebug"
+  >
     <el-link
       type="primary"
       :underline="false"
-      :class="linkClass"
-      :style="linkStyle"
-      @click="handleOpenLoginApiDebug(validLoginApiConfigs[0])"
     >
       <span>{{ $t('api.label.loginApi') }}</span>
     </el-link>
-  </template>
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item
+          v-for="api in validLoginApiConfigs"
+          :key="api.apiId"
+          :command="api"
+        >
+          <div style="display: flex; align-items: center; gap: 8px; max-width: 450px;">
+            <ApiMethodTag
+              v-if="api.method"
+              :method="api.method"
+              size="small"
+              style="flex-shrink: 0;"
+            />
+            <el-text
+              :type="getApiStatus(api).deprecated ? 'warning' : ''"
+              style="display: inline-flex; align-items: center; gap: 8px; flex: 1; min-width: 0;"
+            >
+              <component
+                :is="getApiStatus(api).deprecated ? 'del' : 'span'"
+                style="font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                :title="api.summary || api.url"
+              >
+                {{ api.summary || api.url }}
+              </component>
+              <component
+                :is="getApiStatus(api).deprecated ? 'del' : 'span'"
+                v-if="api.url"
+                class="dropdown-api-url"
+                style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: auto;"
+                :title="api.url"
+              >
+                {{ api.url }}
+              </component>
+            </el-text>
+          </div>
+        </el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
 </template>
 
 <style scoped>

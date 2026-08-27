@@ -307,12 +307,6 @@ const handleCurlCommand = async (command) => {
 
 const loginApiConfigs = computed(() => parseLoginApiConfigs(paramTarget.value))
 
-const isCurrentLoginApi = computed(() => {
-  const configs = loginApiConfigs.value || []
-  const currentDocId = paramTarget.value?.docId || paramTarget.value?.id
-  return configs.some(c => String(c.apiId) === String(currentDocId))
-})
-
 const { monacoTheme } = useShareDocTheme()
 
 </script>
@@ -329,7 +323,6 @@ const { monacoTheme } = useShareDocTheme()
     >
       <ApiDocLoginApiDropdown
         :login-api-configs="loginApiConfigs"
-        :is-current-login-api="isCurrentLoginApi"
         :param-target="paramTarget"
         style="margin-top: -11px"
         class="margin-right2"
