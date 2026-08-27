@@ -12,6 +12,13 @@ const editFormOptions = [{
   prop: 'folderName',
   placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderName'),
   required: true
+}, {
+  labelKey: 'api.label.folderCode',
+  prop: 'folderCode',
+  placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderCode'),
+  attrs: {
+    clearable: true
+  }
 }]
 const addOrEditFolderWindow = async (id, projectId, parentFolder) => {
   if (id) {
@@ -30,7 +37,11 @@ const addOrEditFolderWindow = async (id, projectId, parentFolder) => {
 }
 const emit = defineEmits(['savedFolder'])
 const saveFolder = () => {
-  return ApiFolderApi.saveOrUpdate({ ...currentEditFolder.value, children: undefined }, { loading: true }).then(data => {
+  const folderData = { ...currentEditFolder.value, children: undefined }
+  if (!folderData.folderCode) {
+    folderData.folderCode = folderData.folderName
+  }
+  return ApiFolderApi.saveOrUpdate(folderData, { loading: true }).then(data => {
     if (data.success) {
       emit('savedFolder', data.resultData)
       showEditWindow.value = false

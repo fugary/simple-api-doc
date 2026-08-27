@@ -195,6 +195,7 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
             docVo.setDocType(ApiDocConstants.DOC_TYPE_MD);
             docVo.setDocKey(path);
             docVo.setDocName(title);
+            docVo.setSummary(title);
             docVo.setDocContent(body);
             docVo.setDescription(description);
             docVo.setDeprecated(deprecated);
@@ -411,6 +412,7 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
         // 对新增的文件夹应用序号前缀解析
         for (int i = sizeBefore; i < existsFolders.size(); i++) {
             ExportApiFolderVo folder = existsFolders.get(i);
+            folder.setFolderCode(folder.getFolderName());
             Matcher numM = NUMERIC_PREFIX_PATTERN.matcher(folder.getFolderName());
             if (numM.matches()) {
                 folder.setSortId(NumberUtils.toInt(numM.group(1), 0) * 100);

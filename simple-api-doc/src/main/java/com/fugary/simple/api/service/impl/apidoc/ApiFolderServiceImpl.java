@@ -122,6 +122,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         if (existsFolder == null) {
             folder.setParentId(parentFolder.getId());
             folder.setProjectId(parentFolder.getProjectId());
+            if (StringUtils.isBlank(folder.getFolderCode())) {
+                folder.setFolderCode(folder.getFolderName());
+            }
             if (ApiDocConstants.SIMPLE_EMPTY_PATH_FOLDER_ALIAS.equals(folder.getFolderPath())) {
                 folder.setId(parentFolder.getId());
             } else {
@@ -130,6 +133,12 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             }
             existsFolder = folder;
         } else {
+            if (StringUtils.isNotBlank(existsFolder.getFolderName())) {
+                folder.setFolderName(existsFolder.getFolderName());
+            }
+            if (StringUtils.isNotBlank(existsFolder.getFolderCode())) {
+                folder.setFolderCode(existsFolder.getFolderCode());
+            }
             SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
             folder.setStatus(existsFolder.getStatus());
             folder.setSortId(existsFolder.getSortId());
@@ -221,7 +230,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     }
 
     protected void processModifiedApiDoc(ExportApiDocVo apiDocVo, ApiDoc existsDoc) {
-        if (existsDoc != null && ApiDocConstants.DOC_TYPE_API.equals(existsDoc.getDocType())) {
+        if (existsDoc != null) {
             if (!StringUtils.equals(existsDoc.getDocName(), existsDoc.getSummary())) { // 修改过docName
                 apiDocVo.setDocName(existsDoc.getDocName());
             }
@@ -276,6 +285,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         ApiFolder rootFolder = new ApiFolder();
         rootFolder.setProjectId(project.getId());
         rootFolder.setRootFlag(true);
+        rootFolder.setFolderCode("root");
         rootFolder.setFolderName("根目录");
         rootFolder.setStatus(ApiDocConstants.STATUS_ENABLED);
         rootFolder.setSortId(0);
@@ -318,12 +328,12 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         Map<Integer, String> folderPathMap = new HashMap<>();
         for (ApiFolder apiFolder : apiFolders) {
             List<String> paths = new ArrayList<>();
-            paths.add(apiFolder.getFolderName());
+            paths.add(StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName()));
             ApiFolder currentFolder = apiFolder;
             while (currentFolder != null && currentFolder.getParentId() != null) {
                 currentFolder = folderMap.get(currentFolder.getParentId());
                 if (currentFolder != null) {
-                    paths.add(0, currentFolder.getFolderName());
+                    paths.add(0, StringUtils.defaultIfBlank(currentFolder.getFolderCode(), currentFolder.getFolderName()));
                 }
             }
             String folderPath = String.join("/", paths);
@@ -367,7 +377,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     ApiFolder toFolder = SimpleModelUtils.copy(fromFolder, ApiFolder.class);
                     toFolder.setId(null);
                     toFolder.setProjectId(toProjectId);
+                    toFolder.setFolderCode(fromFolder.getFolderCode());
                     if (fromProjectId.equals(toProjectId)) {
+                        toFolder.setFolderCode(fromFolder.getFolderCode() + ApiDocConstants.COPY_SUFFIX);
                         toFolder.setFolderName(fromFolder.getFolderName() + ApiDocConstants.COPY_SUFFIX);
                     }
                     if (toFolder.getParentId() != null) {

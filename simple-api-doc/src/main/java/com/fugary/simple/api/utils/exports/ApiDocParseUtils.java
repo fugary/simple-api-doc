@@ -81,6 +81,7 @@ public class ApiDocParseUtils {
             ExportApiFolderVo childFolder = folderMap.computeIfAbsent(childFolderPath, k -> {
                 ExportApiFolderVo folder = new ExportApiFolderVo();
                 folder.setFolderPath(childFolderPath);
+                folder.setFolderCode(folderName);
                 folder.setFolderName(folderName);
                 folder.setStatus(ApiDocConstants.STATUS_ENABLED);
                 return folder;
@@ -382,7 +383,10 @@ public class ApiDocParseUtils {
             newDoc.setOperationId(StringUtils.defaultIfBlank(newDoc.getOperationId(), SimpleModelUtils.uuid()));
             String docKey = ApiDocParseUtils.calcApiDocKey(newDoc.getOperationId(), newDoc.getUrl(), newDoc.getMethod());
             if (apiFolder != null) {
-                docKey = apiFolder.getFolderName() + "#" + docKey;
+                String folderIdentifier = StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName());
+                if (StringUtils.isNotBlank(folderIdentifier)) {
+                    docKey = folderIdentifier + "#" + docKey;
+                }
             }
             newDoc.setDocKey(docKey);
         } else if (StringUtils.isBlank(newDoc.getDocKey())) {

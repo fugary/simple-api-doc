@@ -31,6 +31,40 @@ class ApiDocParseUtilsTest {
         assertThat(importDetail.getId()).isEqualTo(existsDetail.getId());
     }
 
+    @Test
+    void testCalcNewDocKeyUsesFolderCodeOverRenamedFolderName() {
+        com.fugary.simple.api.entity.api.ApiDoc doc = new com.fugary.simple.api.entity.api.ApiDoc();
+        doc.setDocType(ApiDocConstants.DOC_TYPE_API);
+        doc.setOperationId("getUserInfo");
+        doc.setUrl("/api/user/info");
+        doc.setMethod("GET");
+
+        com.fugary.simple.api.entity.api.ApiFolder folder = new com.fugary.simple.api.entity.api.ApiFolder();
+        folder.setFolderCode("user-controller");
+        folder.setFolderName("用户接口管理"); // 改名后的名称
+
+        ApiDocParseUtils.calcNewDocKey(doc, folder);
+
+        // 验证 docKey 使用的是 folderCode 而非改名后的 folderName
+        assertThat(doc.getDocKey()).isEqualTo("user-controller#getUserInfo");
+    }
+
+    @Test
+    void testCalcApiPathFolderSetsFolderCodeAndName() {
+        java.util.List<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> folders = new java.util.ArrayList<>();
+        Pair<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo, com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> pair =
+                ApiDocParseUtils.calcApiPathFolder(folders, "system/user");
+
+        assertThat(pair.getLeft()).isNotNull();
+        assertThat(pair.getLeft().getFolderCode()).isEqualTo("user");
+        assertThat(pair.getLeft().getFolderName()).isEqualTo("user");
+        assertThat(pair.getLeft().getFolderPath()).isEqualTo("system/user");
+
+        assertThat(pair.getRight()).isNotNull();
+        assertThat(pair.getRight().getFolderCode()).isEqualTo("system");
+        assertThat(pair.getRight().getFolderName()).isEqualTo("system");
+    }
+
     private <T extends ApiProjectInfoDetail> T detail(Class<T> type) {
         try {
             T detail = type.getDeclaredConstructor().newInstance();

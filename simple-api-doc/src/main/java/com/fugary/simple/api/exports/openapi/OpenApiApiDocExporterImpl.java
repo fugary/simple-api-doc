@@ -115,7 +115,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                     String urlPath = apiDocDetail.getUrl();
                     if (!openAPI.getPaths().containsKey(urlPath)) {
                         openAPI.getPaths().addPathItem(urlPath, calcPathItem(openAPI, folderMapPair, apiFolder, apiDocDetail));
-                        tags.add(new Tag().name(apiFolder.getFolderName())
+                        tags.add(new Tag().name(StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName()))
                                 .description(apiFolder.getDescription())); // 提取文件夹信息作为Tag
                     }
                 } else if (ApiDocConstants.DOC_TYPE_MD.equals(apiDocDetail.getDocType())) { // markdown处理
@@ -145,7 +145,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         Map<Integer, String> folderPathMap = folderMapPair.getRight();
         PathItem pathItem = new PathItem();
         Map<String, Consumer<Operation>> pathFunctions = getPathFunctions(pathItem);
-        Operation operation = new Operation().addTagsItem(apiFolder.getFolderName())
+        Operation operation = new Operation().addTagsItem(StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName()))
                 .summary(apiDocDetail.getDocName())
                 .operationId(apiDocDetail.getOperationId())
                 .description(StringUtils.defaultIfBlank(apiDocDetail.getDocContent(), apiDocDetail.getDescription()))

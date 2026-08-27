@@ -13,8 +13,13 @@ public class ApiFolder extends ModelBase {
     private static final long serialVersionUID = 9215758244413506093L;
     private Integer projectId;
     private Integer sortId;
+    private String folderCode;
     private String folderName;
     private Boolean rootFlag;
     private Integer parentId;
     private String description;
+
+    public String getFolderCode() {
+        return org.apache.commons.lang3.StringUtils.defaultIfBlank(folderCode, folderName);
+    }
 }
