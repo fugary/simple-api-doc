@@ -50,6 +50,36 @@ class ApiDocParseUtilsTest {
     }
 
     @Test
+    void testGenerateOperationId() {
+        // 普通路径
+        assertThat(ApiDocParseUtils.generateOperationId("GET", "/users")).isEqualTo("getUsers");
+        assertThat(ApiDocParseUtils.generateOperationId("POST", "/api/v1/orders")).isEqualTo("postApiV1Orders");
+        assertThat(ApiDocParseUtils.generateOperationId("DELETE", "/user-group/info")).isEqualTo("deleteUserGroupInfo");
+
+        // 带路径参数
+        assertThat(ApiDocParseUtils.generateOperationId("GET", "/users/{id}")).isEqualTo("getUsersById");
+        assertThat(ApiDocParseUtils.generateOperationId("GET", "/users/{userId}")).isEqualTo("getUsersByUserId");
+        assertThat(ApiDocParseUtils.generateOperationId("DELETE", "/users/{user_id}")).isEqualTo("deleteUsersByUserId");
+        assertThat(ApiDocParseUtils.generateOperationId("PUT", "/orders/{orderId}/status")).isEqualTo("putOrdersStatusByOrderId");
+        assertThat(ApiDocParseUtils.generateOperationId("GET", "/users/{userId}/orders/{orderId}")).isEqualTo("getUsersOrdersByUserIdAndOrderId");
+
+        // 带 Query 参数与 hash
+        assertThat(ApiDocParseUtils.generateOperationId("GET", "/api/search?keyword=test&page=1")).isEqualTo("getApiSearch");
+
+        // 边界情况
+        assertThat(ApiDocParseUtils.generateOperationId(null, "/users")).isEqualTo("apiUsers");
+        assertThat(ApiDocParseUtils.generateOperationId("GET", "")).isNotBlank();
+    }
+
+    @Test
+    void testToCamelCase() {
+        assertThat(ApiDocParseUtils.toCamelCase("users")).isEqualTo("users");
+        assertThat(ApiDocParseUtils.toCamelCase("user-info")).isEqualTo("userInfo");
+        assertThat(ApiDocParseUtils.toCamelCase("order_detail_info")).isEqualTo("orderDetailInfo");
+        assertThat(ApiDocParseUtils.toCamelCase("userId")).isEqualTo("userId");
+    }
+
+    @Test
     void testCalcApiPathFolderSetsFolderCodeAndName() {
         java.util.List<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> folders = new java.util.ArrayList<>();
         Pair<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo, com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> pair =

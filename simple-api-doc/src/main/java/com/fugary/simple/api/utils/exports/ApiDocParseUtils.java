@@ -374,13 +374,113 @@ public class ApiDocParseUtils {
     }
 
     /**
+     * 根据 HTTP Method 与 URL 自动生成语义化的 operationId (小驼峰)
+     * 例如:
+     *   GET /users -> getUsers
+     *   GET /users/{id} -> getUsersById
+     *   POST /users -> postUsers
+     *   DELETE /users/{userId}/orders/{orderId} -> deleteUsersOrdersByUserIdAndOrderId
+     *   GET /api/v1/user/info -> getApiV1UserInfo
+     *
+     * @param method HTTP 请求方法
+     * @param url 请求路径
+     * @return 语义化 operationId
+     */
+    public static String generateOperationId(String method, String url) {
+        if (StringUtils.isBlank(url)) {
+            return SimpleModelUtils.uuid();
+        }
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isNotBlank(method)) {
+            sb.append(method.trim().toLowerCase());
+        } else {
+            sb.append("api");
+        }
+
+        // 去除 query 参数与 hash
+        String cleanPath = url.split("[?#]")[0].trim();
+        String[] segments = cleanPath.split("/+");
+
+        List<String> pathParts = new ArrayList<>();
+        List<String> paramParts = new ArrayList<>();
+
+        for (String segment : segments) {
+            if (StringUtils.isBlank(segment)) {
+                continue;
+            }
+            // 路径参数识别：{id}, {userId}, :id 等
+            if ((segment.startsWith("{") && segment.endsWith("}")) || segment.startsWith(":")) {
+                String paramName = segment.replaceAll("[{}:]", "").trim();
+                if (StringUtils.isNotBlank(paramName)) {
+                    paramParts.add("By" + StringUtils.capitalize(toCamelCase(paramName)));
+                }
+            } else {
+                String camelSegment = toCamelCase(segment);
+                if (StringUtils.isNotBlank(camelSegment)) {
+                    pathParts.add(StringUtils.capitalize(camelSegment));
+                }
+            }
+        }
+
+        for (String part : pathParts) {
+            sb.append(part);
+        }
+        for (String param : paramParts) {
+            if (paramParts.size() > 1 && param.startsWith("By") && sb.toString().contains("By")) {
+                sb.append("And").append(param.substring(2));
+            } else {
+                sb.append(param);
+            }
+        }
+
+        String result = sb.toString();
+        // 过滤掉非合法标识符字符（只保留字母、数字与下划线）
+        result = result.replaceAll("[^a-zA-Z0-9_]", "");
+        if (StringUtils.isBlank(result) || result.equalsIgnoreCase(method)) {
+            return SimpleModelUtils.uuid();
+        }
+        return result;
+    }
+
+    /**
+     * 将带有中划线、下划线或空格的字符串转为驼峰命名
+     * 例如:
+     *   user-info -> userInfo
+     *   order_detail -> orderDetail
+     *   user_id -> userId
+     *
+     * @param text 待转换文本
+     * @return 驼峰文本
+     */
+    public static String toCamelCase(String text) {
+        if (StringUtils.isBlank(text)) {
+            return "";
+        }
+        String[] words = text.split("[-_\\s]+");
+        if (words.length == 1) {
+            return StringUtils.uncapitalize(words[0]);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (StringUtils.isNotBlank(word)) {
+                if (sb.length() == 0) {
+                    sb.append(StringUtils.uncapitalize(word));
+                } else {
+                    sb.append(StringUtils.capitalize(word));
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
      * 计算新的docKey
      * @param newDoc
      * @param apiFolder
      */
     public static void calcNewDocKey(ApiDoc newDoc, ApiFolder apiFolder) {
         if (ApiDocConstants.DOC_TYPE_API.equals(newDoc.getDocType())) {
-            newDoc.setOperationId(StringUtils.defaultIfBlank(newDoc.getOperationId(), SimpleModelUtils.uuid()));
+            newDoc.setOperationId(StringUtils.defaultIfBlank(newDoc.getOperationId(), generateOperationId(newDoc.getMethod(), newDoc.getUrl())));
             String docKey = ApiDocParseUtils.calcApiDocKey(newDoc.getOperationId(), newDoc.getUrl(), newDoc.getMethod());
             if (apiFolder != null) {
                 String folderIdentifier = StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName());

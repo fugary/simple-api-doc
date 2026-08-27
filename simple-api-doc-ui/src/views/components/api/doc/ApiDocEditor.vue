@@ -14,6 +14,7 @@ const currentDoc = defineModel({
   default: () => ({})
 })
 const currentDocModel = ref()
+
 const formOptions = computed(() => {
   return [{
     type: 'select',
@@ -55,7 +56,12 @@ const formOptions = computed(() => {
   }, {
     label: 'Operation ID',
     prop: 'operationId',
+    placeholder: $i18nBundle('api.msg.operationIdPlaceholder'),
+    tooltip: $i18nBundle('api.msg.operationIdTooltip'),
     required: false,
+    attrs: {
+      clearable: true
+    },
     style: getStyleGrow(10)
   }, {
     labelKey: 'common.label.description',
@@ -83,7 +89,6 @@ const loadCurrentDoc = (id) => {
   $coreShowLoading({ delay: 0, target: '.home-main' })
   ApiDocApi.getById(id).then(data => {
     currentDocModel.value = data.resultData
-    console.log('========================currentDocModel', currentDocModel.value)
     if (!currentDocModel.value.docContent && currentDocModel.value.docType === 'api') {
       currentDocModel.value.docContent = currentDocModel.value.description
     }
