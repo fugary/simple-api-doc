@@ -19,6 +19,10 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.util.EntityUtils;
+import com.fugary.simple.api.service.apidoc.git.GitDocContentProvider;
+import com.fugary.simple.api.utils.git.GitRepoUrlResolver;
+import com.fugary.simple.api.web.vo.git.GitRepoInfo;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -38,11 +42,23 @@ import java.util.Objects;
 @Component
 public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuthVo> {
 
+    @Autowired(required = false)
+    private GitDocContentProvider gitDocContentProvider;
+
     @Override
     public SimpleResult<String> getContent(UrlWithAuthVo source) {
         if (source == null || StringUtils.isBlank(source.getUrl())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
         }
+
+        // 1. 优先尝试 Git 仓库目录 URL 智能解析（GitHub / GitLab / Gitee）
+        GitRepoInfo gitRepoInfo = GitRepoUrlResolver.resolve(source.getUrl());
+        if (gitRepoInfo != null && gitDocContentProvider != null) {
+            log.info("智能嗅探命中 Git 目录: platform={}, project={}, subPath={}", gitRepoInfo.getPlatform(), gitRepoInfo.getProjectPath(), gitRepoInfo.getSubPath());
+            return gitDocContentProvider.getContent(gitRepoInfo, source);
+        }
+
+        // 2. 普通 HTTP URL 下载（自动识别 ZIP 压缩包与单文件纯文本）
         Pair<String, HttpResponse> resultPair = null;
         try {
             resultPair = SimpleHttpClientUtils.sendHttpGet(source.getUrl(), Pair.class, (client, request) -> {
