@@ -1,26 +1,37 @@
 <script setup>
-import { ref } from 'vue'
-import { $i18nKey } from '@/messages'
+import { computed, ref } from 'vue'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import ApiFolderApi from '@/api/ApiFolderApi'
 import { getChildrenSortId } from '@/services/api/ApiFolderService'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
+import { defineFormOptions } from '@/components/utils'
 
 const currentEditFolder = ref()
 const showEditWindow = ref(false)
-const editFormOptions = [{
-  labelKey: 'api.label.folderName',
-  prop: 'folderName',
-  placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderName'),
-  required: true
-}, {
-  labelKey: 'api.label.folderCode',
-  prop: 'folderCode',
-  placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderCode'),
-  attrs: {
-    clearable: true
-  }
-}]
+const canEditFolderCode = ref(false)
+
+const editFormOptions = computed(() => {
+  return defineFormOptions([{
+    labelKey: 'api.label.folderName',
+    prop: 'folderName',
+    placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderName'),
+    required: true
+  }, {
+    labelKey: 'api.label.folderCode',
+    prop: 'folderCode',
+    placeholder: $i18nKey('common.msg.commonInput', 'api.label.folderCode'),
+    disabled: !canEditFolderCode.value,
+    tooltip: $i18nBundle('api.msg.pathIdMsg'),
+    tooltipFunc () {
+      canEditFolderCode.value = !canEditFolderCode.value
+    },
+    attrs: {
+      clearable: true
+    }
+  }])
+})
 const addOrEditFolderWindow = async (id, projectId, parentFolder) => {
+  canEditFolderCode.value = false
   if (id) {
     await ApiFolderApi.getById(id).then(data => {
       data.resultData && (currentEditFolder.value = data.resultData)

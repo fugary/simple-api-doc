@@ -286,7 +286,9 @@ const loadShareProjectData = projectId => loadDetailById(projectId).then(data =>
 })
 const showEditWindow = ref(false)
 const currentShare = ref()
+const canEditShareId = ref(false)
 const newOrEdit = async (id) => {
+  canEditShareId.value = false
   if (id) {
     await ApiProjectShareApi.getById(id).then(data => {
       data.resultData && (currentShare.value = data.resultData)
@@ -360,12 +362,16 @@ const editFormOptions = computed(() => {
       currentShare.value.shareDocsArr = []
       currentShare.value.shareEnvs = []
     }
-  }, { ...useFormStatus(), style: getStyleGrow(currentShare.value?.shareId ? 5 : 10) }, {
+  }, { ...useFormStatus(), style: getStyleGrow(currentShare.value?.id ? 5 : 10) }, {
     labelKey: 'api.label.shareId',
     prop: 'shareId',
     style: getStyleGrow(5),
-    enabled: !!currentShare.value?.shareId,
-    disabled: !isCopyData
+    enabled: !!currentShare.value?.id,
+    disabled: !isCopyData && !canEditShareId.value,
+    tooltip: $i18nBundle('api.msg.pathIdMsg'),
+    tooltipFunc () {
+      canEditShareId.value = !canEditShareId.value
+    }
   }, {
     labelKey: 'api.label.exportEnabled',
     prop: 'exportEnabled',
