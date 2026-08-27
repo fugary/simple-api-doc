@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -306,8 +307,27 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
     }
 
     protected Map<String, String> extractFromZipBytes(byte[] zipBytes) {
+        Map<String, String> files = extractFromZipWithFallback(zipBytes, StandardCharsets.UTF_8, Charset.forName("GBK"), Charset.defaultCharset());
+        return stripCommonRootDirectory(files);
+    }
+
+    protected Map<String, String> extractFromZipWithFallback(byte[] zipBytes, Charset... charsets) {
+        for (Charset charset : charsets) {
+            try {
+                Map<String, String> files = tryExtractZip(zipBytes, charset);
+                if (!files.isEmpty()) {
+                    return files;
+                }
+            } catch (Exception e) {
+                log.debug("使用编码 {} 解压 ZIP 失败: {}", charset, e.getMessage());
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    protected Map<String, String> tryExtractZip(byte[] zipBytes, Charset charset) throws Exception {
         Map<String, String> files = new LinkedHashMap<>();
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes), StandardCharsets.UTF_8)) {
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes), charset)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String name = entry.getName();
@@ -318,14 +338,22 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
                     while ((len = zis.read(buffer)) != -1) {
                         baos.write(buffer, 0, len);
                     }
-                    files.put(normalizePath(name), baos.toString(StandardCharsets.UTF_8));
+                    byte[] contentBytes = baos.toByteArray();
+                    String content = decodeContent(contentBytes, charset);
+                    files.put(normalizePath(name), content);
                 }
                 zis.closeEntry();
             }
-        } catch (IOException e) {
-            log.error("解压 Markdown ZIP 失败", e);
         }
-        return stripCommonRootDirectory(files);
+        return files;
+    }
+
+    protected String decodeContent(byte[] contentBytes, Charset entryCharset) {
+        String utf8Str = new String(contentBytes, StandardCharsets.UTF_8);
+        if (!StandardCharsets.UTF_8.equals(entryCharset) && utf8Str.contains("\uFFFD")) {
+            return new String(contentBytes, entryCharset);
+        }
+        return utf8Str;
     }
 
     protected Map<String, String> stripCommonRootDirectory(Map<String, String> files) {

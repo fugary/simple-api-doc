@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -234,5 +235,35 @@ public class MarkdownDocImporterTest {
         Assertions.assertEquals(1, apiFolder.getDocs().size());
         Assertions.assertEquals("API指南", apiFolder.getDocs().get(0).getDocName());
         Assertions.assertEquals(50, apiFolder.getDocs().get(0).getSortId());
+    }
+
+    @Test
+    public void testZipArchiveWithGbkCharset() throws IOException {
+        MarkdownDocImporterImpl importer = new MarkdownDocImporterImpl();
+
+        // 创建使用 GBK 编码文件名和目录的 ZIP 压缩包（模拟 Windows 下打包）
+        Charset gbk = Charset.forName("GBK");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos, gbk)) {
+            zos.putNextEntry(new ZipEntry("01-开发指南/01-快速上手.md"));
+            zos.write("# 快速上手\n\n欢迎使用本系统。".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            zos.putNextEntry(new ZipEntry("02-常见问题/FAQ说明.md"));
+            zos.write("# 常见问题\n\n问题排查指南。".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        String base64Zip = Base64.getEncoder().encodeToString(baos.toByteArray());
+        ExportApiProjectVo projectVo = importer.doImport(base64Zip);
+
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(2, projectVo.getFolders().size());
+        ExportApiFolderVo guideFolder = projectVo.getFolders().stream()
+                .filter(f -> "开发指南".equals(f.getFolderName())).findFirst().orElse(null);
+        Assertions.assertNotNull(guideFolder);
+        Assertions.assertEquals("01-开发指南", guideFolder.getFolderCode());
+        Assertions.assertEquals(1, guideFolder.getDocs().size());
+        Assertions.assertEquals("快速上手", guideFolder.getDocs().get(0).getDocName());
     }
 }

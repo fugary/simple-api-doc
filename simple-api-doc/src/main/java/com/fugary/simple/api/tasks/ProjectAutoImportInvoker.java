@@ -94,6 +94,13 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                 importVo.setTaskName(projectTask.getTaskName());
                 importVo.setTaskType(projectTask.getTaskType());
                 importVo.setToFolder(projectTask.getToFolder());
+                if (StringUtils.isBlank(importVo.getFileName()) && StringUtils.isNotBlank(importVo.getUrl())) {
+                    String urlPath = StringUtils.substringBefore(importVo.getUrl(), "?");
+                    int lastSlash = urlPath.lastIndexOf('/');
+                    if (lastSlash >= 0 && lastSlash < urlPath.length() - 1) {
+                        importVo.setFileName(urlPath.substring(lastSlash + 1));
+                    }
+                }
                 logBuilder.logData(SimpleModelUtils.logDataString(List.of(importVo)));
                 SimpleResult<String> contentResult = urlDocContentProvider.getContent(importVo);
                 if (!contentResult.isSuccess()) {
