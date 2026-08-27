@@ -5,6 +5,7 @@ import com.fugary.simple.api.imports.markdown.MarkdownDocImporterImpl;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -27,9 +28,12 @@ public class MarkdownDocImporterTest {
         Assertions.assertTrue(importer.match("```json\n{\"test\": 1}\n```"));
         Assertions.assertTrue(importer.match("[{\"path\": \"doc.md\", \"content\": \"# Test\"}]"));
         Assertions.assertTrue(importer.match("UEsDBBQAAAAIA..."));
+        Assertions.assertTrue(importer.match("test122\n\n### testabc\n\ntest222"));
+        Assertions.assertTrue(importer.match("Just plain text notes."));
 
-        // OpenAPI JSON / Swagger YAML should not match Markdown
+        // OpenAPI JSON / Swagger YAML / invalid JSON should not match Markdown
         Assertions.assertFalse(importer.match("{\n  \"openapi\": \"3.0.1\"\n}"));
+        Assertions.assertFalse(importer.match("{\n  \"key\": \"value\"\n}"));
         Assertions.assertFalse(importer.match("openapi: 3.0.0\ninfo:\n  title: Sample"));
         Assertions.assertFalse(importer.match("swagger: '2.0'\ninfo:\n  title: Sample"));
 
@@ -67,6 +71,48 @@ public class MarkdownDocImporterTest {
         Assertions.assertEquals("核心架构设计", doc.getDocName());
         Assertions.assertEquals("核心架构设计", projectVo.getProjectName());
         Assertions.assertEquals(1, doc.getSortId()); // README/index default
+    }
+
+    @Test
+    public void testMarkdownWithH3Heading() {
+        MarkdownDocImporterImpl importer = new MarkdownDocImporterImpl();
+        String md = "test122\n\n### testabc\n\ntest222";
+
+        ExportApiProjectVo projectVo = importer.doImport(md);
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(1, projectVo.getDocs().size());
+        ExportApiDocVo doc = projectVo.getDocs().get(0);
+        Assertions.assertEquals("testabc", doc.getDocName());
+        Assertions.assertEquals("testabc", projectVo.getProjectName());
+    }
+
+    @Test
+    public void testMarkdownWithPlainTextOnly() {
+        MarkdownDocImporterImpl importer = new MarkdownDocImporterImpl();
+        String md = "Just some notes without any title or heading.";
+
+        ExportApiProjectVo projectVo = importer.doImport(md);
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(1, projectVo.getDocs().size());
+        ExportApiDocVo doc = projectVo.getDocs().get(0);
+        Assertions.assertEquals("README", doc.getDocName());
+        Assertions.assertEquals("README", projectVo.getProjectName());
+        Assertions.assertEquals(md, doc.getDocContent());
+    }
+
+    @Test
+    public void testMarkdownWithCustomFileName() {
+        MarkdownDocImporterImpl importer = new MarkdownDocImporterImpl();
+        String md = "Just some notes without any title or heading.";
+        ApiProjectImportVo importVo = new ApiProjectImportVo();
+        importVo.setFileName("install-guide.md");
+
+        ExportApiProjectVo projectVo = importer.doImport(md, importVo);
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(1, projectVo.getDocs().size());
+        ExportApiDocVo doc = projectVo.getDocs().get(0);
+        Assertions.assertEquals("install-guide.md", doc.getDocKey());
+        Assertions.assertEquals("install-guide", doc.getDocName());
     }
 
     @Test

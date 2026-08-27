@@ -11,6 +11,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -40,7 +41,9 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
 
     public static final Pattern FRONTMATTER_PATTERN = Pattern.compile("^---\\r?\\n(.*?)\\r?\\n---\\r?\\n(.*)$", Pattern.DOTALL);
     public static final Pattern H1_PATTERN = Pattern.compile("(?m)^#\\s+(.+)$");
+    public static final Pattern HEADING_PATTERN = Pattern.compile("(?m)^#{1,6}\\s+(.+)$");
     public static final Pattern NUMERIC_PREFIX_PATTERN = Pattern.compile("^(\\d+)[\\.\\-_ ]+(.*)$");
+    public static final Pattern SWAGGER_YAML_PATTERN = Pattern.compile("(?m)^\\s*['\"]?(openapi|swagger)['\"]?\\s*:");
 
     public static final List<String> MD_EXTENSIONS = List.of(".md", ".markdown");
     public static final List<String> IGNORE_PATHS = List.of("__MACOSX", ".DS_Store", ".git/", ".svn/", ".idea/", ".vscode/");
@@ -70,16 +73,27 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
                 (trimmed.contains("\"path\"") || trimmed.contains("\"fileName\"") || trimmed.contains("\"filePath\""))) {
             return true;
         }
-        // 3. 普通 Markdown 特征 (排除 OpenAPI JSON/YAML)
-        if (trimmed.startsWith("{") || trimmed.contains("openapi:") || trimmed.contains("swagger:")) {
+        // 3. 排除 JSON 对象格式（非虚拟文件数组的 JSON 均非 Markdown）
+        if (trimmed.startsWith("{")) {
             return false;
         }
-        return trimmed.startsWith("#") || trimmed.startsWith("---") || trimmed.startsWith("```");
+        // 4. 排除 OpenAPI / Swagger YAML 格式
+        if (SWAGGER_YAML_PATTERN.matcher(trimmed).find() || (trimmed.contains("paths:") && trimmed.contains("info:"))) {
+            return false;
+        }
+        return true;
     }
 
     @Override
     public ExportApiProjectVo doImport(String data) {
-        Map<String, String> fileMap = extractMarkdownFiles(data);
+        return doImport(data, null);
+    }
+
+    @Override
+    public ExportApiProjectVo doImport(String data, ApiProjectImportVo importVo) {
+        String defaultFileName = importVo != null && StringUtils.isNotBlank(importVo.getFileName())
+                ? importVo.getFileName() : "README.md";
+        Map<String, String> fileMap = extractMarkdownFiles(data, defaultFileName);
         if (fileMap.isEmpty()) {
             return null;
         }
@@ -127,6 +141,12 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
                 Matcher h1M = H1_PATTERN.matcher(body);
                 if (h1M.find()) {
                     title = h1M.group(1).trim();
+                }
+            }
+            if (StringUtils.isBlank(title)) {
+                Matcher headM = HEADING_PATTERN.matcher(body);
+                if (headM.find()) {
+                    title = headM.group(1).trim();
                 }
             }
             if (StringUtils.isBlank(title)) {
@@ -222,9 +242,10 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
      * 提取 Markdown 文件列表
      *
      * @param data
+     * @param defaultFileName 默认文件名（单文件导入时使用）
      * @return
      */
-    protected Map<String, String> extractMarkdownFiles(String data) {
+    protected Map<String, String> extractMarkdownFiles(String data, String defaultFileName) {
         if (StringUtils.isBlank(data)) {
             return Collections.emptyMap();
         }
@@ -257,7 +278,8 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
 
         // 单个文件导入
         Map<String, String> files = new LinkedHashMap<>();
-        files.put("README.md", data);
+        String entryPath = StringUtils.defaultIfBlank(defaultFileName, "README.md");
+        files.put(normalizePath(entryPath), data);
         return files;
     }
 

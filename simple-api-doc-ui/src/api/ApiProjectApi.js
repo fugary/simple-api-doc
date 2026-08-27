@@ -241,8 +241,8 @@ export const detectImportFileType = async (fileOrText) => {
     return 'openapi'
   }
 
-  // 3. Markdown / ZIP 特征
-  if (trimmed.startsWith('UEsDB') || trimmed.startsWith('#') || trimmed.startsWith('---') || trimmed.startsWith('```')) {
+  // 3. 排除 JSON 对象后，其余非 OpenAPI YAML 的文本均判定为 markdown
+  if (!trimmed.startsWith('{')) {
     return 'markdown'
   }
 

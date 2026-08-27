@@ -2,6 +2,7 @@ package com.fugary.simple.api.imports;
 
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import org.springframework.context.i18n.LocaleContextHolder;
 
 import java.util.List;
@@ -28,6 +29,17 @@ public interface ApiDocImporter {
      * @return
      */
     ExportApiProjectVo doImport(String data);
+
+    /**
+     * 解析数据（携带导入参数，如文件名）
+     *
+     * @param data
+     * @param importVo
+     * @return
+     */
+    default ExportApiProjectVo doImport(String data, ApiProjectImportVo importVo) {
+        return doImport(data);
+    }
 
     /**
      * 获取导入器类型

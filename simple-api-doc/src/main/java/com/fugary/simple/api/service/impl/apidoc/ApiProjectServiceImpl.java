@@ -251,7 +251,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         }
         ExportApiProjectVo exportVo;
         try {
-            if ((exportVo = importer.doImport(content)) == null) {
+            if ((exportVo = importer.doImport(content, importVo)) == null) {
                 String msg = SimpleResultUtils.getErrorMsg(errorMsgKey, new Object[]{currentTypeName});
                 return SimpleResultUtils.createError(errorCode, msg);
             }
