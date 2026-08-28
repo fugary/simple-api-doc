@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, ref, reactive, watch, nextTick } from 'vue'
+import { computed, ref, reactive, watch, nextTick, onUnmounted } from 'vue'
 import {
   calcProjectItem,
   filterApiProjectItem,
@@ -35,6 +35,7 @@ import { cloneDeep, debounce } from 'lodash-es'
 import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
+import emitter from '@/vendors/emitter'
 
 const shareConfigStore = useShareConfigStore()
 
@@ -115,8 +116,8 @@ watch([searchParam, () => sharePreference?.defaultShowLabel, () => sharePreferen
 }, { deep: true })
 
 const showDocDetails = (doc, edit) => {
-  if (doc.isDoc) {
-    console.log('====================================load doc', doc)
+  if (doc?.isDoc || doc?.id) {
+    doc.isDoc = true
     if (edit) {
       treeRef.value?.setCurrentKey(doc.id)
     }
@@ -125,6 +126,19 @@ const showDocDetails = (doc, edit) => {
     sharePreference.lastDocId = doc.id
   }
 }
+
+const handleSelectDocFromEvent = (doc) => {
+  if (doc?.id) {
+    showDocDetails(doc, false)
+    nextTick(() => {
+      treeRef.value?.setCurrentKey(doc.treeId || doc.id)
+    })
+  }
+}
+emitter.on('select-api-doc', handleSelectDocFromEvent)
+onUnmounted(() => {
+  emitter.off('select-api-doc', handleSelectDocFromEvent)
+})
 
 const rootFolder = computed(() => {
   return projectItem.value?.folders?.find(folder => folder.rootFlag)

@@ -22,12 +22,18 @@ const imagePathTransformPlugin = (md) => {
 
 export const initEditorLink = () => {
   document.addEventListener('click', (event) => {
-    if (event.target.matches('.md-doc-container a')) {
-      const href = event.target.getAttribute('href')
+    const link = event.target.closest('.md-doc-container a')
+    if (link) {
+      const href = link.getAttribute('href')
       if (href?.startsWith('#')) {
         event.preventDefault()
-        const targetId = href.substring(1)
-        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' })
+        try {
+          const targetId = decodeURIComponent(href.substring(1))
+          const targetEl = document.getElementById(targetId) || document.getElementById(encodeURIComponent(targetId))
+          targetEl?.scrollIntoView({ behavior: 'smooth' })
+        } catch {
+          // ignore
+        }
       }
     }
   })

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, ref } from 'vue'
+import { computed, watch, ref, nextTick } from 'vue'
 import { MdCatalog, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
@@ -8,13 +8,19 @@ import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
 import { $copyText, $coreHideLoading, $coreShowLoading } from '@/utils'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
-import { calcSharePreference, useShareDocTheme } from '@/services/api/ApiFolderService'
+import { calcPreferenceId, calcSharePreference, useShareDocTheme } from '@/services/api/ApiFolderService'
+import { resolveRelativeDocPath, findMatchingDoc, getDocAncestorTreeIds, scrollToAnchor, setPendingAnchor, consumePendingAnchor } from '@/services/api/MarkdownLinkService'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import { $i18nBundle } from '@/messages'
+import { ElMessage } from 'element-plus'
 import emitter from '@/vendors/emitter'
+
+const shareConfigStore = useShareConfigStore()
 
 const props = defineProps({
   scrollElement: {
     type: [Object, String],
-    default: document.documentElement
+    default: undefined
   },
   scrollElementOffsetTop: {
     type: Number,
@@ -26,7 +32,7 @@ const props = defineProps({
   },
   projectItem: {
     type: Object,
-    default: undefined
+    default: () => ({})
   },
   shareDoc: {
     type: Object,
@@ -40,6 +46,30 @@ const currentDoc = defineModel({
 })
 const historyCount = ref(0)
 
+const finalizeLoad = () => {
+  $coreHideLoading()
+  const anchor = consumePendingAnchor()
+  if (anchor) {
+    nextTick(() => {
+      setTimeout(() => {
+        scrollToAnchor(anchor, {
+          scrollElement: props.scrollElement,
+          offsetTop: props.scrollElementOffsetTop
+        })
+      }, 150)
+    })
+  } else {
+    nextTick(() => {
+      const scrollEl = typeof props.scrollElement === 'string'
+        ? document.querySelector(props.scrollElement)
+        : props.scrollElement
+      if (scrollEl) {
+        scrollEl.scrollTop = 0
+      }
+    })
+  }
+}
+
 const loadCurrentDoc = (id) => {
   currentDoc.value && (currentDoc.value.docContent = '')
   $coreShowLoading({ delay: 0, target: '.home-main' })
@@ -47,7 +77,7 @@ const loadCurrentDoc = (id) => {
     return ApiDocApi.getById(id).then(data => {
       Object.assign(currentDoc.value, data.resultData)
       historyCount.value = data.addons?.historyCount || 0
-      $coreHideLoading()
+      finalizeLoad()
     }).catch(() => $coreHideLoading())
   } else {
     return loadMdDoc({
@@ -55,7 +85,7 @@ const loadCurrentDoc = (id) => {
       docId: id
     }, { showErrorMessage: false }).then(data => {
       Object.assign(currentDoc.value, data.resultData)
-      $coreHideLoading()
+      finalizeLoad()
     }).catch(err => {
       emitter.emit('share-doc-error', err)
       $coreHideLoading()
@@ -84,6 +114,70 @@ const handleCopyMarkdown = () => {
   const content = name ? `# ${name}\n\n${markdown}` : markdown
   $copyText(content)
 }
+
+const handleContainerClick = (event) => {
+  const linkEl = event.target.closest('a')
+  if (!linkEl) return
+
+  const href = linkEl.getAttribute('href')
+  if (!href) return
+
+  const { targetPath, hash, isExternal, isAnchorOnly } = resolveRelativeDocPath(currentDoc.value, href, props.projectItem?.folders)
+
+  // 1. 外部链接：保持新标签页打开
+  if (isExternal) {
+    linkEl.setAttribute('target', '_blank')
+    linkEl.setAttribute('rel', 'noopener noreferrer')
+    return
+  }
+
+  event.preventDefault()
+
+  // 2. 纯本页锚点 (#section)
+  if (isAnchorOnly) {
+    if (hash) {
+      scrollToAnchor(hash, {
+        scrollElement: props.scrollElement,
+        offsetTop: props.scrollElementOffsetTop
+      })
+    }
+    return
+  }
+
+  // 3. 相对路径跨文档链接
+  const targetDoc = findMatchingDoc(props.projectItem?.docs, targetPath, props.projectItem?.folders)
+  if (targetDoc) {
+    // 3.1 目标为当前文档自身
+    if (targetDoc.id === currentDoc.value?.id) {
+      if (hash) {
+        scrollToAnchor(hash, {
+          scrollElement: props.scrollElement,
+          offsetTop: props.scrollElementOffsetTop
+        })
+      }
+      return
+    }
+
+    // 3.2 跨文档跳转：记录待定位锚点（全局安全）
+    setPendingAnchor(hash || null)
+
+    // 3.3 自动展开左侧目录树的父级文件夹并更新 preference
+    const preferenceId = calcPreferenceId(props.projectItem, props.shareDoc)
+    const sharePreference = shareConfigStore.sharePreferenceView[preferenceId]
+    if (sharePreference) {
+      const ancestorKeys = getDocAncestorTreeIds(targetDoc, props.projectItem?.folders)
+      const expandedSet = new Set(sharePreference.lastExpandKeys || [])
+      ancestorKeys.forEach(k => expandedSet.add(k))
+      sharePreference.lastExpandKeys = Array.from(expandedSet)
+      sharePreference.lastDocId = targetDoc.id
+    }
+
+    // 3.4 派发事件由左侧树统一驱动文档加载与高亮（避免当前组件销毁导致状态丢失）
+    emitter.emit('select-api-doc', targetDoc)
+  } else {
+    ElMessage.warning($i18nBundle('api.msg.docNotFoundDetail', [targetPath || href]))
+  }
+}
 </script>
 
 <template>
@@ -101,6 +195,7 @@ const handleCopyMarkdown = () => {
     <el-container
       ref="containerRef"
       class="markdown-doc-viewer scroll-main-container"
+      @click="handleContainerClick"
     >
       <md-preview
         class="md-doc-container"
