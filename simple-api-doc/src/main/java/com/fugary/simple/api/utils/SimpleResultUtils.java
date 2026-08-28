@@ -32,6 +32,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
@@ -212,40 +213,60 @@ public class SimpleResultUtils {
      *
      * @param apiApiDocExporter
      * @param apiApiDocMdExporter
-     * @param applicationName
+     * @param apiDocMdZipExporter
      * @param downloadVo
+     * @param applicationName
      * @param projectId
      * @return
      */
     public static String createTempExportFile(ApiDocExporter<OpenAPI> apiApiDocExporter,
                                               ApiDocExporter<String> apiApiDocMdExporter,
+                                              ApiDocExporter<byte[]> apiDocMdZipExporter,
                                               ExportDownloadVo downloadVo,
                                               String applicationName,
                                               Integer projectId) {
         String uuid = projectId + "-" + SimpleModelUtils.uuid();
         String type = StringUtils.defaultIfBlank(downloadVo.getType(), "json");
-        String content;
+        byte[] binaryContent = null;
+        String content = null;
         if (StringUtils.equals(type, "json")) {
             OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo);
             content = SchemaJsonUtils.toJson(openAPI, SchemaJsonUtils.isV31(openAPI));
-        } else if(StringUtils.equals(type, "yaml")) {
+        } else if (StringUtils.equals(type, "yaml")) {
             OpenAPI openAPI = apiApiDocExporter.export(projectId, downloadVo);
             content = SchemaYamlUtils.toYaml(openAPI, SchemaJsonUtils.isV31(openAPI));
+        } else if (StringUtils.equals(type, "zip") || StringUtils.equals(type, "md_zip")) {
+            type = "zip";
+            if (apiDocMdZipExporter != null) {
+                binaryContent = apiDocMdZipExporter.export(projectId, downloadVo);
+            }
         } else {
             content = apiApiDocMdExporter.export(projectId, downloadVo);
         }
         if (downloadVo.isReturnContent()) {
-            return content;
+            return content != null ? content : (binaryContent != null ? Base64.getEncoder().encodeToString(binaryContent) : null);
         }
         try {
             String filePathName = SimpleModelUtils.getFileFullPath(applicationName, uuid, type);
             Path tempFile = Files.createFile(Path.of(filePathName));
-            Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
+            if (binaryContent != null) {
+                Files.write(tempFile, binaryContent);
+            } else if (content != null) {
+                Files.write(tempFile, content.getBytes(StandardCharsets.UTF_8));
+            }
             tempFile.toFile().deleteOnExit();
         } catch (IOException e) {
             log.error("创建临时文件失败", e);
         }
         return uuid;
+    }
+
+    public static String createTempExportFile(ApiDocExporter<OpenAPI> apiApiDocExporter,
+                                              ApiDocExporter<String> apiApiDocMdExporter,
+                                              ExportDownloadVo downloadVo,
+                                              String applicationName,
+                                              Integer projectId) {
+        return createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, null, downloadVo, applicationName, projectId);
     }
 
     /**

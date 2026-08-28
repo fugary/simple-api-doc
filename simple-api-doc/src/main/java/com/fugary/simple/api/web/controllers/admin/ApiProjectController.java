@@ -81,6 +81,9 @@ public class ApiProjectController {
     @Autowired
     private ApiDocExporter<String> apiApiDocMdExporter;
 
+    @Autowired
+    private ApiDocExporter<byte[]> apiDocMdZipExporter;
+
     @GetMapping
     public SimpleResult<List<ApiProject>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProject> page = SimpleResultUtils.toPage(queryVo);
@@ -329,7 +332,7 @@ public class ApiProjectController {
         if (!apiProjectAccessService.canAccessProject(apiProject, ApiGroupAuthority.READABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, downloadVo, applicationName, apiProject.getId());
+        String uuid = SimpleResultUtils.createTempExportFile(apiApiDocExporter, apiApiDocMdExporter, apiDocMdZipExporter, downloadVo, applicationName, apiProject.getId());
         return SimpleResultUtils.createSimpleResult(uuid);
     }
 

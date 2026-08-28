@@ -62,6 +62,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] 文件夹 folderCode 与改名同步保护机制：新增 `folderCode` 字段，实现文件夹标识与展示名称解耦；在多次重新导入/自动同步中智能保留用户自定义的文件夹、API 及 Markdown 文档名称，解决改名后同步产生重复目录或覆盖自定义名称的问题。
 - [x] DocSourceData 载体重构导入管道与消除 Base64 消耗：新增 `DocSourceData` 统一承载纯文本与二进制字节流，重构 `DocContentProvider`、`ApiProjectService` 及 `ApiDocImporter`，消除 ZIP 压缩包在本地上传与远程下载流转中的 Base64 编解码损耗与内存放大。
 - [x] 网络抖动智能自动重试与优雅降级：在 `SimpleHttpClientUtils` 中配置异常重试处理器，精准识别连接重置（Connection reset）、SSL reset 与连接超时并自动重试；在 `GitDocContentProviderImpl` 中实现阶梯式延迟退避与单图下载失败优雅降级，保障 GitHub 导入的稳定性。
+- [x] 多级 Markdown 文件夹树 ZIP 导出与图片打包：新增 `MarkdownZipApiDocExporterImpl` 支持按项目文件夹树结构导出为多级目录 ZIP 压缩包；自动注入标准 YAML Frontmatter（支持与导入器 100% 无损闭环反向恢复），自动扫描提取本地静态图片打包至 `assets/` 并自适应重写为相对链接，前端提供单文件与 ZIP 模式自由切换。
 
 ---
 *Last Updated: 2026-08-28*

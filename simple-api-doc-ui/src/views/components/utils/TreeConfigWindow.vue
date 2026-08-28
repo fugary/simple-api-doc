@@ -54,6 +54,7 @@ const submitKeys = () => {
     v-bind="$attrs"
     :ok-click="submitKeys"
   >
+    <slot name="top" />
     <tree-check-config
       v-model:selected-keys="selectedKeys"
       :tree-nodes="treeNodes"
@@ -63,6 +64,9 @@ const submitKeys = () => {
       :tree-height="treeHeight"
       :single-select="singleSelect"
     >
+      <template #extra-filter>
+        <slot name="extra-filter" />
+      </template>
       <template #default="scope">
         <slot
           name="default"

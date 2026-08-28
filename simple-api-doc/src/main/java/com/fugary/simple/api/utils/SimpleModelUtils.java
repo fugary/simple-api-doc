@@ -547,15 +547,20 @@ public class SimpleModelUtils {
      * @param schemasMap
      */
     public static void processComponents(ApiDocDetailVo apiDocDetail, SpecVersion specVersion, Map<String, Schema<?>> schemasMap) {
+        if (apiDocDetail == null || apiDocDetail.getProjectInfoDetail() == null) {
+            return;
+        }
         List<ApiProjectInfoDetail> componentSchemas = apiDocDetail.getProjectInfoDetail().getComponentSchemas();
-        componentSchemas.forEach(detail -> {
-            if (!schemasMap.containsKey(detail.getSchemaName())) {
-                Schema<?> schema = SchemaJsonUtils.fromJson(detail.getSchemaContent(), Schema.class, SchemaJsonUtils.isV31(specVersion));
-                if (schema != null) {
-                    schemasMap.put(detail.getSchemaName(), SchemaJsonUtils.getSchema(schema, schemasMap));
+        if (componentSchemas != null) {
+            componentSchemas.forEach(detail -> {
+                if (!schemasMap.containsKey(detail.getSchemaName())) {
+                    Schema<?> schema = SchemaJsonUtils.fromJson(detail.getSchemaContent(), Schema.class, SchemaJsonUtils.isV31(specVersion));
+                    if (schema != null) {
+                        schemasMap.put(detail.getSchemaName(), SchemaJsonUtils.getSchema(schema, schemasMap));
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     /**

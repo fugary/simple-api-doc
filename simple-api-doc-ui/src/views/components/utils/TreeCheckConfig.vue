@@ -232,6 +232,7 @@ const filterNode = (value, data) => {
           >
             {{ $t('common.label.onlySelected') }}
           </el-checkbox>
+          <slot name="extra-filter" />
         </div>
         <div class="tree-check-stats-group">
           <template v-if="selectedStats.apiSelected > 0 || selectedStats.mdSelected > 0">

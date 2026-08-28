@@ -82,7 +82,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2010);
         }
         // 加载文档详情
-        List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
+        List<ApiDocDetailVo> docDetailList = new ArrayList<>(apiDocSchemaService.loadDetailList(docList));
         // 加载项目schema和security数据
         List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
         List<ApiProjectInfo> projectInfos = SimpleModelUtils.filterApiProjectInfo(detailVo, infoIds);

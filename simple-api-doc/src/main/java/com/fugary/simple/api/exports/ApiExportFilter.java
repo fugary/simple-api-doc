@@ -19,4 +19,12 @@ public interface ApiExportFilter {
      * @return
      */
     String getEnvContent();
+
+    /**
+     * 是否包含 Frontmatter 元数据（默认 true）
+     * @return
+     */
+    default Boolean getWithFrontmatter() {
+        return true;
+    }
 }

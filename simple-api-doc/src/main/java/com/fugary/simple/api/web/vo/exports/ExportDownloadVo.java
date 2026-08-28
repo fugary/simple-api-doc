@@ -22,4 +22,5 @@ public class ExportDownloadVo implements Serializable, ApiExportFilter {
     private List<Integer> docIds = new ArrayList<>();
     private String envContent;
     private boolean returnContent;
+    private Boolean withFrontmatter = true;
 }
