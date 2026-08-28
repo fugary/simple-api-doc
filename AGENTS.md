@@ -63,6 +63,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] DocSourceData 载体重构导入管道与消除 Base64 消耗：新增 `DocSourceData` 统一承载纯文本与二进制字节流，重构 `DocContentProvider`、`ApiProjectService` 及 `ApiDocImporter`，消除 ZIP 压缩包在本地上传与远程下载流转中的 Base64 编解码损耗与内存放大。
 - [x] 网络抖动智能自动重试与优雅降级：在 `SimpleHttpClientUtils` 中配置异常重试处理器，精准识别连接重置（Connection reset）、SSL reset 与连接超时并自动重试；在 `GitDocContentProviderImpl` 中实现阶梯式延迟退避与单图下载失败优雅降级，保障 GitHub 导入的稳定性。
 - [x] 多级 Markdown 文件夹树 ZIP 导出与图片打包：新增 `MarkdownZipApiDocExporterImpl` 支持按项目文件夹树结构导出为多级目录 ZIP 压缩包；自动注入标准 YAML Frontmatter（支持与导入器 100% 无损闭环反向恢复），自动扫描提取本地静态图片打包至 `assets/` 并自适应重写为相对链接，前端提供单文件与 ZIP 模式自由切换。
+- [x] Markdown 文档间相对路径引用与点击跳转：新增 `MarkdownLinkService` 提供规范化相对路径解析与阶梯式文档多策略匹配，在 `MarkdownDocViewer` 中智能拦截正文链接实现平滑切页、左侧目录树自动展开祖先文件夹与节点高亮激活，支持跨文档及本页锚点平滑滚动定位，100% 保持 Markdown 原文相对路径纯洁性。
 
 ---
 *Last Updated: 2026-08-28*
@@ -70,7 +71,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：
 
-详细规则请参考：[.agent/rules/rules.md](.agent/rules/rules.md)
+详细规则请参考：[.agents/rules/rules.md](.agents/rules/rules.md)
 
 主要包含：
 1. **提交日志**: 生成提交日志时请使用 **中文**。
