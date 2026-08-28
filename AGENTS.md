@@ -75,5 +75,6 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 主要包含：
 1. **提交日志**: 生成提交日志时请使用 **中文**。
 2. **前端开发**: 修改前端 JS、Vue 等文件时需通过 **ESLint** 验证。
-3. **进度记录**: 每次提交后及时同步更新 [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)。
-4. **架构同步**: 发生重大功能变更时更新 [AGENTS.md](AGENTS.md)。
+3. **内置工具与文件检索**: 阅读、分析和检索代码与项目文件时，必须优先使用内置专有工具（如 `view_file`、`grep_search` 等），避免随意通过终端执行 `Get-Content`/`cat`/`type` 等 shell 命令读取文件。
+4. **进度记录**: 每次提交后及时同步更新 [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)。
+5. **架构同步**: 发生重大功能变更时更新 [AGENTS.md](AGENTS.md)。
