@@ -12,6 +12,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -66,25 +67,34 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
     }
 
     @Override
-    public boolean match(String data) {
-        if (StringUtils.isBlank(data)) {
+    public boolean match(DocSourceData sourceData) {
+        if (sourceData == null || sourceData.isEmpty()) {
             return false;
         }
-        String trimmed = data.trim();
-        // 1. ZIP 文件 Base64 特征匹配（PK magic number -> Base64 前缀 UEsDB）
+        // 1. 二进制 ZIP 格式特征直接判定（PK 魔数 0x50, 0x4B 或 .zip 后缀）
+        if (sourceData.isBinary()) {
+            byte[] bytes = sourceData.getBinaryContent();
+            if (bytes != null && bytes.length >= 4 && bytes[0] == 0x50 && bytes[1] == 0x4B) {
+                return true;
+            }
+            return StringUtils.isNotBlank(sourceData.getFileName()) && sourceData.getFileName().toLowerCase().endsWith(".zip");
+        }
+        // 2. 文本格式判定（包括 Base64 格式的 ZIP、Virtual JSON 列表、排除 Swagger 等）
+        String text = sourceData.getTextContent();
+        if (StringUtils.isBlank(text)) {
+            return false;
+        }
+        String trimmed = text.trim();
         if (trimmed.startsWith("UEsDB")) {
             return true;
         }
-        // 2. JSON 虚拟文件列表特征
         if (trimmed.startsWith("[") && trimmed.contains("\"content\"") &&
                 (trimmed.contains("\"path\"") || trimmed.contains("\"fileName\"") || trimmed.contains("\"filePath\""))) {
             return true;
         }
-        // 3. 排除 JSON 对象格式（非虚拟文件数组的 JSON 均非 Markdown）
         if (trimmed.startsWith("{")) {
             return false;
         }
-        // 4. 排除 OpenAPI / Swagger YAML 格式
         if (SWAGGER_YAML_PATTERN.matcher(trimmed).find() || (trimmed.contains("paths:") && trimmed.contains("info:"))) {
             return false;
         }
@@ -92,16 +102,21 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
     }
 
     @Override
-    public ExportApiProjectVo doImport(String data) {
-        return doImport(data, null);
-    }
-
-    @Override
-    public ExportApiProjectVo doImport(String data, ApiProjectImportVo importVo) {
+    public ExportApiProjectVo doImport(DocSourceData sourceData, ApiProjectImportVo importVo) {
+        if (sourceData == null || sourceData.isEmpty()) {
+            return null;
+        }
         String defaultFileName = importVo != null && StringUtils.isNotBlank(importVo.getFileName())
-                ? importVo.getFileName() : "README.md";
-        Map<String, String> fileMap = extractMarkdownFiles(data, defaultFileName);
-        if (fileMap.isEmpty()) {
+                ? importVo.getFileName() : StringUtils.defaultIfBlank(sourceData.getFileName(), "README.md");
+
+        Map<String, String> fileMap;
+        if (sourceData.isBinary()) {
+            // 直接解压二进制字节流，完全无需 Base64 解码中间消耗
+            fileMap = extractFromZipBytes(sourceData.getBinaryContent());
+        } else {
+            fileMap = extractMarkdownFiles(sourceData.getTextContent(), defaultFileName);
+        }
+        if (fileMap == null || fileMap.isEmpty()) {
             return null;
         }
 

@@ -10,6 +10,8 @@ import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.*;
+import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -57,11 +59,15 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     }
 
     @Override
-    public boolean match(String data) {
-        if (StringUtils.isBlank(data)) {
+    public boolean match(DocSourceData sourceData) {
+        if (sourceData == null || sourceData.isBinary() || sourceData.isEmpty()) {
             return false;
         }
-        String trimmed = data.trim();
+        String text = sourceData.getTextContent();
+        if (StringUtils.isBlank(text)) {
+            return false;
+        }
+        String trimmed = text.trim();
         // JSON 格式判断
         if (trimmed.startsWith("{")) {
             if (trimmed.contains("\"openapi\"") || trimmed.contains("\"swagger\"")) {
@@ -79,7 +85,11 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     }
 
     @Override
-    public ExportApiProjectVo doImport(String data) {
+    public ExportApiProjectVo doImport(DocSourceData sourceData, ApiProjectImportVo importVo) {
+        if (sourceData == null || sourceData.isBinary() || sourceData.isEmpty()) {
+            return null;
+        }
+        String data = sourceData.getTextContent();
         ParseOptions parseOptions = new ParseOptions();
         parseOptions.setResolve(true);
         SwaggerParseResult result = new OpenAPIParser().readContents(data, null, parseOptions);

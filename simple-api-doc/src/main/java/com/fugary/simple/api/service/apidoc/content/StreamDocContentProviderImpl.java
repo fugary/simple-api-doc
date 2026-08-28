@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.apidoc.content;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ import java.nio.charset.StandardCharsets;
 public class StreamDocContentProviderImpl implements DocContentProvider<InputStream> {
 
     @Override
-    public SimpleResult<String> getContent(InputStream stream) {
+    public SimpleResult<DocSourceData> getContent(InputStream stream) {
         String result = StringUtils.EMPTY;
         if (stream != null) {
             try {
@@ -32,6 +33,6 @@ public class StreamDocContentProviderImpl implements DocContentProvider<InputStr
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2003);
             }
         }
-        return SimpleResultUtils.createSimpleResult(result);
+        return SimpleResultUtils.createSimpleResult(DocSourceData.ofText(result));
     }
 }

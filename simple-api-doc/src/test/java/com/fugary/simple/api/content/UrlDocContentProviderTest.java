@@ -4,6 +4,7 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.imports.markdown.MarkdownDocImporterImpl;
 import com.fugary.simple.api.service.apidoc.content.UrlDocContentProviderImpl;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -34,6 +35,11 @@ public class UrlDocContentProviderTest {
         public void processAuth(HttpRequest request, UrlWithAuthVo source) {
             super.processAuth(request, source);
         }
+
+        @Override
+        public String resolveFileName(String url) {
+            return super.resolveFileName(url);
+        }
     }
 
     @Test
@@ -61,6 +67,14 @@ public class UrlDocContentProviderTest {
 
         // 5. URL ending in .zip
         Assertions.assertTrue(provider.isZipContent(zipBytes, null, "http://example.com/archive.zip?token=123"));
+    }
+
+    @Test
+    public void testResolveFileName() {
+        TestableUrlDocContentProvider provider = new TestableUrlDocContentProvider();
+        Assertions.assertEquals("archive.zip", provider.resolveFileName("https://example.com/download/archive.zip?token=123"));
+        Assertions.assertEquals("README.md", provider.resolveFileName("https://example.com/docs/README.md"));
+        Assertions.assertNull(provider.resolveFileName(null));
     }
 
     @Test
@@ -110,7 +124,6 @@ public class UrlDocContentProviderTest {
 
     @Test
     public void testDownloadedZipImportFlow() throws IOException {
-        // 模拟从 URL 下载到 ZIP 二进制流后转换为 Base64，并成功被 MarkdownDocImporterImpl 解析
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zos = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
             zos.putNextEntry(new ZipEntry("01-start/README.md"));
@@ -123,14 +136,22 @@ public class UrlDocContentProviderTest {
         }
 
         byte[] zipBytes = baos.toByteArray();
-        String base64Content = Base64.getEncoder().encodeToString(zipBytes);
 
+        // 1. 测试原生 DocSourceData 二进制流直接导入（无需 Base64 转换）
+        DocSourceData binaryData = DocSourceData.ofBinary(zipBytes, "archive.zip");
         MarkdownDocImporterImpl importer = new MarkdownDocImporterImpl();
-        Assertions.assertTrue(importer.match(base64Content));
+        Assertions.assertTrue(importer.match(binaryData));
 
-        ExportApiProjectVo projectVo = importer.doImport(base64Content);
+        ExportApiProjectVo projectVo = importer.doImport(binaryData, null);
         Assertions.assertNotNull(projectVo);
         Assertions.assertEquals(2, projectVo.getFolders().size());
         Assertions.assertEquals("开始使用", projectVo.getFolders().get(0).getDocs().get(0).getDocName());
+
+        // 2. 兼容测试 Base64 字符串方式
+        String base64Content = Base64.getEncoder().encodeToString(zipBytes);
+        Assertions.assertTrue(importer.match(base64Content));
+        ExportApiProjectVo legacyVo = importer.doImport(base64Content);
+        Assertions.assertNotNull(legacyVo);
+        Assertions.assertEquals(2, legacyVo.getFolders().size());
     }
 }

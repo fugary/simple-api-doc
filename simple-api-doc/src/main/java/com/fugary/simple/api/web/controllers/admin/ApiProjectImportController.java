@@ -15,6 +15,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
@@ -62,7 +63,7 @@ public class ApiProjectImportController {
     @SneakyThrows
     @PostMapping("/parseProject")
     public SimpleResult<ExportApiProjectVo> parseProject(@ModelAttribute ApiProjectImportVo importVo, HttpServletRequest request){
-        String content = StringUtils.EMPTY;
+        DocSourceData sourceData = null;
         String fileName = null;
         boolean isUrlMode = ApiDocConstants.IMPORT_TYPE_URL.equals(importVo.getImportType());
         if (ApiDocConstants.IMPORT_TYPE_FILE.equals(importVo.getImportType())) { // 文件模式
@@ -80,13 +81,16 @@ public class ApiProjectImportController {
                 return SimpleResultUtils.createError(SystemErrorConstants.CODE_2003, msg);
             }
             if (fileName != null && fileName.toLowerCase().endsWith(".zip")) {
-                content = java.util.Base64.getEncoder().encodeToString(file.getBytes());
+                sourceData = DocSourceData.ofBinary(file.getBytes(), fileName, "application/zip");
             } else {
-                SimpleResult<String> contentResult = streamDocContentProvider.getContent(file.getInputStream());
+                SimpleResult<DocSourceData> contentResult = streamDocContentProvider.getContent(file.getInputStream());
                 if (!contentResult.isSuccess()) {
                     return SimpleResultUtils.createError(contentResult.getCode(), contentResult.getMessage());
                 }
-                content = contentResult.getResultData();
+                sourceData = contentResult.getResultData();
+                if (sourceData != null) {
+                    sourceData.setFileName(fileName);
+                }
             }
         } else if (isUrlMode) {
             if (StringUtils.isBlank(importVo.getFileName()) && StringUtils.isNotBlank(importVo.getUrl())) {
@@ -97,13 +101,13 @@ public class ApiProjectImportController {
                     importVo.setFileName(fileName);
                 }
             }
-            SimpleResult<String> contentResult = urlDocContentProvider.getContent(importVo);
+            SimpleResult<DocSourceData> contentResult = urlDocContentProvider.getContent(importVo);
             if (!contentResult.isSuccess()) {
                 return SimpleResultUtils.createError(contentResult.getCode(), contentResult.getMessage());
             }
-            content = contentResult.getResultData();
+            sourceData = contentResult.getResultData();
         }
-        SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(content, importVo);
+        SimpleResult<ExportApiProjectVo> parseResult = apiProjectService.processImportProject(sourceData, importVo);
         ExportApiProjectVo exportProjectVo = parseResult.getResultData();
         if (parseResult.isSuccess()) {
             ExportApiProjectInfoVo projectInfo = exportProjectVo.getProjectInfo();

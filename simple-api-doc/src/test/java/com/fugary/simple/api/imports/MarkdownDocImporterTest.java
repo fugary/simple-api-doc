@@ -39,7 +39,8 @@ public class MarkdownDocImporterTest {
         Assertions.assertFalse(importer.match("swagger: '2.0'\ninfo:\n  title: Sample"));
 
         Assertions.assertFalse(importer.match(""));
-        Assertions.assertFalse(importer.match(null));
+        Assertions.assertFalse(importer.match((String) null));
+        Assertions.assertFalse(importer.match((com.fugary.simple.api.web.vo.imports.DocSourceData) null));
     }
 
     @Test
@@ -265,5 +266,28 @@ public class MarkdownDocImporterTest {
         Assertions.assertEquals("01-开发指南", guideFolder.getFolderCode());
         Assertions.assertEquals(1, guideFolder.getDocs().size());
         Assertions.assertEquals("快速上手", guideFolder.getDocs().get(0).getDocName());
+    }
+
+    @Test
+    public void testDocSourceDataDirectBinaryImport() throws IOException {
+        MarkdownDocImporterImpl importer = new MarkdownDocImporterImpl();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
+            zos.putNextEntry(new ZipEntry("01-guide/intro.md"));
+            zos.write("# 系统简介\n\n这是系统说明。".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        byte[] zipBytes = baos.toByteArray();
+        com.fugary.simple.api.web.vo.imports.DocSourceData sourceData = com.fugary.simple.api.web.vo.imports.DocSourceData.ofBinary(zipBytes, "docs.zip");
+
+        Assertions.assertTrue(importer.match(sourceData));
+        ExportApiProjectVo projectVo = importer.doImport(sourceData, null);
+
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(1, projectVo.getFolders().size());
+        Assertions.assertEquals("guide", projectVo.getFolders().get(0).getFolderName());
+        Assertions.assertEquals("系统简介", projectVo.getFolders().get(0).getDocs().get(0).getDocName());
     }
 }

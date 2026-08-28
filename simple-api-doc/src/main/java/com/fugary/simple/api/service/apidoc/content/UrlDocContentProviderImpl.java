@@ -8,6 +8,7 @@ import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.http.SimpleHttpClientUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.BasicAuthVo;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +47,7 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
     private GitDocContentProvider gitDocContentProvider;
 
     @Override
-    public SimpleResult<String> getContent(UrlWithAuthVo source) {
+    public SimpleResult<DocSourceData> getContent(UrlWithAuthVo source) {
         if (source == null || StringUtils.isBlank(source.getUrl())) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
         }
@@ -59,27 +60,28 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
         }
 
         // 2. 普通 HTTP URL 下载（自动识别 ZIP 压缩包与单文件纯文本）
-        Pair<String, HttpResponse> resultPair = null;
+        Pair<DocSourceData, HttpResponse> resultPair = null;
         try {
             resultPair = SimpleHttpClientUtils.sendHttpGet(source.getUrl(), Pair.class, (client, request) -> {
                 log.info("client = {}, request = {}", client, request);
                 processAuth(request, source);
             }, (httpResponse, clazz) -> {
-                String resultStr = StringUtils.EMPTY;
+                DocSourceData sourceData = null;
                 try {
                     HttpEntity entity = httpResponse.getEntity();
                     if (entity != null) {
                         byte[] bytes = EntityUtils.toByteArray(entity);
+                        String fileName = resolveFileName(source.getUrl());
                         if (isZipContent(bytes, httpResponse, source.getUrl())) {
-                            resultStr = Base64.getEncoder().encodeToString(bytes);
+                            sourceData = DocSourceData.ofBinary(bytes, fileName, "application/zip");
                         } else {
-                            resultStr = new String(bytes, StandardCharsets.UTF_8);
+                            sourceData = DocSourceData.ofText(new String(bytes, StandardCharsets.UTF_8), fileName);
                         }
                     }
                 } catch (IOException e) {
                     log.error("Url数据解析错误", e);
                 }
-                return Pair.of(resultStr, httpResponse);
+                return Pair.of(sourceData, httpResponse);
             });
         } catch (SimpleRuntimeException e) {
             log.error("URL数据下载异常: url={}", source.getUrl(), e);
@@ -103,6 +105,18 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2005);
         }
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
+    }
+
+    protected String resolveFileName(String url) {
+        if (StringUtils.isBlank(url)) {
+            return null;
+        }
+        String cleanUrl = StringUtils.substringBefore(url, "?");
+        int lastSlash = cleanUrl.lastIndexOf('/');
+        if (lastSlash >= 0 && lastSlash < cleanUrl.length() - 1) {
+            return cleanUrl.substring(lastSlash + 1);
+        }
+        return null;
     }
 
     /**

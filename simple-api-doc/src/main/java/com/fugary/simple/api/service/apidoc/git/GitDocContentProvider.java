@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.apidoc.git;
 
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.git.GitRepoInfo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 
 /**
@@ -18,5 +19,5 @@ public interface GitDocContentProvider {
      * @param source 原始带有认证信息的导入参数
      * @return 包含 Virtual JSON 文件列表的 SimpleResult（格式：[{"path":"...","content":"..."}]）
      */
-    SimpleResult<String> getContent(GitRepoInfo repoInfo, UrlWithAuthVo source);
+    SimpleResult<DocSourceData> getContent(GitRepoInfo repoInfo, UrlWithAuthVo source);
 }

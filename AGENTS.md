@@ -60,9 +60,10 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] AI 模型列表持久化缓存与自动恢复：通过 `AiConfigStore` 建立持久化模型缓存与双重特征索引（`configId` 与 `URL+APIKey`），实现 AI 配置、测试及业务中模型选择下拉列表的秒级自动恢复与按需刷新更新。
 - [x] 多级 Markdown 文件夹与 ZIP 导入支持：新增 `MarkdownDocImporterImpl` 支持解析多级 Markdown 目录及 `.zip` 压缩包，自动过滤系统垃圾文件，支持 YAML Frontmatter 元数据提取、一级标题/序号排序智能解析及 README.md 根文档置顶展示。
 - [x] 文件夹 folderCode 与改名同步保护机制：新增 `folderCode` 字段，实现文件夹标识与展示名称解耦；在多次重新导入/自动同步中智能保留用户自定义的文件夹、API 及 Markdown 文档名称，解决改名后同步产生重复目录或覆盖自定义名称的问题。
+- [x] DocSourceData 载体重构导入管道与消除 Base64 消耗：新增 `DocSourceData` 统一承载纯文本与二进制字节流，重构 `DocContentProvider`、`ApiProjectService` 及 `ApiDocImporter`，消除 ZIP 压缩包在本地上传与远程下载流转中的 Base64 编解码损耗与内存放大。
 
 ---
-*Last Updated: 2026-08-27*
+*Last Updated: 2026-08-28*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：

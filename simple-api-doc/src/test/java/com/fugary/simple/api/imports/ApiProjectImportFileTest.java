@@ -80,7 +80,8 @@ public class ApiProjectImportFileTest {
 
         // 10. Null / Empty
         Assertions.assertFalse(importer.match(""));
-        Assertions.assertFalse(importer.match(null));
+        Assertions.assertFalse(importer.match((String) null));
+        Assertions.assertFalse(importer.match((com.fugary.simple.api.web.vo.imports.DocSourceData) null));
         Assertions.assertFalse(importer.match("   "));
     }
 

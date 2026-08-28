@@ -10,6 +10,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 
 import java.util.List;
@@ -74,11 +75,11 @@ public interface ApiProjectService extends IService<ApiProject> {
     /**
      * 解析成ExportVo对象
      *
-     * @param content
+     * @param sourceData
      * @param importVo
      * @return
      */
-    SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo);
+    SimpleResult<ExportApiProjectVo> processImportProject(DocSourceData sourceData, ApiProjectImportVo importVo);
 
     /**
      * 导入新ApiProject对象

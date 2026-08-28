@@ -22,6 +22,7 @@ import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
@@ -231,10 +232,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
     }
 
     @Override
-    public SimpleResult<ExportApiProjectVo> processImportProject(String content, ApiProjectImportVo importVo) {
+    public SimpleResult<ExportApiProjectVo> processImportProject(DocSourceData sourceData, ApiProjectImportVo importVo) {
+        if (sourceData == null || sourceData.isEmpty()) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2004);
+        }
         ApiDocImporter importer = StringUtils.isNotBlank(importVo.getSourceType()) ?
                 ApiDocImporter.findImporter(apiDocImporters, importVo.getSourceType()) :
-                ApiDocImporter.detectImporter(apiDocImporters, content);
+                ApiDocImporter.detectImporter(apiDocImporters, sourceData);
         if (importer == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2004);
         }
@@ -245,13 +249,13 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         int errorCode = isUrlMode ? SystemErrorConstants.CODE_2005 : SystemErrorConstants.CODE_2003;
         String errorMsgKey = isUrlMode ? "simple.error.code.2005.invalid" : "simple.error.code.2003.invalid";
         String currentTypeName = ApiDocImporter.getTypeName(apiDocImporters, importVo.getSourceType());
-        if (!importer.match(content)) {
+        if (!importer.match(sourceData)) {
             String msg = SimpleResultUtils.getErrorMsg(errorMsgKey, new Object[]{currentTypeName});
             return SimpleResultUtils.createError(errorCode, msg);
         }
         ExportApiProjectVo exportVo;
         try {
-            if ((exportVo = importer.doImport(content, importVo)) == null) {
+            if ((exportVo = importer.doImport(sourceData, importVo)) == null) {
                 String msg = SimpleResultUtils.getErrorMsg(errorMsgKey, new Object[]{currentTypeName});
                 return SimpleResultUtils.createError(errorCode, msg);
             }

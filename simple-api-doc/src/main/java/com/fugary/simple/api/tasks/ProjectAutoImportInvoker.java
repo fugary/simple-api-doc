@@ -18,6 +18,7 @@ import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import lombok.SneakyThrows;
@@ -102,7 +103,7 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                     }
                 }
                 logBuilder.logData(SimpleModelUtils.logDataString(List.of(importVo)));
-                SimpleResult<String> contentResult = urlDocContentProvider.getContent(importVo);
+                SimpleResult<DocSourceData> contentResult = urlDocContentProvider.getContent(importVo);
                 if (!contentResult.isSuccess()) {
                     publishEvent(logBuilder, apiProject, createDate, contentResult.getMessage());
                     return SimpleResultUtils.createError(contentResult.getMessage());

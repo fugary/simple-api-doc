@@ -10,6 +10,7 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.http.SimpleHttpClientUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.git.GitRepoInfo;
+import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.BasicAuthVo;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
     private DocAssetStorageService docAssetStorageService;
 
     @Override
-    public SimpleResult<String> getContent(GitRepoInfo repoInfo, UrlWithAuthVo source) {
+    public SimpleResult<DocSourceData> getContent(GitRepoInfo repoInfo, UrlWithAuthVo source) {
         if (repoInfo == null || repoInfo.getPlatform() == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
         }
@@ -67,7 +68,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
     /**
      * 从 GitLab API 拉取指定目录下的 Markdown 文档及相关图片
      */
-    protected SimpleResult<String> fetchGitLabDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
+    protected SimpleResult<DocSourceData> fetchGitLabDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
         String serverUrl = repoInfo.getServerUrl();
         String projectPath = repoInfo.getProjectPath();
         String branch = StringUtils.defaultIfBlank(repoInfo.getBranch(), "main");
@@ -89,7 +90,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
 
         SimpleResult<String> treeResult = sendGetRequest(treeUrl, source, repoInfo);
         if (!treeResult.isSuccess()) {
-            return treeResult;
+            return SimpleResultUtils.createError(treeResult.getCode(), treeResult.getMessage());
         }
 
         List<Map<String, Object>> treeItems = JsonUtils.fromJson(treeResult.getResultData(), new TypeReference<>() {});
@@ -152,13 +153,13 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
             return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, "GitLab 目标目录下未找到 Markdown 文档 (*.md)");
         }
 
-        return SimpleResultUtils.createSimpleResult(JsonUtils.toJson(docFiles));
+        return SimpleResultUtils.createSimpleResult(DocSourceData.ofText(JsonUtils.toJson(docFiles)));
     }
 
     /**
      * 从 GitHub API 拉取指定目录下的 Markdown 文档及相关图片
      */
-    protected SimpleResult<String> fetchGitHubDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
+    protected SimpleResult<DocSourceData> fetchGitHubDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
         String owner = repoInfo.getOwner();
         String repo = repoInfo.getRepo();
         String branch = StringUtils.defaultIfBlank(repoInfo.getBranch(), "main");
@@ -170,7 +171,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
 
         SimpleResult<String> treeResult = sendGetRequest(treeUrl, source, repoInfo);
         if (!treeResult.isSuccess()) {
-            return treeResult;
+            return SimpleResultUtils.createError(treeResult.getCode(), treeResult.getMessage());
         }
 
         Map<String, Object> treeResponse = JsonUtils.fromJson(treeResult.getResultData(), new TypeReference<>() {});
@@ -236,13 +237,13 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
             return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, "GitHub 目标目录下未找到 Markdown 文档 (*.md): " + subPath);
         }
 
-        return SimpleResultUtils.createSimpleResult(JsonUtils.toJson(docFiles));
+        return SimpleResultUtils.createSimpleResult(DocSourceData.ofText(JsonUtils.toJson(docFiles)));
     }
 
     /**
      * 从 Gitee API 拉取指定目录下的 Markdown 文档
      */
-    protected SimpleResult<String> fetchGiteeDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
+    protected SimpleResult<DocSourceData> fetchGiteeDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
         String owner = repoInfo.getOwner();
         String repo = repoInfo.getRepo();
         String branch = StringUtils.defaultIfBlank(repoInfo.getBranch(), "master");
@@ -254,7 +255,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
 
         SimpleResult<String> treeResult = sendGetRequest(treeUrl, source, repoInfo);
         if (!treeResult.isSuccess()) {
-            return treeResult;
+            return SimpleResultUtils.createError(treeResult.getCode(), treeResult.getMessage());
         }
 
         Map<String, Object> treeResponse = JsonUtils.fromJson(treeResult.getResultData(), new TypeReference<>() {});
@@ -312,7 +313,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
             return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, "Gitee 目标目录下未找到 Markdown 文档 (*.md)");
         }
 
-        return SimpleResultUtils.createSimpleResult(JsonUtils.toJson(docFiles));
+        return SimpleResultUtils.createSimpleResult(DocSourceData.ofText(JsonUtils.toJson(docFiles)));
     }
 
     protected String resolveProjectCode(GitRepoInfo repoInfo, UrlWithAuthVo source) {
