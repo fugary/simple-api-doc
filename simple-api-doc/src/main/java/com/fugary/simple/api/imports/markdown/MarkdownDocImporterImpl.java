@@ -17,6 +17,9 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
+import org.apache.commons.io.FilenameUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
@@ -39,6 +42,9 @@ import java.util.zip.ZipInputStream;
 @Slf4j
 @Component
 public class MarkdownDocImporterImpl implements ApiDocImporter {
+
+    @Autowired(required = false)
+    private DocAssetStorageService docAssetStorageService;
 
     public static final Pattern FRONTMATTER_PATTERN = Pattern.compile("^---\\r?\\n(.*?)\\r?\\n---\\r?\\n(.*)$", Pattern.DOTALL);
     public static final Pattern H1_PATTERN = Pattern.compile("(?m)^#\\s+(.+)$");
@@ -326,12 +332,14 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
     }
 
     protected Map<String, String> tryExtractZip(byte[] zipBytes, Charset charset) throws Exception {
-        Map<String, String> files = new LinkedHashMap<>();
+        Map<String, String> markdownFiles = new LinkedHashMap<>();
+        Map<String, String> imagePathToUrlMap = new HashMap<>();
+
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes), charset)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String name = entry.getName();
-                if (!entry.isDirectory() && !shouldIgnore(name) && isMarkdownFile(name)) {
+                if (!entry.isDirectory() && !shouldIgnore(name)) {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     byte[] buffer = new byte[4096];
                     int len;
@@ -339,13 +347,33 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
                         baos.write(buffer, 0, len);
                     }
                     byte[] contentBytes = baos.toByteArray();
-                    String content = decodeContent(contentBytes, charset);
-                    files.put(normalizePath(name), content);
+
+                    if (isMarkdownFile(name)) {
+                        String content = decodeContent(contentBytes, charset);
+                        markdownFiles.put(normalizePath(name), content);
+                    } else if (docAssetStorageService != null && docAssetStorageService.isImageFile(name)) {
+                        String localUrl = docAssetStorageService.saveImage(contentBytes, name, "zip_import");
+                        if (StringUtils.isNotBlank(localUrl)) {
+                            String normName = normalizePath(name);
+                            imagePathToUrlMap.put(normName, localUrl);
+                            imagePathToUrlMap.put(FilenameUtils.getName(normName), localUrl);
+                        }
+                    }
                 }
                 zis.closeEntry();
             }
         }
-        return files;
+
+        if (docAssetStorageService != null && !imagePathToUrlMap.isEmpty()) {
+            Map<String, String> replacedFiles = new LinkedHashMap<>();
+            for (Map.Entry<String, String> entry : markdownFiles.entrySet()) {
+                String replacedContent = docAssetStorageService.replaceRelativeImages(entry.getValue(), entry.getKey(), imagePathToUrlMap);
+                replacedFiles.put(entry.getKey(), replacedContent);
+            }
+            return replacedFiles;
+        }
+
+        return markdownFiles;
     }
 
     protected String decodeContent(byte[] contentBytes, Charset entryCharset) {

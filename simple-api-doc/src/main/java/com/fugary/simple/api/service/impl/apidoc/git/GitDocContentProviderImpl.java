@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.impl.apidoc.git;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
+import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
 import com.fugary.simple.api.service.apidoc.git.GitDocContentProvider;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
@@ -12,6 +13,7 @@ import com.fugary.simple.api.web.vo.git.GitRepoInfo;
 import com.fugary.simple.api.web.vo.imports.BasicAuthVo;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpEntity;
@@ -19,6 +21,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.util.EntityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
@@ -33,6 +36,9 @@ import java.util.*;
 @Slf4j
 @Service
 public class GitDocContentProviderImpl implements GitDocContentProvider {
+
+    @Autowired(required = false)
+    private DocAssetStorageService docAssetStorageService;
 
     @Override
     public SimpleResult<String> getContent(GitRepoInfo repoInfo, UrlWithAuthVo source) {
@@ -59,13 +65,14 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
     }
 
     /**
-     * 从 GitLab API 拉取指定目录下的 Markdown 文档
+     * 从 GitLab API 拉取指定目录下的 Markdown 文档及相关图片
      */
     protected SimpleResult<String> fetchGitLabDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
         String serverUrl = repoInfo.getServerUrl();
         String projectPath = repoInfo.getProjectPath();
         String branch = StringUtils.defaultIfBlank(repoInfo.getBranch(), "main");
         String subPath = repoInfo.getSubPath();
+        String projectCode = resolveProjectCode(repoInfo, source);
 
         String encodedProject = URLEncoder.encode(projectPath, StandardCharsets.UTF_8);
         StringBuilder treeUrlBuilder = new StringBuilder(serverUrl)
@@ -90,25 +97,54 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
             return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, "GitLab 目标目录下未找到任何文件: " + subPath);
         }
 
-        List<Map<String, String>> docFiles = new ArrayList<>();
+        // 1. 先抓取同目录/子目录下的所有图片并转存本地
+        Map<String, String> imagePathToUrlMap = new HashMap<>();
+        List<String> markdownFilePaths = new ArrayList<>();
+
         for (Map<String, Object> item : treeItems) {
             String type = Objects.toString(item.get("type"), "");
             String filePath = Objects.toString(item.get("path"), "");
-            if ("blob".equalsIgnoreCase(type) && isMarkdownFile(filePath)) {
-                String rawFileUrl = serverUrl + "/api/v4/projects/" + encodedProject
-                        + "/repository/files/" + URLEncoder.encode(filePath, StandardCharsets.UTF_8)
-                        + "/raw?ref=" + URLEncoder.encode(branch, StandardCharsets.UTF_8);
-
-                SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
-                if (fileResult.isSuccess()) {
-                    String relativePath = stripSubPathPrefix(filePath, subPath);
-                    Map<String, String> fileMap = new LinkedHashMap<>();
-                    fileMap.put("path", relativePath);
-                    fileMap.put("content", fileResult.getResultData());
-                    docFiles.add(fileMap);
-                } else {
-                    log.warn("GitLab 拉取单个文件失败: path={}, url={}", filePath, rawFileUrl);
+            if ("blob".equalsIgnoreCase(type)) {
+                if (isMarkdownFile(filePath)) {
+                    markdownFilePaths.add(filePath);
+                } else if (docAssetStorageService != null && docAssetStorageService.isImageFile(filePath)) {
+                    String rawImageUrl = serverUrl + "/api/v4/projects/" + encodedProject
+                            + "/repository/files/" + URLEncoder.encode(filePath, StandardCharsets.UTF_8)
+                            + "/raw?ref=" + URLEncoder.encode(branch, StandardCharsets.UTF_8);
+                    SimpleResult<byte[]> imageResult = sendGetRequestBytes(rawImageUrl, source, repoInfo);
+                    if (imageResult.isSuccess() && imageResult.getResultData() != null) {
+                        String localUrl = docAssetStorageService.saveImage(imageResult.getResultData(), filePath, projectCode);
+                        if (StringUtils.isNotBlank(localUrl)) {
+                            String relativePath = stripSubPathPrefix(filePath, subPath);
+                            imagePathToUrlMap.put(relativePath, localUrl);
+                            imagePathToUrlMap.put(filePath, localUrl);
+                            imagePathToUrlMap.put(FilenameUtils.getName(filePath), localUrl);
+                        }
+                    }
                 }
+            }
+        }
+
+        // 2. 抓取 Markdown 文件并替换相对图片链接
+        List<Map<String, String>> docFiles = new ArrayList<>();
+        for (String filePath : markdownFilePaths) {
+            String rawFileUrl = serverUrl + "/api/v4/projects/" + encodedProject
+                    + "/repository/files/" + URLEncoder.encode(filePath, StandardCharsets.UTF_8)
+                    + "/raw?ref=" + URLEncoder.encode(branch, StandardCharsets.UTF_8);
+
+            SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
+            if (fileResult.isSuccess()) {
+                String relativePath = stripSubPathPrefix(filePath, subPath);
+                String content = fileResult.getResultData();
+                if (docAssetStorageService != null && !imagePathToUrlMap.isEmpty()) {
+                    content = docAssetStorageService.replaceRelativeImages(content, relativePath, imagePathToUrlMap);
+                }
+                Map<String, String> fileMap = new LinkedHashMap<>();
+                fileMap.put("path", relativePath);
+                fileMap.put("content", content);
+                docFiles.add(fileMap);
+            } else {
+                log.warn("GitLab 拉取单个文件失败: path={}, url={}", filePath, rawFileUrl);
             }
         }
 
@@ -120,13 +156,14 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
     }
 
     /**
-     * 从 GitHub API 拉取指定目录下的 Markdown 文档
+     * 从 GitHub API 拉取指定目录下的 Markdown 文档及相关图片
      */
     protected SimpleResult<String> fetchGitHubDocs(GitRepoInfo repoInfo, UrlWithAuthVo source) {
         String owner = repoInfo.getOwner();
         String repo = repoInfo.getRepo();
         String branch = StringUtils.defaultIfBlank(repoInfo.getBranch(), "main");
         String subPath = repoInfo.getSubPath();
+        String projectCode = resolveProjectCode(repoInfo, source);
 
         String treeUrl = "https://api.github.com/repos/" + owner + "/" + repo + "/git/trees/" + branch + "?recursive=1";
         log.info("GitHub 获取目录树: url={}", treeUrl);
@@ -146,25 +183,52 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
             return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, "GitHub 仓库为空或未找到文件");
         }
 
-        List<Map<String, String>> docFiles = new ArrayList<>();
+        Map<String, String> imagePathToUrlMap = new HashMap<>();
+        List<String> markdownFilePaths = new ArrayList<>();
         String normalizedSubPath = subPath.replace('\\', '/');
+
+        // 1. 抓取图片并转存
         for (Map<String, Object> item : treeItems) {
             String type = Objects.toString(item.get("type"), "");
             String filePath = Objects.toString(item.get("path"), "");
-            if ("blob".equalsIgnoreCase(type) && isMarkdownFile(filePath)) {
+            if ("blob".equalsIgnoreCase(type)) {
                 if (StringUtils.isBlank(normalizedSubPath) || filePath.startsWith(normalizedSubPath + "/") || filePath.equalsIgnoreCase(normalizedSubPath)) {
-                    String rawFileUrl = "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/" + filePath;
-                    SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
-                    if (fileResult.isSuccess()) {
-                        String relativePath = stripSubPathPrefix(filePath, subPath);
-                        Map<String, String> fileMap = new LinkedHashMap<>();
-                        fileMap.put("path", relativePath);
-                        fileMap.put("content", fileResult.getResultData());
-                        docFiles.add(fileMap);
-                    } else {
-                        log.warn("GitHub 拉取单个文件失败: path={}, url={}", filePath, rawFileUrl);
+                    if (isMarkdownFile(filePath)) {
+                        markdownFilePaths.add(filePath);
+                    } else if (docAssetStorageService != null && docAssetStorageService.isImageFile(filePath)) {
+                        String rawImageUrl = "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/" + filePath;
+                        SimpleResult<byte[]> imageResult = sendGetRequestBytes(rawImageUrl, source, repoInfo);
+                        if (imageResult.isSuccess() && imageResult.getResultData() != null) {
+                            String localUrl = docAssetStorageService.saveImage(imageResult.getResultData(), filePath, projectCode);
+                            if (StringUtils.isNotBlank(localUrl)) {
+                                String relativePath = stripSubPathPrefix(filePath, subPath);
+                                imagePathToUrlMap.put(relativePath, localUrl);
+                                imagePathToUrlMap.put(filePath, localUrl);
+                                imagePathToUrlMap.put(FilenameUtils.getName(filePath), localUrl);
+                            }
+                        }
                     }
                 }
+            }
+        }
+
+        // 2. 抓取 Markdown 并替换图片链接
+        List<Map<String, String>> docFiles = new ArrayList<>();
+        for (String filePath : markdownFilePaths) {
+            String rawFileUrl = "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/" + filePath;
+            SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
+            if (fileResult.isSuccess()) {
+                String relativePath = stripSubPathPrefix(filePath, subPath);
+                String content = fileResult.getResultData();
+                if (docAssetStorageService != null && !imagePathToUrlMap.isEmpty()) {
+                    content = docAssetStorageService.replaceRelativeImages(content, relativePath, imagePathToUrlMap);
+                }
+                Map<String, String> fileMap = new LinkedHashMap<>();
+                fileMap.put("path", relativePath);
+                fileMap.put("content", content);
+                docFiles.add(fileMap);
+            } else {
+                log.warn("GitHub 拉取单个文件失败: path={}, url={}", filePath, rawFileUrl);
             }
         }
 
@@ -183,6 +247,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
         String repo = repoInfo.getRepo();
         String branch = StringUtils.defaultIfBlank(repoInfo.getBranch(), "master");
         String subPath = repoInfo.getSubPath();
+        String projectCode = resolveProjectCode(repoInfo, source);
 
         String treeUrl = "https://gitee.com/api/v5/repos/" + owner + "/" + repo + "/git/trees/" + branch + "?recursive=1";
         log.info("Gitee 获取目录树: url={}", treeUrl);
@@ -198,23 +263,48 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
             return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, "Gitee 仓库为空或未找到文件");
         }
 
-        List<Map<String, String>> docFiles = new ArrayList<>();
+        Map<String, String> imagePathToUrlMap = new HashMap<>();
+        List<String> markdownFilePaths = new ArrayList<>();
         String normalizedSubPath = subPath.replace('\\', '/');
+
         for (Map<String, Object> item : treeItems) {
             String type = Objects.toString(item.get("type"), "");
             String filePath = Objects.toString(item.get("path"), "");
-            if ("blob".equalsIgnoreCase(type) && isMarkdownFile(filePath)) {
+            if ("blob".equalsIgnoreCase(type)) {
                 if (StringUtils.isBlank(normalizedSubPath) || filePath.startsWith(normalizedSubPath + "/") || filePath.equalsIgnoreCase(normalizedSubPath)) {
-                    String rawFileUrl = "https://gitee.com/" + owner + "/" + repo + "/raw/" + branch + "/" + filePath;
-                    SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
-                    if (fileResult.isSuccess()) {
-                        String relativePath = stripSubPathPrefix(filePath, subPath);
-                        Map<String, String> fileMap = new LinkedHashMap<>();
-                        fileMap.put("path", relativePath);
-                        fileMap.put("content", fileResult.getResultData());
-                        docFiles.add(fileMap);
+                    if (isMarkdownFile(filePath)) {
+                        markdownFilePaths.add(filePath);
+                    } else if (docAssetStorageService != null && docAssetStorageService.isImageFile(filePath)) {
+                        String rawImageUrl = "https://gitee.com/" + owner + "/" + repo + "/raw/" + branch + "/" + filePath;
+                        SimpleResult<byte[]> imageResult = sendGetRequestBytes(rawImageUrl, source, repoInfo);
+                        if (imageResult.isSuccess() && imageResult.getResultData() != null) {
+                            String localUrl = docAssetStorageService.saveImage(imageResult.getResultData(), filePath, projectCode);
+                            if (StringUtils.isNotBlank(localUrl)) {
+                                String relativePath = stripSubPathPrefix(filePath, subPath);
+                                imagePathToUrlMap.put(relativePath, localUrl);
+                                imagePathToUrlMap.put(filePath, localUrl);
+                                imagePathToUrlMap.put(FilenameUtils.getName(filePath), localUrl);
+                            }
+                        }
                     }
                 }
+            }
+        }
+
+        List<Map<String, String>> docFiles = new ArrayList<>();
+        for (String filePath : markdownFilePaths) {
+            String rawFileUrl = "https://gitee.com/" + owner + "/" + repo + "/raw/" + branch + "/" + filePath;
+            SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
+            if (fileResult.isSuccess()) {
+                String relativePath = stripSubPathPrefix(filePath, subPath);
+                String content = fileResult.getResultData();
+                if (docAssetStorageService != null && !imagePathToUrlMap.isEmpty()) {
+                    content = docAssetStorageService.replaceRelativeImages(content, relativePath, imagePathToUrlMap);
+                }
+                Map<String, String> fileMap = new LinkedHashMap<>();
+                fileMap.put("path", relativePath);
+                fileMap.put("content", content);
+                docFiles.add(fileMap);
             }
         }
 
@@ -223,6 +313,13 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
         }
 
         return SimpleResultUtils.createSimpleResult(JsonUtils.toJson(docFiles));
+    }
+
+    protected String resolveProjectCode(GitRepoInfo repoInfo, UrlWithAuthVo source) {
+        if (repoInfo != null && StringUtils.isNotBlank(repoInfo.getRepo())) {
+            return repoInfo.getRepo();
+        }
+        return "default";
     }
 
     /**
@@ -272,6 +369,48 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
                     }
                 }
                 return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, baseMsg + ": " + statusLine);
+            }
+        }
+        return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
+    }
+
+    /**
+     * 发送带有 Git 平台认证头的 HTTP GET 请求获取二进制数据（图片等）
+     */
+    protected SimpleResult<byte[]> sendGetRequestBytes(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+        Pair<byte[], HttpResponse> resultPair = null;
+        try {
+            resultPair = SimpleHttpClientUtils.sendHttpGet(url, Pair.class, (client, request) -> {
+                request.setHeader("User-Agent", "Simple-Api-Doc");
+                processGitAuth(request, source, repoInfo);
+            }, (httpResponse, clazz) -> {
+                byte[] bytes = new byte[0];
+                try {
+                    HttpEntity entity = httpResponse.getEntity();
+                    if (entity != null) {
+                        bytes = EntityUtils.toByteArray(entity);
+                    }
+                } catch (Exception e) {
+                    log.error("读取 HTTP 响应字节异常", e);
+                }
+                return Pair.of(bytes, httpResponse);
+            });
+        } catch (Exception e) {
+            log.error("Git HTTP 请求二进制异常: url={}", url, e);
+            String baseMsg = SimpleResultUtils.getErrorMsg(SystemErrorConstants.CODE_2009);
+            return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, baseMsg + ": " + e.getMessage());
+        }
+
+        if (resultPair != null) {
+            HttpResponse response = resultPair.getRight();
+            if (response != null) {
+                int status = response.getStatusLine().getStatusCode();
+                if (status >= HttpStatus.SC_OK && status < HttpStatus.SC_MULTIPLE_CHOICES) {
+                    return SimpleResultUtils.createSimpleResult(resultPair.getLeft());
+                }
+                String statusLine = response.getStatusLine().toString();
+                log.warn("Git API 请求二进制失败: url={}, status={}", url, statusLine);
+                return SimpleResultUtils.createError(SystemErrorConstants.CODE_2009, "请求失败: " + statusLine);
             }
         }
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
