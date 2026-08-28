@@ -8,6 +8,9 @@ import { uploadFiles } from '@/api/ApiProjectApi'
 import { $coreHideLoading, $coreShowLoading } from '@/utils'
 import ApiDocApi from '@/api/ApiDocApi'
 
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 const currentDoc = defineModel({
   type: Object,
   default: () => ({})
@@ -36,6 +39,10 @@ watch(currentDoc, (newDoc) => {
   }
 }, { immediate: true })
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
+const onUploadImg = (files, callback) => {
+  const projectCode = route?.params?.projectCode || currentDocModel.value?.projectCode || currentDoc.value?.projectCode
+  uploadFiles(files, callback, projectCode)
+}
 defineEmits(['savedDoc'])
 </script>
 <template>
@@ -49,7 +56,7 @@ defineEmits(['savedDoc'])
       v-model="currentDocModel.docContent"
       :theme="theme"
       class="scroll-main-container"
-      :on-upload-img="uploadFiles"
+      :on-upload-img="onUploadImg"
     />
   </el-container>
 </template>

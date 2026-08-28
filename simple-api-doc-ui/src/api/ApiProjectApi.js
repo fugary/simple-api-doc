@@ -149,11 +149,15 @@ export const useSelectProjects = (searchParam) => {
  * 文件上传
  * @param files
  * @param [callback]
+ * @param [projectCode]
  */
-export const uploadFiles = (files, callback) => {
+export const uploadFiles = (files, callback, projectCode) => {
   const formData = new FormData()
   files = isArray(files) ? files : [files]
   files.forEach(file => formData.append('files', file))
+  if (projectCode) {
+    formData.append('projectCode', projectCode)
+  }
   return $httpPost('/upload/uploadFiles', formData,
     Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 60000 }))
     .then(data => {

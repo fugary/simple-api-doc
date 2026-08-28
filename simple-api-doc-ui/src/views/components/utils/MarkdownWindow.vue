@@ -26,6 +26,10 @@ const showMarkdownWindow = (content) => {
   showWindow.value = true
 }
 
+const onUploadImg = (files, callback) => {
+  uploadFiles(files, callback, contentConfig.value?.projectCode)
+}
+
 defineExpose({
   showMarkdownWindow
 })
@@ -60,7 +64,7 @@ defineExpose({
       :theme="theme"
       :auto-fold-threshold="200"
       class="scroll-main-container"
-      :on-upload-img="uploadFiles"
+      :on-upload-img="onUploadImg"
     />
   </common-window>
 </template>

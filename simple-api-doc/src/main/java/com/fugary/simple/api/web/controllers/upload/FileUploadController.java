@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,11 +47,27 @@ public class FileUploadController {
     private DocAssetStorageService docAssetStorageService;
 
     @PostMapping("/uploadFiles")
-    public SimpleResult<List<String>> uploadFiles(HttpServletRequest request) {
+    public SimpleResult<List<String>> uploadFiles(HttpServletRequest request,
+                                                  @RequestParam(value = "projectCode", required = false) String projectCode) {
         List<MultipartFile> files = SimpleModelUtils.getUploadFiles(request);
         if (files.isEmpty()) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2002);
         }
+        String cleanProjectCode = StringUtils.isNotBlank(projectCode)
+                ? projectCode.trim().replaceAll("[^a-zA-Z0-9._-]", "_")
+                : null;
+        if (StringUtils.isNotBlank(cleanProjectCode)) {
+            List<String> fileList = files.stream().map(file -> {
+                try {
+                    return docAssetStorageService.saveImage(file.getBytes(), file.getOriginalFilename(), cleanProjectCode);
+                } catch (IOException e) {
+                    log.error("项目文档图片上传失败", e);
+                    return null;
+                }
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+            return SimpleResultUtils.createSimpleResult(fileList);
+        }
+
         String filePath = docAssetStorageService.getBaseUploadPath();
         String baseUrl = "/upload/";
         List<String> fileList = files.stream().map(file -> {
