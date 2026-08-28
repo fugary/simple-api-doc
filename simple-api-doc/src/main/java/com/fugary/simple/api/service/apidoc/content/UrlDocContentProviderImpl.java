@@ -59,7 +59,14 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
             return gitDocContentProvider.getContent(gitRepoInfo, source);
         }
 
-        // 2. 普通 HTTP URL 下载（自动识别 ZIP 压缩包与单文件纯文本）
+        // 2. 普通 HTTP URL 下载（支持网络抖动自动重试）
+        return SimpleHttpClientUtils.executeWithRetry(() -> doFetchContent(source), "URL下载 url=" + source.getUrl());
+    }
+
+    /**
+     * 单次 HTTP URL 下载
+     */
+    protected SimpleResult<DocSourceData> doFetchContent(UrlWithAuthVo source) {
         Pair<DocSourceData, HttpResponse> resultPair = null;
         try {
             resultPair = SimpleHttpClientUtils.sendHttpGet(source.getUrl(), Pair.class, (client, request) -> {

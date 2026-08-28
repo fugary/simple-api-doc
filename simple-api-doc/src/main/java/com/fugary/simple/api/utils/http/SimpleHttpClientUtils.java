@@ -22,12 +22,22 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.HttpRequest;
+import org.apache.http.NoHttpResponseException;
+import org.apache.http.client.HttpRequestRetryHandler;
+import org.apache.http.client.protocol.HttpClientContext;
+
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import com.fugary.simple.api.web.vo.SimpleResult;
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.InterruptedIOException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -35,6 +45,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -71,13 +82,108 @@ public class SimpleHttpClientUtils {
         REQUEST_CONFIG = RequestConfig.custom().setConnectTimeout(CONNECT_TIMEOUT).setConnectionRequestTimeout(CONNECT_TIMEOUT).setSocketTimeout(SOCKET_TIMEOUT).build();
     }
 
+    public static final int DEFAULT_RETRY_COUNT = 3;
+
+    public static final long DEFAULT_RETRY_INTERVAL_MS = 500L;
+
+    public static final HttpRequestRetryHandler DEFAULT_RETRY_HANDLER = (exception, executionCount, context) -> {
+        if (executionCount > DEFAULT_RETRY_COUNT) {
+            return false;
+        }
+        if (exception instanceof UnknownHostException) {
+            // DNS 无法解析
+            return false;
+        }
+        if (exception instanceof InterruptedIOException && !(exception instanceof SocketTimeoutException || exception instanceof org.apache.http.conn.ConnectTimeoutException)) {
+            // 线程中断（非超时）
+            return false;
+        }
+        if (exception instanceof SSLException) {
+            // SSL 异常：如果是网络连接重置或关闭导致的 SSLException 则进行重试
+            String msg = exception.getMessage() != null ? exception.getMessage().toLowerCase() : "";
+            return msg.contains("reset") || msg.contains("broken pipe") || msg.contains("closed") || msg.contains("peer");
+        }
+        if (exception instanceof NoHttpResponseException || exception instanceof SocketException) {
+            // 连接重置（Connection reset）、Broken pipe、超时或服务器未响应
+            return true;
+        }
+        HttpClientContext clientContext = HttpClientContext.adapt(context);
+        HttpRequest request = clientContext.getRequest();
+        return !(request instanceof HttpEntityEnclosingRequest);
+    };
+
+    /**
+     * 判断是否为不可恢复的业务错误（如 401 未授权、403 禁止访问、404 不存在），跳过重试
+     *
+     * @param result 请求结果
+     * @return 是否不可重试
+     */
+    public static boolean isNonRetryableError(SimpleResult<?> result) {
+        if (result == null) {
+            return false;
+        }
+        String msg = StringUtils.defaultString(result.getMessage());
+        return msg.contains("401") || msg.contains("403") || msg.contains("404") || msg.contains("未找到") || msg.contains("Token");
+    }
+
+    /**
+     * 通用 HTTP 请求重试调度器（支持阶梯延迟退避）
+     *
+     * @param requestAction 请求执行动作
+     * @param maxRetries    最大重试次数
+     * @param intervalMs    基础重试间隔时间（毫秒）
+     * @param actionDesc    动作描述（用于日志）
+     * @param <T>           返回数据类型
+     * @return 请求结果
+     */
+    public static <T> SimpleResult<T> executeWithRetry(Supplier<SimpleResult<T>> requestAction, int maxRetries, long intervalMs, String actionDesc) {
+        SimpleResult<T> lastResult = null;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            lastResult = requestAction.get();
+            if (lastResult != null && lastResult.isSuccess()) {
+                return lastResult;
+            }
+            if (isNonRetryableError(lastResult)) {
+                return lastResult;
+            }
+            if (attempt < maxRetries) {
+                long waitTime = intervalMs * attempt;
+                String errorMsg = lastResult != null ? lastResult.getMessage() : "null";
+                log.warn("HTTP {}失败，正在进行第 {}/{} 次重试（等待 {}ms）: error={}", actionDesc, attempt, maxRetries, waitTime, errorMsg);
+                try {
+                    Thread.sleep(waitTime);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        return lastResult;
+    }
+
+    /**
+     * 通用 HTTP 请求重试调度器（使用默认重试次数与退避间隔）
+     *
+     * @param requestAction 请求执行动作
+     * @param actionDesc    动作描述（用于日志）
+     * @param <T>           返回数据类型
+     * @return 请求结果
+     */
+    public static <T> SimpleResult<T> executeWithRetry(Supplier<SimpleResult<T>> requestAction, String actionDesc) {
+        return executeWithRetry(requestAction, DEFAULT_RETRY_COUNT, DEFAULT_RETRY_INTERVAL_MS, actionDesc);
+    }
+
     /**
      * 获取httpclient
      *
      * @return
      */
     public static CloseableHttpClient getHttpClient() {
-        return HttpClientBuilder.create().setDefaultRequestConfig(REQUEST_CONFIG).setConnectionManager(CLIENT_CONNECTION_MANAGER).build();
+        return HttpClientBuilder.create()
+                .setDefaultRequestConfig(REQUEST_CONFIG)
+                .setConnectionManager(CLIENT_CONNECTION_MANAGER)
+                .setRetryHandler(DEFAULT_RETRY_HANDLER)
+                .build();
     }
 
     public static TrustManager[] getTrustManagers() {
@@ -110,7 +216,8 @@ public class SimpleHttpClientUtils {
             SSLConnectionSocketFactory ssf = new SSLConnectionSocketFactory(ctx, new NoopHostnameVerifier());
             HttpClientBuilder clientBuilder = HttpClientBuilder.create()
                     .setDefaultRequestConfig(REQUEST_CONFIG)
-                    .setSSLSocketFactory(ssf);
+                    .setSSLSocketFactory(ssf)
+                    .setRetryHandler(DEFAULT_RETRY_HANDLER);
             if (!cookie) {
                 clientBuilder.disableCookieManagement();
             }

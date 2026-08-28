@@ -324,9 +324,23 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
     }
 
     /**
-     * 发送带有 Git 平台认证头的 HTTP GET 请求
+     * 发送带有 Git 平台认证头的 HTTP GET 请求（支持网络抖动自动重试）
      */
     protected SimpleResult<String> sendGetRequest(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+        return SimpleHttpClientUtils.executeWithRetry(() -> doSendGetRequest(url, source, repoInfo), "Git 请求 url=" + url);
+    }
+
+    /**
+     * 发送带有 Git 平台认证头的 HTTP GET 请求获取二进制数据（支持网络抖动自动重试）
+     */
+    protected SimpleResult<byte[]> sendGetRequestBytes(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+        return SimpleHttpClientUtils.executeWithRetry(() -> doSendGetRequestBytes(url, source, repoInfo), "Git 二进制请求 url=" + url);
+    }
+
+    /**
+     * 执行单次带有 Git 平台认证头的 HTTP GET 请求
+     */
+    protected SimpleResult<String> doSendGetRequest(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
         Pair<String, HttpResponse> resultPair = null;
         try {
             resultPair = SimpleHttpClientUtils.sendHttpGet(url, Pair.class, (client, request) -> {
@@ -376,9 +390,9 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
     }
 
     /**
-     * 发送带有 Git 平台认证头的 HTTP GET 请求获取二进制数据（图片等）
+     * 执行单次带有 Git 平台认证头的 HTTP GET 请求获取二进制数据（图片等）
      */
-    protected SimpleResult<byte[]> sendGetRequestBytes(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+    protected SimpleResult<byte[]> doSendGetRequestBytes(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
         Pair<byte[], HttpResponse> resultPair = null;
         try {
             resultPair = SimpleHttpClientUtils.sendHttpGet(url, Pair.class, (client, request) -> {
@@ -416,6 +430,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
         }
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
     }
+
 
     /**
      * 为 Git 请求添加平台认证头

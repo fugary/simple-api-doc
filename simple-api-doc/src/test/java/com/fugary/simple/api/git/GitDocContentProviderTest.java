@@ -2,6 +2,7 @@ package com.fugary.simple.api.git;
 
 import com.fugary.simple.api.imports.markdown.MarkdownDocImporterImpl;
 import com.fugary.simple.api.service.impl.apidoc.git.GitDocContentProviderImpl;
+import com.fugary.simple.api.utils.http.SimpleHttpClientUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -83,5 +84,21 @@ public class GitDocContentProviderTest {
         Assertions.assertEquals("接口说明", projectVo.getFolders().get(1).getFolderName());
         Assertions.assertEquals("用户接口文档", projectVo.getFolders().get(1).getDocs().get(0).getDocName());
         Assertions.assertEquals(120, projectVo.getFolders().get(1).getDocs().get(0).getSortId());
+    }
+
+    @Test
+    public void testIsNonRetryableError() {
+        // 401/403/404 等不可恢复错误
+        Assertions.assertTrue(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "访问 Git 仓库失败(HTTP/1.1 401 Unauthorized)")));
+        Assertions.assertTrue(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "访问 Git 仓库失败(HTTP/1.1 403 Forbidden)")));
+        Assertions.assertTrue(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "访问 Git 仓库失败(HTTP/1.1 404 Not Found)")));
+        Assertions.assertTrue(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "未找到文件")));
+        Assertions.assertTrue(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "请填入 Token")));
+
+        // 网络波动、连接重置、超时等可重试错误
+        Assertions.assertFalse(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "Git HTTP 请求异常: Connection reset")));
+        Assertions.assertFalse(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "Git HTTP 请求异常: Connect timed out")));
+        Assertions.assertFalse(SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "Git API 请求失败: HTTP/1.1 502 Bad Gateway")));
+        Assertions.assertFalse(SimpleHttpClientUtils.isNonRetryableError(null));
     }
 }
