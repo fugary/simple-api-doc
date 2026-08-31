@@ -296,6 +296,7 @@ export const useReload = () => {
 }
 
 export const $logout = () => {
+  $coreHideLoading(true)
   useLoginConfigStore().logout()
   Promise.resolve().then(() => {
     $goto('/login')
@@ -304,38 +305,60 @@ export const $logout = () => {
 const globalLoadingConfig = {
   delay: LOADING_DELAY,
   globalLoading: null,
-  delayLoadingId: null
+  delayLoadingId: null,
+  count: 0
 }
 
 export const $coreShowLoading = (message, config = {}) => {
+  globalLoadingConfig.count++
+  if (globalLoadingConfig.count > 1) {
+    return
+  }
+  if (globalLoadingConfig.delayLoadingId) {
+    clearTimeout(globalLoadingConfig.delayLoadingId)
+    globalLoadingConfig.delayLoadingId = null
+  }
   if (isObject(message)) { // 第一个参数就是对象，表示是配置对象
     config = cloneDeep(message)
   } else {
     config = cloneDeep(config)
     config.text = message
   }
-  const globalLoading = globalLoadingConfig.globalLoading
-  if (globalLoading) {
-    globalLoading.close()
+  const openLoading = () => {
+    if (globalLoadingConfig.count > 0 && !globalLoadingConfig.globalLoading) {
+      globalLoadingConfig.globalLoading = ElLoading.service(Object.assign({
+        lock: true,
+        background: 'rgba(0, 0, 0, 0.7)'
+      }, getCustomLoadingConfig(config)))
+    }
   }
-  const openLoading = () => ElLoading.service(Object.assign({
-    lock: true,
-    background: 'rgba(0, 0, 0, 0.7)'
-  }, getCustomLoadingConfig(config)))
   const delay = config.delay ?? globalLoadingConfig.delay
   if (delay > 0) {
     globalLoadingConfig.delayLoadingId = setTimeout(() => {
-      globalLoadingConfig.globalLoading = openLoading()
-    }, globalLoadingConfig.delay)
+      globalLoadingConfig.delayLoadingId = null
+      openLoading()
+    }, delay)
   } else {
-    globalLoadingConfig.globalLoading = openLoading()
+    openLoading()
   }
 }
 
-export const $coreHideLoading = () => {
-  globalLoadingConfig.delayLoadingId && clearTimeout(globalLoadingConfig.delayLoadingId)
-  globalLoadingConfig.delayLoadingId = null
-  globalLoadingConfig.globalLoading?.close()
+export const $coreHideLoading = (force = false) => {
+  if (force) {
+    globalLoadingConfig.count = 0
+  } else {
+    globalLoadingConfig.count = Math.max(0, globalLoadingConfig.count - 1)
+  }
+  if (globalLoadingConfig.count === 0) {
+    if (globalLoadingConfig.delayLoadingId) {
+      clearTimeout(globalLoadingConfig.delayLoadingId)
+      globalLoadingConfig.delayLoadingId = null
+    }
+    if (globalLoadingConfig.globalLoading) {
+      globalLoadingConfig.globalLoading.close()
+      globalLoadingConfig.globalLoading = null
+    }
+  }
 }
 
 export const getCustomLoadingConfig = (config) => {
