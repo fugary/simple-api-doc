@@ -397,11 +397,13 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         // 获取Operation所在的Folder
         Operation operation = operationPair.getRight();
         String folderPath = getTagName0(operation.getTags());
+        String folderCodePath = null;
         if (operation.getExtensions() != null) {
             folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_APIFOX_FOLDER), folderPath);
             folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER), folderPath);
+            folderCodePath = (String) operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER_CODE);
         }
-        Pair<ExportApiFolderVo, ExportApiFolderVo> parsedPair = ApiDocParseUtils.calcApiPathFolder(folders, folderPath);
+        Pair<ExportApiFolderVo, ExportApiFolderVo> parsedPair = ApiDocParseUtils.calcApiPathFolder(folders, folderPath, folderCodePath);
         ExportApiFolderVo childFolder = parsedPair.getLeft();
         findOperationTag(openAPI, operation).ifPresent(tag -> {
             childFolder.setDescription(tag.getDescription());

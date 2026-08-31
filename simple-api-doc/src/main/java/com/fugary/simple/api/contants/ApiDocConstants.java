@@ -69,6 +69,8 @@ public class ApiDocConstants {
 
     public static final String X_SIMPLE_FOLDER = "x-simple-folder";
 
+    public static final String X_SIMPLE_FOLDER_CODE = "x-simple-folder-code";
+
     public static final String SIMPLE_EMPTY_PATH_FOLDER_ALIAS = "__simple_empty_path_folder__";
 
     public static final String X_SIMPLE_MARKDOWN_FILES = "x-simple-markdown-files";

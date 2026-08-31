@@ -121,4 +121,36 @@ public class ApiProjectImportFileTest {
         Assertions.assertNotNull(postDoc);
         Assertions.assertNull(postDoc.getDeprecated());
     }
+
+    @Test
+    public void testSwaggerImporterFolderCodeAndName() {
+        SwaggerImporterImpl importer = new SwaggerImporterImpl();
+        String openapiYaml = "openapi: 3.0.0\n" +
+                "info:\n" +
+                "  title: Sample API\n" +
+                "  version: 1.0.0\n" +
+                "paths:\n" +
+                "  /users:\n" +
+                "    get:\n" +
+                "      summary: Get users\n" +
+                "      tags:\n" +
+                "        - 用户中心\n" +
+                "      x-simple-folder: 系统管理/用户中心\n" +
+                "      x-simple-folder-code: system/user-api\n" +
+                "      responses:\n" +
+                "        '200':\n" +
+                "          description: OK\n";
+        ExportApiProjectVo projectVo = importer.doImport(openapiYaml);
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(1, projectVo.getFolders().size());
+        var topFolder = projectVo.getFolders().get(0);
+        Assertions.assertEquals("系统管理", topFolder.getFolderName());
+        Assertions.assertEquals("system", topFolder.getFolderCode());
+        Assertions.assertEquals(1, topFolder.getFolders().size());
+
+        var childFolder = topFolder.getFolders().get(0);
+        Assertions.assertEquals("用户中心", childFolder.getFolderName());
+        Assertions.assertEquals("user-api", childFolder.getFolderCode());
+        Assertions.assertEquals(1, childFolder.getDocs().size());
+    }
 }

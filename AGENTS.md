@@ -65,6 +65,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] 多级 Markdown 文件夹树 ZIP 导出与图片打包：新增 `MarkdownZipApiDocExporterImpl` 支持按项目文件夹树结构导出为多级目录 ZIP 压缩包；自动注入标准 YAML Frontmatter（支持与导入器 100% 无损闭环反向恢复），自动扫描提取本地静态图片打包至 `assets/` 并自适应重写为相对链接，前端提供单文件与 ZIP 模式自由切换。
 - [x] Markdown 文档间相对路径引用与点击跳转：新增 `MarkdownLinkService` 提供规范化相对路径解析与阶梯式文档多策略匹配，在 `MarkdownDocViewer` 中智能拦截正文链接实现平滑切页、左侧目录树自动展开祖先文件夹与节点高亮激活，支持跨文档及本页锚点平滑滚动定位，100% 保持 Markdown 原文相对路径纯洁性。
 - [x] 手动导入转定时任务与任务弹窗独立立即导入：在手动导入 URL 模式下必填项完整时动态呈现【创建定时导入】按钮并自动带入全部参数；在定时导入任务新增/编辑弹窗中解耦【确认】（保存）与【立即导入】（即时导入），支持直接使用当前参数发起拉取并提示结果。
+- [x] OpenAPI 导出与导入 folderCode 保留与扩展机制：在 `OpenApiApiDocExporterImpl` 中使用 `x-simple-folder` / `x-apifox-folder` 输出多级展示名称路径，顶层 Tag 保持原生标准无冗余 `x-*` 扩展，仅在 `folderCode ≠ folderName` 时按需在 Operation 输出 `x-simple-folder-code`；在 `SwaggerImporterImpl` 与 `ApiDocParseUtils` 中实现多级与单级目录的分层无损还原。
 
 ---
 *Last Updated: 2026-08-31*

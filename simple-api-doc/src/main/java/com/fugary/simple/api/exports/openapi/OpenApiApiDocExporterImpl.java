@@ -93,6 +93,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         // 提取和文档相关的schema和security数据
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.mergeInfoDetailVo(projectInfoDetails);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = apiFolderService.calcFolderMap(detailVo.getFolders());
+        Map<Integer, String> folderNameMap = apiFolderService.calcFolderNameMap(detailVo.getFolders());
         // 新建OpenAPI数据
         OpenAPI openAPI = new OpenAPI(SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()))
                 .openapi(projectInfoDetailVo.getOasVersion())
@@ -109,13 +110,15 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             ApiFolder apiFolder = folderMap.get(apiDocDetail.getFolderId());
             if (apiFolder != null) { // 文件夹必须存在
-                String fullFolderPath = folderMapPair.getRight().get(apiFolder.getId());
-                String folderPath = getFolderPath(fullFolderPath);
+                String fullFolderCodePath = folderMapPair.getRight().get(apiFolder.getId());
+                String folderCodePath = getFolderPath(fullFolderCodePath);
+                String fullFolderNamePath = folderNameMap.get(apiFolder.getId());
+                String folderNamePath = getFolderPath(fullFolderNamePath);
                 if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) { // 接口处理
                     String urlPath = apiDocDetail.getUrl();
                     if (!openAPI.getPaths().containsKey(urlPath)) {
-                        openAPI.getPaths().addPathItem(urlPath, calcPathItem(openAPI, folderMapPair, apiFolder, apiDocDetail));
-                        tags.add(new Tag().name(StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName()))
+                        openAPI.getPaths().addPathItem(urlPath, calcPathItem(openAPI, folderCodePath, folderNamePath, apiFolder, apiDocDetail));
+                        tags.add(new Tag().name(StringUtils.defaultIfBlank(apiFolder.getFolderName(), apiFolder.getFolderCode()))
                                 .description(apiFolder.getDescription())); // 提取文件夹信息作为Tag
                     }
                 } else if (ApiDocConstants.DOC_TYPE_MD.equals(apiDocDetail.getDocType())) { // markdown处理
@@ -123,7 +126,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                         openAPI.getInfo().description(apiDocDetail.getDocContent());
                     } else { // 目录下文件
                         ExtendMarkdownFile markdownFile = new ExtendMarkdownFile();
-                        markdownFile.setFolderName(folderPath);
+                        markdownFile.setFolderName(folderNamePath);
                         markdownFile.setFileName(apiDocDetail.getDocKey());
                         markdownFile.setTitle(apiDocDetail.getDocName());
                         markdownFile.setSortId(apiDocDetail.getSortId());
@@ -141,11 +144,10 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         return openAPI;
     }
 
-    private PathItem calcPathItem(OpenAPI openAPI, Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair, ApiFolder apiFolder, ApiDocDetailVo apiDocDetail) {
-        Map<Integer, String> folderPathMap = folderMapPair.getRight();
+    private PathItem calcPathItem(OpenAPI openAPI, String folderCodePath, String folderNamePath, ApiFolder apiFolder, ApiDocDetailVo apiDocDetail) {
         PathItem pathItem = new PathItem();
         Map<String, Consumer<Operation>> pathFunctions = getPathFunctions(pathItem);
-        Operation operation = new Operation().addTagsItem(StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName()))
+        Operation operation = new Operation().addTagsItem(StringUtils.defaultIfBlank(apiFolder.getFolderName(), apiFolder.getFolderCode()))
                 .summary(apiDocDetail.getDocName())
                 .operationId(apiDocDetail.getOperationId())
                 .description(StringUtils.defaultIfBlank(apiDocDetail.getDocContent(), apiDocDetail.getDescription()))
@@ -179,11 +181,12 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                     });
             operation.responses(apiResponses);
         }
-        String fullFolderPath = folderPathMap.get(apiFolder.getId());
-        String folderPath = getFolderPath(fullFolderPath);
-        if (StringUtils.contains(folderPath, ApiDocConstants.FOLDER_PATH_SEPARATOR)) {
-            operation.addExtension(ApiDocConstants.X_SIMPLE_FOLDER, folderPath);
-            operation.addExtension(ApiDocConstants.X_APIFOX_FOLDER, folderPath);
+        if (StringUtils.contains(folderNamePath, ApiDocConstants.FOLDER_PATH_SEPARATOR)) {
+            operation.addExtension(ApiDocConstants.X_SIMPLE_FOLDER, folderNamePath);
+            operation.addExtension(ApiDocConstants.X_APIFOX_FOLDER, folderNamePath);
+        }
+        if (!StringUtils.equals(folderCodePath, folderNamePath)) {
+            operation.addExtension(ApiDocConstants.X_SIMPLE_FOLDER_CODE, folderCodePath);
         }
         pathFunctions.get(StringUtils.upperCase(apiDocDetail.getMethod())).accept(operation);
         calcOperationSecurity(openAPI, apiDocDetail, operation);

@@ -95,6 +95,35 @@ class ApiDocParseUtilsTest {
         assertThat(pair.getRight().getFolderName()).isEqualTo("system");
     }
 
+    @Test
+    void testCalcApiPathFolderWithDistinctFolderCodePath() {
+        java.util.List<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> folders = new java.util.ArrayList<>();
+        Pair<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo, com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> pair =
+                ApiDocParseUtils.calcApiPathFolder(folders, "系统管理/用户中心", "system/user-api");
+
+        assertThat(pair.getLeft()).isNotNull();
+        assertThat(pair.getLeft().getFolderCode()).isEqualTo("user-api");
+        assertThat(pair.getLeft().getFolderName()).isEqualTo("用户中心");
+        assertThat(pair.getLeft().getFolderPath()).isEqualTo("system/user-api");
+
+        assertThat(pair.getRight()).isNotNull();
+        assertThat(pair.getRight().getFolderCode()).isEqualTo("system");
+        assertThat(pair.getRight().getFolderName()).isEqualTo("系统管理");
+        assertThat(pair.getRight().getFolderPath()).isEqualTo("system");
+    }
+
+    @Test
+    void testCalcApiPathFolderSingleLevelWithDistinctFolderCode() {
+        java.util.List<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> folders = new java.util.ArrayList<>();
+        Pair<com.fugary.simple.api.web.vo.exports.ExportApiFolderVo, com.fugary.simple.api.web.vo.exports.ExportApiFolderVo> pair =
+                ApiDocParseUtils.calcApiPathFolder(folders, "用户中心", "user-api");
+
+        assertThat(pair.getLeft()).isNotNull();
+        assertThat(pair.getLeft().getFolderCode()).isEqualTo("user-api");
+        assertThat(pair.getLeft().getFolderName()).isEqualTo("用户中心");
+        assertThat(pair.getLeft().getFolderPath()).isEqualTo("user-api");
+    }
+
     private <T extends ApiProjectInfoDetail> T detail(Class<T> type) {
         try {
             T detail = type.getDeclaredConstructor().newInstance();

@@ -330,20 +330,35 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         Map<String, ApiFolder> pathFolderMap = new HashMap<>();
         Map<Integer, String> folderPathMap = new HashMap<>();
         for (ApiFolder apiFolder : apiFolders) {
-            List<String> paths = new ArrayList<>();
-            paths.add(StringUtils.defaultIfBlank(apiFolder.getFolderCode(), apiFolder.getFolderName()));
-            ApiFolder currentFolder = apiFolder;
-            while (currentFolder != null && currentFolder.getParentId() != null) {
-                currentFolder = folderMap.get(currentFolder.getParentId());
-                if (currentFolder != null) {
-                    paths.add(0, StringUtils.defaultIfBlank(currentFolder.getFolderCode(), currentFolder.getFolderName()));
-                }
-            }
-            String folderPath = String.join("/", paths);
+            String folderPath = calcFolderPath(apiFolder, folderMap, f -> StringUtils.defaultIfBlank(f.getFolderCode(), f.getFolderName()));
             pathFolderMap.put(folderPath, apiFolder);
             folderPathMap.put(apiFolder.getId(), folderPath);
         }
         return Pair.of(pathFolderMap, folderPathMap);
+    }
+
+    @Override
+    public Map<Integer, String> calcFolderNameMap(List<ApiFolder> apiFolders) {
+        Map<Integer, ApiFolder> folderMap = apiFolders.stream().collect(Collectors.toMap(ApiFolder::getId, Function.identity()));
+        Map<Integer, String> folderNameMap = new HashMap<>();
+        for (ApiFolder apiFolder : apiFolders) {
+            String folderNamePath = calcFolderPath(apiFolder, folderMap, f -> StringUtils.defaultIfBlank(f.getFolderName(), f.getFolderCode()));
+            folderNameMap.put(apiFolder.getId(), folderNamePath);
+        }
+        return folderNameMap;
+    }
+
+    protected String calcFolderPath(ApiFolder apiFolder, Map<Integer, ApiFolder> folderMap, Function<ApiFolder, String> nameExtractor) {
+        List<String> paths = new ArrayList<>();
+        paths.add(nameExtractor.apply(apiFolder));
+        ApiFolder currentFolder = apiFolder;
+        while (currentFolder != null && currentFolder.getParentId() != null) {
+            currentFolder = folderMap.get(currentFolder.getParentId());
+            if (currentFolder != null) {
+                paths.add(0, nameExtractor.apply(currentFolder));
+            }
+        }
+        return String.join("/", paths);
     }
 
     @Override

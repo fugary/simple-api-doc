@@ -80,12 +80,20 @@ public interface ApiFolderService extends IService<ApiFolder> {
     List<ApiFolder> loadEnabledApiFolders(Integer projectId);
 
     /**
-     * 解析成Map结构
+     * 解析成Map结构 (基于folderCode)
      *
      * @param apiFolders
      * @return
      */
     Pair<Map<String, ApiFolder>, Map<Integer, String>> calcFolderMap(List<ApiFolder> apiFolders);
+
+    /**
+     * 解析成展示名称Map结构 (基于folderName)
+     *
+     * @param apiFolders
+     * @return key: folderId, value: folderNamePath
+     */
+    Map<Integer, String> calcFolderNameMap(List<ApiFolder> apiFolders);
 
     /**
      * 删除文件夹

@@ -67,25 +67,57 @@ public class ApiDocParseUtils {
      * @return left——底层目录，right——顶层目录
      */
     public static Pair<ExportApiFolderVo, ExportApiFolderVo> calcApiPathFolder(List<ExportApiFolderVo> existsFolders, String folderPath) {
-        Map<String, ExportApiFolderVo> folderMap = existsFolders.stream().collect(Collectors.toMap(ExportApiFolderVo::getFolderPath, Function.identity()));
+        return calcApiPathFolder(existsFolders, folderPath, null);
+    }
+
+    /**
+     * 以已存在文件夹为基准计算文件夹层级
+     *
+     * @param existsFolders 已解析的文件夹列表
+     * @param folderPath    文件夹路径 a/b/c/d (展示名称)
+     * @param folderCodePath 文件夹编码路径 code1/code2/code3 (编码标识，可选)
+     * @return left——底层目录，right——顶层目录
+     */
+    public static Pair<ExportApiFolderVo, ExportApiFolderVo> calcApiPathFolder(List<ExportApiFolderVo> existsFolders, String folderPath, String folderCodePath) {
+        Map<String, ExportApiFolderVo> folderMap = existsFolders.stream().collect(Collectors.toMap(ExportApiFolderVo::getFolderPath, Function.identity(), (existing, replacement) -> existing));
         String[] folderNames = StringUtils.split(folderPath, ApiDocConstants.FOLDER_PATH_SEPARATOR);
+        String[] folderCodes = StringUtils.isNotBlank(folderCodePath) ? StringUtils.split(folderCodePath, ApiDocConstants.FOLDER_PATH_SEPARATOR) : null;
+        if (folderNames == null || folderNames.length == 0) {
+            return Pair.of(null, null);
+        }
         ExportApiFolderVo topFolder = null;
         ExportApiFolderVo currentParentFolder = null;
+        List<String> codePaths = new ArrayList<>();
+        List<String> namePaths = new ArrayList<>();
         for (int i = 0; i < folderNames.length; i++) {
             String folderName = folderNames[i];
-            List<String> namePaths = new ArrayList<>();
-            for (int j = 0; j <= i; j++) {
-                namePaths.add(folderNames[j]);
+            String folderCode = (folderCodes != null && i < folderCodes.length && StringUtils.isNotBlank(folderCodes[i])) ? folderCodes[i] : folderName;
+            namePaths.add(folderName);
+            codePaths.add(folderCode);
+            String childFolderCodePath = StringUtils.join(codePaths, ApiDocConstants.FOLDER_PATH_SEPARATOR);
+            String childFolderNamePath = StringUtils.join(namePaths, ApiDocConstants.FOLDER_PATH_SEPARATOR);
+            ExportApiFolderVo childFolder = folderMap.get(childFolderCodePath);
+            if (childFolder == null && !StringUtils.equals(childFolderCodePath, childFolderNamePath)) {
+                childFolder = folderMap.get(childFolderNamePath);
             }
-            String childFolderPath = StringUtils.join(namePaths, ApiDocConstants.FOLDER_PATH_SEPARATOR);
-            ExportApiFolderVo childFolder = folderMap.computeIfAbsent(childFolderPath, k -> {
-                ExportApiFolderVo folder = new ExportApiFolderVo();
-                folder.setFolderPath(childFolderPath);
-                folder.setFolderCode(folderName);
-                folder.setFolderName(folderName);
-                folder.setStatus(ApiDocConstants.STATUS_ENABLED);
-                return folder;
-            });
+            if (childFolder == null) {
+                childFolder = new ExportApiFolderVo();
+                childFolder.setFolderPath(childFolderCodePath);
+                childFolder.setFolderCode(folderCode);
+                childFolder.setFolderName(folderName);
+                childFolder.setStatus(ApiDocConstants.STATUS_ENABLED);
+                folderMap.put(childFolderCodePath, childFolder);
+                folderMap.put(childFolderNamePath, childFolder);
+            } else if (folderCodes != null) {
+                if (i < folderCodes.length && StringUtils.isNotBlank(folderCodes[i])) {
+                    childFolder.setFolderCode(folderCodes[i]);
+                }
+                if (StringUtils.isNotBlank(folderName)) {
+                    childFolder.setFolderName(folderName);
+                }
+                childFolder.setFolderPath(childFolderCodePath);
+                folderMap.put(childFolderCodePath, childFolder);
+            }
             if (currentParentFolder != null) {
                 addFolderIfNotExist(currentParentFolder.getFolders(), childFolder);
                 if (childFolder.getParentFolder() == null) {
