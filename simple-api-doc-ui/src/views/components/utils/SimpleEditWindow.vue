@@ -32,6 +32,10 @@ const props = defineProps({
   windowAttrs: {
     type: Object,
     default: () => ({})
+  },
+  buttons: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -82,6 +86,7 @@ const calcOptions = computed(() => {
     :ok-click="internalSaveCurrentItem"
     :ok-loading="saveLoading"
     :show-ok="editable"
+    :buttons="buttons"
     append-to-body
     destroy-on-close
     show-fullscreen

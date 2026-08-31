@@ -353,8 +353,29 @@ const formOptions = computed(() => {
     }
   })
 })
-const emit = defineEmits(['import-success'])
+const emit = defineEmits(['import-success', 'create-task'])
 const importFormRef = useTemplateRef('importForm')
+const canCreateTask = computed(() => {
+  if (!props.project || importModel.value.importType !== 'url') {
+    return false
+  }
+  const url = importModel.value.url?.trim()
+  if (!url || !/^https?:\/\/.+/.test(url)) {
+    return false
+  }
+  if (importModel.value.authType === AUTH_TYPE.TOKEN) {
+    return !!importModel.value.authContentModel?.token?.trim()
+  }
+  if (importModel.value.authType === AUTH_TYPE.BASIC) {
+    return !!importModel.value.authContentModel?.userName?.trim() && !!importModel.value.authContentModel?.userPassword?.trim()
+  }
+  return true
+})
+
+const createImportTask = () => {
+  emit('create-task', importModel.value)
+}
+
 const doImportProject = (autoAlert = true) => {
   importFormRef.value?.form.validate(async (valid) => {
     if (valid) {
@@ -439,7 +460,22 @@ defineExpose({
       class-name="common-form-auto"
       v-bind="$attrs"
       @submit-form="doImportProject()"
-    />
+    >
+      <template #buttons>
+        <slot
+          name="buttons"
+          :model="importModel"
+        >
+          <el-button
+            v-if="canCreateTask"
+            type="success"
+            @click="createImportTask"
+          >
+            {{ $t('api.label.createImportTask') }}
+          </el-button>
+        </slot>
+      </template>
+    </common-form>
     <simple-edit-window
       v-model="currentGroup"
       v-model:show-edit-window="showEditGroupWindow"

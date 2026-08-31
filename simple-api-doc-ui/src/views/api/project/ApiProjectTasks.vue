@@ -2,7 +2,7 @@
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { $coreAlert, $coreConfirm, $goto, checkShowColumn, getStyleGrow, isAdminUser, useBackUrl, useCurrentUserName } from '@/utils'
-import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
+import { importProject, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
 import ApiProjectTaskApi, { copyProjectTask, triggerTask } from '@/api/ApiProjectTaskApi'
@@ -22,7 +22,7 @@ import {
   TASK_TRIGGER_RATES
 } from '@/consts/ApiConstants'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
-import { isFunction } from 'lodash-es'
+import { cloneDeep, isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
 import { ElLink, ElTag, ElText } from 'element-plus'
@@ -277,7 +277,7 @@ const searchFormOptions = computed(() => {
 
 const showEditWindow = ref(false)
 const currentModel = ref()
-const newOrEdit = async (id) => {
+const newOrEdit = async (id, initialData) => {
   if (id) {
     await ApiProjectTaskApi.getById(id).then(data => {
       if (data.resultData) {
@@ -299,13 +299,30 @@ const newOrEdit = async (id) => {
       authType: AUTH_TYPE.NONE,
       toFolder: inProject ? folderTreeNodes.value[0]?.id : undefined,
       scheduleRate: TASK_TRIGGER_RATES[TASK_TRIGGER_RATES.length - 1].value,
-      authContentModel: {}
+      authContentModel: {},
+      ...(initialData || {})
     }
     if (!inProject) {
       folderTreeNodes.value = []
     }
   }
   showEditWindow.value = true
+}
+
+const onCreateTask = (importModelData) => {
+  newOrEdit(null, {
+    taskName: projectItem.value?.projectName ? `${projectItem.value.projectName} - ${$i18nBundle('api.label.import')}` : '',
+    projectId: projectItem.value?.id,
+    groupCode: projectItem.value?.groupCode,
+    taskType: IMPORT_TASK_TYPES[0].value,
+    sourceType: importModelData?.sourceType || IMPORT_SOURCE_TYPES[0].value,
+    sourceUrl: importModelData?.url || '',
+    authType: importModelData?.authType || AUTH_TYPE.NONE,
+    toFolder: importModelData?.toFolder,
+    scheduleRate: TASK_TRIGGER_RATES[TASK_TRIGGER_RATES.length - 1].value,
+    status: 1,
+    authContentModel: cloneDeep(importModelData?.authContentModel || {})
+  })
 }
 const { projectItem: formProjectItem, loadProjectItem: loadFormProjectItem } = useApiProjectItem(null, { autoLoad: false, detail: false })
 const importFolders = computed(() => (formProjectItem.value || projectItem.value)?.infoList?.map(info => info.folderId) || [])
@@ -456,6 +473,50 @@ const saveProjectTask = (item) => {
   return ApiProjectTaskApi.saveOrUpdate(modelParam).then(() => loadProjectTasks())
 }
 
+const activeTab = ref('auto')
+const importLoading = ref(false)
+
+const doImportNow = ({ form }) => {
+  form.validate((valid) => {
+    if (valid) {
+      if (!currentModel.value?.projectId) {
+        return
+      }
+      importLoading.value = true
+      const modelParam = {
+        importType: 'url',
+        projectId: currentModel.value.projectId,
+        sourceType: currentModel.value.sourceType,
+        url: currentModel.value.sourceUrl,
+        authType: currentModel.value.authType,
+        toFolder: currentModel.value.toFolder
+      }
+      if (currentModel.value.authType !== AUTH_TYPE.NONE) {
+        modelParam.authContent = JSON.stringify(currentModel.value.authContentModel || {})
+      }
+      importProject([], modelParam, { loading: true, timeout: 60000 })
+        .then((data) => {
+          if (data.success) {
+            $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+            loadProjectTasks()
+          }
+        })
+        .finally(() => {
+          importLoading.value = false
+        })
+    }
+  })
+}
+
+const editWindowButtons = computed(() => {
+  return [{
+    labelKey: 'api.label.importNow',
+    type: 'success',
+    loading: importLoading.value,
+    click: doImportNow
+  }]
+})
+
 const isWritable = computed(() => {
   return !inProject || inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE)
 })
@@ -478,8 +539,12 @@ const isWritable = computed(() => {
     </el-page-header>
     <el-tabs
       v-if="inProject"
+      v-model="activeTab"
     >
-      <el-tab-pane lazy>
+      <el-tab-pane
+        name="auto"
+        lazy
+      >
         <template #label>
           {{ $t('api.label.autoImportData') }}
         </template>
@@ -517,6 +582,7 @@ const isWritable = computed(() => {
         </el-container>
       </el-tab-pane>
       <el-tab-pane
+        name="manual"
         :disabled="!isWritable"
         lazy
       >
@@ -529,6 +595,7 @@ const isWritable = computed(() => {
             show-buttons
             :project="projectItem"
             @import-success="goBack"
+            @create-task="onCreateTask"
           />
         </el-container>
       </el-tab-pane>
@@ -570,6 +637,7 @@ const isWritable = computed(() => {
       v-model="currentModel"
       v-model:show-edit-window="showEditWindow"
       :form-options="editFormOptions"
+      :buttons="editWindowButtons"
       :name="$t('api.label.importData')"
       :save-current-item="saveProjectTask"
       inline-auto-mode
