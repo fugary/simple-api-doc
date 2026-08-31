@@ -66,8 +66,6 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
     @Autowired
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
     @Autowired
-    private ApiProjectInfoDetailService apiDocSchemaService;
-    @Autowired
     private ApiDocViewGenerator apiDocViewGenerator;
     @Autowired(required = false)
     private DocAssetStorageService docAssetStorageService;
@@ -101,7 +99,7 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         }
 
         // 加载文档详情
-        List<ApiDocDetailVo> docDetailList = new ArrayList<>(apiDocSchemaService.loadDetailList(docList));
+        List<ApiDocDetailVo> docDetailList = new ArrayList<>(apiProjectInfoDetailService.loadDetailList(docList));
         // 加载项目schema和security数据
         List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
         List<ApiProjectInfo> projectInfos = SimpleModelUtils.filterApiProjectInfo(detailVo, infoIds);
@@ -121,7 +119,7 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         context.setSchemasMap(schemasMap);
 
         // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
-        docDetailList.sort(Comparator.comparing(d -> getSortKey(folderMap.get(d.getFolderId()), folderMap) + "-0-" + String.format("%06d_%d", d.getSortId() == null ? 0 : d.getSortId(), d.getId())));
+        docDetailList.sort(Comparator.comparing(d -> ApiDocParseUtils.getDocSortKey(d, folderMap)));
 
         boolean withFrontmatter = exportFilter.getWithFrontmatter() == null || Boolean.TRUE.equals(exportFilter.getWithFrontmatter());
 
@@ -431,28 +429,10 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         return "readme".equals(base) || "index".equals(base);
     }
 
-    private String getSortKey(ApiFolder folder, Map<Integer, ApiFolder> folderMap) {
-        if (folder == null) {
-            return "";
-        }
-        String parentKey = "";
-        if (folder.getParentId() != null) {
-            parentKey = getSortKey(folderMap.get(folder.getParentId()), folderMap) + "-1-";
-        }
-        return parentKey + String.format("%06d_%d", folder.getSortId() == null ? 0 : folder.getSortId(), folder.getId());
-    }
-
     private List<String> getSanitizedFolderNames(Integer folderId, Map<Integer, ApiFolder> folderMap) {
-        if (folderId == null) {
-            return Collections.emptyList();
-        }
-        ApiFolder folder = folderMap.get(folderId);
-        if (folder == null || Boolean.TRUE.equals(folder.getRootFlag())) {
-            return Collections.emptyList();
-        }
-        List<String> path = new ArrayList<>(getSanitizedFolderNames(folder.getParentId(), folderMap));
-        path.add(sanitizePathSegment(folder.getFolderName()));
-        return path;
+        return ApiDocParseUtils.getFolderNames(folderId, folderMap).stream()
+                .map(this::sanitizePathSegment)
+                .collect(Collectors.toList());
     }
 
     @Data

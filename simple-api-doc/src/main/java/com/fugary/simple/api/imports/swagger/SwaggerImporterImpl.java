@@ -100,7 +100,8 @@ public class SwaggerImporterImpl implements ApiDocImporter {
                 PathItem pathItem = entry.getValue();
                 List<Pair<String, Operation>> operations = getAllOperationsInAPath(pathItem);
                 return Triple.of(entry.getKey(), entry.getValue(), operations);
-            }).collect(Collectors.groupingBy(triple -> {
+            }).filter(triple -> !triple.getRight().isEmpty())
+            .collect(Collectors.groupingBy(triple -> {
                 List<Pair<String, Operation>> operations = triple.getRight();
                 Pair<String, Operation> firstOptionPair = operations.get(0);
                 return getTagName0(firstOptionPair.getRight().getTags());
@@ -402,7 +403,10 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     }
 
     protected String getTagName0(List<String> tags) {
-        return CollectionUtils.isNotEmpty(tags) ? tags.get(0) : ApiDocConstants.SIMPLE_EMPTY_PATH_FOLDER_ALIAS;
+        if (CollectionUtils.isNotEmpty(tags) && StringUtils.isNotBlank(tags.get(0))) {
+            return tags.get(0).trim();
+        }
+        return ApiDocConstants.SIMPLE_EMPTY_PATH_FOLDER_ALIAS;
     }
 
     protected Pair<ExportApiFolderVo, ExportApiFolderVo> getOperationFolder(OpenAPI openAPI, List<ExportApiFolderVo> folders, Pair<String, Operation> operationPair) {
@@ -411,22 +415,26 @@ public class SwaggerImporterImpl implements ApiDocImporter {
         String folderPath = getTagName0(operation.getTags());
         String folderCodePath = null;
         if (operation.getExtensions() != null) {
-            folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_APIFOX_FOLDER), folderPath);
-            folderPath = StringUtils.defaultIfBlank((String) operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER), folderPath);
-            folderCodePath = (String) operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER_CODE);
+            folderPath = StringUtils.defaultIfBlank(Objects.toString(operation.getExtensions().get(ApiDocConstants.X_APIFOX_FOLDER), null), folderPath);
+            folderPath = StringUtils.defaultIfBlank(Objects.toString(operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER), null), folderPath);
+            folderCodePath = Objects.toString(operation.getExtensions().get(ApiDocConstants.X_SIMPLE_FOLDER_CODE), null);
         }
         Pair<ExportApiFolderVo, ExportApiFolderVo> parsedPair = ApiDocParseUtils.calcApiPathFolder(folders, folderPath, folderCodePath);
         ExportApiFolderVo childFolder = parsedPair.getLeft();
-        findOperationTag(openAPI, operation).ifPresent(tag -> {
-            childFolder.setDescription(tag.getDescription());
-        });
+        if (childFolder != null) {
+            findOperationTag(openAPI, operation).ifPresent(tag -> {
+                if (StringUtils.isNotBlank(tag.getDescription())) {
+                    childFolder.setDescription(tag.getDescription());
+                }
+            });
+        }
         // 新增或获取Folder信息
         return parsedPair; // 应该永远有个folder，不能为空
     }
 
     protected Optional<Tag> findOperationTag(OpenAPI openAPI, Operation operation) {
-        if (openAPI.getTags() != null) {
-            return openAPI.getTags().stream().filter(tag -> operation.getTags() != null
+        if (openAPI.getTags() != null && operation != null && operation.getTags() != null) {
+            return openAPI.getTags().stream().filter(tag -> tag != null && StringUtils.isNotBlank(tag.getName())
                     && operation.getTags().contains(tag.getName())).findFirst();
         }
         return Optional.empty();

@@ -3,6 +3,7 @@ package com.fugary.simple.api.imports;
 import com.fugary.simple.api.imports.swagger.SwaggerImporterImpl;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
+import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -201,5 +202,35 @@ public class ApiProjectImportFileTest {
         Assertions.assertEquals("账号认证", projectVo.getFolders().get(0).getFolderName());
         Assertions.assertEquals("Profile", projectVo.getFolders().get(1).getFolderName());
         Assertions.assertEquals("TaProduct", projectVo.getFolders().get(2).getFolderName());
+    }
+
+    @Test
+    public void testSwaggerImporterEmptyPathsAndRobustness() {
+        SwaggerImporterImpl importer = new SwaggerImporterImpl();
+        // 包含空路径项 /empty-path、只有 summary 的路径项、包含空白 Tag 以及非 String 的 extension
+        String openapiYaml = "openapi: 3.0.0\n" +
+                "info:\n" +
+                "  title: Robustness API\n" +
+                "  version: 1.0.0\n" +
+                "paths:\n" +
+                "  /empty-path: {}\n" +
+                "  /description-only:\n" +
+                "    summary: Just a summary without operations\n" +
+                "  /api/v1/valid:\n" +
+                "    get:\n" +
+                "      summary: Valid Endpoint\n" +
+                "      tags:\n" +
+                "        - \"   \"\n" +
+                "      x-simple-folder: 默认分类\n" +
+                "      x-apifox-folder: 12345\n" +
+                "      responses:\n" +
+                "        '200':\n" +
+                "          description: OK\n";
+        ExportApiProjectVo projectVo = importer.doImport(openapiYaml);
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(1, projectVo.getFolders().size());
+        ExportApiFolderVo folder = projectVo.getFolders().get(0);
+        Assertions.assertEquals(1, folder.getDocs().size());
+        Assertions.assertEquals("Valid Endpoint", folder.getDocs().get(0).getDocName());
     }
 }

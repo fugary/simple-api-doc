@@ -49,8 +49,6 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
     @Autowired
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
     @Autowired
-    private ApiProjectInfoDetailService apiDocSchemaService;
-    @Autowired
     private ApiDocViewGenerator apiDocViewGenerator;
     @Autowired
     private Configuration freemarkerConfig; // FreeMarker 自动配置的 Configuration
@@ -82,7 +80,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2010);
         }
         // 加载文档详情
-        List<ApiDocDetailVo> docDetailList = new ArrayList<>(apiDocSchemaService.loadDetailList(docList));
+        List<ApiDocDetailVo> docDetailList = new ArrayList<>(apiProjectInfoDetailService.loadDetailList(docList));
         // 加载项目schema和security数据
         List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
         List<ApiProjectInfo> projectInfos = SimpleModelUtils.filterApiProjectInfo(detailVo, infoIds);
@@ -95,10 +93,10 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
         context.setSchemasMap(schemasMap);
         // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
-        docDetailList.sort(Comparator.comparing(d -> getSortKey(folderMap.get(d.getFolderId()), folderMap) + "-0-" + String.format("%06d_%d", d.getSortId() == null ? 0 : d.getSortId(), d.getId())));
+        docDetailList.sort(Comparator.comparing(d -> ApiDocParseUtils.getDocSortKey(d, folderMap)));
 
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
-            List<String> folderNames = getFolderNames(apiDocDetail.getFolderId(), folderMap);
+            List<String> folderNames = ApiDocParseUtils.getFolderNames(apiDocDetail.getFolderId(), folderMap);
             String folderPath = String.join("/", folderNames);
             String topLevelFolder = folderNames.isEmpty() ? "" : folderNames.get(0);
             
@@ -135,30 +133,6 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
             log.error("模板渲染失败", e);
             throw new RuntimeException(e);
         }
-    }
-
-    private String getSortKey(ApiFolder folder, Map<Integer, ApiFolder> folderMap) {
-        if (folder == null) {
-            return "";
-        }
-        String parentKey = "";
-        if (folder.getParentId() != null) {
-            parentKey = getSortKey(folderMap.get(folder.getParentId()), folderMap) + "-1-";
-        }
-        return parentKey + String.format("%06d_%d", folder.getSortId() == null ? 0 : folder.getSortId(), folder.getId());
-    }
-
-    private List<String> getFolderNames(Integer folderId, Map<Integer, ApiFolder> folderMap) {
-        if (folderId == null) {
-            return Collections.emptyList();
-        }
-        ApiFolder folder = folderMap.get(folderId);
-        if (folder == null || Boolean.TRUE.equals(folder.getRootFlag())) {
-            return Collections.emptyList();
-        }
-        List<String> path = new ArrayList<>(getFolderNames(folder.getParentId(), folderMap));
-        path.add(folder.getFolderName());
-        return path;
     }
 
 }

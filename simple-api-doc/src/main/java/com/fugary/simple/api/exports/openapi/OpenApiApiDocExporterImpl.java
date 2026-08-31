@@ -33,6 +33,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,8 +57,6 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
     private ApiProjectService apiProjectService;
     @Autowired
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
-    @Autowired
-    private ApiProjectInfoDetailService apiDocSchemaService;
     @Autowired
     private ApiFolderService apiFolderService;
 
@@ -85,18 +84,30 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         }
         Set<Integer> infoIds = docList.stream().map(ApiDoc::getInfoId).filter(Objects::nonNull).collect(Collectors.toSet());
         // 加载文档详情
-        List<ApiDocDetailVo> docDetailList = apiDocSchemaService.loadDetailList(docList);
+        List<ApiDocDetailVo> docDetailList = new ArrayList<>(apiProjectInfoDetailService.loadDetailList(docList));
         // 加载项目schema和security数据
         List<ApiProjectInfoDetail> apiInfoDetails = apiProjectInfoDetailService.loadByProject(projectId, ApiDocConstants.PROJECT_SCHEMA_TYPES);
         List<ApiProjectInfo> projectInfos = SimpleModelUtils.filterApiProjectInfo(detailVo, infoIds);
         List<ApiProjectInfoDetailVo> projectInfoDetails = projectInfos.stream().map(projectInfo -> apiProjectInfoDetailService.parseInfoDetailVo(projectInfo, apiInfoDetails, docDetailList)).collect(Collectors.toList());
         // 提取和文档相关的schema和security数据
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.mergeInfoDetailVo(projectInfoDetails);
+        if (projectInfoDetailVo == null) {
+            projectInfoDetailVo = new ApiProjectInfoDetailVo();
+            projectInfoDetailVo.setSpecVersion(SpecVersion.V30.name());
+            projectInfoDetailVo.setOasVersion("3.0.1");
+        }
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = apiFolderService.calcFolderMap(detailVo.getFolders());
         Map<Integer, String> folderNameMap = apiFolderService.calcFolderNameMap(detailVo.getFolders());
+
+        // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
+        docDetailList.sort(Comparator.comparing(d -> ApiDocParseUtils.getDocSortKey(d, folderMap)));
+
+        SpecVersion specVersion = projectInfoDetailVo.getSpecVersion() != null
+                ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V30;
+        String oasVersion = StringUtils.defaultIfBlank(projectInfoDetailVo.getOasVersion(), "3.0.1");
         // 新建OpenAPI数据
-        OpenAPI openAPI = new OpenAPI(SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()))
-                .openapi(projectInfoDetailVo.getOasVersion())
+        OpenAPI openAPI = new OpenAPI(specVersion)
+                .openapi(oasVersion)
                 .components(new Components())
                 .paths(new Paths())
                 .servers(new ArrayList<>())
@@ -154,7 +165,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
     }
 
     /**
-     * 按文件夹树的层级和 sort_id 顺序先序遍历收集有效 Tag
+     * 按文件夹树的层级和 sort_id 顺序收集有效 Tag（基于树形排序键，天然保证前序遍历有序）
      *
      * @param folders 项目全部文件夹
      * @param validFolderIds 包含文档的有效文件夹 ID 集合
@@ -164,36 +175,27 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         if (CollectionUtils.isEmpty(folders)) {
             return;
         }
-        Set<Integer> folderIds = folders.stream().map(ApiFolder::getId).filter(Objects::nonNull).collect(Collectors.toSet());
-        Map<Integer, List<ApiFolder>> childMap = folders.stream()
-                .filter(f -> f.getParentId() != null)
-                .collect(Collectors.groupingBy(ApiFolder::getParentId));
-        List<ApiFolder> rootFolders = folders.stream()
-                .filter(f -> f.getParentId() == null || f.getParentId() == 0 || !folderIds.contains(f.getParentId()))
-                .sorted(Comparator.comparing(ApiFolder::getSortId, Comparator.nullsLast(Comparator.naturalOrder())))
-                .collect(Collectors.toList());
-        for (ApiFolder root : rootFolders) {
-            traverseFolderTags(root, childMap, validFolderIds, tags);
+        Map<Integer, ApiFolder> folderMap = folders.stream()
+                .filter(f -> f.getId() != null)
+                .collect(Collectors.toMap(ApiFolder::getId, Function.identity(), (existing, replacement) -> existing));
+        Set<Integer> allValidFolderIds = new HashSet<>(validFolderIds);
+        for (Integer validId : validFolderIds) {
+            ApiFolder current = folderMap.get(validId);
+            while (current != null && current.getParentId() != null && current.getParentId() != 0) {
+                allValidFolderIds.add(current.getParentId());
+                current = folderMap.get(current.getParentId());
+            }
         }
-    }
-
-    private void traverseFolderTags(ApiFolder current, Map<Integer, List<ApiFolder>> childMap, Set<Integer> validFolderIds, Set<Tag> tags) {
-        String tagName = StringUtils.defaultIfBlank(current.getFolderName(), current.getFolderCode());
-        if (StringUtils.isNotBlank(tagName) && isFolderOrDescendantValid(current, childMap, validFolderIds)) {
-            tags.add(new Tag().name(tagName).description(current.getDescription()));
-        }
-        List<ApiFolder> children = childMap.getOrDefault(current.getId(), Collections.emptyList());
-        children.stream()
-                .sorted(Comparator.comparing(ApiFolder::getSortId, Comparator.nullsLast(Comparator.naturalOrder())))
-                .forEach(child -> traverseFolderTags(child, childMap, validFolderIds, tags));
-    }
-
-    private boolean isFolderOrDescendantValid(ApiFolder folder, Map<Integer, List<ApiFolder>> childMap, Set<Integer> validFolderIds) {
-        if (validFolderIds.contains(folder.getId())) {
-            return true;
-        }
-        List<ApiFolder> children = childMap.getOrDefault(folder.getId(), Collections.emptyList());
-        return children.stream().anyMatch(child -> isFolderOrDescendantValid(child, childMap, validFolderIds));
+        folders.stream()
+                .filter(f -> f.getId() != null && allValidFolderIds.contains(f.getId()))
+                .filter(f -> !Boolean.TRUE.equals(f.getRootFlag()) || validFolderIds.contains(f.getId()))
+                .sorted(Comparator.comparing(f -> ApiDocParseUtils.getFolderSortKey(f, folderMap)))
+                .forEach(folder -> {
+                    String tagName = StringUtils.defaultIfBlank(folder.getFolderName(), folder.getFolderCode());
+                    if (StringUtils.isNotBlank(tagName)) {
+                        tags.add(new Tag().name(tagName).description(folder.getDescription()));
+                    }
+                });
     }
 
     private void populateOperation(OpenAPI openAPI, PathItem pathItem, String folderCodePath, String folderNamePath, ApiFolder apiFolder, ApiDocDetailVo apiDocDetail) {
@@ -209,26 +211,33 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
             }, SchemaJsonUtils.isV31(openAPI));
             operation.parameters(parameters);
         }
-        if (!apiDocDetail.getRequestsSchemas().isEmpty()) {
+        if (CollectionUtils.isNotEmpty(apiDocDetail.getRequestsSchemas())) {
             RequestBody requestBody = new RequestBody();
             requestBody.setContent(new Content());
             apiDocDetail.getRequestsSchemas().stream().filter(schema -> StringUtils.isNotBlank(schema.getSchemaContent()))
-                    .forEach(schema -> requestBody.getContent().addMediaType(schema.getContentType(),
-                            SchemaJsonUtils.fromJson(schema.getSchemaContent(), MediaType.class, SchemaJsonUtils.isV31(openAPI))));
-            operation.requestBody(requestBody);
+                    .forEach(schema -> {
+                        requestBody.getContent().addMediaType(schema.getContentType(),
+                                SchemaJsonUtils.fromJson(schema.getSchemaContent(), MediaType.class, SchemaJsonUtils.isV31(openAPI)));
+                        if (StringUtils.isNotBlank(schema.getDescription())) {
+                            requestBody.setDescription(schema.getDescription());
+                        }
+                    });
+            if (MapUtils.isNotEmpty(requestBody.getContent())) {
+                operation.requestBody(requestBody);
+            }
         }
-        if (!apiDocDetail.getResponsesSchemas().isEmpty()) {
+        if (CollectionUtils.isNotEmpty(apiDocDetail.getResponsesSchemas())) {
             ApiResponses apiResponses = new ApiResponses();
             apiDocDetail.getResponsesSchemas()
                     .forEach(schema -> {
                         ApiResponse apiResponse = new ApiResponse();
-                        apiResponse.setDescription(schema.getDescription());
+                        apiResponse.setDescription(StringUtils.defaultIfBlank(schema.getDescription(), ""));
                         if (StringUtils.isNotBlank(schema.getSchemaContent())) {
                             apiResponse.setContent(new Content());
                             apiResponse.getContent().addMediaType(schema.getContentType(),
                                     SchemaJsonUtils.fromJson(schema.getSchemaContent(), MediaType.class, SchemaJsonUtils.isV31(openAPI)));
                         }
-                        apiResponses.addApiResponse(schema.getSchemaName(), apiResponse);
+                        apiResponses.addApiResponse(StringUtils.defaultIfBlank(schema.getSchemaName(), "default"), apiResponse);
                     });
             operation.responses(apiResponses);
         }
@@ -316,10 +325,14 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         List<ApiProjectInfoDetail> componentSchemas = projectInfoDetailVo.getComponentSchemas();
         ApiProjectInfoDetail securitySchemas = projectInfoDetailVo.getSecuritySchemas();
         ApiProjectInfoDetail securityRequirements = projectInfoDetailVo.getSecurityRequirements();
-        componentSchemas.forEach(detail -> {
-            Schema<?> schema = SchemaJsonUtils.fromJson(detail.getSchemaContent(), Schema.class, SchemaJsonUtils.isV31(openAPI));
-            openAPI.getComponents().addSchemas(detail.getSchemaName(), schema);
-        });
+        if (CollectionUtils.isNotEmpty(componentSchemas)) {
+            componentSchemas.forEach(detail -> {
+                if (StringUtils.isNotBlank(detail.getSchemaContent())) {
+                    Schema<?> schema = SchemaJsonUtils.fromJson(detail.getSchemaContent(), Schema.class, SchemaJsonUtils.isV31(openAPI));
+                    openAPI.getComponents().addSchemas(detail.getSchemaName(), schema);
+                }
+            });
+        }
         if (securitySchemas != null && StringUtils.isNotBlank(securitySchemas.getSchemaContent())) {
             Map<String, SecurityScheme> secSchemas = SchemaJsonUtils.fromJson(securitySchemas.getSchemaContent(), new TypeReference<>() {
             }, SchemaJsonUtils.isV31(openAPI));

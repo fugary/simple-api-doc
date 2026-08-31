@@ -41,7 +41,6 @@ public class MarkdownZipApiDocExporterTest {
     private MarkdownZipApiDocExporterImpl exporter;
     private ApiProjectService mockProjectService;
     private ApiProjectInfoDetailService mockProjectInfoDetailService;
-    private ApiProjectInfoDetailService mockDocSchemaService;
     private DocAssetStorageService mockAssetStorageService;
 
     @BeforeEach
@@ -50,7 +49,6 @@ public class MarkdownZipApiDocExporterTest {
 
         mockProjectService = Mockito.mock(ApiProjectService.class);
         mockProjectInfoDetailService = Mockito.mock(ApiProjectInfoDetailService.class);
-        mockDocSchemaService = Mockito.mock(ApiProjectInfoDetailService.class);
         mockAssetStorageService = Mockito.mock(DocAssetStorageService.class);
 
         ApiDocViewGenerator mockViewGenerator = Mockito.mock(ApiDocViewGenerator.class);
@@ -58,7 +56,6 @@ public class MarkdownZipApiDocExporterTest {
 
         ReflectionTestUtils.setField(exporter, "apiProjectService", mockProjectService);
         ReflectionTestUtils.setField(exporter, "apiProjectInfoDetailService", mockProjectInfoDetailService);
-        ReflectionTestUtils.setField(exporter, "apiDocSchemaService", mockDocSchemaService);
         ReflectionTestUtils.setField(exporter, "apiDocViewGenerator", mockViewGenerator);
         ReflectionTestUtils.setField(exporter, "docAssetStorageService", mockAssetStorageService);
     }
@@ -128,7 +125,7 @@ public class MarkdownZipApiDocExporterTest {
         project.setDocs(List.of(doc1, doc2, doc3));
 
         Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
-        Mockito.when(mockDocSchemaService.loadDetailList(any())).thenReturn(List.of(doc1, doc2, doc3));
+        Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(doc1, doc2, doc3));
         Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
 
         ExportDownloadVo downloadVo = new ExportDownloadVo();
@@ -234,7 +231,7 @@ public class MarkdownZipApiDocExporterTest {
         project.setDocs(List.of(doc1, doc2, apiDoc));
 
         Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
-        Mockito.when(mockDocSchemaService.loadDetailList(any())).thenReturn(List.of(doc1, doc2, apiDoc));
+        Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(doc1, doc2, apiDoc));
         Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
 
         ExportDownloadVo downloadVo = new ExportDownloadVo();
@@ -303,7 +300,7 @@ public class MarkdownZipApiDocExporterTest {
         project.setDocs(List.of(doc1, apiDoc));
 
         Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
-        Mockito.when(mockDocSchemaService.loadDetailList(any())).thenReturn(List.of(doc1, apiDoc));
+        Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(doc1, apiDoc));
         Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
 
         ExportDownloadVo downloadVo = new ExportDownloadVo();
@@ -382,7 +379,7 @@ public class MarkdownZipApiDocExporterTest {
         project.setDocs(List.of(rootDoc, subDoc));
 
         Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
-        Mockito.when(mockDocSchemaService.loadDetailList(any())).thenReturn(List.of(rootDoc, subDoc));
+        Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(rootDoc, subDoc));
         Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
         Mockito.when(mockAssetStorageService.getBaseUploadPath()).thenReturn(System.getProperty("java.io.tmpdir"));
 

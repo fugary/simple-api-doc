@@ -79,7 +79,14 @@ public class ApiDocParseUtils {
      * @return left——底层目录，right——顶层目录
      */
     public static Pair<ExportApiFolderVo, ExportApiFolderVo> calcApiPathFolder(List<ExportApiFolderVo> existsFolders, String folderPath, String folderCodePath) {
-        Map<String, ExportApiFolderVo> folderMap = existsFolders.stream().collect(Collectors.toMap(ExportApiFolderVo::getFolderPath, Function.identity(), (existing, replacement) -> existing));
+        Map<String, ExportApiFolderVo> folderMap = new HashMap<>();
+        if (existsFolders != null) {
+            for (ExportApiFolderVo folder : existsFolders) {
+                if (folder != null && StringUtils.isNotBlank(folder.getFolderPath())) {
+                    folderMap.putIfAbsent(folder.getFolderPath(), folder);
+                }
+            }
+        }
         String[] folderNames = StringUtils.split(folderPath, ApiDocConstants.FOLDER_PATH_SEPARATOR);
         String[] folderCodes = StringUtils.isNotBlank(folderCodePath) ? StringUtils.split(folderCodePath, ApiDocConstants.FOLDER_PATH_SEPARATOR) : null;
         if (folderNames == null || folderNames.length == 0) {
@@ -524,5 +531,61 @@ public class ApiDocParseUtils {
         } else if (StringUtils.isBlank(newDoc.getDocKey())) {
             newDoc.setDocKey(SimpleModelUtils.uuid());
         }
+    }
+
+    /**
+     * 计算文件夹在树形结构中的全局排序键（保证父子层级与兄弟顺序严格保序）
+     *
+     * @param folder 当前文件夹
+     * @param folderMap 文件夹 ID -> ApiFolder 映射表
+     * @return 排序键字符串
+     */
+    public static String getFolderSortKey(ApiFolder folder, Map<Integer, ApiFolder> folderMap) {
+        if (folder == null) {
+            return "";
+        }
+        String parentKey = "";
+        if (folder.getParentId() != null && folder.getParentId() != 0 && folderMap != null) {
+            parentKey = getFolderSortKey(folderMap.get(folder.getParentId()), folderMap) + "-1-";
+        }
+        return parentKey + String.format("%06d_%d", folder.getSortId() == null ? 0 : folder.getSortId(), folder.getId() == null ? 0 : folder.getId());
+    }
+
+    /**
+     * 计算文档在树形结构中的全局排序键（保证属于同一文件夹的文档连续，且子目录在其后）
+     *
+     * @param doc 接口或 Markdown 文档
+     * @param folderMap 文件夹 ID -> ApiFolder 映射表
+     * @return 排序键字符串
+     */
+    public static String getDocSortKey(ApiDoc doc, Map<Integer, ApiFolder> folderMap) {
+        if (doc == null) {
+            return "";
+        }
+        ApiFolder folder = (doc.getFolderId() != null && folderMap != null) ? folderMap.get(doc.getFolderId()) : null;
+        String folderSortKey = getFolderSortKey(folder, folderMap);
+        return folderSortKey + "-0-" + String.format("%06d_%d", doc.getSortId() == null ? 0 : doc.getSortId(), doc.getId() == null ? 0 : doc.getId());
+    }
+
+    /**
+     * 获取从根目录到当前文件夹的层级展示名称列表（自动忽略 rootFlag 根节点）
+     *
+     * @param folderId 当前文件夹 ID
+     * @param folderMap 文件夹 ID -> ApiFolder 映射表
+     * @return 文件夹展示名称列表
+     */
+    public static List<String> getFolderNames(Integer folderId, Map<Integer, ApiFolder> folderMap) {
+        if (folderId == null || folderMap == null) {
+            return Collections.emptyList();
+        }
+        ApiFolder folder = folderMap.get(folderId);
+        if (folder == null || Boolean.TRUE.equals(folder.getRootFlag())) {
+            return Collections.emptyList();
+        }
+        List<String> path = new ArrayList<>(getFolderNames(folder.getParentId(), folderMap));
+        if (StringUtils.isNotBlank(folder.getFolderName())) {
+            path.add(folder.getFolderName());
+        }
+        return path;
     }
 }

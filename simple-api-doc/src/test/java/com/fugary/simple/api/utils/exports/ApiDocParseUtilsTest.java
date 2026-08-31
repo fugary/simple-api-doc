@@ -124,6 +124,75 @@ class ApiDocParseUtilsTest {
         assertThat(pair.getLeft().getFolderPath()).isEqualTo("user-api");
     }
 
+    @Test
+    void testGetFolderSortKeyAndDocSortKeyOrder() {
+        com.fugary.simple.api.entity.api.ApiFolder root1 = new com.fugary.simple.api.entity.api.ApiFolder();
+        root1.setId(1);
+        root1.setSortId(10);
+
+        com.fugary.simple.api.entity.api.ApiFolder sub1 = new com.fugary.simple.api.entity.api.ApiFolder();
+        sub1.setId(2);
+        sub1.setParentId(1);
+        sub1.setSortId(10);
+
+        com.fugary.simple.api.entity.api.ApiFolder root2 = new com.fugary.simple.api.entity.api.ApiFolder();
+        root2.setId(3);
+        root2.setSortId(20);
+
+        Map<Integer, com.fugary.simple.api.entity.api.ApiFolder> folderMap = Map.of(1, root1, 2, sub1, 3, root2);
+
+        com.fugary.simple.api.entity.api.ApiDoc docInRoot1 = new com.fugary.simple.api.entity.api.ApiDoc();
+        docInRoot1.setId(100);
+        docInRoot1.setFolderId(1);
+        docInRoot1.setSortId(10);
+
+        com.fugary.simple.api.entity.api.ApiDoc doc1InSub1 = new com.fugary.simple.api.entity.api.ApiDoc();
+        doc1InSub1.setId(101);
+        doc1InSub1.setFolderId(2);
+        doc1InSub1.setSortId(10);
+
+        com.fugary.simple.api.entity.api.ApiDoc doc2InSub1 = new com.fugary.simple.api.entity.api.ApiDoc();
+        doc2InSub1.setId(102);
+        doc2InSub1.setFolderId(2);
+        doc2InSub1.setSortId(20);
+
+        com.fugary.simple.api.entity.api.ApiDoc docInRoot2 = new com.fugary.simple.api.entity.api.ApiDoc();
+        docInRoot2.setId(103);
+        docInRoot2.setFolderId(3);
+        docInRoot2.setSortId(10);
+
+        java.util.List<com.fugary.simple.api.entity.api.ApiDoc> docs = new java.util.ArrayList<>(
+                java.util.List.of(doc2InSub1, docInRoot2, doc1InSub1, docInRoot1));
+
+        docs.sort(java.util.Comparator.comparing(d -> ApiDocParseUtils.getDocSortKey(d, folderMap)));
+
+        assertThat(docs).containsExactly(docInRoot1, doc1InSub1, doc2InSub1, docInRoot2);
+    }
+
+    @Test
+    void testGetFolderNames() {
+        com.fugary.simple.api.entity.api.ApiFolder root = new com.fugary.simple.api.entity.api.ApiFolder();
+        root.setId(1);
+        root.setFolderName("ProjectRoot");
+        root.setRootFlag(true);
+
+        com.fugary.simple.api.entity.api.ApiFolder system = new com.fugary.simple.api.entity.api.ApiFolder();
+        system.setId(2);
+        system.setParentId(1);
+        system.setFolderName("系统管理");
+
+        com.fugary.simple.api.entity.api.ApiFolder user = new com.fugary.simple.api.entity.api.ApiFolder();
+        user.setId(3);
+        user.setParentId(2);
+        user.setFolderName("用户中心");
+
+        Map<Integer, com.fugary.simple.api.entity.api.ApiFolder> folderMap = Map.of(1, root, 2, system, 3, user);
+
+        assertThat(ApiDocParseUtils.getFolderNames(3, folderMap)).containsExactly("系统管理", "用户中心");
+        assertThat(ApiDocParseUtils.getFolderNames(1, folderMap)).isEmpty();
+        assertThat(ApiDocParseUtils.getFolderNames(null, folderMap)).isEmpty();
+    }
+
     private <T extends ApiProjectInfoDetail> T detail(Class<T> type) {
         try {
             T detail = type.getDeclaredConstructor().newInstance();
