@@ -17,6 +17,15 @@ const MarkdownWindow = () => import('@/views/components/utils/MarkdownWindow.vue
 const SimpleJsonDataWindow = () => import('@/views/components/utils/SimpleJsonDataWindow.vue')
 const ApiGenerateSampleWindow = () => import('@/views/components/api/doc/comp/ApiGenerateSampleWindow.vue')
 const ApiCompareWindow = () => import('@/views/components/utils/ApiCompareWindow.vue')
+const ApiTaskLogsWindow = () => import('@/views/components/api/project/ApiTaskLogsWindow.vue')
+
+export const showTaskLogsWindow = async (task) => {
+  const dynamicHelper = new DynamicHelper()
+  const vnode = await dynamicHelper.createAndRender(ApiTaskLogsWindow, {
+    onClosed: () => dynamicHelper.destroy()
+  })
+  vnode.component?.exposed?.showTaskLogs(task)
+}
 
 export const showGenerateSampleWindow = async (schemaBody, type, preferenceId) => {
   const dynamicHelper = new DynamicHelper()

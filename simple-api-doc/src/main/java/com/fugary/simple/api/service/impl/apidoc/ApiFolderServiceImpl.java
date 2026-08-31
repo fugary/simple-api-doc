@@ -11,6 +11,7 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
+import com.fugary.simple.api.web.vo.imports.ImportStatisticsVo;
 import com.fugary.simple.api.web.vo.project.ApiDocConfigSortsVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiDocSortVo;
@@ -55,6 +56,11 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
 
     @Override
     public int saveApiFolders(ApiProject project, ApiProjectInfo projectInfo, ApiFolder mountFolder, List<ExportApiFolderVo> apiFolders, List<ExportApiDocVo> extraDocs) {
+        return saveApiFolders(project, projectInfo, mountFolder, apiFolders, extraDocs, null);
+    }
+
+    @Override
+    public int saveApiFolders(ApiProject project, ApiProjectInfo projectInfo, ApiFolder mountFolder, List<ExportApiFolderVo> apiFolders, List<ExportApiDocVo> extraDocs, ImportStatisticsVo stats) {
         mountFolder = getOrCreateMountFolder(project, mountFolder);
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = calcFolderMap(loadApiFolders(project.getId()));
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
@@ -62,8 +68,8 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         ApiFolder finalMountFolder = mountFolder; // 挂载目录
         List<ApiFolder> newFolders = new ArrayList<>();
         List<ApiDoc> apiDocs = new ArrayList<>();
-        apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, finalMountFolder, folder, folderMapPair, existsDocMap, newFolders, apiDocs));
-        this.saveApiDocs(projectInfo, mountFolder, null, extraDocs, existsDocMap, apiDocs);
+        apiFolders.forEach(folder -> saveApiFolderVo(projectInfo, finalMountFolder, finalMountFolder, folder, folderMapPair, existsDocMap, newFolders, apiDocs, stats));
+        this.saveApiDocs(projectInfo, mountFolder, null, extraDocs, existsDocMap, apiDocs, stats);
         removeFoldersWithoutDocs(folderMapPair, newFolders, apiDocs);
         return apiFolders.size();
     }
@@ -115,6 +121,14 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                                    Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
                                    Map<String, Pair<String, ApiDoc>> existsDocMap,
                                    List<ApiFolder> newFolders, List<ApiDoc> apiDocs) {
+        saveApiFolderVo(projectInfo, rootFolder, parentFolder, folder, folderMapPair, existsDocMap, newFolders, apiDocs, null);
+    }
+
+    protected void saveApiFolderVo(ApiProjectInfo projectInfo, ApiFolder rootFolder, ApiFolder parentFolder, ExportApiFolderVo folder,
+                                   Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair,
+                                   Map<String, Pair<String, ApiDoc>> existsDocMap,
+                                   List<ApiFolder> newFolders, List<ApiDoc> apiDocs,
+                                   ImportStatisticsVo stats) {
         Map<String, ApiFolder> pathFolderMap = folderMapPair.getKey();
         Map<Integer, String> folderPathMap = folderMapPair.getValue();
         String folderPath = folderPathMap.get(rootFolder.getId()) + "/" + folder.getFolderPath();
@@ -130,6 +144,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             } else {
                 save(SimpleModelUtils.addAuditInfo(folder));
                 newFolders.add(folder);
+                if (stats != null) {
+                    stats.addFolderAdded();
+                }
             }
             existsFolder = folder;
         } else {
@@ -146,10 +163,10 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         }
         pathFolderMap.put(folderPath, folder);
         folderPathMap.put(folder.getId(), folderPath);
-        saveApiDocs(projectInfo, parentFolder, folder, folder.getDocs(), existsDocMap, apiDocs);
+        saveApiDocs(projectInfo, parentFolder, folder, folder.getDocs(), existsDocMap, apiDocs, stats);
         if (!CollectionUtils.isEmpty(folder.getFolders())) { // 子目录
             for (ExportApiFolderVo subFolder : folder.getFolders()) {
-                saveApiFolderVo(projectInfo, rootFolder, existsFolder, subFolder, folderMapPair, existsDocMap, newFolders, apiDocs);
+                saveApiFolderVo(projectInfo, rootFolder, existsFolder, subFolder, folderMapPair, existsDocMap, newFolders, apiDocs, stats);
             }
         }
     }
@@ -167,6 +184,24 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
     protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder parentFolder,
                                ExportApiFolderVo folder, List<ExportApiDocVo> docs,
                                Map<String, Pair<String, ApiDoc>> existsDocMap, List<ApiDoc> apiDocs) {
+        saveApiDocs(projectInfo, parentFolder, folder, docs, existsDocMap, apiDocs, null);
+    }
+
+    /**
+     * 保存doc信息（带统计）
+     *
+     * @param projectInfo 项目基本信息
+     * @param parentFolder   挂载目录
+     * @param folder        父级目录
+     * @param docs          文档列表
+     * @param existsDocMap  已保存文档map
+     * @param apiDocs  保存的apiDocs信息
+     * @param stats  变更统计
+     */
+    protected void saveApiDocs(ApiProjectInfo projectInfo, ApiFolder parentFolder,
+                               ExportApiFolderVo folder, List<ExportApiDocVo> docs,
+                               Map<String, Pair<String, ApiDoc>> existsDocMap, List<ApiDoc> apiDocs,
+                               ImportStatisticsVo stats) {
         if (!CollectionUtils.isEmpty(docs)) {
             Integer projectId = parentFolder.getProjectId();
             Integer folderId = parentFolder.getId();
@@ -202,8 +237,22 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                 }
                 if (!locked) {
                     boolean schemaChanged = ApiDocParseUtils.processExistsSchemas(apiDocVo, existsDocDetail);
+                    boolean isNew = (existsDoc == null);
+                    boolean isSame = existsDoc != null && SimpleModelUtils.isSameData(SimpleModelUtils.copy(apiDocVo, ApiDoc.class), existsDoc, "sortId");
+                    boolean isChanged = !isSame || schemaChanged;
                     apiDocService.saveApiDoc(SimpleModelUtils.addAuditInfo(apiDocVo), existsDoc, schemaChanged);
                     saveApiDocSchemas(apiDocVo);
+                    if (stats != null) {
+                        if (isNew) {
+                            stats.addDocAdded();
+                        } else if (isChanged) {
+                            stats.addDocUpdated();
+                        } else {
+                            stats.addDocUnchanged();
+                        }
+                    }
+                } else if (stats != null) {
+                    stats.addDocLocked();
                 }
                 apiDocs.add(apiDocVo);
             }

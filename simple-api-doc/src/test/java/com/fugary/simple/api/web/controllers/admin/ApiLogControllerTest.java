@@ -55,6 +55,23 @@ class ApiLogControllerTest {
                 .contains("user_name", "t_api_log.project_id", "p.user_name", "group_code in ('team')");
     }
 
+    @Test
+    void searchWithDataIdAndTaskType() {
+        loginAs(1, "admin");
+        when(apiLogService.page(any(Page.class), any())).thenReturn(new Page<>());
+
+        ApiLogQueryVo queryVo = new ApiLogQueryVo();
+        queryVo.setDataId("100");
+        queryVo.setTaskType("auto");
+        apiLogController.search(queryVo);
+
+        ArgumentCaptor<QueryWrapper> queryCaptor = ArgumentCaptor.forClass(QueryWrapper.class);
+        verify(apiLogService).page(any(Page.class), queryCaptor.capture());
+        String sqlSegment = queryCaptor.getValue().getCustomSqlSegment();
+        assertThat(sqlSegment)
+                .contains("data_id", "task_type");
+    }
+
     private void loginAs(Integer id, String userName) {
         ApiUserVo loginUser = new ApiUserVo();
         loginUser.setId(id);

@@ -9,6 +9,7 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
@@ -58,6 +59,9 @@ public class ApiProjectTaskController {
     @Autowired
     private SimpleTaskManager simpleTaskManager;
 
+    @Autowired
+    private ApiLogService apiLogService;
+
     @GetMapping
     public SimpleResult<List<ApiProjectTask>> search(@ModelAttribute ProjectQueryVo queryVo) {
         Page<ApiProjectTask> page = SimpleResultUtils.toPage(queryVo);
@@ -92,6 +96,7 @@ public class ApiProjectTaskController {
             taskVo.setProject(projectMap.get(taskVo.getProjectId()));
             return taskVo;
         }).collect(Collectors.toList());
+        SimpleTaskUtils.attachProjectTaskLastLogs(apiLogService, apiTasks.stream().map(t -> (ApiProjectTaskVo) t).collect(Collectors.toList()));
         pageResult.setRecords(apiTasks);
         return SimpleResultUtils.createSimpleResult(pageResult);
     }

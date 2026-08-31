@@ -60,6 +60,9 @@ public class DashboardController {
     private ApiProjectTaskService apiProjectTaskService;
 
     @Autowired
+    private ApiLogService apiLogService;
+
+    @Autowired
     private AiCacheMapper aiCacheMapper;
 
     @Autowired
@@ -241,6 +244,7 @@ public class DashboardController {
                 taskVo.setProject(projectMap.get(taskVo.getProjectId()));
                 return taskVo;
             }).collect(Collectors.toList());
+            SimpleTaskUtils.attachProjectTaskLastLogs(apiLogService, taskList);
         }
         return SimpleResultUtils.createSimpleResult(taskList);
     }

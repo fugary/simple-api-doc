@@ -24,6 +24,7 @@ import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
+import com.fugary.simple.api.web.vo.imports.ImportStatisticsVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import com.fugary.simple.api.web.vo.user.ApiGroupVo;
@@ -308,9 +309,11 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         }
         updateById(SimpleModelUtils.addAuditInfo(apiProject));
         apiProjectInfoDetailService.saveApiProjectInfoDetails(apiProject, projectInfo, exportVo.getProjectInfoDetails());
-        apiFolderService.saveApiFolders(apiProject, projectInfo, mountFolder, Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), exportVo.getDocs());
+        ImportStatisticsVo statistics = new ImportStatisticsVo();
+        apiFolderService.saveApiFolders(apiProject, projectInfo, mountFolder, Objects.requireNonNullElseGet(exportVo.getFolders(), ArrayList::new), exportVo.getDocs(), statistics);
         return SimpleResultUtils.createSimpleResult(apiProject)
-                .add("projectInfo", projectInfo);
+                .add("projectInfo", projectInfo)
+                .add("statistics", statistics);
     }
 
     @Override

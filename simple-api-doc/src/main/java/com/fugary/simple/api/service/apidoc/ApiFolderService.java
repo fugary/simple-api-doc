@@ -6,6 +6,7 @@ import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
+import com.fugary.simple.api.web.vo.imports.ImportStatisticsVo;
 import com.fugary.simple.api.web.vo.project.ApiDocConfigSortsVo;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -38,6 +39,19 @@ public interface ApiFolderService extends IService<ApiFolder> {
      * @return
      */
     int saveApiFolders(ApiProject project, ApiProjectInfo projectInfo, ApiFolder mountFolder, List<ExportApiFolderVo> apiFolders, List<ExportApiDocVo> extraDocs);
+
+    /**
+     * 保存数据（带统计）
+     *
+     * @param project
+     * @param projectInfo
+     * @param mountFolder
+     * @param apiFolders
+     * @param extraDocs
+     * @param statisticsVo
+     * @return
+     */
+    int saveApiFolders(ApiProject project, ApiProjectInfo projectInfo, ApiFolder mountFolder, List<ExportApiFolderVo> apiFolders, List<ExportApiDocVo> extraDocs, ImportStatisticsVo statisticsVo);
 
     /**
      * 获取根目录

@@ -1,9 +1,12 @@
 package com.fugary.simple.api.utils.task;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.config.SimpleApiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
+import com.fugary.simple.api.entity.api.ApiLog;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.ProjectAutoImportTask;
 import com.fugary.simple.api.tasks.SimpleAutoTask;
@@ -15,6 +18,7 @@ import com.fugary.simple.api.web.vo.task.SimpleTaskVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.scheduling.config.CronTask;
@@ -22,8 +26,10 @@ import org.springframework.scheduling.config.FixedRateTask;
 import org.springframework.scheduling.config.ScheduledTask;
 
 import java.lang.reflect.Field;
-import java.util.Date;
+import java.util.*;
 import java.util.concurrent.ScheduledFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Create date 2024/9/29<br>
@@ -42,6 +48,7 @@ public class SimpleTaskUtils {
      */
     public static void executeTask(SimpleTaskWrapper<?> projectTaskWrapper, Runnable runnable) {
         long start = System.currentTimeMillis();
+        boolean error = false;
         try {
             log.info("开始任务:{}", projectTaskWrapper.getTaskName());
             projectTaskWrapper.setRunningStatus(ApiDocConstants.TASK_STATUS_RUNNING);
@@ -50,9 +57,12 @@ public class SimpleTaskUtils {
             log.info("结束任务:{}，耗时：{}", projectTaskWrapper.getTaskName(), System.currentTimeMillis() - start);
         } catch (Exception e) {
             log.error("任务执行异常", e);
+            error = true;
             projectTaskWrapper.setRunningStatus(ApiDocConstants.TASK_STATUS_ERROR);
         } finally {
-            projectTaskWrapper.setRunningStatus(ApiDocConstants.TASK_STATUS_DONE);
+            if (!error) {
+                projectTaskWrapper.setRunningStatus(ApiDocConstants.TASK_STATUS_DONE);
+            }
         }
     }
 
@@ -174,5 +184,63 @@ public class SimpleTaskUtils {
             taskVo.setScheduleStatus(scheduleStatus);
         }
         return taskVo;
+    }
+
+    /**
+     * 加载任务最新执行日志映射
+     *
+     * @param apiLogService
+     * @param taskDataIds
+     * @return
+     */
+    public static Map<String, ApiLog> loadLatestLogMap(ApiLogService apiLogService, List<String> taskDataIds) {
+        if (CollectionUtils.isEmpty(taskDataIds) || apiLogService == null) {
+            return Collections.emptyMap();
+        }
+        String logName = ProjectAutoImportInvoker.class.getSimpleName() + "#importProject";
+        String inValues = taskDataIds.stream().map(id -> "'" + id + "'").collect(Collectors.joining(","));
+        return apiLogService.list(Wrappers.<ApiLog>query()
+                .inSql("id", "SELECT MAX(id) FROM t_api_log WHERE log_name = '" + logName + "' AND data_id IN (" + inValues + ") GROUP BY data_id"))
+                .stream().collect(Collectors.toMap(ApiLog::getDataId, Function.identity(), (existing, replacement) -> existing));
+    }
+
+    /**
+     * 为 ApiProjectTaskVo 列表批量关联最新执行日志
+     *
+     * @param apiLogService
+     * @param taskList
+     */
+    public static void attachProjectTaskLastLogs(ApiLogService apiLogService, List<ApiProjectTaskVo> taskList) {
+        if (CollectionUtils.isEmpty(taskList)) {
+            return;
+        }
+        List<String> taskDataIds = taskList.stream()
+                .map(task -> String.valueOf(task.getId()))
+                .collect(Collectors.toList());
+        Map<String, ApiLog> latestLogMap = loadLatestLogMap(apiLogService, taskDataIds);
+        taskList.forEach(taskVo -> taskVo.setLastLog(latestLogMap.get(String.valueOf(taskVo.getId()))));
+    }
+
+    /**
+     * 为 SimpleTaskVo 列表批量关联最新执行日志
+     *
+     * @param apiLogService
+     * @param taskList
+     */
+    public static void attachSimpleTaskLastLogs(ApiLogService apiLogService, List<SimpleTaskVo> taskList) {
+        if (CollectionUtils.isEmpty(taskList)) {
+            return;
+        }
+        List<String> taskDataIds = taskList.stream()
+                .map(SimpleTaskVo::getTid)
+                .filter(Objects::nonNull)
+                .map(String::valueOf)
+                .collect(Collectors.toList());
+        Map<String, ApiLog> latestLogMap = loadLatestLogMap(apiLogService, taskDataIds);
+        taskList.forEach(taskVo -> {
+            if (taskVo.getTid() != null) {
+                taskVo.setLastLog(latestLogMap.get(String.valueOf(taskVo.getTid())));
+            }
+        });
     }
 }

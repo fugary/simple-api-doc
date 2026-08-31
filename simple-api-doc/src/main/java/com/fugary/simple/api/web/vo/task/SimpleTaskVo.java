@@ -1,5 +1,6 @@
 package com.fugary.simple.api.web.vo.task;
 
+import com.fugary.simple.api.entity.api.ApiLog;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -26,4 +27,5 @@ public class SimpleTaskVo implements Serializable {
     private String cron;
     private Date lastExecDate;
     private String description;
+    private ApiLog lastLog;
 }

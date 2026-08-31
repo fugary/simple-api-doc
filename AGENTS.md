@@ -67,6 +67,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] 手动导入转定时任务与任务弹窗独立立即导入：在手动导入 URL 模式下必填项完整时动态呈现【创建定时导入】按钮并自动带入全部参数；在定时导入任务新增/编辑弹窗中解耦【确认】（保存）与【立即导入】（即时导入），支持直接使用当前参数发起拉取并提示结果。
 - [x] OpenAPI 导出与导入 folderCode 保留与扩展机制：在 `OpenApiApiDocExporterImpl` 中使用 `x-simple-folder` / `x-apifox-folder` 输出多级展示名称路径，顶层 Tag 保持原生标准无冗余 `x-*` 扩展，仅在 `folderCode ≠ folderName` 时按需在 Operation 输出 `x-simple-folder-code`；在 `SwaggerImporterImpl` 与 `ApiDocParseUtils` 中实现多级与单级目录的分层无损还原。
 - [x] OpenAPI 规范原生保序导出与导入：严格遵循 OpenAPI 规范标准 `tags` 数组保序特性，在 `OpenApiApiDocExporterImpl` 中按目录树先序遍历生成 `tags` 列表并聚合同一 URL 多方法，在 `SwaggerImporterImpl` 中预先按 `tags` 顺序构建目录并分配递增 `sortId`，在零 `x-*` 扩展依赖下实现目录与接口 100% 保序还原。
+- [x] 定时导入任务日志追踪与变更统计（基于日志表零侵入与嵌入式弹窗设计）：保持任务表纯净配置语义，利用 `t_api_log` 全面记录每次执行状态、耗时、异常堆栈与新增/更新/未变/锁定精准变更统计（`ImportStatisticsVo`）；任务列表批量关联最新执行日志，状态区域去除冗余零值并支持点击唤起嵌入式宽屏日志弹窗（`ApiTaskLogsWindow`），无需跳转且操作列无需冗余按钮。
 
 ---
 *Last Updated: 2026-08-31*

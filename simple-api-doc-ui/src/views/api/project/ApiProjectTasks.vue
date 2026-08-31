@@ -25,10 +25,10 @@ import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
 import { cloneDeep, isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
-import { ElLink, ElTag, ElText } from 'element-plus'
+import { ElLink, ElTag, ElText, ElTooltip } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { inProjectCheckAccess, useSelectProjectGroups, renderProjectGroupLabel } from '@/api/ApiProjectGroupApi'
-import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
+import { addOrEditFolderWindow, showTaskLogsWindow } from '@/utils/DynamicUtils'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -148,6 +148,45 @@ const columns = [{
   property: 'execDate',
   dateFormat: 'YYYY-MM-DD HH:mm:ss',
   minWidth: '120px'
+}, {
+  labelKey: 'api.label.lastExecStatus',
+  minWidth: '120px',
+  formatter (data) {
+    const lastLog = data.lastLog
+    if (!lastLog) {
+      return <ElText type="info">-</ElText>
+    }
+    const isSuccess = lastLog.logResult === 'SUCCESS'
+    const tagType = isSuccess ? 'success' : 'danger'
+    const formatCostTime = (ms) => {
+      if (ms == null) return ''
+      return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`
+    }
+    const timeStr = formatCostTime(lastLog.logTime)
+    const tooltipText = lastLog.logMessage || $i18nBundle('api.msg.clickToViewTaskLogs')
+
+    return (
+      <div
+        class="flex pointer"
+        style="line-height: 1.3; cursor: pointer; display: inline-flex;"
+        onClick={() => showTaskLogsWindow(data)}
+      >
+        <ElTooltip
+          content={tooltipText}
+          placement="top"
+          showAfter={200}
+          popper-style="max-width: 450px; word-break: break-all;"
+        >
+          <div class="flex items-center gap-1">
+            <ElTag size="small" type={tagType}>
+              {lastLog.logResult}
+            </ElTag>
+            {timeStr && <ElText size="small" type="info">({timeStr})</ElText>}
+          </div>
+        </ElTooltip>
+      </div>
+    )
+  }
 }]
 
 const buttons = computed(() => {
@@ -160,7 +199,7 @@ const buttons = computed(() => {
         .then(() => triggerTask(item.id, { loading: true, timeout: 60000 })
           .then((data) => {
             if (data.success) {
-              $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+              $coreAlert(data.message || $i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
               loadProjectTasks()
             }
           }))
@@ -626,7 +665,7 @@ const isWritable = computed(() => {
         :data="tableData"
         :columns="columns"
         :buttons="buttons"
-        :buttons-column-attrs="{minWidth:'200px'}"
+        :buttons-column-attrs="{minWidth:'240px'}"
         buttons-slot="buttons"
         :loading="loading"
         @page-size-change="loadProjectTasks()"

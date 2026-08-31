@@ -5,6 +5,7 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectTask;
+import com.fugary.simple.api.service.apidoc.ApiLogService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
@@ -49,6 +50,9 @@ public class SimpleTaskController {
     @Autowired
     private ApiProjectTaskService apiProjectTaskService;
 
+    @Autowired
+    private ApiLogService apiLogService;
+
     @GetMapping
     public SimpleResult<List<SimpleTaskVo>> list(@ModelAttribute ProjectQueryVo queryVo) {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());
@@ -69,6 +73,7 @@ public class SimpleTaskController {
                     return result;
                 })
                 .collect(Collectors.toList());
+        SimpleTaskUtils.attachSimpleTaskLastLogs(apiLogService, taskList);
         return SimpleResultUtils.createSimpleResult(taskList);
     }
 

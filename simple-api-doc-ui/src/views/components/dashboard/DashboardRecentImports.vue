@@ -128,6 +128,14 @@ const getProjectName = (item) => {
             >
               {{ getProjectName(item) }}
             </el-tag>
+            <el-tag
+              v-if="item.lastLog"
+              size="small"
+              :type="item.lastLog.logResult === 'SUCCESS' ? 'success' : 'danger'"
+              class="dashboard-item-tag"
+            >
+              {{ item.lastLog.logResult }}
+            </el-tag>
           </div>
           <div class="dashboard-item-sub">
             <span class="dashboard-item-meta">

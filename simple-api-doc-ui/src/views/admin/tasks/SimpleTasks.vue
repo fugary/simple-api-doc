@@ -3,12 +3,13 @@ import { computed, onActivated, onMounted } from 'vue'
 import { $coreAlert, $coreConfirm, $goto, isAdminUser, checkShowColumn } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import SimpleTaskApi, { removeAndDisable, triggerSimpleTask } from '@/api/SimpleTaskApi'
-import { $i18nKey } from '@/messages'
+import { $i18nBundle, $i18nKey } from '@/messages'
 import { TASK_STATUS_MAPPING } from '@/consts/ApiConstants'
-import { ElTag } from 'element-plus'
+import { ElTag, ElText, ElTooltip } from 'element-plus'
 import dayjs from 'dayjs'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { useRoute } from 'vue-router'
+import { showTaskLogsWindow } from '@/utils/DynamicUtils'
 
 const route = useRoute()
 
@@ -69,6 +70,45 @@ const columns = [{
   property: 'lastExecDate',
   dateFormat: 'YYYY-MM-DD HH:mm:ss',
   minWidth: '120px'
+}, {
+  labelKey: 'api.label.lastExecStatus',
+  minWidth: '120px',
+  formatter (data) {
+    const lastLog = data.lastLog
+    if (!lastLog) {
+      return <ElText type="info">-</ElText>
+    }
+    const isSuccess = lastLog.logResult === 'SUCCESS'
+    const tagType = isSuccess ? 'success' : 'danger'
+    const formatCostTime = (ms) => {
+      if (ms == null) return ''
+      return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`
+    }
+    const timeStr = formatCostTime(lastLog.logTime)
+    const tooltipText = lastLog.logMessage || $i18nBundle('api.msg.clickToViewTaskLogs')
+
+    return (
+      <div
+        class="flex pointer"
+        style="line-height: 1.3; cursor: pointer; display: inline-flex;"
+        onClick={() => showTaskLogsWindow(data)}
+      >
+        <ElTooltip
+          content={tooltipText}
+          placement="top"
+          showAfter={200}
+          popper-style="max-width: 450px; word-break: break-all;"
+        >
+          <div class="flex items-center gap-1">
+            <ElTag size="small" type={tagType}>
+              {lastLog.logResult}
+            </ElTag>
+            {timeStr && <ElText size="small" type="info">({timeStr})</ElText>}
+          </div>
+        </ElTooltip>
+      </div>
+    )
+  }
 }]
 
 const buttons = computed(() => {

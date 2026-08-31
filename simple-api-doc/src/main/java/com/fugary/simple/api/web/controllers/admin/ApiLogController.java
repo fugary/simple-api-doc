@@ -47,6 +47,8 @@ public class ApiLogController {
         }
         QueryWrapper<ApiLog> queryWrapper = Wrappers.<ApiLog>query()
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
+                .eq(StringUtils.isNotBlank(queryVo.getDataId()), "data_id", StringUtils.trimToEmpty(queryVo.getDataId()))
+                .eq(StringUtils.isNotBlank(queryVo.getTaskType()), "task_type", StringUtils.trimToEmpty(queryVo.getTaskType()))
                 .eq(SecurityUtils.isAdmin() && StringUtils.isNotBlank(queryVo.getUserName()), "user_name", queryVo.getUserName())
                 .eq(StringUtils.isNotBlank(queryVo.getLogType()), "log_type", StringUtils.trimToEmpty(queryVo.getLogType()))
                 .eq(StringUtils.isNotBlank(queryVo.getLogResult()), "log_result", StringUtils.trimToEmpty(queryVo.getLogResult()))
