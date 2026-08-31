@@ -153,4 +153,53 @@ public class ApiProjectImportFileTest {
         Assertions.assertEquals("user-api", childFolder.getFolderCode());
         Assertions.assertEquals(1, childFolder.getDocs().size());
     }
+
+    @Test
+    public void testSwaggerImporterTagsOrder() {
+        SwaggerImporterImpl importer = new SwaggerImporterImpl();
+        // paths 中 profile 先于 auth，但 tags 声明中 auth 先于 profile
+        String openapiYaml = "openapi: 3.0.0\n" +
+                "info:\n" +
+                "  title: Sample API\n" +
+                "  version: 1.0.0\n" +
+                "tags:\n" +
+                "  - name: 账号认证\n" +
+                "    description: 认证相关接口\n" +
+                "  - name: Profile\n" +
+                "    description: 个人信息相关\n" +
+                "  - name: TaProduct\n" +
+                "    description: 产品相关\n" +
+                "paths:\n" +
+                "  /api/v3/profile/user:\n" +
+                "    get:\n" +
+                "      summary: Get Profile\n" +
+                "      tags:\n" +
+                "        - Profile\n" +
+                "      responses:\n" +
+                "        '200':\n" +
+                "          description: OK\n" +
+                "  /api/v3/auth/login:\n" +
+                "    post:\n" +
+                "      summary: Login\n" +
+                "      tags:\n" +
+                "        - 账号认证\n" +
+                "      responses:\n" +
+                "        '200':\n" +
+                "          description: OK\n" +
+                "  /api/v3/product/list:\n" +
+                "    get:\n" +
+                "      summary: Product List\n" +
+                "      tags:\n" +
+                "        - TaProduct\n" +
+                "      responses:\n" +
+                "        '200':\n" +
+                "          description: OK\n";
+        ExportApiProjectVo projectVo = importer.doImport(openapiYaml);
+        Assertions.assertNotNull(projectVo);
+        Assertions.assertEquals(3, projectVo.getFolders().size());
+        // 验证顶层目录顺序必须严格遵循 tags 声明顺序: 账号认证 -> Profile -> TaProduct
+        Assertions.assertEquals("账号认证", projectVo.getFolders().get(0).getFolderName());
+        Assertions.assertEquals("Profile", projectVo.getFolders().get(1).getFolderName());
+        Assertions.assertEquals("TaProduct", projectVo.getFolders().get(2).getFolderName());
+    }
 }

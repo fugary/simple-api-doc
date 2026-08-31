@@ -66,6 +66,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] Markdown 文档间相对路径引用与点击跳转：新增 `MarkdownLinkService` 提供规范化相对路径解析与阶梯式文档多策略匹配，在 `MarkdownDocViewer` 中智能拦截正文链接实现平滑切页、左侧目录树自动展开祖先文件夹与节点高亮激活，支持跨文档及本页锚点平滑滚动定位，100% 保持 Markdown 原文相对路径纯洁性。
 - [x] 手动导入转定时任务与任务弹窗独立立即导入：在手动导入 URL 模式下必填项完整时动态呈现【创建定时导入】按钮并自动带入全部参数；在定时导入任务新增/编辑弹窗中解耦【确认】（保存）与【立即导入】（即时导入），支持直接使用当前参数发起拉取并提示结果。
 - [x] OpenAPI 导出与导入 folderCode 保留与扩展机制：在 `OpenApiApiDocExporterImpl` 中使用 `x-simple-folder` / `x-apifox-folder` 输出多级展示名称路径，顶层 Tag 保持原生标准无冗余 `x-*` 扩展，仅在 `folderCode ≠ folderName` 时按需在 Operation 输出 `x-simple-folder-code`；在 `SwaggerImporterImpl` 与 `ApiDocParseUtils` 中实现多级与单级目录的分层无损还原。
+- [x] OpenAPI 规范原生保序导出与导入：严格遵循 OpenAPI 规范标准 `tags` 数组保序特性，在 `OpenApiApiDocExporterImpl` 中按目录树先序遍历生成 `tags` 列表并聚合同一 URL 多方法，在 `SwaggerImporterImpl` 中预先按 `tags` 顺序构建目录并分配递增 `sortId`，在零 `x-*` 扩展依赖下实现目录与接口 100% 保序还原。
 
 ---
 *Last Updated: 2026-08-31*

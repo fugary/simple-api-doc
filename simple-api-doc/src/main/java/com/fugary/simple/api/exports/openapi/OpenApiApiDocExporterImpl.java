@@ -107,6 +107,12 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         processComponentsAndSecuritySchemas(projectInfoDetailVo, openAPI);
         List<ExtendMarkdownFile> markdownFiles = new ArrayList<>();
         Set<Tag> tags = new LinkedHashSet<>();
+        Set<Integer> validFolderIds = docDetailList.stream()
+                .map(ApiDocDetailVo::getFolderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        collectSortedTags(detailVo.getFolders(), validFolderIds, tags);
+
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             ApiFolder apiFolder = folderMap.get(apiDocDetail.getFolderId());
             if (apiFolder != null) { // 文件夹必须存在
@@ -116,11 +122,14 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 String folderNamePath = getFolderPath(fullFolderNamePath);
                 if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) { // 接口处理
                     String urlPath = apiDocDetail.getUrl();
-                    if (!openAPI.getPaths().containsKey(urlPath)) {
-                        openAPI.getPaths().addPathItem(urlPath, calcPathItem(openAPI, folderCodePath, folderNamePath, apiFolder, apiDocDetail));
-                        tags.add(new Tag().name(StringUtils.defaultIfBlank(apiFolder.getFolderName(), apiFolder.getFolderCode()))
-                                .description(apiFolder.getDescription())); // 提取文件夹信息作为Tag
+                    PathItem pathItem = openAPI.getPaths().get(urlPath);
+                    if (pathItem == null) {
+                        pathItem = new PathItem();
+                        openAPI.getPaths().addPathItem(urlPath, pathItem);
                     }
+                    populateOperation(openAPI, pathItem, folderCodePath, folderNamePath, apiFolder, apiDocDetail);
+                    tags.add(new Tag().name(StringUtils.defaultIfBlank(apiFolder.getFolderName(), apiFolder.getFolderCode()))
+                            .description(apiFolder.getDescription())); // 提取文件夹信息作为Tag
                 } else if (ApiDocConstants.DOC_TYPE_MD.equals(apiDocDetail.getDocType())) { // markdown处理
                     if (StringUtils.equals(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info", apiDocDetail.getDocKey())) {
                         openAPI.getInfo().description(apiDocDetail.getDocContent());
@@ -140,12 +149,54 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
             openAPI.addExtension(ApiDocConstants.X_SIMPLE_MARKDOWN_FILES, markdownFiles);
         }
         processServerItems(detailVo, openAPI, exportFilter.getEnvContent());
-        openAPI.setTags(List.copyOf(tags));
+        openAPI.setTags(new ArrayList<>(tags));
         return openAPI;
     }
 
-    private PathItem calcPathItem(OpenAPI openAPI, String folderCodePath, String folderNamePath, ApiFolder apiFolder, ApiDocDetailVo apiDocDetail) {
-        PathItem pathItem = new PathItem();
+    /**
+     * 按文件夹树的层级和 sort_id 顺序先序遍历收集有效 Tag
+     *
+     * @param folders 项目全部文件夹
+     * @param validFolderIds 包含文档的有效文件夹 ID 集合
+     * @param tags 收集的目标 Set
+     */
+    protected void collectSortedTags(List<ApiFolder> folders, Set<Integer> validFolderIds, Set<Tag> tags) {
+        if (CollectionUtils.isEmpty(folders)) {
+            return;
+        }
+        Set<Integer> folderIds = folders.stream().map(ApiFolder::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Integer, List<ApiFolder>> childMap = folders.stream()
+                .filter(f -> f.getParentId() != null)
+                .collect(Collectors.groupingBy(ApiFolder::getParentId));
+        List<ApiFolder> rootFolders = folders.stream()
+                .filter(f -> f.getParentId() == null || f.getParentId() == 0 || !folderIds.contains(f.getParentId()))
+                .sorted(Comparator.comparing(ApiFolder::getSortId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+        for (ApiFolder root : rootFolders) {
+            traverseFolderTags(root, childMap, validFolderIds, tags);
+        }
+    }
+
+    private void traverseFolderTags(ApiFolder current, Map<Integer, List<ApiFolder>> childMap, Set<Integer> validFolderIds, Set<Tag> tags) {
+        String tagName = StringUtils.defaultIfBlank(current.getFolderName(), current.getFolderCode());
+        if (StringUtils.isNotBlank(tagName) && isFolderOrDescendantValid(current, childMap, validFolderIds)) {
+            tags.add(new Tag().name(tagName).description(current.getDescription()));
+        }
+        List<ApiFolder> children = childMap.getOrDefault(current.getId(), Collections.emptyList());
+        children.stream()
+                .sorted(Comparator.comparing(ApiFolder::getSortId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .forEach(child -> traverseFolderTags(child, childMap, validFolderIds, tags));
+    }
+
+    private boolean isFolderOrDescendantValid(ApiFolder folder, Map<Integer, List<ApiFolder>> childMap, Set<Integer> validFolderIds) {
+        if (validFolderIds.contains(folder.getId())) {
+            return true;
+        }
+        List<ApiFolder> children = childMap.getOrDefault(folder.getId(), Collections.emptyList());
+        return children.stream().anyMatch(child -> isFolderOrDescendantValid(child, childMap, validFolderIds));
+    }
+
+    private void populateOperation(OpenAPI openAPI, PathItem pathItem, String folderCodePath, String folderNamePath, ApiFolder apiFolder, ApiDocDetailVo apiDocDetail) {
         Map<String, Consumer<Operation>> pathFunctions = getPathFunctions(pathItem);
         Operation operation = new Operation().addTagsItem(StringUtils.defaultIfBlank(apiFolder.getFolderName(), apiFolder.getFolderCode()))
                 .summary(apiDocDetail.getDocName())
@@ -188,9 +239,11 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         if (!StringUtils.equals(folderCodePath, folderNamePath)) {
             operation.addExtension(ApiDocConstants.X_SIMPLE_FOLDER_CODE, folderCodePath);
         }
-        pathFunctions.get(StringUtils.upperCase(apiDocDetail.getMethod())).accept(operation);
+        Consumer<Operation> function = pathFunctions.get(StringUtils.upperCase(apiDocDetail.getMethod()));
+        if (function != null) {
+            function.accept(operation);
+        }
         calcOperationSecurity(openAPI, apiDocDetail, operation);
-        return pathItem;
     }
 
     /**

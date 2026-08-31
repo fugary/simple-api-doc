@@ -242,6 +242,18 @@ public class SwaggerImporterImpl implements ApiDocImporter {
     protected void processFolders(OpenAPI openAPI, ExportApiProjectVo projectVo,
                                   Map<String, List<Triple<String, PathItem, List<Pair<String, Operation>>>>> pathMap) {
         List<ExportApiFolderVo> folders = projectVo.getFolders();
+        // 优先根据 openAPI.getTags() 预先创建并确定所有目录的顺序与层级
+        if (CollectionUtils.isNotEmpty(openAPI.getTags())) {
+            for (Tag tag : openAPI.getTags()) {
+                if (StringUtils.isNotBlank(tag.getName())) {
+                    Pair<ExportApiFolderVo, ExportApiFolderVo> folderPair = ApiDocParseUtils.calcApiPathFolder(folders, tag.getName());
+                    ExportApiFolderVo folder = folderPair.getLeft();
+                    if (folder != null && StringUtils.isNotBlank(tag.getDescription())) {
+                        folder.setDescription(tag.getDescription());
+                    }
+                }
+            }
+        }
         AtomicInteger sortId = new AtomicInteger(10000);
         pathMap.forEach((path, tripleList) -> {
             for (Triple<String, PathItem, List<Pair<String, Operation>>> triple : tripleList) {
