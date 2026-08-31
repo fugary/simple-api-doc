@@ -89,8 +89,12 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
         boolean sameApiDoc = isSameApiDoc(apiDoc, existsDoc);
         if (!sameApiDoc && existsDoc != null) {
             this.saveByApiDoc(existsDoc); // 保存历史
+            apiDoc.setVersion(existsDoc.getVersion());
         }
         if (!sameApiDoc || schemaChanged) {
+            if (apiDoc.getVersion() == null) {
+                apiDoc.setVersion(1);
+            }
             return this.saveOrUpdate(apiDoc);
         }
         return true;
@@ -98,9 +102,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
 
     protected boolean isSameApiDoc(ApiDoc apiDoc, ApiDoc existsDoc) {
         ApiDoc newDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
-        return EqualsBuilder.reflectionEquals(newDoc, existsDoc, "version", "sortId",
-                ApiDocConstants.CREATOR_KEY, ApiDocConstants.CREATE_DATE_KEY,
-                ApiDocConstants.MODIFIER_KEY, ApiDocConstants.MODIFY_DATE_KEY);
+        return SimpleModelUtils.isSameData(newDoc, existsDoc, "sortId");
     }
 
     @Override

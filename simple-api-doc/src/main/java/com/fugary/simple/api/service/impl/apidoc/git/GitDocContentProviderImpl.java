@@ -38,6 +38,15 @@ import java.util.*;
 @Service
 public class GitDocContentProviderImpl implements GitDocContentProvider {
 
+    public static final String GITHUB_API_BASE_URL = "https://api.github.com";
+    public static final String GITHUB_RAW_BASE_URL = "https://raw.githubusercontent.com";
+    public static final String GITHUB_RAW_MEDIA_TYPE = "application/vnd.github.raw";
+
+    public static final String GITEE_API_BASE_URL = "https://gitee.com/api/v5";
+    public static final String GITEE_RAW_BASE_URL = "https://gitee.com";
+
+    public static final String GITLAB_API_V4_PREFIX = "/api/v4/projects/";
+
     @Autowired(required = false)
     private DocAssetStorageService docAssetStorageService;
 
@@ -77,7 +86,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
 
         String encodedProject = URLEncoder.encode(projectPath, StandardCharsets.UTF_8);
         StringBuilder treeUrlBuilder = new StringBuilder(serverUrl)
-                .append("/api/v4/projects/")
+                .append(GITLAB_API_V4_PREFIX)
                 .append(encodedProject)
                 .append("/repository/tree?recursive=true&per_page=100&ref=")
                 .append(URLEncoder.encode(branch, StandardCharsets.UTF_8));
@@ -109,7 +118,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
                 if (isMarkdownFile(filePath)) {
                     markdownFilePaths.add(filePath);
                 } else if (docAssetStorageService != null && docAssetStorageService.isImageFile(filePath)) {
-                    String rawImageUrl = serverUrl + "/api/v4/projects/" + encodedProject
+                    String rawImageUrl = serverUrl + GITLAB_API_V4_PREFIX + encodedProject
                             + "/repository/files/" + URLEncoder.encode(filePath, StandardCharsets.UTF_8)
                             + "/raw?ref=" + URLEncoder.encode(branch, StandardCharsets.UTF_8);
                     SimpleResult<byte[]> imageResult = sendGetRequestBytes(rawImageUrl, source, repoInfo);
@@ -129,7 +138,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
         // 2. 抓取 Markdown 文件并替换相对图片链接
         List<Map<String, String>> docFiles = new ArrayList<>();
         for (String filePath : markdownFilePaths) {
-            String rawFileUrl = serverUrl + "/api/v4/projects/" + encodedProject
+            String rawFileUrl = serverUrl + GITLAB_API_V4_PREFIX + encodedProject
                     + "/repository/files/" + URLEncoder.encode(filePath, StandardCharsets.UTF_8)
                     + "/raw?ref=" + URLEncoder.encode(branch, StandardCharsets.UTF_8);
 
@@ -166,7 +175,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
         String subPath = repoInfo.getSubPath();
         String projectCode = resolveProjectCode(repoInfo, source);
 
-        String treeUrl = "https://api.github.com/repos/" + owner + "/" + repo + "/git/trees/" + branch + "?recursive=1";
+        String treeUrl = GITHUB_API_BASE_URL + "/repos/" + owner + "/" + repo + "/git/trees/" + branch + "?recursive=1";
         log.info("GitHub 获取目录树: url={}", treeUrl);
 
         SimpleResult<String> treeResult = sendGetRequest(treeUrl, source, repoInfo);
@@ -197,8 +206,13 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
                     if (isMarkdownFile(filePath)) {
                         markdownFilePaths.add(filePath);
                     } else if (docAssetStorageService != null && docAssetStorageService.isImageFile(filePath)) {
-                        String rawImageUrl = "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/" + filePath;
+                        String rawImageUrl = GITHUB_RAW_BASE_URL + "/" + owner + "/" + repo + "/" + branch + "/" + filePath;
                         SimpleResult<byte[]> imageResult = sendGetRequestBytes(rawImageUrl, source, repoInfo);
+                        if (!imageResult.isSuccess()) {
+                            // 降级尝试 GitHub Contents API
+                            String apiFileUrl = GITHUB_API_BASE_URL + "/repos/" + owner + "/" + repo + "/contents/" + filePath + "?ref=" + branch;
+                            imageResult = sendGetRequestBytes(apiFileUrl, GITHUB_RAW_MEDIA_TYPE, source, repoInfo);
+                        }
                         if (imageResult.isSuccess() && imageResult.getResultData() != null) {
                             String localUrl = docAssetStorageService.saveImage(imageResult.getResultData(), filePath, projectCode);
                             if (StringUtils.isNotBlank(localUrl)) {
@@ -216,8 +230,13 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
         // 2. 抓取 Markdown 并替换图片链接
         List<Map<String, String>> docFiles = new ArrayList<>();
         for (String filePath : markdownFilePaths) {
-            String rawFileUrl = "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/" + filePath;
+            String rawFileUrl = GITHUB_RAW_BASE_URL + "/" + owner + "/" + repo + "/" + branch + "/" + filePath;
             SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
+            if (!fileResult.isSuccess()) {
+                // 降级尝试 GitHub Contents API 获取 Raw 文本
+                String apiFileUrl = GITHUB_API_BASE_URL + "/repos/" + owner + "/" + repo + "/contents/" + filePath + "?ref=" + branch;
+                fileResult = sendGetRequest(apiFileUrl, GITHUB_RAW_MEDIA_TYPE, source, repoInfo);
+            }
             if (fileResult.isSuccess()) {
                 String relativePath = stripSubPathPrefix(filePath, subPath);
                 String content = fileResult.getResultData();
@@ -229,7 +248,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
                 fileMap.put("content", content);
                 docFiles.add(fileMap);
             } else {
-                log.warn("GitHub 拉取单个文件失败: path={}, url={}", filePath, rawFileUrl);
+                log.warn("GitHub 拉取单个文件失败: path={}, url={}, error={}", filePath, rawFileUrl, fileResult.getMessage());
             }
         }
 
@@ -250,7 +269,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
         String subPath = repoInfo.getSubPath();
         String projectCode = resolveProjectCode(repoInfo, source);
 
-        String treeUrl = "https://gitee.com/api/v5/repos/" + owner + "/" + repo + "/git/trees/" + branch + "?recursive=1";
+        String treeUrl = GITEE_API_BASE_URL + "/repos/" + owner + "/" + repo + "/git/trees/" + branch + "?recursive=1";
         log.info("Gitee 获取目录树: url={}", treeUrl);
 
         SimpleResult<String> treeResult = sendGetRequest(treeUrl, source, repoInfo);
@@ -276,7 +295,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
                     if (isMarkdownFile(filePath)) {
                         markdownFilePaths.add(filePath);
                     } else if (docAssetStorageService != null && docAssetStorageService.isImageFile(filePath)) {
-                        String rawImageUrl = "https://gitee.com/" + owner + "/" + repo + "/raw/" + branch + "/" + filePath;
+                        String rawImageUrl = GITEE_RAW_BASE_URL + "/" + owner + "/" + repo + "/raw/" + branch + "/" + filePath;
                         SimpleResult<byte[]> imageResult = sendGetRequestBytes(rawImageUrl, source, repoInfo);
                         if (imageResult.isSuccess() && imageResult.getResultData() != null) {
                             String localUrl = docAssetStorageService.saveImage(imageResult.getResultData(), filePath, projectCode);
@@ -294,7 +313,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
 
         List<Map<String, String>> docFiles = new ArrayList<>();
         for (String filePath : markdownFilePaths) {
-            String rawFileUrl = "https://gitee.com/" + owner + "/" + repo + "/raw/" + branch + "/" + filePath;
+            String rawFileUrl = GITEE_RAW_BASE_URL + "/" + owner + "/" + repo + "/raw/" + branch + "/" + filePath;
             SimpleResult<String> fileResult = sendGetRequest(rawFileUrl, source, repoInfo);
             if (fileResult.isSuccess()) {
                 String relativePath = stripSubPathPrefix(filePath, subPath);
@@ -327,25 +346,46 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
      * 发送带有 Git 平台认证头的 HTTP GET 请求（支持网络抖动自动重试）
      */
     protected SimpleResult<String> sendGetRequest(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
-        return SimpleHttpClientUtils.executeWithRetry(() -> doSendGetRequest(url, source, repoInfo), "Git 请求 url=" + url);
+        return sendGetRequest(url, null, source, repoInfo);
+    }
+
+    /**
+     * 发送带有 Git 平台认证头及自定义 Accept 头的 HTTP GET 请求（支持网络抖动自动重试）
+     */
+    protected SimpleResult<String> sendGetRequest(String url, String acceptHeader, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+        return SimpleHttpClientUtils.executeWithRetry(() -> doSendGetRequest(url, acceptHeader, source, repoInfo), "Git 请求 url=" + url);
     }
 
     /**
      * 发送带有 Git 平台认证头的 HTTP GET 请求获取二进制数据（支持网络抖动自动重试）
      */
     protected SimpleResult<byte[]> sendGetRequestBytes(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
-        return SimpleHttpClientUtils.executeWithRetry(() -> doSendGetRequestBytes(url, source, repoInfo), "Git 二进制请求 url=" + url);
+        return sendGetRequestBytes(url, null, source, repoInfo);
+    }
+
+    /**
+     * 发送带有 Git 平台认证头及自定义 Accept 头的 HTTP GET 请求获取二进制数据（支持网络抖动自动重试）
+     */
+    protected SimpleResult<byte[]> sendGetRequestBytes(String url, String acceptHeader, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+        return SimpleHttpClientUtils.executeWithRetry(() -> doSendGetRequestBytes(url, acceptHeader, source, repoInfo), "Git 二进制请求 url=" + url);
     }
 
     /**
      * 执行单次带有 Git 平台认证头的 HTTP GET 请求
      */
     protected SimpleResult<String> doSendGetRequest(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+        return doSendGetRequest(url, null, source, repoInfo);
+    }
+
+    /**
+     * 执行单次带有 Git 平台认证头及自定义 Accept 头的 HTTP GET 请求
+     */
+    protected SimpleResult<String> doSendGetRequest(String url, String acceptHeader, UrlWithAuthVo source, GitRepoInfo repoInfo) {
         Pair<String, HttpResponse> resultPair = null;
         try {
             resultPair = SimpleHttpClientUtils.sendHttpGet(url, Pair.class, (client, request) -> {
                 request.setHeader("User-Agent", "Simple-Api-Doc");
-                request.setHeader("Accept", "application/json, text/plain, */*");
+                request.setHeader("Accept", StringUtils.defaultIfBlank(acceptHeader, "application/json, text/plain, */*"));
                 processGitAuth(request, source, repoInfo);
             }, (httpResponse, clazz) -> {
                 String resultStr = StringUtils.EMPTY;
@@ -393,10 +433,20 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
      * 执行单次带有 Git 平台认证头的 HTTP GET 请求获取二进制数据（图片等）
      */
     protected SimpleResult<byte[]> doSendGetRequestBytes(String url, UrlWithAuthVo source, GitRepoInfo repoInfo) {
+        return doSendGetRequestBytes(url, null, source, repoInfo);
+    }
+
+    /**
+     * 执行单次带有 Git 平台认证头及自定义 Accept 头的 HTTP GET 请求获取二进制数据（图片等）
+     */
+    protected SimpleResult<byte[]> doSendGetRequestBytes(String url, String acceptHeader, UrlWithAuthVo source, GitRepoInfo repoInfo) {
         Pair<byte[], HttpResponse> resultPair = null;
         try {
             resultPair = SimpleHttpClientUtils.sendHttpGet(url, Pair.class, (client, request) -> {
                 request.setHeader("User-Agent", "Simple-Api-Doc");
+                if (StringUtils.isNotBlank(acceptHeader)) {
+                    request.setHeader("Accept", acceptHeader);
+                }
                 processGitAuth(request, source, repoInfo);
             }, (httpResponse, clazz) -> {
                 byte[] bytes = new byte[0];

@@ -192,7 +192,7 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
                     apiDocVo.setSortId(existsDoc.getSortId());
                     apiDocVo.setFolderId(existsDoc.getFolderId());
                     processModifiedApiDoc(apiDocVo, existsDoc);
-                    locked = Boolean.TRUE.equals(existsDoc.getLocked());
+                    locked = Boolean.TRUE.equals(apiDocVo.getLocked());
                     if (!locked) {
                         existsDocDetail = existsDocDetailMap.get(apiDocVo.getId());
                     }
@@ -234,11 +234,14 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
             if (!StringUtils.equals(existsDoc.getDocName(), existsDoc.getSummary())) { // 修改过docName
                 apiDocVo.setDocName(existsDoc.getDocName());
             }
-            if (StringUtils.isNotBlank(existsDoc.getDocContent())) { // 修改过docContent
+            if (ApiDocConstants.DOC_TYPE_API.equals(apiDocVo.getDocType()) && StringUtils.isNotBlank(existsDoc.getDocContent())) { // API文档保留自定义修改的docContent
                 apiDocVo.setDocContent(existsDoc.getDocContent());
             }
             if (apiDocVo.getDeprecated() == null && existsDoc.getDeprecated() != null) { // 导入无deprecated时保留已有deprecated状态
                 apiDocVo.setDeprecated(existsDoc.getDeprecated());
+            }
+            if (apiDocVo.getLocked() == null && existsDoc.getLocked() != null) { // 导入无locked时保留已有locked状态
+                apiDocVo.setLocked(existsDoc.getLocked());
             }
         }
     }
