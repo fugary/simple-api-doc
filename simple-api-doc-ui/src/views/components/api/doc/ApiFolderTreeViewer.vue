@@ -116,8 +116,7 @@ watch([searchParam, () => sharePreference?.defaultShowLabel, () => sharePreferen
 }, { deep: true })
 
 const showDocDetails = (doc, edit) => {
-  if (doc?.isDoc || doc?.id) {
-    doc.isDoc = true
+  if (doc?.isDoc) {
     if (edit) {
       treeRef.value?.setCurrentKey(doc.id)
     }
@@ -129,6 +128,7 @@ const showDocDetails = (doc, edit) => {
 
 const handleSelectDocFromEvent = (doc) => {
   if (doc?.id) {
+    doc.isDoc = true
     showDocDetails(doc, false)
     nextTick(() => {
       treeRef.value?.setCurrentKey(doc.treeId || doc.id)
