@@ -4,11 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 
 /**
- * Git 仓库与目录解析信息
+ * Git 仓库与目录解析信息（平台无关的标准 Git 模型）
  *
  * @author gary.fu
  */
@@ -20,16 +21,6 @@ public class GitRepoInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public enum Platform {
-        GITHUB,
-        GITLAB,
-        GITEE,
-        OTHER
-    }
-
-    /** Git 服务平台类型 (GITHUB, GITLAB, GITEE) */
-    private Platform platform;
-
     /** 站点根 URL，如 https://github.com 或 https://git.mengqingpo.com:8888 */
     private String serverUrl;
 
@@ -39,7 +30,7 @@ public class GitRepoInfo implements Serializable {
     /** 仓库名，如 citsgbt-projects 或 my-test */
     private String repo;
 
-    /** 完整项目路径（GitLab 场景），如 fugary/my-test 或 group/subgroup/project */
+    /** 完整项目路径，如 fugary/my-test 或 group/subgroup/project */
     private String projectPath;
 
     /** 分支名，如 main 或 master */
@@ -50,4 +41,20 @@ public class GitRepoInfo implements Serializable {
 
     /** 原始输入的 URL */
     private String rawUrl;
+
+    /** Git Clone URL（如 https://github.com/fugary/citsgbt-projects.git） */
+    private String cloneUrl;
+
+    /**
+     * 获取标准的 Git clone URL
+     */
+    public String getCloneUrl() {
+        if (StringUtils.isNotBlank(cloneUrl)) {
+            return cloneUrl;
+        }
+        if (StringUtils.isNotBlank(serverUrl) && StringUtils.isNotBlank(projectPath)) {
+            return serverUrl + "/" + projectPath + ".git";
+        }
+        return rawUrl;
+    }
 }

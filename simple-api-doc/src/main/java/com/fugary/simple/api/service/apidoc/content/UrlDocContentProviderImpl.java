@@ -52,10 +52,10 @@ public class UrlDocContentProviderImpl implements DocContentProvider<UrlWithAuth
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2009);
         }
 
-        // 1. 优先尝试 Git 仓库目录 URL 智能解析（GitHub / GitLab / Gitee）
+        // 1. 优先尝试 Git 仓库目录 URL 智能解析
         GitRepoInfo gitRepoInfo = GitRepoUrlResolver.resolve(source.getUrl());
         if (gitRepoInfo != null && gitDocContentProvider != null) {
-            log.info("智能嗅探命中 Git 目录: platform={}, project={}, subPath={}", gitRepoInfo.getPlatform(), gitRepoInfo.getProjectPath(), gitRepoInfo.getSubPath());
+            log.info("智能嗅探命中 Git 目录: cloneUrl={}, subPath={}", gitRepoInfo.getCloneUrl(), gitRepoInfo.getSubPath());
             return gitDocContentProvider.getContent(gitRepoInfo, source);
         }
 

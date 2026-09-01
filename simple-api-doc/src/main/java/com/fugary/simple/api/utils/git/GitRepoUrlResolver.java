@@ -9,25 +9,31 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Git 仓库与目录树 URL 智能解析器
+ * Git 仓库与目录树 URL 智能通用解析器（全网通用 Web 目录树与 Git Clone 链接智能嗅探）
  *
  * @author gary.fu
  */
 @Slf4j
 public class GitRepoUrlResolver {
 
-    private static final Pattern GITHUB_TREE_PATTERN = Pattern.compile("^/([^/]+)/([^/]+)/tree/([^/]+)(?:/(.*))?$");
-    private static final Pattern GITEE_TREE_PATTERN = Pattern.compile("^/([^/]+)/([^/]+)/tree/([^/]+)(?:/(.*))?$");
-    private static final Pattern GITLAB_TREE_PATTERN = Pattern.compile("^/(.+?)(?:/-)?/tree/([^/]+)(?:/(.*))?$");
+    /**
+     * 全网通用 Git Web 目录树规范匹配：
+     * 一条正则统一覆盖 /tree/、/-/tree/、/src/、/src/branch/、/src/tag/、/src/commit/ 等所有主流 Web 路径
+     * Group 1: projectPath, Group 2: branch, Group 3: subPath
+     */
+    private static final Pattern WEB_GIT_TREE_PATTERN = Pattern.compile("^/(.+?)(?:/-)?/(?:tree|src(?:/(?:branch|tag|commit))?)/([^/]+)(?:/(.*))?$");
+
+    /** 标准 .git 仓库直连克隆链接 */
+    private static final Pattern DIRECT_GIT_PATTERN = Pattern.compile("^/(.+?)\\.git$");
 
     private GitRepoUrlResolver() {
     }
 
     /**
-     * 智能解析 Git 目录树 URL
+     * 智能解析 Git 目录树或仓库 URL
      *
      * @param url 输入的 URL 字符串
-     * @return 解析后的 GitRepoInfo，若不匹配任何 Git 目录树结构则返回 null
+     * @return 解析后的 GitRepoInfo，若不匹配任何 Git 仓库特征则返回 null
      */
     public static GitRepoInfo resolve(String url) {
         if (StringUtils.isBlank(url)) {
@@ -46,78 +52,48 @@ public class GitRepoUrlResolver {
             String serverUrl = scheme + "://" + host + (port > 0 && port != 80 && port != 443 ? ":" + port : "");
             String path = uri.getPath();
 
-            if (StringUtils.isBlank(path) || !path.contains("/tree/")) {
+            if (StringUtils.isBlank(path)) {
                 return null;
             }
 
-            // 1. 优先判定 GitHub (github.com)
-            if ("github.com".equalsIgnoreCase(host) || host.endsWith(".github.com")) {
-                Matcher matcher = GITHUB_TREE_PATTERN.matcher(path);
-                if (matcher.matches()) {
-                    String owner = matcher.group(1);
-                    String repo = matcher.group(2);
-                    String branch = matcher.group(3);
-                    String subPath = StringUtils.defaultString(matcher.group(4), "");
-                    return GitRepoInfo.builder()
-                            .platform(GitRepoInfo.Platform.GITHUB)
-                            .serverUrl(serverUrl)
-                            .owner(owner)
-                            .repo(repo)
-                            .projectPath(owner + "/" + repo)
-                            .branch(branch)
-                            .subPath(cleanSubPath(subPath))
-                            .rawUrl(cleanUrl)
-                            .build();
-                }
+            // 1. Web 目录树 URL 通用匹配（/tree/、/-/tree/、/src/branch/、/src/ 等）
+            Matcher webTreeMatcher = WEB_GIT_TREE_PATTERN.matcher(path);
+            if (webTreeMatcher.matches()) {
+                String projectPath = webTreeMatcher.group(1);
+                String branch = webTreeMatcher.group(2);
+                String subPath = StringUtils.defaultString(webTreeMatcher.group(3), "");
+                return buildRepoInfo(serverUrl, projectPath, branch, subPath, cleanUrl);
             }
 
-            // 2. 判定 Gitee (gitee.com)
-            if ("gitee.com".equalsIgnoreCase(host) || host.endsWith(".gitee.com")) {
-                Matcher matcher = GITEE_TREE_PATTERN.matcher(path);
-                if (matcher.matches()) {
-                    String owner = matcher.group(1);
-                    String repo = matcher.group(2);
-                    String branch = matcher.group(3);
-                    String subPath = StringUtils.defaultString(matcher.group(4), "");
-                    return GitRepoInfo.builder()
-                            .platform(GitRepoInfo.Platform.GITEE)
-                            .serverUrl(serverUrl)
-                            .owner(owner)
-                            .repo(repo)
-                            .projectPath(owner + "/" + repo)
-                            .branch(branch)
-                            .subPath(cleanSubPath(subPath))
-                            .rawUrl(cleanUrl)
-                            .build();
-                }
-            }
-
-            // 3. 判定 GitLab (包含 /-/tree/ 特征，或私有部署 host 包含 gitlab)
-            if (path.contains("/-/tree/") || host.contains("gitlab") || path.contains("/tree/")) {
-                Matcher matcher = GITLAB_TREE_PATTERN.matcher(path);
-                if (matcher.matches()) {
-                    String projectPath = matcher.group(1);
-                    String branch = matcher.group(2);
-                    String subPath = StringUtils.defaultString(matcher.group(3), "");
-                    int lastSlash = projectPath.lastIndexOf('/');
-                    String owner = lastSlash > 0 ? projectPath.substring(0, lastSlash) : projectPath;
-                    String repo = lastSlash > 0 ? projectPath.substring(lastSlash + 1) : projectPath;
-                    return GitRepoInfo.builder()
-                            .platform(GitRepoInfo.Platform.GITLAB)
-                            .serverUrl(serverUrl)
-                            .owner(owner)
-                            .repo(repo)
-                            .projectPath(projectPath)
-                            .branch(branch)
-                            .subPath(cleanSubPath(subPath))
-                            .rawUrl(cleanUrl)
-                            .build();
-                }
+            // 2. 直连 .git 仓库链接（如 https://github.com/fugary/citsgbt-projects.git）
+            Matcher gitMatcher = DIRECT_GIT_PATTERN.matcher(path);
+            if (gitMatcher.matches()) {
+                String projectPath = gitMatcher.group(1);
+                return buildRepoInfo(serverUrl, projectPath, "main", "", cleanUrl);
             }
         } catch (Exception e) {
             log.debug("解析 Git 仓库 URL 异常: url={}", url, e);
         }
         return null;
+    }
+
+    private static GitRepoInfo buildRepoInfo(String serverUrl, String projectPath, String branch, String subPath, String rawUrl) {
+        String cleanProjectPath = cleanSubPath(projectPath);
+        int lastSlash = cleanProjectPath.lastIndexOf('/');
+        String owner = lastSlash > 0 ? cleanProjectPath.substring(0, lastSlash) : cleanProjectPath;
+        String repo = lastSlash > 0 ? cleanProjectPath.substring(lastSlash + 1) : cleanProjectPath;
+        String cloneUrl = serverUrl + "/" + cleanProjectPath + ".git";
+
+        return GitRepoInfo.builder()
+                .serverUrl(serverUrl)
+                .owner(owner)
+                .repo(repo)
+                .projectPath(cleanProjectPath)
+                .branch(StringUtils.defaultIfBlank(branch, "main"))
+                .subPath(cleanSubPath(subPath))
+                .cloneUrl(cloneUrl)
+                .rawUrl(rawUrl)
+                .build();
     }
 
     private static String cleanSubPath(String subPath) {
