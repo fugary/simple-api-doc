@@ -3,6 +3,7 @@
 本文档完整记录了 `simple-api-doc` 项目的详细开发进程、功能迭代及维护记录。
 
 ### 2026-09
+- **feat**: [2026-09-01] Git 文档抓取模块策略模式重构与 GitLab 分页支持及 URL 导入占位提示优化：1. Git 平台抓取策略模式与模板方法重构：新增 `GitPlatformDocFetcher.java` 策略接口与 `AbstractGitPlatformDocFetcher.java` 抽象基类，将分散在单体类中的 GitLab、GitHub、Gitee 抓取逻辑拆分为独立策略实现（`GitLabDocFetcherImpl`、`GitHubDocFetcherImpl`、`GiteeDocFetcherImpl`）；`GitDocContentProviderImpl` 转化为简洁的 Spring 策略路由器，实现开闭原则（OCP）与单一职责（SRP）；基类统一沉淀 HTTP 带退避重试、鉴权头注入（Basic / Token）、图片转存与 Markdown 相对路径替换能力；2. 修复 GitLab 目录树超过 100 个文件截断缺陷：在 `GitLabDocFetcherImpl` 中引入基于 `page` 的多页目录树循环拉取机制（`per_page=100`），配置最大 500 页（支持 50,000 个文件）防御上限，彻底解决超出 100 个文件时由于未分页导致 Markdown 与图片遗漏的缺陷；3. 前端导入 URL 动态 Placeholder 与 Tooltip 提示：在 `ApiProjectImport.vue` 与 `ApiProjectTasks.vue` 中，根据选中的数据来源（Markdown / OpenAPI）动态自适应切换输入框 Placeholder 与 Tooltip（Markdown 模式提示支持直接输入 `.md`、`.zip` 或 GitHub/GitLab/Gitee 目录 URL，并补充中英文多语言词条）；4. 质量保障：在 `GitDocContentProviderTest.java` 中补充策略路由、平台识别及 GitLab 多页分页模拟测试，全量通过前端 ESLint 校验与后端 94 项 Maven 单元测试。
 - **opt**: [2026-09-01] 优化认证失败提示信息体验：1. 针对服务端重启导致 JWT Token 密钥更新而触发的 401 未认证状态，直接优化后端 `messages_zh_CN.properties` 与 `messages_en_US.properties` 中的默认 `401` 提示文案为 `认证失败或登录状态已失效，请重新登录`；2. 移除前端 axios 中针对默认提示硬编码校验的冗余判断，直接复用底层响应消息，兼顾前后端国际化一致性；3. 在前端多语言包 `common_cn.js` 与 `common_en.js` 中新增 `common.msg.sessionExpired` 词条作为兜底提示，提升整体产品体验。
 
 ### 2026-08

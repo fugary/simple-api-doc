@@ -241,6 +241,14 @@ const formOptions = computed(() => {
     required: true,
     labelKey: 'api.label.importUrl',
     prop: 'url',
+    tooltip: importModel.value.sourceType === 'markdown'
+      ? $i18nBundle('api.msg.importUrlMarkdownTooltip')
+      : $i18nBundle('api.msg.importUrlOpenApiTooltip'),
+    attrs: {
+      placeholder: importModel.value.sourceType === 'markdown'
+        ? $i18nBundle('api.msg.importUrlMarkdownPlaceholder')
+        : $i18nBundle('api.msg.importUrlOpenApiPlaceholder')
+    },
     rules: [{
       message: $i18nBundle('api.msg.proxyUrlMsg'),
       validator: () => {
