@@ -336,7 +336,14 @@ const tableProjectItems = computed(() => {
           const apiCount = countsMap.api || countsMap.apiCount || 0
           const docCount = countsMap.md || countsMap.docCount || 0
           const totalCount = apiCount + docCount
-          const tooltipContent = `${$i18nBundle('api.label.apiCount', [apiCount])} | ${$i18nBundle('api.label.docCount', [docCount])} | ${$i18nBundle('api.label.totalCount', [totalCount])}`
+          const tipItems = [
+            apiCount > 0 && $i18nBundle('api.label.apiCount', [apiCount]),
+            docCount > 0 && $i18nBundle('api.label.docCount', [docCount])
+          ].filter(Boolean)
+          if ((apiCount > 0 && docCount > 0) || !tipItems.length) {
+            tipItems.push($i18nBundle('api.label.totalCount', [totalCount]))
+          }
+          const tooltipContent = tipItems.join(' | ')
 
           return <span class="project-status-container">
             <DelFlagTag v-model={project.status} clickToToggle={project.isWritable}
@@ -351,10 +358,10 @@ const tableProjectItems = computed(() => {
                   <CommonIcon icon="custom-markdown" style="color: #8b5cf6;" size={15} />
                   <span>{docCount}</span>
                 </span>}
-                <span class="count-item font-weight-bold">
+                {((apiCount > 0 && docCount > 0) || totalCount === 0) && <span class="count-item font-weight-bold">
                   <CommonIcon icon="Files" style="color: #3b82f6;" size={15} />
                   <span>{totalCount}</span>
-                </span>
+                </span>}
               </span>
             </ElTooltip>
             {(project.topFlag || (project.isWritable && project.showOperations)) && <ElTooltip
