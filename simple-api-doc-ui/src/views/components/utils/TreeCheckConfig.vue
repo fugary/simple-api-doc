@@ -36,18 +36,71 @@ const selectedKeys = defineModel('selectedKeys', {
 })
 const treeRef = ref(null)
 const onlySelected = ref(false)
+const onlyApi = ref(false)
+const onlyDoc = ref(false)
+
+const hasTypeFilter = computed(() => onlyApi.value || onlyDoc.value)
+const isFiltering = computed(() => !!filterModel.value?.keyword?.trim() || onlySelected.value || hasTypeFilter.value)
+
+// 检查当前树中是否同时存在 API 和 MD 文档
+const hasBothTypes = computed(() => {
+  let hasApi = false
+  let hasDoc = false
+  const check = (nodes) => {
+    if (!nodes || (hasApi && hasDoc)) return
+    for (const n of nodes) {
+      if (n.docType === 'api') hasApi = true
+      else if (n.docType === 'md') hasDoc = true
+      if (hasApi && hasDoc) return
+      if (n.children?.length) check(n.children)
+    }
+  }
+  check(props.treeNodes)
+  return hasApi && hasDoc
+})
+
+const applyCheckedKeys = (keys) => {
+  isInternalChange = true
+  treeRef.value?.setCheckedKeys(keys)
+  selectedKeys.value = [
+    ...treeRef.value?.getHalfCheckedKeys() || [],
+    ...treeRef.value?.getCheckedKeys() || []
+  ]
+}
+
+/**
+ * 递归收集节点列表中当前可见的叶子节点 key
+ */
+const getVisibleLeafKeys = (nodes, result = []) => {
+  if (!nodes) return result
+  nodes.forEach(node => {
+    const isLeaf = !node.children || node.children.length === 0
+    if (isLeaf) {
+      const treeNode = treeRef.value?.getNode(node[props.nodeKey])
+      if (treeNode ? treeNode.visible : true) {
+        result.push(node[props.nodeKey])
+      }
+    } else if (node.children) {
+      getVisibleLeafKeys(node.children, result)
+    }
+  })
+  return result
+}
 
 const selectOrClearAll = (select) => {
-  if (treeRef.value) {
-    let treeKeys = []
-    if (select && !props.singleSelect) {
-      treeKeys = getTreeKeys(props.treeNodes)
-    }
-    treeRef.value?.setCheckedKeys(treeKeys)
-    if (!select) {
-      treeRef.value?.setCurrentKey(null)
-      selectedKeys.value = []
-    }
+  if (!treeRef.value) return
+
+  if (!select) {
+    treeRef.value.setCurrentKey(null)
+    selectedKeys.value = []
+    return
+  }
+
+  if (!props.singleSelect) {
+    const keys = isFiltering.value
+      ? [...new Set([...checkedKeys.value, ...getVisibleLeafKeys(props.treeNodes)])]
+      : getTreeKeys(props.treeNodes)
+    applyCheckedKeys(keys)
   }
 }
 
@@ -59,6 +112,16 @@ const getTreeKeys = (nodes, keys = []) => {
     }
   })
   return keys
+}
+
+/**
+ * 检查节点是否满足类型过滤条件
+ */
+const matchesTypeFilter = (node) => {
+  if (!hasTypeFilter.value) return true
+  if (onlyApi.value && node.docType === 'api') return true
+  if (onlyDoc.value && node.docType === 'md') return true
+  return false
 }
 
 /**
@@ -159,6 +222,20 @@ const handleOnlySelectedChange = () => {
   treeRef.value?.filter(filterModel.value.keyword)
 }
 
+const handleOnlyApiChange = (val) => {
+  if (val) {
+    onlyDoc.value = false
+  }
+  treeRef.value?.filter(filterModel.value.keyword)
+}
+
+const handleOnlyDocChange = (val) => {
+  if (val) {
+    onlyApi.value = false
+  }
+  treeRef.value?.filter(filterModel.value.keyword)
+}
+
 const nodeClick = (data, node) => {
   if (props.singleSelect && data?.isDoc) {
     if (node && node.disabled) return
@@ -175,23 +252,63 @@ const checkChange = debounce(() => {
   }
 }, 200)
 
-const filterNode = (value, data) => {
-  const isLeaf = !data.children || data.children.length === 0
-  if (onlySelected.value && (!isLeaf || !selectedKeysSet.value.has(data[props.nodeKey]))) {
-    return false
+/**
+ * 处理用户手动点击节点复选框
+ * 当处于过滤筛选状态时，如果点击的是文件夹节点，只选中/取消选中当前筛选可见的子项，隐藏子项保持原状
+ */
+const handleCheck = (data) => {
+  if (props.singleSelect || !isFiltering.value || !data.children?.length) return
+
+  const visibleKeys = getVisibleLeafKeys(data.children)
+  if (!visibleKeys.length) {
+    applyCheckedKeys(checkedKeys.value)
+    return
   }
 
-  const keyword = (value || '').toLowerCase().trim()
-  if (!keyword) return true
-  if (data._searchText) {
-    return data._searchText.includes(keyword)
+  // 检查可见子项是否已全部选中：若是则全部取消，否则全部选中
+  const checkedSet = new Set(checkedKeys.value)
+  const allChecked = visibleKeys.every(k => checkedSet.has(k))
+
+  visibleKeys.forEach(k => {
+    if (allChecked) {
+      checkedSet.delete(k)
+    } else {
+      checkedSet.add(k)
+    }
+  })
+
+  applyCheckedKeys([...checkedSet])
+}
+
+const filterNode = (value, data) => {
+  const isLeaf = !data.children || data.children.length === 0
+
+  if (isLeaf) {
+    // 仅看已选：只显示已选中的叶子节点
+    if (onlySelected.value && !selectedKeysSet.value.has(data[props.nodeKey])) {
+      return false
+    }
+
+    // 类型过滤：仅接口 / 仅文档
+    if (hasTypeFilter.value && !matchesTypeFilter(data)) {
+      return false
+    }
+
+    const keyword = (value || '').toLowerCase().trim()
+    if (!keyword) return true
+    if (data._searchText?.includes(keyword)) {
+      return true
+    }
+    if (data.isDoc) {
+      return data.docName?.toLowerCase().includes(keyword) ||
+        data.url?.toLowerCase().includes(keyword) ||
+        data.method?.toLowerCase().includes(keyword)
+    }
+    return data.label?.toLowerCase()?.includes(keyword)
   }
-  if (data.isDoc) {
-    return data.docName?.toLowerCase().includes(keyword) ||
-      data.url?.toLowerCase().includes(keyword) ||
-      data.method?.toLowerCase().includes(keyword)
-  }
-  return data.label?.toLowerCase()?.includes(keyword)
+
+  // 文件夹节点：当存在任何过滤条件时返回 false，由 el-tree 回溯机制根据其是否有可见子节点自动判定
+  return !isFiltering.value
 }
 
 </script>
@@ -232,6 +349,20 @@ const filterNode = (value, data) => {
           >
             {{ $t('common.label.onlySelected') }}
           </el-checkbox>
+          <template v-if="hasBothTypes">
+            <el-checkbox
+              v-model="onlyApi"
+              @change="handleOnlyApiChange"
+            >
+              {{ $t('common.label.onlyApi') }}
+            </el-checkbox>
+            <el-checkbox
+              v-model="onlyDoc"
+              @change="handleOnlyDocChange"
+            >
+              {{ $t('common.label.onlyDoc') }}
+            </el-checkbox>
+          </template>
           <slot name="extra-filter" />
         </div>
         <div class="tree-check-stats-group">
@@ -278,6 +409,7 @@ const filterNode = (value, data) => {
           v-bind="treeAttrs"
           :filter-node-method="filterNode"
           @node-click="nodeClick"
+          @check="handleCheck"
           @check-change="checkChange"
         >
           <template #empty>
@@ -326,6 +458,7 @@ const filterNode = (value, data) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   width: 100%;
   padding: 2px 0 4px 0;
   font-size: 13px;
@@ -334,6 +467,16 @@ const filterNode = (value, data) => {
 .tree-check-filter-group {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tree-check-filter-group :deep(.el-checkbox) {
+  margin-right: 0 !important;
+}
+
+.tree-check-filter-group :deep(.margin-left2) {
+  margin-left: 0 !important;
 }
 
 .tree-check-stats-group {
@@ -341,6 +484,8 @@ const filterNode = (value, data) => {
   align-items: center;
   gap: 6px;
   color: var(--el-text-color-regular);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .stats-label {

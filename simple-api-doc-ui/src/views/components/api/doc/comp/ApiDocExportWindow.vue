@@ -92,6 +92,7 @@ const exportSelectedDocs = () => {
     :tree-nodes="treeNodes"
     :title="$i18nKey('common.label.commonExport', `common.label.${exportType}`)"
     :ok-label="$t((exportDocIds?.length||!exportAllFunc)?'api.label.exportSelected':'api.label.exportAll')"
+    width="950px"
     @submit-keys="exportSelectedDocs"
   >
     <template
@@ -104,7 +105,6 @@ const exportSelectedDocs = () => {
       >
         <el-checkbox
           v-model="exportZip"
-          class="margin-left2"
         >
           {{ $t('api.label.exportZip') }}
         </el-checkbox>
@@ -116,7 +116,6 @@ const exportSelectedDocs = () => {
       >
         <el-checkbox
           v-model="withFrontmatter"
-          class="margin-left2"
         >
           {{ $t('api.label.withFrontmatter') }}
         </el-checkbox>
