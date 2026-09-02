@@ -30,7 +30,7 @@
         <openapi-generator.version>7.16.0</openapi-generator.version>
         <springdoc.version>1.8.0</springdoc.version>
         <flexmark.version>0.64.8</flexmark.version>
-        <jgit.version>5.13.3.202401111512-r</jgit.version>
+        <jgit.version>6.8.0.202311291450-r</jgit.version>
     </properties>
 
     <dependencyManagement>

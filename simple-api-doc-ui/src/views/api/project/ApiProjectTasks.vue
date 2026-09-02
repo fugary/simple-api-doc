@@ -541,7 +541,7 @@ const doImportNow = ({ form }) => {
       if (currentModel.value.authType !== AUTH_TYPE.NONE) {
         modelParam.authContent = JSON.stringify(currentModel.value.authContentModel || {})
       }
-      importProject([], modelParam, { loading: true, timeout: 60000 })
+      importProject([], modelParam, { loading: true })
         .then((data) => {
           if (data.success) {
             $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))

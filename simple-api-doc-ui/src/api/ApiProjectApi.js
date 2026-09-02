@@ -159,7 +159,7 @@ export const uploadFiles = (files, callback, projectCode) => {
     formData.append('projectCode', projectCode)
   }
   return $httpPost('/upload/uploadFiles', formData,
-    Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 60000 }))
+    Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 120000 }))
     .then(data => {
       data.success && isFunction(callback) && callback(data.resultData)
     })
@@ -192,7 +192,7 @@ export const importProject = (files, params = {}, config = {}) => {
   }
   const url = params.projectId ? `${API_PROJECT_URL}/importExistsProject` : `${API_PROJECT_URL}/importProject`
   return $httpPost(url,
-    formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 60000 }, config))
+    formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 120000 }, config))
 }
 
 /**

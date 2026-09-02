@@ -162,16 +162,9 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
      */
     protected void doCloneRepository(String cloneUrl, String branch, File tempDir, CredentialsProvider credentialsProvider) throws Exception {
         String branchRef = branch.startsWith("refs/") ? branch : "refs/heads/" + branch;
-        CloneCommand cloneCmd = Git.cloneRepository()
-                .setURI(cloneUrl)
-                .setDirectory(tempDir)
+        CloneCommand cloneCmd = createCloneCommand(cloneUrl, tempDir, credentialsProvider)
                 .setBranch(branchRef)
-                .setCloneAllBranches(false)
                 .setBranchesToClone(Collections.singletonList(branchRef));
-
-        if (credentialsProvider != null) {
-            cloneCmd.setCredentialsProvider(credentialsProvider);
-        }
 
         try (Git git = cloneCmd.call()) {
             // 单分支克隆成功
@@ -181,15 +174,7 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
                 log.info("指定分支克隆失败，尝试克隆默认分支: cloneUrl={}", cloneUrl);
                 FileUtils.cleanDirectory(tempDir);
 
-                CloneCommand defaultBranchCmd = Git.cloneRepository()
-                        .setURI(cloneUrl)
-                        .setDirectory(tempDir)
-                        .setCloneAllBranches(false);
-
-                if (credentialsProvider != null) {
-                    defaultBranchCmd.setCredentialsProvider(credentialsProvider);
-                }
-
+                CloneCommand defaultBranchCmd = createCloneCommand(cloneUrl, tempDir, credentialsProvider);
                 try (Git git = defaultBranchCmd.call()) {
                     // 默认分支克隆成功
                     return;
@@ -197,6 +182,23 @@ public class GitDocContentProviderImpl implements GitDocContentProvider {
             }
             throw e;
         }
+    }
+
+    /**
+     * 创建通用 JGit 浅克隆命令
+     */
+    protected CloneCommand createCloneCommand(String cloneUrl, File tempDir, CredentialsProvider credentialsProvider) {
+        CloneCommand cloneCmd = Git.cloneRepository()
+                .setURI(cloneUrl)
+                .setDirectory(tempDir)
+                .setCloneAllBranches(false)
+                .setDepth(1)
+                .setTimeout(120);
+
+        if (credentialsProvider != null) {
+            cloneCmd.setCredentialsProvider(credentialsProvider);
+        }
+        return cloneCmd;
     }
 
     /**
