@@ -106,9 +106,20 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     }
 
     @Override
+    public boolean deleteDocs(List<Integer> docIds) {
+        if (CollectionUtils.isEmpty(docIds)) {
+            return true;
+        }
+        apiDocSchemaService.remove(Wrappers.<ApiProjectInfoDetail>query().in("doc_id", docIds));
+        return this.remove(Wrappers.<ApiDoc>query().in("id", docIds).or().in("modify_from", docIds));
+    }
+
+    @Override
     public boolean deleteDoc(Integer docId) {
-        apiDocSchemaService.remove(Wrappers.<ApiProjectInfoDetail>query().eq("doc_id", docId));
-        return this.removeById(docId);
+        if (docId == null) {
+            return true;
+        }
+        return deleteDocs(Collections.singletonList(docId));
     }
 
     @Override

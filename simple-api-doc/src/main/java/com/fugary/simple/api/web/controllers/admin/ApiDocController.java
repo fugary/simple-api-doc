@@ -23,6 +23,7 @@ import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.query.ApiDocHistoryQueryVo;
 import com.fugary.simple.api.web.vo.query.ProjectQueryVo;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Create date 2024/9/27<br>
@@ -108,6 +110,21 @@ public class ApiDocController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         return SimpleResultUtils.createSimpleResult(apiDocService.deleteDoc(id));
+    }
+
+    @DeleteMapping("/removeByIds/{ids}")
+    public SimpleResult<Boolean> removeByIds(@PathVariable("ids") List<Integer> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return SimpleResultUtils.createSimpleResult(true);
+        }
+        List<ApiDoc> apiDocs = apiDocService.listByIds(ids);
+        List<Integer> projectIds = apiDocs.stream().map(ApiDoc::getProjectId).distinct().collect(Collectors.toList());
+        for (Integer projectId : projectIds) {
+            if (!apiProjectAccessService.canAccessProject(projectId, ApiGroupAuthority.WRITABLE)) {
+                return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
+            }
+        }
+        return SimpleResultUtils.createSimpleResult(apiDocService.deleteDocs(ids));
     }
 
     @PostMapping

@@ -34,6 +34,7 @@ import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWind
 import { cloneDeep, debounce } from 'lodash-es'
 import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
+import ApiDocBatchDeleteWindow from '@/views/components/api/doc/comp/ApiDocBatchDeleteWindow.vue'
 import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
 import emitter from '@/vendors/emitter'
 
@@ -148,11 +149,14 @@ defineEmits(['toAddFolder', 'deleteFolder', 'toEditFolder', 'toAddDoc', 'toEditD
 const { enterDropdown, leaveDropdown, showDropdown } = useFolderDropdown()
 
 const shareTopHandlers = computed(() => {
-  if (rootFolder.value && hasApiDoc.value) {
-    return [calcShowDocLabelHandler(rootFolder.value, sharePreference),
-      calcShowMergeAllOfHandler(rootFolder.value, sharePreference),
-      // calcDebugInWindowHandler(rootFolder.value, sharePreference),
-      ...calcShowCleanHandlers(props.shareDoc, rootFolder.value, sharePreference, handlerData)]
+  if (rootFolder.value) {
+    const handlers = []
+    if (hasApiDoc.value) {
+      handlers.push(calcShowDocLabelHandler(rootFolder.value, sharePreference))
+      handlers.push(calcShowMergeAllOfHandler(rootFolder.value, sharePreference))
+    }
+    handlers.push(...calcShowCleanHandlers(props.shareDoc, rootFolder.value, sharePreference, handlerData))
+    return handlers
   }
   return []
 })
@@ -245,6 +249,23 @@ const toShowCodeGenConfigWindow = () => {
   const { docTreeNodes } = calcProjectItem(filteredItem, null)
   generateTreeNodes.value = docTreeNodes
   showCodeGenConfigWindow.value = true
+}
+
+const showBatchDeleteWindow = ref(false)
+const batchDeleteTreeNodes = ref([])
+const batchDeleteSelectedKeys = ref([])
+const toShowBatchDeleteWindow = () => {
+  const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value), null)
+  batchDeleteTreeNodes.value = docTreeNodes
+  batchDeleteSelectedKeys.value = []
+  showBatchDeleteWindow.value = true
+}
+const handleDeletedDocs = (deletedDocIds = []) => {
+  if (currentDoc.value?.id && deletedDocIds.includes(currentDoc.value.id)) {
+    currentDoc.value = null
+    sharePreference.lastDocId = null
+  }
+  refreshProjectItem()
 }
 
 const hasApiDoc = computed(() => checkHasApiDoc(projectItem.value))
@@ -348,6 +369,7 @@ const handlerData = {
   addOrEditFolder,
   toShowTreeConfigWindow,
   toShowCodeGenConfigWindow,
+  toShowBatchDeleteWindow,
   refreshFolderTree,
   reload,
   hasApiDoc,
@@ -561,6 +583,13 @@ defineExpose(handlerData)
       :tree-select-keys="generateSelectedKeys"
       :share-doc="shareDoc"
       :project-item="projectItem"
+    />
+    <api-doc-batch-delete-window
+      v-model:tree-select-keys="batchDeleteSelectedKeys"
+      v-model="showBatchDeleteWindow"
+      :tree-nodes="batchDeleteTreeNodes"
+      :project-item="projectItem"
+      @deleted-docs="handleDeletedDocs"
     />
     <div
       v-if="showContextMenu"

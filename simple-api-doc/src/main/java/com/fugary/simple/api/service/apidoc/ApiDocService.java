@@ -92,6 +92,14 @@ public interface ApiDocService extends IService<ApiDoc> {
     boolean deleteDoc(Integer docId);
 
     /**
+     * 批量删除doc，级联删除
+     *
+     * @param docIds
+     * @return
+     */
+    boolean deleteDocs(List<Integer> docIds);
+
+    /**
      * 是否已经存在
      * @param doc
      * @return

@@ -68,9 +68,10 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] OpenAPI 导出与导入 folderCode 保留与扩展机制：在 `OpenApiApiDocExporterImpl` 中使用 `x-simple-folder` / `x-apifox-folder` 输出多级展示名称路径，顶层 Tag 保持原生标准无冗余 `x-*` 扩展，仅在 `folderCode ≠ folderName` 时按需在 Operation 输出 `x-simple-folder-code`；在 `SwaggerImporterImpl` 与 `ApiDocParseUtils` 中实现多级与单级目录的分层无损还原。
 - [x] OpenAPI 规范原生保序导出与导入：严格遵循 OpenAPI 规范标准 `tags` 数组保序特性，在 `OpenApiApiDocExporterImpl` 中按目录树先序遍历生成 `tags` 列表并聚合同一 URL 多方法，在 `SwaggerImporterImpl` 中预先按 `tags` 顺序构建目录并分配递增 `sortId`，在零 `x-*` 扩展依赖下实现目录与接口 100% 保序还原。
 - [x] 基于 JGit 标准协议实现全网通用 Git 文档拉取与深层子目录提取：在 `pom.xml` 中引入 `org.eclipse.jgit` 依赖，重构 `GitDocContentProviderImpl` 为基于 JGit 的单分支快速克隆引擎；彻底清理平台特化冗余类，统一支持 GitHub、GitLab、Gitee、GitCode、Gitea、Bitbucket 及私有裸 Git 等任意平台；在 `GitRepoUrlResolver` 中支持多级深层子目录网页 URL 与直接 `.git` 链接解析，自动剥离前缀并替换 Markdown 相对图片链接；前端导入与任务弹窗根据数据源（Markdown/OpenAPI）动态切换 Placeholder 与 Tooltip 提示。
+- [x] 文档树批量删除与锁定安全保护：在左侧树设置菜单中新增【批量删除文档】功能，新增 `ApiDocBatchDeleteWindow` 弹窗支持树形多选、全选/反选、仅看已选、接口/Markdown 过滤及关键字搜索；提供“保留已锁定文档”默认防护，后端实现 `deleteDocs` 批量级联清理关联 Schema 与历史快照，并在项目编辑页自动刷新与平滑重置选中状态。
 
 ---
-*Last Updated: 2026-09-01*
+*Last Updated: 2026-09-02*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：

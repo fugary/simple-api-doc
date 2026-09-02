@@ -64,37 +64,57 @@ export const calcDebugInWindowHandler = (folder, preference) => {
 }
 
 export const calcShowCleanHandlers = (shareDoc, folder, preference, config = {}) => {
-  return preference.preferenceId && config.hasApiDoc?.value
-    ? [{
-        enabled: !!folder.rootFlag,
-        icon: 'DeleteFilled',
-        labelKey: 'api.label.clearCachedData',
-        type: 'danger',
-        handler: () => {
-          const { reload } = config
-          if (preference?.preferenceId && isFunction(reload)) {
-            $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.clearCachedData')).then(() => {
-              useShareConfigStore().clearSharePreference(preference.preferenceId)
-              reload()
-            })
-          }
+  const isShareDoc = !!shareDoc?.shareId
+  const handlers = []
+  if (!isShareDoc && config.isDeletable?.value) {
+    handlers.push({
+      enabled: true,
+      icon: 'Delete',
+      labelKey: 'api.label.batchDeleteDocs',
+      type: 'danger',
+      handler: () => {
+        const { toShowBatchDeleteWindow } = config
+        if (isFunction(toShowBatchDeleteWindow)) {
+          toShowBatchDeleteWindow()
         }
-      }, {
-        enabled: !!shareDoc?.needPassword,
-        icon: 'LogOutFilled',
-        labelKey: 'common.label.logout',
-        type: 'danger',
-        handler: () => {
-          const { reload } = config
-          if (preference?.preferenceId && isFunction(reload)) {
-            $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.logout')).then(() => {
-              useShareConfigStore().clearShareToken(preference.preferenceId)
-              reload()
-            })
-          }
+      }
+    })
+  }
+  if (preference.preferenceId && (config.hasApiDoc?.value || !isShareDoc)) {
+    handlers.push({
+      enabled: !!folder.rootFlag,
+      icon: 'DeleteFilled',
+      labelKey: 'api.label.clearCachedData',
+      type: 'danger',
+      handler: () => {
+        const { reload } = config
+        if (preference?.preferenceId && isFunction(reload)) {
+          $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.clearCachedData')).then(() => {
+            useShareConfigStore().clearSharePreference(preference.preferenceId)
+            reload()
+          })
         }
-      }]
-    : []
+      }
+    })
+  }
+  if (shareDoc?.needPassword) {
+    handlers.push({
+      enabled: true,
+      icon: 'LogOutFilled',
+      labelKey: 'common.label.logout',
+      type: 'danger',
+      handler: () => {
+        const { reload } = config
+        if (preference?.preferenceId && isFunction(reload)) {
+          $coreConfirm($i18nKey('common.msg.commonConfirm', 'common.label.logout')).then(() => {
+            useShareConfigStore().clearShareToken(preference.preferenceId)
+            reload()
+          })
+        }
+      }
+    })
+  }
+  return handlers
 }
 
 export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
