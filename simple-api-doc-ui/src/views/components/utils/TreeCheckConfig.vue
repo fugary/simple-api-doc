@@ -42,15 +42,34 @@ const onlyDoc = ref(false)
 const hasTypeFilter = computed(() => onlyApi.value || onlyDoc.value)
 const isFiltering = computed(() => !!filterModel.value?.keyword?.trim() || onlySelected.value || hasTypeFilter.value)
 
-// 检查当前树中是否同时存在 API 和 MD 文档
+// 检查节点是否被禁用
+const isNodeDisabled = (data) => {
+  if (!data) return false
+  const treeNode = treeRef.value?.getNode(data[props.nodeKey])
+  if (typeof treeNode?.disabled === 'boolean') {
+    return treeNode.disabled
+  }
+  const disabledProp = props.treeAttrs?.props?.disabled
+  if (typeof disabledProp === 'function') {
+    return Boolean(disabledProp(data, treeNode))
+  }
+  if (typeof disabledProp === 'string') {
+    return Boolean(data[disabledProp])
+  }
+  return Boolean(data.disabled)
+}
+
+// 检查当前树中是否同时存在可选的 API 和 MD 文档
 const hasBothTypes = computed(() => {
   let hasApi = false
   let hasDoc = false
   const check = (nodes) => {
     if (!nodes || (hasApi && hasDoc)) return
     for (const n of nodes) {
-      if (n.docType === 'api') hasApi = true
-      else if (n.docType === 'md') hasDoc = true
+      if (!isNodeDisabled(n)) {
+        if (n.docType === 'api') hasApi = true
+        else if (n.docType === 'md') hasDoc = true
+      }
       if (hasApi && hasDoc) return
       if (n.children?.length) check(n.children)
     }
@@ -69,19 +88,21 @@ const applyCheckedKeys = (keys) => {
 }
 
 /**
- * 递归收集节点列表中当前可见的叶子节点 key
+ * 递归收集节点列表中非禁用的叶子节点 key
  */
-const getVisibleLeafKeys = (nodes, result = []) => {
+const getSelectableLeafKeys = (nodes, onlyVisible = false, result = []) => {
   if (!nodes) return result
   nodes.forEach(node => {
     const isLeaf = !node.children || node.children.length === 0
     if (isLeaf) {
-      const treeNode = treeRef.value?.getNode(node[props.nodeKey])
-      if (treeNode ? treeNode.visible : true) {
-        result.push(node[props.nodeKey])
+      if (!isNodeDisabled(node)) {
+        const treeNode = treeRef.value?.getNode(node[props.nodeKey])
+        if (!onlyVisible || (treeNode ? treeNode.visible : true)) {
+          result.push(node[props.nodeKey])
+        }
       }
     } else if (node.children) {
-      getVisibleLeafKeys(node.children, result)
+      getSelectableLeafKeys(node.children, onlyVisible, result)
     }
   })
   return result
@@ -90,28 +111,21 @@ const getVisibleLeafKeys = (nodes, result = []) => {
 const selectOrClearAll = (select) => {
   if (!treeRef.value) return
 
+  // 获取原本已选中的禁用节点 key，确保操作时保持其状态
+  const disabledCheckedKeys = checkedKeys.value.filter(key => isNodeDisabled(treeRef.value?.getNode(key)?.data))
+
   if (!select) {
     treeRef.value.setCurrentKey(null)
-    selectedKeys.value = []
+    applyCheckedKeys(disabledCheckedKeys)
     return
   }
 
   if (!props.singleSelect) {
-    const keys = isFiltering.value
-      ? [...new Set([...checkedKeys.value, ...getVisibleLeafKeys(props.treeNodes)])]
-      : getTreeKeys(props.treeNodes)
-    applyCheckedKeys(keys)
+    const targetKeys = isFiltering.value
+      ? [...new Set([...checkedKeys.value, ...getSelectableLeafKeys(props.treeNodes, true)])]
+      : [...new Set([...disabledCheckedKeys, ...getSelectableLeafKeys(props.treeNodes, false)])]
+    applyCheckedKeys(targetKeys)
   }
-}
-
-const getTreeKeys = (nodes, keys = []) => {
-  nodes.forEach(node => {
-    keys.push(node[props.nodeKey])
-    if (node.children) {
-      getTreeKeys(node.children, keys)
-    }
-  })
-  return keys
 }
 
 /**
@@ -154,11 +168,18 @@ const selectedStats = computed(() => {
     nodes.forEach(node => {
       const isLeaf = !node.children || node.children.length === 0
       if (isLeaf) {
-        totalLeaf++
+        const isSelected = set.has(node[props.nodeKey])
+        const disabled = isNodeDisabled(node)
+
+        // 仅将可选（非禁用）或已选中的叶子节点计入总数
+        if (!disabled || isSelected) {
+          totalLeaf++
+        }
+
         const isApi = node.docType === 'api'
         const isMd = node.docType === 'md'
 
-        if (set.has(node[props.nodeKey])) {
+        if (isSelected) {
           totalSelected++
           if (isApi) apiSelected++
           if (isMd) mdSelected++
@@ -259,7 +280,7 @@ const checkChange = debounce(() => {
 const handleCheck = (data) => {
   if (props.singleSelect || !isFiltering.value || !data.children?.length) return
 
-  const visibleKeys = getVisibleLeafKeys(data.children)
+  const visibleKeys = getSelectableLeafKeys(data.children, true)
   if (!visibleKeys.length) {
     applyCheckedKeys(checkedKeys.value)
     return

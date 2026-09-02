@@ -164,7 +164,7 @@ const handleTreeSelectSubmit = (keys) => {
 
     keySet.forEach(key => {
       const node = findDocNodeInTree(docTreeNodes.value, key)
-      if (node) {
+      if (node && node.isDoc && node.docType === 'api') {
         updatedConfigs.push(buildLoginApiConfig(node))
       }
     })
