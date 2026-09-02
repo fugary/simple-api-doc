@@ -773,6 +773,7 @@ body,
 
 .md-doc-container {
     flex-grow: 1;
+    min-width: 0;
     container-type: inline-size;
     padding: 10px;
 }

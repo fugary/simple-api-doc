@@ -4,7 +4,8 @@ import { getEnvConfigs, loadShareDoc } from '@/api/SimpleShareApi'
 import { loadDoc } from '@/api/ApiDocApi'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import ApiDocPathHeader from '@/views/components/api/doc/comp/ApiDocPathHeader.vue'
-import { MdCatalog, MdPreview } from 'md-editor-v3'
+import { MdPreview } from 'md-editor-v3'
+import MarkdownDocCatalog from '@/views/components/api/doc/comp/MarkdownDocCatalog.vue'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import ApiDocParameters from '@/views/components/api/doc/comp/ApiDocParameters.vue'
@@ -277,15 +278,12 @@ const handleCopyMarkdown = () => {
           :theme="theme"
           :model-value="apiDocDetail.apiMarkdown"
         />
-        <el-scrollbar
+        <markdown-doc-catalog
           v-if="!isSmallContainer"
-          class="md-doc-catalog"
-        >
-          <md-catalog
-            class="md-catalog"
-            editor-id="api-doc-preview-only"
-          />
-        </el-scrollbar>
+          v-model:collapsed="sharePreference.hideCatalog"
+          editor-id="api-doc-preview-only"
+          :theme="theme"
+        />
       </el-container>
     </el-container>
     <el-container

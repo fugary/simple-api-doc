@@ -1,6 +1,7 @@
 <script setup>
-import { computed, watch, ref, nextTick } from 'vue'
-import { MdCatalog, MdPreview } from 'md-editor-v3'
+import { computed, watch, ref, reactive, nextTick } from 'vue'
+import { MdPreview } from 'md-editor-v3'
+import MarkdownDocCatalog from '@/views/components/api/doc/comp/MarkdownDocCatalog.vue'
 import 'md-editor-v3/lib/preview.css'
 import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.vue'
 import { useCopyRight, useContainerCheck } from '@/services/api/ApiCommonService'
@@ -101,6 +102,16 @@ watch(currentDoc, (newDoc, oldDoc) => {
   }
 }, { immediate: true })
 
+const preferenceId = computed(() => calcPreferenceId(props.projectItem, props.shareDoc))
+watch(preferenceId, (prefId) => {
+  if (prefId && !shareConfigStore.sharePreferenceView[prefId]) {
+    shareConfigStore.sharePreferenceView[prefId] = reactive({})
+  }
+}, { immediate: true })
+const sharePreference = computed(() => {
+  const prefId = preferenceId.value
+  return (prefId && shareConfigStore.sharePreferenceView[prefId]) || {}
+})
 const { isDarkTheme } = useShareDocTheme(calcSharePreference(props.projectItem, props.shareDoc))
 const theme = computed(() => isDarkTheme.value ? 'dark' : 'light')
 const copyRight = useCopyRight(props.shareDoc)
@@ -203,17 +214,14 @@ const handleContainerClick = (event) => {
         :theme="theme"
         :model-value="currentDoc.docContent"
       />
-      <el-scrollbar
+      <markdown-doc-catalog
         v-if="!isSmallContainer"
-        class="md-doc-catalog"
-      >
-        <md-catalog
-          class="md-catalog"
-          :editor-id="id"
-          :scroll-element="scrollElement"
-          :scroll-element-offset-top="scrollElementOffsetTop"
-        />
-      </el-scrollbar>
+        v-model:collapsed="sharePreference.hideCatalog"
+        :editor-id="id"
+        :theme="theme"
+        :scroll-element="scrollElement"
+        :scroll-element-offset-top="scrollElementOffsetTop"
+      />
     </el-container>
     <el-container
       class="text-center padding-10 padding-bottom3 flex-center"

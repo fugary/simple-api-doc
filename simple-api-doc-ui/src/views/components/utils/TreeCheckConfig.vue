@@ -271,7 +271,7 @@ const checkChange = debounce(() => {
     isInternalChange = true
     selectedKeys.value = [...treeRef.value?.getHalfCheckedKeys() || [], ...treeRef.value?.getCheckedKeys() || []]
   }
-}, 200)
+}, 100)
 
 /**
  * 处理用户手动点击节点复选框
