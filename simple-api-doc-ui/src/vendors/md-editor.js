@@ -1,4 +1,6 @@
 import { config } from 'md-editor-v3'
+import mermaid from 'mermaid'
+import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { BASE_URL } from '@/config'
 
 /**
@@ -41,7 +43,19 @@ export const initEditorLink = () => {
 
 export default {
   install () {
+    // md-editor-v3 提供本地 instance 时会跳过 mermaid.initialize() 的初始调用（onMounted 直接 return），
+    // 需手动初始化一次；读 GlobalConfigStore 确保与应用主题状态一致。
+    const { isDarkTheme } = useGlobalConfigStore()
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDarkTheme ? 'dark' : 'default'
+    })
     config({
+      editorExtensions: {
+        mermaid: {
+          instance: mermaid
+        }
+      },
       markdownItConfig (mdit) {
         mdit.use(imagePathTransformPlugin)
       }

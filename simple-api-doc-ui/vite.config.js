@@ -55,6 +55,8 @@ export default ({ mode }) => {
               return 'elp'
             } else if (id.includes('node_modules/monaco-editor')) {
               return 'monaco-editor'
+            } else if (id.includes('node_modules/mermaid')) {
+              return 'mermaid'
             }
           }
         }
