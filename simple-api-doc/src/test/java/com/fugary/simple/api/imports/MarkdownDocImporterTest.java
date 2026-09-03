@@ -167,16 +167,16 @@ public class MarkdownDocImporterTest {
         Assertions.assertEquals("我的技术文档项目", rootDoc.getDocName());
         Assertions.assertEquals(1, rootDoc.getSortId());
 
-        // 顶级文件夹检查 (guide, faq)
+        // 顶级文件夹检查 (01-guide, 02-faq)
         List<ExportApiFolderVo> topFolders = projectVo.getFolders();
         Assertions.assertEquals(2, topFolders.size());
 
-        ExportApiFolderVo guideFolder = topFolders.stream().filter(f -> "guide".equals(f.getFolderName())).findFirst().orElse(null);
-        ExportApiFolderVo faqFolder = topFolders.stream().filter(f -> "faq".equals(f.getFolderName())).findFirst().orElse(null);
+        ExportApiFolderVo guideFolder = topFolders.stream().filter(f -> "01-guide".equals(f.getFolderName())).findFirst().orElse(null);
+        ExportApiFolderVo faqFolder = topFolders.stream().filter(f -> "02-faq".equals(f.getFolderName())).findFirst().orElse(null);
 
         Assertions.assertNotNull(guideFolder);
         Assertions.assertEquals("01-guide", guideFolder.getFolderCode());
-        Assertions.assertEquals("guide", guideFolder.getFolderName());
+        Assertions.assertEquals("01-guide", guideFolder.getFolderName());
         Assertions.assertEquals(100, guideFolder.getSortId());
         Assertions.assertEquals(2, guideFolder.getDocs().size()); // 01-installation, 02-configuration
         Assertions.assertEquals(1, guideFolder.getFolders().size()); // 02-advanced
@@ -196,7 +196,7 @@ public class MarkdownDocImporterTest {
         // 检查二级子文件夹 advanced
         ExportApiFolderVo advancedFolder = guideFolder.getFolders().get(0);
         Assertions.assertEquals("02-advanced", advancedFolder.getFolderCode());
-        Assertions.assertEquals("advanced", advancedFolder.getFolderName());
+        Assertions.assertEquals("02-advanced", advancedFolder.getFolderName());
         Assertions.assertEquals(200, advancedFolder.getSortId());
         Assertions.assertEquals(1, advancedFolder.getDocs().size());
         Assertions.assertEquals("认证机制", advancedFolder.getDocs().get(0).getDocName());
@@ -204,7 +204,7 @@ public class MarkdownDocImporterTest {
         // 检查 faq 文件夹
         Assertions.assertNotNull(faqFolder);
         Assertions.assertEquals("02-faq", faqFolder.getFolderCode());
-        Assertions.assertEquals("faq", faqFolder.getFolderName());
+        Assertions.assertEquals("02-faq", faqFolder.getFolderName());
         Assertions.assertEquals(200, faqFolder.getSortId());
         Assertions.assertEquals(1, faqFolder.getDocs().size());
         Assertions.assertEquals("常见问题解答", faqFolder.getDocs().get(0).getDocName());
@@ -222,17 +222,17 @@ public class MarkdownDocImporterTest {
         Assertions.assertNotNull(projectVo);
         Assertions.assertEquals(2, projectVo.getFolders().size());
 
-        ExportApiFolderVo startFolder = projectVo.getFolders().stream().filter(f -> "start".equals(f.getFolderName())).findFirst().orElse(null);
+        ExportApiFolderVo startFolder = projectVo.getFolders().stream().filter(f -> "01-start".equals(f.getFolderName())).findFirst().orElse(null);
         Assertions.assertNotNull(startFolder);
         Assertions.assertEquals("01-start", startFolder.getFolderCode());
-        Assertions.assertEquals("start", startFolder.getFolderName());
+        Assertions.assertEquals("01-start", startFolder.getFolderName());
         Assertions.assertEquals(1, startFolder.getDocs().size());
         Assertions.assertEquals("开始", startFolder.getDocs().get(0).getDocName());
 
-        ExportApiFolderVo apiFolder = projectVo.getFolders().stream().filter(f -> "api".equals(f.getFolderName())).findFirst().orElse(null);
+        ExportApiFolderVo apiFolder = projectVo.getFolders().stream().filter(f -> "02-api".equals(f.getFolderName())).findFirst().orElse(null);
         Assertions.assertNotNull(apiFolder);
         Assertions.assertEquals("02-api", apiFolder.getFolderCode());
-        Assertions.assertEquals("api", apiFolder.getFolderName());
+        Assertions.assertEquals("02-api", apiFolder.getFolderName());
         Assertions.assertEquals(1, apiFolder.getDocs().size());
         Assertions.assertEquals("API指南", apiFolder.getDocs().get(0).getDocName());
         Assertions.assertEquals(50, apiFolder.getDocs().get(0).getSortId());
@@ -261,9 +261,10 @@ public class MarkdownDocImporterTest {
         Assertions.assertNotNull(projectVo);
         Assertions.assertEquals(2, projectVo.getFolders().size());
         ExportApiFolderVo guideFolder = projectVo.getFolders().stream()
-                .filter(f -> "开发指南".equals(f.getFolderName())).findFirst().orElse(null);
+                .filter(f -> "01-开发指南".equals(f.getFolderName())).findFirst().orElse(null);
         Assertions.assertNotNull(guideFolder);
         Assertions.assertEquals("01-开发指南", guideFolder.getFolderCode());
+        Assertions.assertEquals("01-开发指南", guideFolder.getFolderName());
         Assertions.assertEquals(1, guideFolder.getDocs().size());
         Assertions.assertEquals("快速上手", guideFolder.getDocs().get(0).getDocName());
     }
@@ -287,7 +288,7 @@ public class MarkdownDocImporterTest {
 
         Assertions.assertNotNull(projectVo);
         Assertions.assertEquals(1, projectVo.getFolders().size());
-        Assertions.assertEquals("guide", projectVo.getFolders().get(0).getFolderName());
+        Assertions.assertEquals("01-guide", projectVo.getFolders().get(0).getFolderName());
         Assertions.assertEquals("系统简介", projectVo.getFolders().get(0).getDocs().get(0).getDocName());
     }
 }

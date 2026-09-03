@@ -143,10 +143,10 @@ public class GitDocContentProviderTest {
         Assertions.assertNotNull(projectVo);
         Assertions.assertEquals(2, projectVo.getFolders().size());
 
-        Assertions.assertEquals("快速上手", projectVo.getFolders().get(0).getFolderName());
+        Assertions.assertEquals("01-快速上手", projectVo.getFolders().get(0).getFolderName());
         Assertions.assertEquals("安装指南", projectVo.getFolders().get(0).getDocs().get(0).getDocName());
 
-        Assertions.assertEquals("接口说明", projectVo.getFolders().get(1).getFolderName());
+        Assertions.assertEquals("02-接口说明", projectVo.getFolders().get(1).getFolderName());
         Assertions.assertEquals("用户接口文档", projectVo.getFolders().get(1).getDocs().get(0).getDocName());
         Assertions.assertEquals(120, projectVo.getFolders().get(1).getDocs().get(0).getSortId());
     }

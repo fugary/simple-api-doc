@@ -172,11 +172,7 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
                 }
             }
             if (StringUtils.isBlank(title)) {
-                if (hasNumericPrefix && StringUtils.isNotBlank(numPrefixM.group(2))) {
-                    title = numPrefixM.group(2).trim();
-                } else {
-                    title = baseName;
-                }
+                title = baseName;
             }
 
             // 3. 提取排序 SortId
@@ -480,16 +476,13 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
     public static Pair<ExportApiFolderVo, ExportApiFolderVo> calcMarkdownFolder(List<ExportApiFolderVo> existsFolders, String folderPath) {
         int sizeBefore = existsFolders.size();
         Pair<ExportApiFolderVo, ExportApiFolderVo> result = ApiDocParseUtils.calcApiPathFolder(existsFolders, folderPath);
-        // 对新增的文件夹应用序号前缀解析
+        // 对新增的文件夹应用序号前缀解析提取排序
         for (int i = sizeBefore; i < existsFolders.size(); i++) {
             ExportApiFolderVo folder = existsFolders.get(i);
             folder.setFolderCode(folder.getFolderName());
             Matcher numM = NUMERIC_PREFIX_PATTERN.matcher(folder.getFolderName());
             if (numM.matches()) {
                 folder.setSortId(NumberUtils.toInt(numM.group(1), 0) * 100);
-                if (StringUtils.isNotBlank(numM.group(2))) {
-                    folder.setFolderName(numM.group(2).trim());
-                }
             }
         }
         return result;
