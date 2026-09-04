@@ -4,7 +4,7 @@ import ApiRequestFormRes from '@/views/components/api/form/ApiRequestFormRes.vue
 import ApiRequestFormReq from '@/views/components/api/form/ApiRequestFormReq.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { $copyText, joinPath, addParamsToURL } from '@/utils'
-import { addRequestParamsToResult } from '@/services/api/ApiDocPreviewService'
+import { extractQueryParams, isGetMethod } from '@/services/api/ApiDocPreviewService'
 import { processEvnParams } from '@/services/api/ApiCommonService'
 import { getEnvOptions } from '@/api/SimpleShareApi'
 
@@ -37,10 +37,10 @@ const requestUrl = computed(() => {
     reqUrl = reqUrl.replace(new RegExp(`:${pathParam.name}`, 'g'), pathParam.value)
       .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), processEvnParams(paramTarget.value.groupConfig, pathParam.value, true))
   })
-  if (paramTarget.value?.method?.toLowerCase() === 'get') {
-    const calcReqParams = paramTarget.value?.requestParams?.filter(requestParam => !!requestParam.name && requestParam.enabled).reduce((results, item) => {
-      return addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value, true))
-    }, {})
+  const paramsSendAs = paramTarget.value?.paramsSendAs || 'urlParams'
+  const isUrlParams = isGetMethod(paramTarget.value?.method) || paramsSendAs === 'urlParams'
+  if (isUrlParams) {
+    const calcReqParams = extractQueryParams(paramTarget.value?.requestParams, paramTarget.value?.groupConfig)
     reqUrl = addParamsToURL(reqUrl, calcReqParams)
   }
   return joinPath(paramTarget.value.targetUrl, reqUrl)
@@ -107,7 +107,6 @@ const docFormOption = computed(() => {
           />
           <div
             class="api-path-url padding-top1"
-            style="margin-right: 10px"
           >
             <api-method-tag
               size="large"
@@ -118,10 +117,10 @@ const docFormOption = computed(() => {
             <el-link
               v-common-tooltip="requestUrl"
               type="primary"
-              style="white-space: break-spaces;word-break: break-all;"
+              class="api-url-link"
               @click="$copyText(requestUrl)"
             >
-              {{ requestUrl }}
+              <span class="api-url-text">{{ requestUrl }}</span>
             </el-link>
           </div>
           <div
@@ -161,5 +160,37 @@ const docFormOption = computed(() => {
 </template>
 
 <style scoped>
-
+.api-path-url {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  margin-right: 10px;
+}
+.api-url-link {
+  min-height: 32px;
+  max-width: calc(100% - 70px);
+  justify-content: flex-start;
+  text-align: left;
+}
+.api-url-link :deep(.el-link__inner) {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  max-width: 100%;
+  text-align: left;
+}
+.api-url-text {
+  text-align: left;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  white-space: normal;
+  line-height: 1.4;
+  max-height: 2.8em;
+}
 </style>

@@ -39,6 +39,7 @@ import {
 import ApiGenerateSample from '@/views/components/api/form/ApiGenerateSample.vue'
 import ApiDataExample from '@/views/components/api/form/ApiDataExample.vue'
 import NewWindowEditLink from '@/views/components/utils/NewWindowEditLink.vue'
+import ApiParamObjectEditor from '@/views/components/api/form/ApiParamObjectEditor.vue'
 import { buildCurlCommand, CURL_SHELL, extendCurlParams } from '@/services/api/CurlProcessService'
 import { useShareDocTheme } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
@@ -309,6 +310,10 @@ const loginApiConfigs = computed(() => parseLoginApiConfigs(paramTarget.value))
 
 const { monacoTheme } = useShareDocTheme()
 
+const paramObjectEditorRef = ref()
+const handleEditObjectParam = (item) => {
+  paramObjectEditorRef.value?.open(item)
+}
 </script>
 
 <template>
@@ -413,6 +418,7 @@ const { monacoTheme } = useShareDocTheme()
         form-prop="requestParams"
         :file-flag="paramTarget.paramsSendAs==='formData'"
         :value-suggestions="envSuggestions"
+        @edit-object-param="handleEditObjectParam"
       />
     </el-tab-pane>
     <el-tab-pane name="headerParamsTab">
@@ -573,6 +579,13 @@ const { monacoTheme } = useShareDocTheme()
       />
     </el-tab-pane>
   </el-tabs>
+  <ApiParamObjectEditor
+    ref="paramObjectEditorRef"
+    :monaco-theme="monacoTheme"
+    :preference-id="paramTarget.preferenceId"
+    :project-id="paramTarget.projectId"
+    :doc-id="paramTarget.docId"
+  />
 </template>
 
 <style scoped>

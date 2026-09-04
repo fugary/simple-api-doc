@@ -1,4 +1,5 @@
-import { $coreHideLoading, $coreShowLoading, formatDate, toGetParams } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, formatDate, toGetParams, toFlatKeyValue } from '@/utils'
+import { sample } from 'openapi-sampler'
 import { cloneDeep, get, isArray, isObject, isString, lowerCase, pull, set } from 'lodash-es'
 import { JSONPath } from 'jsonpath-plus'
 import { XMLParser } from 'fast-xml-parser'
@@ -392,6 +393,41 @@ export const isGetMethod = method => {
 }
 
 /**
+ * 提取并平铺请求参数（支持对象参数解析与平铺为 Query 参数）
+ * @param requestParams
+ * @param groupConfig
+ * @returns {*}
+ */
+export const extractQueryParams = (requestParams, groupConfig) => {
+  const params = preProcessParams(requestParams)
+  return params.reduce((results, item) => {
+    let parsedVal = item.value
+    if (item.isObject && isString(item.value)) {
+      try {
+        const rawJson = processEvnParams(groupConfig, item.value, false)
+        parsedVal = JSON.parse(rawJson)
+      } catch {
+        // user may be typing invalid json
+      }
+    }
+    if (item.isObject && isObject(parsedVal) && !isArray(parsedVal)) {
+      const flatObj = toFlatKeyValue(parsedVal)
+      for (const [k, v] of Object.entries(flatObj)) {
+        if (v !== undefined && v !== null && v !== '') {
+          addRequestParamsToResult(results, k, processEvnParams(groupConfig, v, true))
+        }
+      }
+    } else {
+      const val = processEvnParams(groupConfig, item.value, true)
+      if (isString(val) ? val.trim() : (val !== undefined && val !== null)) {
+        addRequestParamsToResult(results, item.name, val)
+      }
+    }
+    return results
+  }, {})
+}
+
+/**
  * 各种类型的body解析
  *
  * @param paramTarget
@@ -410,10 +446,7 @@ export const calcRequestBody = (paramTarget) => {
       [paramsSendAs]: requestParams
     })
   } else {
-    checkResult.params = requestParams.reduce((results, item) => {
-      addRequestParamsToResult(results, item.name, processEvnParams(paramTarget.value.groupConfig, item.value, true))
-      return results
-    }, {})
+    checkResult.params = extractQueryParams(requestParams, paramTarget.value?.groupConfig)
   }
   console.log('================================checkResult', checkResult)
   return checkResult
@@ -479,6 +512,31 @@ export const calcParamTargetByUrl = (calcRequestUrl) => {
     })
 }
 
+export const isObjectSchema = (schema) => {
+  return !!schema && schema.type !== 'array' && (schema.type === 'object' || isObject(schema.properties))
+}
+
+export const schemaToSampleObject = (schema) => {
+  if (!schema) return {}
+  try {
+    const sampleObj = sample(schema)
+    if (isObject(sampleObj) && !isArray(sampleObj)) {
+      return sampleObj
+    }
+  } catch (e) {
+    console.warn('sample schema error', e)
+  }
+  if (schema.properties) {
+    const res = {}
+    Object.keys(schema.properties).forEach(key => {
+      const prop = schema.properties[key]
+      res[key] = prop?.default ?? (prop?.example ?? '')
+    })
+    return res
+  }
+  return {}
+}
+
 /**
  * 请求参数Schema计算
  * @param parametersSchema
@@ -494,6 +552,7 @@ export const calcSchemaParameters = (parametersSchema, componentMap, filter = it
         param.schema && processSchema(param, componentMap, true)
         console.log('==============param', param)
         const array = param.schema?.type === 'array'
+        const isObj = isObjectSchema(param.schema)
         const valueSuggestions = param.schema?.enum || []
         let slots = null
         if (!valueSuggestions.length && isObject(param.examples)) {
@@ -505,13 +564,24 @@ export const calcSchemaParameters = (parametersSchema, componentMap, filter = it
             }
           }
         }
+        let defaultValue = param.schema?.default || ''
+        if (isObj) {
+          if (isObject(defaultValue)) {
+            defaultValue = JSON.stringify(defaultValue, null, 2)
+          } else if (!defaultValue) {
+            const sampleObj = schemaToSampleObject(param.schema)
+            defaultValue = Object.keys(sampleObj).length ? JSON.stringify(sampleObj, null, 2) : ''
+          }
+        }
         return {
           name: param.name,
-          value: param.schema?.default || '',
+          value: defaultValue,
           enabled: true,
           array,
+          isObject: isObj,
+          schema: param.schema,
           valueRequired: param.required,
-          valueSuggestions,
+          valueSuggestions: isObj ? [] : valueSuggestions,
           dynamicOption: () => ({
             placeholder: param?.description || param.name,
             required: param.required,
@@ -530,6 +600,12 @@ export const copyParamsDynamicOption = (params, savedParams) => {
       const foundParam = params.find(param => param.name === savedParam.name)
       if (foundParam) {
         savedParam.dynamicOption = foundParam.dynamicOption
+        if (foundParam.isObject !== undefined) {
+          savedParam.isObject = foundParam.isObject
+        }
+        if (foundParam.schema !== undefined) {
+          savedParam.schema = foundParam.schema
+        }
       }
     })
   }

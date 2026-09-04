@@ -77,6 +77,8 @@ const params = defineModel('modelValue', {
   default: () => []
 })
 
+const emit = defineEmits(['editObjectParam'])
+
 params.value.forEach(param => (param.enabled = param.enabled ?? true))
 
 const addRequestParam = () => {
@@ -284,6 +286,40 @@ useTabFocus(sortableRef)
                 :style="{ visibility: hoverIndex === index && !dragging ? 'visible' : 'hidden' }"
               />
             </template>
+            <template
+              v-if="item.isObject && option.prop === props.valueKey"
+              #default
+            >
+              <el-tooltip
+                :disabled="!item.value"
+                placement="top"
+                :show-after="300"
+              >
+                <template #content>
+                  <el-scrollbar
+                    max-height="250px"
+                    class="object-param-preview-scroll"
+                  >
+                    <pre class="object-param-preview-text">{{ item.value }}</pre>
+                  </el-scrollbar>
+                </template>
+                <div
+                  style="display: flex; align-items: center; height: 32px;"
+                >
+                  <el-button
+                    type="primary"
+                    link
+                    @click="emit('editObjectParam', item)"
+                  >
+                    <common-icon
+                      icon="Edit"
+                      class="margin-right1"
+                    />
+                    {{ $t('api.label.editObjectParam') }}
+                  </el-button>
+                </div>
+              </el-tooltip>
+            </template>
           </common-form-control>
         </el-col>
       </template>
@@ -371,5 +407,34 @@ useTabFocus(sortableRef)
 </template>
 
 <style scoped>
-
+.object-param-preview-scroll {
+  max-width: 480px;
+}
+.object-param-preview-scroll :deep(.el-scrollbar__wrap) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--el-border-color-darker) transparent;
+}
+.object-param-preview-scroll :deep(.el-scrollbar__wrap)::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.object-param-preview-scroll :deep(.el-scrollbar__wrap)::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: var(--el-border-color-darker);
+}
+.object-param-preview-scroll :deep(.el-scrollbar__wrap)::-webkit-scrollbar-thumb:hover {
+  background-color: var(--el-text-color-secondary);
+}
+.object-param-preview-scroll :deep(.el-scrollbar__wrap)::-webkit-scrollbar-track {
+  background: transparent;
+}
+.object-param-preview-text {
+  margin: 0;
+  padding: 4px 8px 4px 2px;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 </style>
