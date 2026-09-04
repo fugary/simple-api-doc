@@ -10,6 +10,7 @@ import {
   SIMPLE_API_META_DATA_REQ,
   NONE,
   AUTH_TYPE,
+  AUTHORIZATION_KEY,
   BEARER_KEY,
   SCHEMA_SELECT_TYPE,
   ALL_CONTENT_TYPES_LIST,
@@ -928,15 +929,19 @@ export const calcAuthType = (schema) => {
 export const calcDefaultAuthModel = (authContentModel, authSchema) => {
   if (authContentModel && authSchema) {
     authContentModel.authType = authSchema.authType || AUTH_TYPE.NONE
-    if (authSchema.name) {
-      authContentModel.headerName = authSchema.name
+    const isHttp = authSchema.type?.toLowerCase() === 'http'
+    if (isHttp) {
+      authContentModel.headerName = AUTHORIZATION_KEY
+      authContentModel.tokenToType = 'header'
+    } else {
+      authContentModel.headerName = authSchema.name || AUTHORIZATION_KEY
+      authContentModel.tokenToType = authSchema.in === 'query' ? 'parameter' : 'header'
     }
-    authContentModel.tokenToType = authSchema.in === 'query' ? 'parameter' : 'header'
-    if (authSchema.in === 'query') {
-      authContentModel.tokenToType = 'parameter'
-    }
-    if (authContentModel.authType === AUTH_TYPE.TOKEN) {
-      authContentModel.tokenPrefix = authSchema.scheme || (BEARER_KEY === authSchema.authKey ? BEARER_KEY : '')
+    const isBearer = !authSchema.scheme || authSchema.scheme?.toLowerCase() === 'bearer'
+    if (isHttp && isBearer) {
+      authContentModel.tokenPrefix = BEARER_KEY
+    } else if (authContentModel.authType === AUTH_TYPE.TOKEN) {
+      authContentModel.tokenPrefix = isBearer ? BEARER_KEY : (authSchema.scheme || (BEARER_KEY === authSchema.authKey ? BEARER_KEY : ''))
     }
     authContentModel.authKey = authSchema.authKey
     const defaultAuth = authSchema['x-default-auth']

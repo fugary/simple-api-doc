@@ -109,7 +109,7 @@ const getOauth2Options = () => {
 }
 const editFormOptions = computed(() => {
   const oauth2 = securityInfoModel.value?.schema?.type === 'oauth2'
-  const needIn = ['http', 'apiKey'].includes(securityInfoModel.value?.schema?.type)
+  const needIn = securityInfoModel.value?.schema?.type === 'apiKey'
   return defineFormOptions([{
     labelKey: 'common.label.name',
     prop: 'schemaName',
