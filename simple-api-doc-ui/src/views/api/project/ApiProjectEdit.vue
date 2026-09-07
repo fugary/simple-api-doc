@@ -60,7 +60,7 @@ watch(() => currentDoc.value?.editing, (newEditing, oldEditing) => {
     currentDoc.value = lastDocInfo.value
   }
 })
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, isShowDebug, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
 const folderContainerHeight = computed(() => {
   const offset = calcAffixOffset()
   return `calc(100vh - ${170 + offset}px)`
@@ -109,8 +109,21 @@ const showSecurityEditWindow = ref(false)
 const splitRef = ref()
 const showDrawerMenu = ref(false)
 const { isMobile } = useScreenCheck()
-const showAffixBtn = computed(() => isMobile.value || splitRef.value?.elementSizes?.[0] < 50)
+const isTreeCollapsed = ref(false)
+const showAffixBtn = computed(() => isMobile.value || isTreeCollapsed.value || splitRef.value?.elementSizes?.[0] < 50)
 provide('showAffixBtn', showAffixBtn)
+
+const onTreeCollapse = (collapsed) => {
+  isTreeCollapsed.value = collapsed
+}
+
+watch(isShowDebug, (newShow) => {
+  if (isTreeCollapsed.value) {
+    nextTick(() => {
+      splitSizes.value = newShow ? [0, 50, 50] : [0, 100]
+    })
+  }
+})
 watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
   const drawerRefresh = drawerVal?.refreshProjectItem
   const folderRefresh = folderVal?.refreshProjectItem
@@ -290,10 +303,12 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
         <common-split
           v-if="projectItem"
           ref="splitRef"
-          :sizes="splitSizes"
+          v-model:sizes="splitSizes"
           :min-size="defaultMinSizes"
           :max-size="defaultMaxSizes"
+          :collapsible="!isMobile"
           class="height100"
+          @collapse="onTreeCollapse"
         >
           <template #split-0>
             <api-folder-tree-viewer
@@ -407,7 +422,3 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
     </el-container>
   </el-container>
 </template>
-
-<style scoped>
-
-</style>

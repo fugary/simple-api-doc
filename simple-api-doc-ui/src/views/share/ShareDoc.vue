@@ -1,5 +1,5 @@
 <script setup lang="jsx">
-import { computed, onMounted, onUnmounted, ref, watch, provide } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, provide, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { loadProject, loadShare } from '@/api/SimpleShareApi'
 import ApiFolderTreeViewer from '@/views/components/api/doc/ApiFolderTreeViewer.vue'
@@ -123,7 +123,7 @@ watch(currentDoc, (newDoc, oldDoc) => {
     hideDebugSplit()
   }
 })
-const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
+const { apiDocPreviewRef, splitSizes, defaultMinSizes, defaultMaxSizes, isShowDebug, hideDebugSplit, previewLoading, toDebugApi, changeForceShowWindow } = useApiDocDebugConfig()
 const splitRef = ref()
 const waterMarkFont = computed(() => ({
   color: shareDarkTheme.value ? 'rgba(255, 255, 255, .15)' : 'rgba(0, 0, 0, .15)'
@@ -135,8 +135,21 @@ const waterMarkContent = computed(() => {
   }
   return ''
 })
-const showAffixBtn = computed(() => isMobile.value || splitRef.value?.elementSizes?.[0] < 50)
+const isTreeCollapsed = ref(false)
+const showAffixBtn = computed(() => isMobile.value || isTreeCollapsed.value || splitRef.value?.elementSizes?.[0] < 50)
 provide('showAffixBtn', showAffixBtn)
+
+const onTreeCollapse = (collapsed) => {
+  isTreeCollapsed.value = collapsed
+}
+
+watch(isShowDebug, (newShow) => {
+  if (isTreeCollapsed.value) {
+    nextTick(() => {
+      splitSizes.value = newShow ? [0, 50, 50] : [0, 100]
+    })
+  }
+})
 </script>
 
 <template>
@@ -218,10 +231,13 @@ provide('showAffixBtn', showAffixBtn)
           <common-split
             v-if="!isMobile"
             ref="splitRef"
-            :sizes="splitSizes"
+            v-model:sizes="splitSizes"
             :min-size="defaultMinSizes"
             :max-size="defaultMaxSizes"
+            :collapsible="!isMobile"
+            :trigger-top="130"
             class="height100"
+            @collapse="onTreeCollapse"
           >
             <template #split-0>
               <api-folder-tree-viewer
@@ -318,4 +334,5 @@ provide('showAffixBtn', showAffixBtn)
   border-radius: 8px;
   letter-spacing: 0.5px;
 }
+
 </style>

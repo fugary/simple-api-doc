@@ -71,9 +71,10 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] 文档树批量删除与锁定安全保护：在左侧树设置菜单中新增【批量删除文档】功能，新增 `ApiDocBatchDeleteWindow` 弹窗支持树形多选、全选/反选、仅看已选、接口/Markdown 过滤及关键字搜索；提供“保留已锁定文档”默认防护，后端实现 `deleteDocs` 批量级联清理关联 Schema 与历史快照，并在项目编辑页自动刷新与平滑重置选中状态。
 - [x] Markdown 导入保留原始目录序号与文件名：优化 `MarkdownDocImporterImpl`，去除此前强制剥离文件夹与文档名数字前缀（如 `01-guide` 剥离为 `guide`）的处理，完整保留原始序号名称以忠实还原原始 Git 仓库/本地目录结构；同时保持从前缀数字提取 `sortId`（如 `100`、`200`），保证树形菜单展示原汁原味且目录天然有序，实现 0 表结构变更与反向 ZIP 导出 100% 结构闭环。
 - [x] Query 对象参数专属 Monaco JSON 独立弹窗编辑与自动平铺展开：针对接口存在多个对象参数（如 `OrderFilter` 与 `PageParam`）或同时混杂普通单值参数的场景，将 `ApiParamObjectEditor` 交互重构为独立的弹窗模式（基于 `common-window`，类似 `CodeWindow`），行内精简为【编辑对象参数】按钮与摘要 Tag，彻底解决内嵌卡片挤占表单空间的问题；支持 Monaco JSON 语法高亮、一键格式化、Schema 结构查看、基于 Schema 生成示例与新窗口/全屏编辑；顶部 URL 实时预览采用 CSS `-webkit-line-clamp: 2` 控制最多两行展示；发送请求、URL 预览及 cURL 导出时自动将 JSON 对象平铺展开为标准 URL Query 参数，与 Body 请求体严格隔离，实现后端 0 改动与前端高内聚。
+- [x] common-split 内置分栏折叠收起与左右自适应把手（对齐主目录与通用插槽）：将折叠收起重构为 `common-split` 组件内置功能（`:collapsible="true"`），利用 `<teleport>` 将把手挂载在 Split.js 拖拽条（`.gutter`）内部；展开操作（树收起）把手挂在拖动条右侧（`left: 100%`），收起操作（树展开）把手挂在拖动条左侧（`right: 100%`）；默认垂直高度为 `top: 95px`，在展开状态下与左侧主目录（`▾ 根目录`）横向居中对齐，在收起状态下位于右侧标题与表单控件之间的空白过渡带；提供 `:trigger-top` 属性（支持数字与 CSS 字符串）及 `#collapse-trigger` 插槽，满足高度定制需求；业务页面零冗余坐标换算与样式代码。
 
 ---
-*Last Updated: 2026-09-04*
+*Last Updated: 2026-09-07*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：
