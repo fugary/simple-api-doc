@@ -154,10 +154,22 @@ const calcSuggestions = (key = 'name') => {
   return calcSuggestionsFunc(keySuggestions)
 }
 
+const resolveDynamicOption = (item, ...args) => {
+  let opt = {}
+  if (isFunction(item?.dynamicOption)) {
+    opt = item.dynamicOption(item, ...args) || {}
+  }
+  if (item?.enabled === false) {
+    opt = { ...opt, required: false }
+  }
+  return opt
+}
+
 const paramsOptions = computed(() => {
   const nameSuggestions = calcSuggestions('name')
   const valueSuggestions = calcSuggestions('value')
   return params.value.map(param => {
+    const isEnabled = param.enabled !== false
     const nvSpan = props.showEnableSwitch ? 8 : 10
     const paramValueSuggestions = concatValueSuggestions(param.valueSuggestions, valueSuggestions)
     return defineFormOptions([{
@@ -170,7 +182,7 @@ const paramsOptions = computed(() => {
     }, {
       labelKey: 'common.label.name',
       prop: props.nameKey,
-      required: props.nameReadOnly || props.nameRequired || param.nameRequired || param.valueRequired,
+      required: isEnabled && (props.nameReadOnly || props.nameRequired || param.nameRequired || param.valueRequired),
       disabled: props.nameReadOnly,
       colSpan: nvSpan,
       type: nameSuggestions ? 'autocomplete' : 'input',
@@ -178,11 +190,7 @@ const paramsOptions = computed(() => {
         fetchSuggestions: nameSuggestions,
         triggerOnFocus: false
       },
-      dynamicOption: (item, ...args) => {
-        if (isFunction(item.dynamicOption)) {
-          return item.dynamicOption(item, ...args)
-        }
-      }
+      dynamicOption: resolveDynamicOption
     }, {
       labelWidth: '1px',
       prop: 'type',
@@ -204,7 +212,7 @@ const paramsOptions = computed(() => {
     }, {
       labelKey: 'common.label.value',
       prop: props.valueKey,
-      required: props.nameReadOnly || props.valueRequired || param.valueRequired,
+      required: isEnabled && (props.nameReadOnly || props.valueRequired || param.valueRequired),
       colSpan: nvSpan,
       disabled: props.valueReadOnly,
       enabled: param.type !== 'file',
@@ -213,11 +221,7 @@ const paramsOptions = computed(() => {
         fetchSuggestions: paramValueSuggestions,
         triggerOnFocus: false
       },
-      dynamicOption: (item, ...args) => {
-        if (isFunction(item.dynamicOption)) {
-          return item.dynamicOption(item, ...args)
-        }
-      }
+      dynamicOption: resolveDynamicOption
     }, {
       labelKey: 'common.label.files',
       type: 'upload',

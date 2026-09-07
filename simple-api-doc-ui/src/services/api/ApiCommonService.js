@@ -406,7 +406,7 @@ export const generateFormSample = (schemaBody) => {
         enabled: true,
         tooltip: value?.description,
         valueSuggestions: schemaBody.schema?.enum,
-        dynamicOption: () => ({ required: valueRequired })
+        dynamicOption: (item) => ({ required: (item?.enabled !== false) && valueRequired })
       })
     })
   }

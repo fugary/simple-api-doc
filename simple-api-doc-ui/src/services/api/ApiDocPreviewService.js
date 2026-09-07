@@ -582,9 +582,9 @@ export const calcSchemaParameters = (parametersSchema, componentMap, filter = it
           schema: param.schema,
           valueRequired: param.required,
           valueSuggestions: isObj ? [] : valueSuggestions,
-          dynamicOption: () => ({
+          dynamicOption: (item) => ({
             placeholder: param?.description || param.name,
-            required: param.required,
+            required: (item?.enabled !== false) && param.required,
             slots
           })
         }
@@ -605,6 +605,9 @@ export const copyParamsDynamicOption = (params, savedParams) => {
         }
         if (foundParam.schema !== undefined) {
           savedParam.schema = foundParam.schema
+        }
+        if (foundParam.valueRequired !== undefined) {
+          savedParam.valueRequired = foundParam.valueRequired
         }
       }
     })
