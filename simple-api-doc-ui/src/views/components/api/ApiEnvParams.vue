@@ -15,6 +15,7 @@ import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import { useSortableParams } from '@/hooks/CommonHooks'
+import { openLoginApiDebug } from '@/services/api/ApiDocPreviewService'
 
 const extractRulesOptions = defineFormOptions([{
   labelKey: 'common.label.statusEnabled',
@@ -73,7 +74,46 @@ const isTreeNodeDisabled = (nodeData) => {
   return !nodeData.isDoc || nodeData.docType !== 'api'
 }
 
+const buildLoginApiConfig = (node) => ({
+  apiId: node.id,
+  url: node.url,
+  method: node.method,
+  summary: node.docName || node.label || node.url,
+  deprecated: Boolean(node.deprecated),
+  enabled: node.enabled !== false && node.status !== 0 && node.deleted !== true
+})
+
+const apiDocMap = computed(() => {
+  const map = {
+    byId: new Map(),
+    byPath: new Map()
+  }
+  const traverse = (nodes) => {
+    if (!nodes || !nodes.length) return
+    for (const node of nodes) {
+      if (node.isDoc && node.docType === 'api') {
+        map.byId.set(String(node.id), node)
+        const url = node.url?.trim()
+        if (url) {
+          const list = map.byPath.get(url) || []
+          list.push(node)
+          map.byPath.set(url, list)
+        }
+      }
+      if (node.children && node.children.length) {
+        traverse(node.children)
+      }
+    }
+  }
+  traverse(docTreeNodes.value)
+  return map
+})
+
 const findDocNodeInTree = (nodes, id) => {
+  if (!id) return null
+  if (nodes === docTreeNodes.value) {
+    return apiDocMap.value.byId.get(String(id)) || null
+  }
   if (!nodes || !nodes.length) return null
   for (const node of nodes) {
     if (node.isDoc && String(node.id) === String(id)) {
@@ -87,14 +127,57 @@ const findDocNodeInTree = (nodes, id) => {
   return null
 }
 
-const buildLoginApiConfig = (node) => ({
-  apiId: node.id,
-  url: node.url,
-  method: node.method,
-  summary: node.docName || node.label || node.url,
-  deprecated: Boolean(node.deprecated),
-  enabled: node.enabled !== false && node.status !== 0 && node.deleted !== true
-})
+const findDocNodeByPath = (path, method) => {
+  if (!path) return null
+  const list = apiDocMap.value.byPath.get(path)
+  if (!list || !list.length) return null
+  if (method) {
+    const matched = list.find(node => node.method && node.method.toUpperCase() === method.toUpperCase())
+    if (matched) return matched
+  }
+  return list[0]
+}
+
+const handleDebugApi = (targetConfig) => {
+  if (!targetConfig?.apiId) return
+  openLoginApiDebug(targetConfig, {
+    projectId: projectItem.value?.id,
+    preferenceId: preferenceIdRef.value,
+    groupConfig: groupConfig.value
+  })
+}
+
+const getExtractRuleTarget = (rule) => {
+  if (!rule) return null
+  if (rule.apiId) {
+    const node = findDocNodeInTree(docTreeNodes.value, rule.apiId)
+    return node ? buildLoginApiConfig(node) : null
+  }
+  if (rule.apiPath) {
+    const found = findDocNodeByPath(rule.apiPath.trim(), rule.apiMethod)
+    return found ? buildLoginApiConfig(found) : null
+  }
+  return null
+}
+
+const canDebugRule = (rule) => {
+  return !!getExtractRuleTarget(rule)
+}
+
+const getRuleDebugTooltip = (rule) => {
+  const target = getExtractRuleTarget(rule)
+  if (target) {
+    return $i18nBundle('api.label.debugAPI')
+  }
+  return $i18nBundle('api.msg.ruleNoMatchedApiDebugTip')
+}
+
+const handleDebugRule = (rule) => {
+  const target = getExtractRuleTarget(rule)
+  if (target) {
+    handleDebugApi(target)
+  }
+}
 
 const enrichLoginApiConfigs = (configs) => {
   configs?.forEach(c => {
@@ -413,6 +496,28 @@ const saveGroupConfig = ({ form }) => {
                       sortable
                       @delete="({index: idx}) => item.extractRules.splice(idx, 1)"
                     >
+                      <template #operation-before="{ item: rule }">
+                        <el-tooltip
+                          effect="dark"
+                          :content="getRuleDebugTooltip(rule)"
+                          placement="top"
+                        >
+                          <span>
+                            <el-button
+                              type="primary"
+                              size="small"
+                              circle
+                              :disabled="!canDebugRule(rule)"
+                              @click="handleDebugRule(rule)"
+                            >
+                              <common-icon
+                                icon="PlayArrowFilled"
+                                :size="16"
+                              />
+                            </el-button>
+                          </span>
+                        </el-tooltip>
+                      </template>
                       <template #jsonPathHeader>
                         <div style="display: flex; align-items: center; white-space: nowrap;">
                           <span style="color: var(--el-color-danger); margin-right: 4px;">*</span>
@@ -570,14 +675,34 @@ const saveGroupConfig = ({ form }) => {
                         </component>
                       </el-text>
                     </div>
-                    <el-button
-                      type="danger"
-                      size="small"
-                      circle
-                      @click="removeLoginApi(index)"
-                    >
-                      <common-icon icon="Delete" />
-                    </el-button>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                      <el-tooltip
+                        effect="dark"
+                        :content="$t('api.label.debugAPI')"
+                        placement="top"
+                      >
+                        <el-button
+                          type="primary"
+                          size="small"
+                          circle
+                          :disabled="!apiConfig?.apiId"
+                          @click="handleDebugApi(apiConfig)"
+                        >
+                          <common-icon
+                            icon="PlayArrowFilled"
+                            :size="16"
+                          />
+                        </el-button>
+                      </el-tooltip>
+                      <el-button
+                        type="danger"
+                        size="small"
+                        circle
+                        @click="removeLoginApi(index)"
+                      >
+                        <common-icon icon="Delete" />
+                      </el-button>
+                    </div>
                   </div>
                 </div>
                 <el-button

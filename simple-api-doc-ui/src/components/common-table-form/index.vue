@@ -152,19 +152,41 @@ const options = computed(() => {
       :label="$t('common.label.operation')"
     >
       <template #default="{row, $index}">
-        <div class="el-form-item">
-          <el-button
-            circle
-            type="danger"
-            size="small"
-            underline="never"
-            @click="deleteItem(row, $index)"
+        <slot
+          name="operation"
+          :row="row"
+          :item="row"
+          :index="$index"
+        >
+          <div
+            class="el-form-item"
+            style="display: flex; align-items: center; justify-content: center; gap: 8px;"
           >
-            <common-icon
-              icon="Delete"
+            <slot
+              name="operation-before"
+              :row="row"
+              :item="row"
+              :index="$index"
             />
-          </el-button>
-        </div>
+            <el-button
+              circle
+              type="danger"
+              size="small"
+              underline="never"
+              @click="deleteItem(row, $index)"
+            >
+              <common-icon
+                icon="Delete"
+              />
+            </el-button>
+            <slot
+              name="operation-after"
+              :row="row"
+              :item="row"
+              :index="$index"
+            />
+          </div>
+        </slot>
       </template>
     </el-table-column>
     <template #empty="scope">
