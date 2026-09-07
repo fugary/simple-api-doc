@@ -189,7 +189,17 @@ const treeProps = {
 }
 
 const treeRef = ref()
+const treeScrollbarRef = ref()
 const showFolderTree = ref(true)
+const scrollTargetClass = `folder-tree-scroll-${Math.random().toString(36).substring(2, 9)}`
+
+const scrollToTop = () => {
+  if (treeScrollbarRef.value?.scrollTo) {
+    treeScrollbarRef.value.scrollTo({ top: 0, behavior: 'smooth' })
+  } else {
+    treeScrollbarRef.value?.setScrollTop?.(0)
+  }
+}
 
 const refreshFolderTreeInternal = () => {
   showFolderTree.value = false
@@ -373,7 +383,8 @@ const handlerData = {
   refreshFolderTree,
   reload,
   hasApiDoc,
-  isDeletable
+  isDeletable,
+  scrollToTop
 }
 
 defineExpose(handlerData)
@@ -492,8 +503,12 @@ defineExpose(handlerData)
         :model="searchParam"
       />
     </div>
-    <el-container class="scroll-main-container">
-      <el-scrollbar style="flex-grow: 1;">
+    <el-container class="scroll-main-container folder-tree-container">
+      <el-scrollbar
+        ref="treeScrollbarRef"
+        :class="scrollTargetClass"
+        style="flex-grow: 1;"
+      >
         <el-tree
           v-if="showFolderTree"
           ref="treeRef"
@@ -566,6 +581,13 @@ defineExpose(handlerData)
           </template>
         </el-tree>
       </el-scrollbar>
+      <el-backtop
+        v-if="width > 80"
+        v-common-tooltip="$t('common.label.backtop')"
+        :target="'.' + scrollTargetClass + ' .el-scrollbar__wrap'"
+        :right="20"
+        :bottom="40"
+      />
     </el-container>
     <api-doc-export-window
       v-model:tree-select-keys="exportSelectedKeys"
@@ -638,14 +660,29 @@ defineExpose(handlerData)
 }
 
 .custom-tree-node {
+  position: relative;
   width: 100%;
   height: 35px;
   line-height: 35px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .custom-tree-node .more-actions {
   position: absolute;
   right: 10px;
-  margin-top: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.folder-tree-container {
+  position: relative;
+}
+
+.folder-tree-container :deep(.el-backtop) {
+  position: absolute;
 }
 </style>
