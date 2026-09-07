@@ -79,7 +79,7 @@ const toEditDocSecuritySchemas = () => {
           type="success"
           class="margin-right1"
         >
-          {{ $t('api.label.authTypeInherit') }}
+          {{ $t('api.label.defaultAuth') }}
         </el-tag>
         <el-text
           type="primary"
