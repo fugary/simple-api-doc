@@ -166,4 +166,22 @@ public class GitDocContentProviderTest {
         Assertions.assertFalse(com.fugary.simple.api.utils.http.SimpleHttpClientUtils.isNonRetryableError(com.fugary.simple.api.utils.SimpleResultUtils.createError(2009, "Git API 请求失败: HTTP/1.1 502 Bad Gateway")));
         Assertions.assertFalse(com.fugary.simple.api.utils.http.SimpleHttpClientUtils.isNonRetryableError(null));
     }
+
+    @Test
+    public void testInsecureHttpConnectionFactory() throws Exception {
+        com.fugary.simple.api.service.impl.apidoc.git.InsecureHttpConnectionFactory factory =
+                com.fugary.simple.api.service.impl.apidoc.git.InsecureHttpConnectionFactory.INSTANCE;
+        java.net.URL httpsUrl = new java.net.URL("https://gitlab.example.com/test.git");
+        org.eclipse.jgit.transport.http.HttpConnection connection = factory.create(httpsUrl);
+        Assertions.assertNotNull(connection);
+        Assertions.assertNotNull(connection.getURL());
+        Assertions.assertEquals(httpsUrl, connection.getURL());
+
+        org.eclipse.jgit.transport.http.HttpConnection proxyConn = factory.create(httpsUrl, java.net.Proxy.NO_PROXY);
+        Assertions.assertNotNull(proxyConn);
+
+        // 验证全局注册为 InsecureHttpConnectionFactory
+        org.eclipse.jgit.transport.HttpTransport.setConnectionFactory(factory);
+        Assertions.assertEquals(factory, org.eclipse.jgit.transport.HttpTransport.getConnectionFactory());
+    }
 }

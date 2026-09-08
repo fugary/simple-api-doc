@@ -20,10 +20,12 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.HttpTransport;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,8 +43,17 @@ import java.util.stream.Stream;
 @Service
 public class GitDocContentProviderImpl implements GitDocContentProvider {
 
+    static {
+        HttpTransport.setConnectionFactory(InsecureHttpConnectionFactory.INSTANCE);
+    }
+
     @Autowired(required = false)
     private DocAssetStorageService docAssetStorageService;
+
+    @PostConstruct
+    public void init() {
+        HttpTransport.setConnectionFactory(InsecureHttpConnectionFactory.INSTANCE);
+    }
 
     @Override
     public SimpleResult<DocSourceData> getContent(GitRepoInfo repoInfo, UrlWithAuthVo source) {
