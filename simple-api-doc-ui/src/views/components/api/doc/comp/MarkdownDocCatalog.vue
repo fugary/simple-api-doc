@@ -56,20 +56,16 @@ const toggleCollapse = () => {
   >
     <!-- 侧边贴边折叠/展开触发把手 (Trigger Handle) -->
     <div
+      v-common-tooltip="isCollapsed ? $t('api.label.catalog') : ''"
       class="catalog-collapse-trigger"
       :class="{ 'trigger-collapsed': isCollapsed }"
-      @click="toggleCollapse"
+      @mousedown.stop
+      @click.stop="toggleCollapse"
     >
       <common-icon
         :icon="isCollapsed ? 'DArrowLeft' : 'DArrowRight'"
         :size="12"
       />
-      <span
-        v-if="isCollapsed"
-        class="trigger-text"
-      >
-        {{ $t('api.label.catalog') }}
-      </span>
     </div>
 
     <!-- 目录展开时的主体内容 -->
@@ -141,49 +137,43 @@ const toggleCollapse = () => {
   position: absolute;
   top: 30px;
   left: -14px;
-  z-index: 10;
+  z-index: 20;
+  transform: translateZ(0);
   width: 14px;
-  padding: 8px 0;
-  border-radius: 6px 0 0 6px;
+  padding: 10px 0;
   background-color: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-lighter);
-  border-right: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  cursor: pointer;
-  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.04);
+  justify-content: center;
+  cursor: pointer !important;
   color: var(--el-text-color-secondary);
-  transition: all 0.2s ease;
+  transition: width 0.2s ease, background-color 0.2s ease, color 0.2s ease, left 0.2s ease;
   user-select: none;
 }
 
 .catalog-collapse-trigger:hover {
+  width: 18px;
   color: var(--el-color-primary);
   background-color: var(--el-fill-color-light);
 }
 
+.catalog-collapse-trigger:not(.trigger-collapsed) {
+  border-radius: 6px 0 0 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-right: none;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.08);
+}
+
 .catalog-collapse-trigger:not(.trigger-collapsed):hover {
-  width: 16px;
-  left: -16px;
+  left: -18px;
 }
 
 .catalog-collapse-trigger.trigger-collapsed {
   left: auto;
-  right: 0;
-  width: auto;
-  min-width: 22px;
-  padding: 8px 4px;
-  box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.08);
-  gap: 4px;
-  color: var(--el-text-color-regular);
-}
-
-.trigger-text {
-  writing-mode: vertical-rl;
-  font-size: 12px;
-  line-height: 1.2;
-  letter-spacing: 2px;
+  right: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .catalog-main {
