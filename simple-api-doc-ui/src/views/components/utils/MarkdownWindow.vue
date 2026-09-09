@@ -54,7 +54,6 @@ defineExpose({
       v-model="vModel"
       :style="{height: editorHeight, overflow: 'auto'}"
       :theme="theme"
-      :auto-fold-threshold="200"
       class="markdown-doc-viewer"
     />
     <md-editor
@@ -62,7 +61,6 @@ defineExpose({
       v-model="vModel"
       :style="{height: editorHeight}"
       :theme="theme"
-      :auto-fold-threshold="200"
       class="scroll-main-container"
       :on-upload-img="onUploadImg"
     />
