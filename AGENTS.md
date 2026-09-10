@@ -69,13 +69,13 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] OpenAPI 规范原生保序导出与导入：严格遵循 OpenAPI 规范标准 `tags` 数组保序特性，在 `OpenApiApiDocExporterImpl` 中按目录树先序遍历生成 `tags` 列表并聚合同一 URL 多方法，在 `SwaggerImporterImpl` 中预先按 `tags` 顺序构建目录并分配递增 `sortId`，在零 `x-*` 扩展依赖下实现目录与接口 100% 保序还原。
 - [x] 基于 JGit 标准协议实现全网通用 Git 文档拉取与深层子目录提取：在 `pom.xml` 中引入 `org.eclipse.jgit` 依赖，重构 `GitDocContentProviderImpl` 为基于 JGit 的单分支快速克隆引擎；彻底清理平台特化冗余类，统一支持 GitHub、GitLab、Gitee、GitCode、Gitea、Bitbucket 及私有裸 Git 等任意平台；在 `GitRepoUrlResolver` 中支持多级深层子目录网页 URL 与直接 `.git` 链接解析，自动剥离前缀并替换 Markdown 相对图片链接；前端导入与任务弹窗根据数据源（Markdown/OpenAPI）动态切换 Placeholder 与 Tooltip 提示。
 - [x] 文档树批量删除与锁定安全保护：在左侧树设置菜单中新增【批量删除文档】功能，新增 `ApiDocBatchDeleteWindow` 弹窗支持树形多选、全选/反选、仅看已选、接口/Markdown 过滤及关键字搜索；提供“保留已锁定文档”默认防护，后端实现 `deleteDocs` 批量级联清理关联 Schema 与历史快照，并在项目编辑页自动刷新与平滑重置选中状态。
-- [x] Markdown 导入保留原始目录序号与文件名：优化 `MarkdownDocImporterImpl`，去除此前强制剥离文件夹与文档名数字前缀（如 `01-guide` 剥离为 `guide`）的处理，完整保留原始序号名称以忠实还原原始 Git 仓库/本地目录结构；同时保持从前缀数字提取 `sortId`（如 `100`、`200`），保证树形菜单展示原汁原味且目录天然有序，实现 0 表结构变更与反向 ZIP 导出 100% 结构闭环。
+- [x] Markdown 导入保留原始目录序号与文件名：完整保留文件夹与文档名的数字前缀（如 `01-guide`）；同级文件与目录按原始名称自然排序后生成递增 `sortId`（如 `100`、`200`），支持日期前缀及不补零的数字序号，避免仅提取年份造成排序冲突或长数字前缀溢出；保留 Frontmatter 显式排序与 README/index 默认置顶，无需变更表结构。
 - [x] Query 对象参数专属 Monaco JSON 独立弹窗编辑与自动平铺展开：针对接口存在多个对象参数（如 `OrderFilter` 与 `PageParam`）或同时混杂普通单值参数的场景，将 `ApiParamObjectEditor` 交互重构为独立的弹窗模式（基于 `common-window`，类似 `CodeWindow`），行内精简为【编辑对象参数】按钮与摘要 Tag，彻底解决内嵌卡片挤占表单空间的问题；支持 Monaco JSON 语法高亮、一键格式化、Schema 结构查看、基于 Schema 生成示例与新窗口/全屏编辑；顶部 URL 实时预览采用 CSS `-webkit-line-clamp: 2` 控制最多两行展示；发送请求、URL 预览及 cURL 导出时自动将 JSON 对象平铺展开为标准 URL Query 参数，与 Body 请求体严格隔离，实现后端 0 改动与前端高内聚。
 - [x] common-split 内置分栏折叠收起与左右自适应把手（对齐主目录与通用插槽）：将折叠收起重构为 `common-split` 组件内置功能（`:collapsible="true"`），利用 `<teleport>` 将把手挂载在 Split.js 拖拽条（`.gutter`）内部；展开操作（树收起）把手挂在拖动条右侧（`left: 100%`），收起操作（树展开）把手挂在拖动条左侧（`right: 100%`）；默认垂直高度为 `top: 95px`，在展开状态下与左侧主目录（`▾ 根目录`）横向居中对齐，在收起状态下位于右侧标题与表单控件之间的空白过渡带；提供 `:trigger-top` 属性（支持数字与 CSS 字符串）及 `#collapse-trigger` 插槽，满足高度定制需求；业务页面零冗余坐标换算与样式代码。
 - [x] 全局变量与提取配置快捷调试支持：在全局变量与提取配置弹窗中，为登录接口列表与变量提取规则匹配路径在删除图标前增加快捷【调试】按钮；复用 `openLoginApiDebug` 调起单接口调试窗口，多层弹窗平滑层叠且保留原配置；提取规则支持关联接口直连调试与手动路径智能匹配寻址，未匹配路径优雅禁用提示，调试响应后自动联动验证变量提取。
 
 ---
-*Last Updated: 2026-09-07*
+*Last Updated: 2026-09-10*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：

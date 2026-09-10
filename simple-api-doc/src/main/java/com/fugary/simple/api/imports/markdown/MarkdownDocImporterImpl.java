@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -50,7 +51,7 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
     public static final Pattern FRONTMATTER_PATTERN = Pattern.compile("^---\\r?\\n(.*?)\\r?\\n---\\r?\\n(.*)$", Pattern.DOTALL);
     public static final Pattern H1_PATTERN = Pattern.compile("(?m)^#\\s+(.+)$");
     public static final Pattern HEADING_PATTERN = Pattern.compile("(?m)^#{1,6}\\s+(.+)$");
-    public static final Pattern NUMERIC_PREFIX_PATTERN = Pattern.compile("^(\\d+)[\\.\\-_ ]+(.*)$");
+    private static final Pattern NAME_PART_PATTERN = Pattern.compile("([0-9]+)|[^0-9]+");
     public static final Pattern SWAGGER_YAML_PATTERN = Pattern.compile("(?m)^\\s*['\"]?(openapi|swagger)['\"]?\\s*:");
 
     public static final List<String> MD_EXTENSIONS = List.of(".md", ".markdown");
@@ -127,7 +128,7 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
         projectVo.setFolders(new ArrayList<>());
 
         List<ExportApiFolderVo> allFolders = new ArrayList<>();
-        int fileIndex = 0;
+        Map<String, Integer> pathSortIds = buildPathSortIds(fileMap.keySet());
 
         for (Map.Entry<String, String> entry : fileMap.entrySet()) {
             String path = entry.getKey();
@@ -137,8 +138,6 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
             String folderPath = lastSlash > 0 ? path.substring(0, lastSlash) : "";
             String fileName = lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
             String baseName = removeExtension(fileName);
-            Matcher numPrefixM = NUMERIC_PREFIX_PATTERN.matcher(baseName);
-            boolean hasNumericPrefix = numPrefixM.matches();
 
             // 1. 解析 Frontmatter
             String body = content;
@@ -184,14 +183,7 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
                 }
             }
             if (sortId == null) {
-                if (isReadmeOrIndex(fileName)) {
-                    sortId = 1;
-                } else if (hasNumericPrefix) {
-                    sortId = NumberUtils.toInt(numPrefixM.group(1), 0) * 100;
-                }
-            }
-            if (sortId == null) {
-                sortId = (fileIndex + 1) * 100;
+                sortId = isReadmeOrIndex(fileName) ? 1 : pathSortIds.get(path);
             }
 
             // 4. 其他 Frontmatter 元数据
@@ -228,13 +220,13 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
                     projectVo.setProjectName(title);
                 }
             } else {
-                Pair<ExportApiFolderVo, ExportApiFolderVo> folderPair = calcMarkdownFolder(allFolders, folderPath);
+                Pair<ExportApiFolderVo, ExportApiFolderVo> folderPair = ApiDocParseUtils.calcApiPathFolder(allFolders, folderPath);
                 ExportApiFolderVo folder = folderPair.getLeft();
                 folder.getDocs().add(docVo);
             }
-
-            fileIndex++;
         }
+
+        allFolders.forEach(folder -> folder.setSortId(pathSortIds.get(folder.getFolderPath())));
 
         // 整理一级顶级文件夹
         projectVo.setFolders(allFolders.stream()
@@ -255,6 +247,54 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
         projectVo.setProjectInfo(projectInfo);
 
         return projectVo;
+    }
+
+    /**
+     * 同级文件与目录按原始名称自然排序，再生成较小的排序值，避免日期前缀截断或整数溢出。
+     */
+    private Map<String, Integer> buildPathSortIds(Set<String> paths) {
+        Map<String, Set<String>> siblings = new HashMap<>();
+        for (String path : paths) {
+            String current = path;
+            while (StringUtils.isNotEmpty(current)) {
+                int slash = current.lastIndexOf('/');
+                String parent = slash >= 0 ? current.substring(0, slash) : "";
+                if (!siblings.computeIfAbsent(parent, key -> new TreeSet<>(MarkdownDocImporterImpl::compareNames))
+                        .add(current)) {
+                    break; // 已处理过该路径，其祖先目录也已加入。
+                }
+                current = parent;
+            }
+        }
+        Map<String, Integer> sortIds = new HashMap<>();
+        for (Set<String> names : siblings.values()) {
+            int index = 0;
+            for (String name : names) {
+                sortIds.put(name, ++index * 100);
+            }
+        }
+        return sortIds;
+    }
+
+    private static int compareNames(String left, String right) {
+        Matcher leftParts = NAME_PART_PATTERN.matcher(left);
+        Matcher rightParts = NAME_PART_PATTERN.matcher(right);
+        while (leftParts.find()) {
+            if (!rightParts.find()) {
+                return 1;
+            }
+            int comparison = leftParts.group(1) != null && rightParts.group(1) != null
+                    ? new BigInteger(leftParts.group(1)).compareTo(new BigInteger(rightParts.group(1)))
+                    : leftParts.group().compareTo(rightParts.group());
+            if (comparison != 0) {
+                return comparison;
+            }
+        }
+        if (rightParts.find()) {
+            return -1;
+        }
+        // 数字段相同（如 01 与 1）时仍保留稳定顺序，避免 TreeSet 丢失不同路径。
+        return left.compareTo(right);
     }
 
     /**
@@ -466,25 +506,4 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
         return "README".equalsIgnoreCase(base) || "index".equalsIgnoreCase(base);
     }
 
-    /**
-     * 计算并创建多级 Markdown 目录层级（复用 ApiDocParseUtils.calcApiPathFolder 并扩展序号解析）
-     *
-     * @param existsFolders 已解析文件夹列表
-     * @param folderPath 相对目录路径（如 01-guide/02-advanced）
-     * @return left: 当前底层目录, right: 顶层目录
-     */
-    public static Pair<ExportApiFolderVo, ExportApiFolderVo> calcMarkdownFolder(List<ExportApiFolderVo> existsFolders, String folderPath) {
-        int sizeBefore = existsFolders.size();
-        Pair<ExportApiFolderVo, ExportApiFolderVo> result = ApiDocParseUtils.calcApiPathFolder(existsFolders, folderPath);
-        // 对新增的文件夹应用序号前缀解析提取排序
-        for (int i = sizeBefore; i < existsFolders.size(); i++) {
-            ExportApiFolderVo folder = existsFolders.get(i);
-            folder.setFolderCode(folder.getFolderName());
-            Matcher numM = NUMERIC_PREFIX_PATTERN.matcher(folder.getFolderName());
-            if (numM.matches()) {
-                folder.setSortId(NumberUtils.toInt(numM.group(1), 0) * 100);
-            }
-        }
-        return result;
-    }
 }

@@ -2,6 +2,7 @@ package com.fugary.simple.api.imports;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.imports.markdown.MarkdownDocImporterImpl;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
@@ -14,11 +15,70 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MarkdownDocImporterTest {
+
+    @Test
+    public void testDateFileNamesSortIndependentlyOfInputOrder() {
+        assertFileNameOrder(List.of("2025-12-31.md", "2026-01-01.md", "2026-09-02.md", "2026-09-10.md", "2026-10-01.md"));
+        assertFileNameOrder(List.of("2025-12-31.md", "2026-1-1.md", "2026-9-2.md", "2026-9-10.md", "2026-10-1.md"));
+        assertFileNameOrder(List.of("20251231-日志.md", "20260101-日志.md", "20260910-日志.md", "20270101-日志.md"));
+        assertFileNameOrder(List.of("2026.09.02.md", "2026.09.10.md", "2026.10.01.md"));
+    }
+
+    @Test
+    public void testNaturalFileNameOrderAndReadmePriority() {
+        assertFileNameOrder(List.of("README.md", "01-指南.md", "1-指南.md", "2-指南.md", "10-指南.md",
+                "20260910123000-日志.md", "20260910123001-日志.md", "a.md", "z.md"));
+        assertFileNameOrder(List.of("index.md", "2.md", "10.md"));
+    }
+
+    private void assertFileNameOrder(List<String> expectedPaths) {
+        List<String> paths = new ArrayList<>(expectedPaths);
+        for (int i = 0; i < 2; i++) {
+            Collections.reverse(paths);
+            String json = JsonUtils.toJson(paths.stream()
+                    .map(path -> Map.of("path", path, "content", "# 相同标题"))
+                    .collect(Collectors.toList()));
+            ExportApiProjectVo project = new MarkdownDocImporterImpl().doImport(json);
+            List<ExportApiDocVo> docs = project.getDocs();
+            docs.sort(Comparator.comparing(ExportApiDocVo::getSortId));
+            Assertions.assertEquals(expectedPaths, docs.stream().map(ExportApiDocVo::getDocKey).collect(Collectors.toList()));
+            Assertions.assertEquals(docs.size(), docs.stream().map(ExportApiDocVo::getSortId).distinct().count());
+        }
+    }
+
+    @Test
+    public void testDateFoldersAndFrontmatterSortInZip() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
+            for (String path : List.of("2026-10-01/2026-10-02.md", "2026-09-10/2026-10-01.md",
+                    "2026-09-10/2026-09-02.md", "2026-09-10/2026-09-10.md", "2026-09-10/README.md")) {
+                zos.putNextEntry(new ZipEntry(path));
+                String content = path.endsWith("2026-10-01.md") ? "---\norder: 2\n---\n# 优先文档" : "# 相同标题";
+                zos.write(content.getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+        }
+        ExportApiProjectVo project = new MarkdownDocImporterImpl().doImport(Base64.getEncoder().encodeToString(baos.toByteArray()));
+        project.getFolders().sort(Comparator.comparing(ExportApiFolderVo::getSortId));
+        Assertions.assertEquals(List.of("2026-09-10", "2026-10-01"), project.getFolders().stream()
+                .map(ExportApiFolderVo::getFolderName).collect(Collectors.toList()));
+        List<ExportApiDocVo> docs = project.getFolders().get(0).getDocs();
+        docs.sort(Comparator.comparing(ExportApiDocVo::getSortId));
+        Assertions.assertEquals(List.of("2026-09-10/README.md", "2026-09-10/2026-10-01.md",
+                "2026-09-10/2026-09-02.md", "2026-09-10/2026-09-10.md"),
+                docs.stream().map(ExportApiDocVo::getDocKey).collect(Collectors.toList()));
+        Assertions.assertEquals(2, docs.get(1).getSortId());
+    }
 
     @Test
     public void testMatch() {
