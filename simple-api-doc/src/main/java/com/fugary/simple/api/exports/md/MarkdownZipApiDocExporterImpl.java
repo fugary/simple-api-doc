@@ -15,6 +15,7 @@ import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
 import com.fugary.simple.api.utils.SchemaYamlUtils;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
@@ -110,7 +111,6 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.mergeInfoDetailVo(projectInfoDetails);
         if (projectInfoDetailVo == null) {
             projectInfoDetailVo = new ApiProjectInfoDetailVo();
-            projectInfoDetailVo.setSpecVersion(SpecVersion.V31.name());
         }
         MdViewContext context = new MdViewContext();
         context.setGenerateComponents(false);
@@ -139,7 +139,7 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
 
             String bodyContent;
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
-                SpecVersion specVersion = SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion());
+                SpecVersion specVersion = SchemaJsonUtils.resolveSpecVersion(projectInfoDetailVo.getSpecVersion());
                 context.setApiDocDetail(apiDocDetail);
                 apiDocDetail.setProject(detailVo);
                 apiDocDetail.setProjectInfoDetail(projectInfoDetailVo);

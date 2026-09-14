@@ -93,8 +93,6 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.mergeInfoDetailVo(projectInfoDetails);
         if (projectInfoDetailVo == null) {
             projectInfoDetailVo = new ApiProjectInfoDetailVo();
-            projectInfoDetailVo.setSpecVersion(SpecVersion.V30.name());
-            projectInfoDetailVo.setOasVersion("3.0.1");
         }
         Pair<Map<String, ApiFolder>, Map<Integer, String>> folderMapPair = apiFolderService.calcFolderMap(detailVo.getFolders());
         Map<Integer, String> folderNameMap = apiFolderService.calcFolderNameMap(detailVo.getFolders());
@@ -102,9 +100,9 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
         docDetailList.sort(Comparator.comparing(d -> ApiDocParseUtils.getDocSortKey(d, folderMap)));
 
-        SpecVersion specVersion = projectInfoDetailVo.getSpecVersion() != null
-                ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V30;
-        String oasVersion = StringUtils.defaultIfBlank(projectInfoDetailVo.getOasVersion(), "3.0.1");
+        SpecVersion specVersion = SchemaJsonUtils.resolveSpecVersion(projectInfoDetailVo.getSpecVersion());
+        String oasVersion = StringUtils.defaultIfBlank(projectInfoDetailVo.getOasVersion(),
+                SchemaJsonUtils.defaultOasVersion(specVersion));
         // 新建OpenAPI数据
         OpenAPI openAPI = new OpenAPI(specVersion)
                 .openapi(oasVersion)

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SchemaYamlUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
@@ -13,6 +14,7 @@ import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
 import com.fugary.simple.api.web.vo.imports.DocSourceData;
+import io.swagger.v3.oas.models.SpecVersion;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -240,7 +242,8 @@ public class MarkdownDocImporterImpl implements ApiDocImporter {
         // 基本信息配置
         ExportApiProjectInfoVo projectInfo = new ExportApiProjectInfoVo();
         projectInfo.setSourceType(ApiDocConstants.SOURCE_TYPE_MARKDOWN);
-        projectInfo.setSpecVersion(ApiDocConstants.SOURCE_TYPE_MARKDOWN);
+        projectInfo.setSpecVersion(SpecVersion.V31.name());
+        projectInfo.setOasVersion(SchemaJsonUtils.defaultOasVersion(SpecVersion.V31));
         projectInfo.setVersion("1.0.0");
         projectInfo.setStatus(ApiDocConstants.STATUS_ENABLED);
         projectInfo.setDefaultFlag(true);

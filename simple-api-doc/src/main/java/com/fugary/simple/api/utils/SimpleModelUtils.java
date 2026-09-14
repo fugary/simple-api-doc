@@ -465,7 +465,7 @@ public class SimpleModelUtils {
     public static ApiProjectInfo getDefaultProjectInfo(ApiProject project){
         ApiProjectInfo apiProjectInfo = new ApiProjectInfo();
         apiProjectInfo.setProjectId(project.getId());
-        apiProjectInfo.setOasVersion("3.1.0");
+        apiProjectInfo.setOasVersion(SchemaJsonUtils.defaultOasVersion(SpecVersion.V31));
         apiProjectInfo.setSpecVersion(SpecVersion.V31.name());
         apiProjectInfo.setVersion(StringUtils.defaultIfBlank(project.getApiVersion(), "v1.0.0"));
         apiProjectInfo.setDefaultFlag(true);

@@ -27,6 +27,14 @@ import java.util.zip.ZipOutputStream;
 public class MarkdownDocImporterTest {
 
     @Test
+    public void testMarkdownSourceHasSeparateOpenApiVersion() {
+        ExportApiProjectVo project = new MarkdownDocImporterImpl().doImport("# Guide\n\nContent");
+        Assertions.assertEquals(ApiDocConstants.SOURCE_TYPE_MARKDOWN, project.getProjectInfo().getSourceType());
+        Assertions.assertEquals("V31", project.getProjectInfo().getSpecVersion());
+        Assertions.assertEquals("3.1.0", project.getProjectInfo().getOasVersion());
+    }
+
+    @Test
     public void testDateFileNamesSortIndependentlyOfInputOrder() {
         assertFileNameOrder(List.of("2025-12-31.md", "2026-01-01.md", "2026-09-02.md", "2026-09-10.md", "2026-10-01.md"));
         assertFileNameOrder(List.of("2025-12-31.md", "2026-1-1.md", "2026-9-2.md", "2026-9-10.md", "2026-10-1.md"));

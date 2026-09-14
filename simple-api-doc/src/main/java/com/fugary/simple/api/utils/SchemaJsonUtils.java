@@ -3,6 +3,7 @@ package com.fugary.simple.api.utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fugary.simple.api.contants.ApiDocConstants;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.core.util.Json31;
 import io.swagger.v3.core.util.RefUtils;
@@ -109,8 +110,21 @@ public class SchemaJsonUtils {
     }
 
     public static boolean isV31(String specVersionStr) {
-        SpecVersion specVersion = SpecVersion.valueOf(specVersionStr);
-        return isV31(specVersion);
+        return isV31(resolveSpecVersion(specVersionStr));
+    }
+
+    /**
+     * 来源类型不代表 API 规范版本；手工项目及历史 Markdown 项目采用默认的 OpenAPI 3.1。
+     */
+    public static SpecVersion resolveSpecVersion(String specVersionStr) {
+        if (StringUtils.isBlank(specVersionStr) || ApiDocConstants.SOURCE_TYPE_MARKDOWN.equals(specVersionStr)) {
+            return SpecVersion.V31;
+        }
+        return SpecVersion.valueOf(specVersionStr);
+    }
+
+    public static String defaultOasVersion(SpecVersion specVersion) {
+        return isV31(specVersion) ? "3.1.0" : "3.0.1";
     }
 
     public static void processXxxOf(List<Schema> xxxOf, Map<String, Schema<?>> schemasMap) {

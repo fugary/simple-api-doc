@@ -13,6 +13,7 @@ import com.fugary.simple.api.exports.ApiExportFilter;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
@@ -102,7 +103,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
             apiDocDetail.setFolderPath(folderPath);
             apiDocDetail.setTopLevelFolder(topLevelFolder);
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
-                SpecVersion specVersion = projectInfoDetailVo != null ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V31;
+                SpecVersion specVersion = SchemaJsonUtils.resolveSpecVersion(projectInfoDetailVo != null ? projectInfoDetailVo.getSpecVersion() : null);
                 context.setApiDocDetail(apiDocDetail);
                 apiDocDetail.setProject(detailVo);
                 apiDocDetail.setProjectInfoDetail(projectInfoDetailVo);
