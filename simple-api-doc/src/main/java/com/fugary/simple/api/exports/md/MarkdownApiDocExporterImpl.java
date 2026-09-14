@@ -89,7 +89,6 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         ApiProjectInfoDetailVo projectInfoDetailVo = apiProjectInfoDetailService.mergeInfoDetailVo(projectInfoDetails);
         MdViewContext context = new MdViewContext();
         context.setGenerateComponents(false);
-        SpecVersion specVersion = projectInfoDetailVo != null ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V31;
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
         context.setSchemasMap(schemasMap);
         // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
@@ -103,6 +102,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
             apiDocDetail.setFolderPath(folderPath);
             apiDocDetail.setTopLevelFolder(topLevelFolder);
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
+                SpecVersion specVersion = projectInfoDetailVo != null ? SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion()) : SpecVersion.V31;
                 context.setApiDocDetail(apiDocDetail);
                 apiDocDetail.setProject(detailVo);
                 apiDocDetail.setProjectInfoDetail(projectInfoDetailVo);

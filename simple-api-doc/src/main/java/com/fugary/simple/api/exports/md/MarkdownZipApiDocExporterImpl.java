@@ -114,7 +114,6 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         }
         MdViewContext context = new MdViewContext();
         context.setGenerateComponents(false);
-        SpecVersion specVersion = SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion());
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
         context.setSchemasMap(schemasMap);
 
@@ -140,6 +139,7 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
 
             String bodyContent;
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
+                SpecVersion specVersion = SpecVersion.valueOf(projectInfoDetailVo.getSpecVersion());
                 context.setApiDocDetail(apiDocDetail);
                 apiDocDetail.setProject(detailVo);
                 apiDocDetail.setProjectInfoDetail(projectInfoDetailVo);

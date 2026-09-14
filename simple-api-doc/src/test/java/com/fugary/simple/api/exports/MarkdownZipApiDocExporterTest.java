@@ -5,6 +5,8 @@ import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.exports.md.MarkdownZipApiDocExporterImpl;
+import com.fugary.simple.api.exports.md.MarkdownApiDocExporterImpl;
+import com.fugary.simple.api.exports.md.ApiDocFreemarkerUtils;
 import com.fugary.simple.api.exports.md.MarkdownApiDocViewGeneratorImpl;
 import com.fugary.simple.api.imports.markdown.MarkdownDocImporterImpl;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
@@ -19,6 +21,9 @@ import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
+import freemarker.template.Configuration;
+import freemarker.template.TemplateMethodModelEx;
+import freemarker.template.TemplateModelException;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +66,7 @@ public class MarkdownZipApiDocExporterTest {
     }
 
     @Test
-    public void testExportMultiLevelZip() throws IOException {
+    public void testExportMultiLevelZip() throws IOException, TemplateModelException {
         int projectId = 100;
         ApiProjectDetailVo project = new ApiProjectDetailVo();
         project.setId(projectId);
@@ -124,6 +129,9 @@ public class MarkdownZipApiDocExporterTest {
 
         project.setDocs(List.of(doc1, doc2, doc3));
 
+        ApiProjectInfoDetailVo markdownInfo = new ApiProjectInfoDetailVo();
+        markdownInfo.setSpecVersion(ApiDocConstants.SOURCE_TYPE_MARKDOWN);
+        Mockito.when(mockProjectInfoDetailService.mergeInfoDetailVo(any())).thenReturn(markdownInfo);
         Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
         Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(doc1, doc2, doc3));
         Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
@@ -182,6 +190,23 @@ public class MarkdownZipApiDocExporterTest {
         Assertions.assertEquals(200, importedAuthDoc.getSortId());
         Assertions.assertTrue(Boolean.TRUE.equals(importedAuthDoc.getDeprecated()));
         Assertions.assertTrue(Boolean.TRUE.equals(importedAuthDoc.getLocked()));
+
+        // 同一纯 Markdown 项目也应支持合并导出为单个 Markdown 文件。
+        MarkdownApiDocExporterImpl markdownExporter = new MarkdownApiDocExporterImpl();
+        markdownExporter.setApiProjectService(mockProjectService);
+        markdownExporter.setApiProjectInfoDetailService(mockProjectInfoDetailService);
+        markdownExporter.setApiDocViewGenerator(Mockito.mock(ApiDocViewGenerator.class));
+        Configuration configuration = new Configuration(Configuration.VERSION_2_3_31);
+        configuration.setClassForTemplateLoading(getClass(), "/templates");
+        configuration.setDefaultEncoding(StandardCharsets.UTF_8.name());
+        configuration.setSharedVariable("utils", new ApiDocFreemarkerUtils());
+        configuration.setSharedVariable("message", (TemplateMethodModelEx) arguments -> arguments.get(0).toString());
+        markdownExporter.setFreemarkerConfig(configuration);
+
+        String markdown = markdownExporter.export(projectId, downloadVo);
+        Assertions.assertTrue(markdown.contains(doc1.getDocContent()));
+        Assertions.assertTrue(markdown.contains(doc2.getDocContent()));
+        Assertions.assertTrue(markdown.contains(doc3.getDocContent()));
     }
 
     @Test
