@@ -24,6 +24,7 @@ import com.fugary.simple.api.web.vo.query.ProjectDetailQueryVo;
 import freemarker.template.Configuration;
 import freemarker.template.TemplateMethodModelEx;
 import freemarker.template.TemplateModelException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,8 +33,10 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -431,5 +434,93 @@ public class MarkdownZipApiDocExporterTest {
         // 验证子目录文档相对链接为 ../assets/
         String subDocContent = zipContents.get("docs/流程说明.md");
         Assertions.assertTrue(subDocContent.contains("../assets/flow456.jpg"));
+    }
+
+    @Test
+    public void testExportWithRootUploadAndCrossProjectImages() throws IOException {
+        int projectId = 103;
+        String projectCode = "citsgbt-api";
+        ApiProjectDetailVo project = new ApiProjectDetailVo();
+        project.setId(projectId);
+        project.setProjectCode(projectCode);
+        project.setProjectName("国旅运通项目");
+
+        ApiFolder rootFolder = new ApiFolder();
+        rootFolder.setId(1);
+        rootFolder.setFolderName("root");
+        rootFolder.setRootFlag(true);
+
+        ApiFolder pushFolder = new ApiFolder();
+        pushFolder.setId(2);
+        pushFolder.setFolderName("推送接口");
+        pushFolder.setParentId(1);
+
+        project.setFolders(List.of(rootFolder, pushFolder));
+
+        // 模拟创建临时上传目录和物理文件
+        File tempUploadDir = Files.createTempDirectory("test_upload_assets_").toFile();
+        try {
+            // 1. 模拟根目录上传图片: {uploadDir}/9b1e19eccdbc4b40893430bfd356e849.jpg
+            File rootImgFile = new File(tempUploadDir, "9b1e19eccdbc4b40893430bfd356e849.jpg");
+            FileUtils.writeByteArrayToFile(rootImgFile, "ROOT_IMG_BYTES".getBytes(StandardCharsets.UTF_8));
+
+            // 2. 模拟跨项目复制图片: {uploadDir}/docs/other-proj/cross789.png
+            File otherProjDir = new File(tempUploadDir, "docs/other-proj");
+            FileUtils.forceMkdir(otherProjDir);
+            File crossImgFile = new File(otherProjDir, "cross789.png");
+            FileUtils.writeByteArrayToFile(crossImgFile, "CROSS_IMG_BYTES".getBytes(StandardCharsets.UTF_8));
+
+            // 文档: 推送接口/消息推送接口流程.md
+            ApiDocDetailVo pushDoc = new ApiDocDetailVo();
+            pushDoc.setId(401);
+            pushDoc.setFolderId(2);
+            pushDoc.setDocType(ApiDocConstants.DOC_TYPE_MD);
+            pushDoc.setDocName("消息推送接口流程");
+            pushDoc.setDocContent("1. 业务流程\n\n![](/upload/9b1e19eccdbc4b40893430bfd356e849.jpg)\n\n"
+                    + "2. 跨项目引用\n\n![架构](/upload/docs/other-proj/cross789.png)");
+
+            project.setDocs(List.of(pushDoc));
+
+            Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
+            Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(pushDoc));
+            Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
+            Mockito.when(mockAssetStorageService.getBaseUploadPath()).thenReturn(tempUploadDir.getAbsolutePath());
+
+            ExportDownloadVo downloadVo = new ExportDownloadVo();
+            downloadVo.setType("zip");
+
+            byte[] zipBytes = exporter.export(projectId, downloadVo);
+            Assertions.assertNotNull(zipBytes);
+
+            Map<String, byte[]> zipEntryBytes = new HashMap<>();
+            Map<String, String> zipContents = new HashMap<>();
+            try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes), StandardCharsets.UTF_8)) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    byte[] bytes = IOUtils.toByteArray(zis);
+                    zipEntryBytes.put(entry.getName(), bytes);
+                    if (entry.getName().endsWith(".md")) {
+                        zipContents.put(entry.getName(), new String(bytes, StandardCharsets.UTF_8));
+                    }
+                    zis.closeEntry();
+                }
+            }
+
+            // 验证 ZIP 中 assets 目录包含两个图片
+            Assertions.assertTrue(zipEntryBytes.containsKey("assets/9b1e19eccdbc4b40893430bfd356e849.jpg"));
+            Assertions.assertEquals("ROOT_IMG_BYTES", new String(zipEntryBytes.get("assets/9b1e19eccdbc4b40893430bfd356e849.jpg"), StandardCharsets.UTF_8));
+
+            Assertions.assertTrue(zipEntryBytes.containsKey("assets/cross789.png"));
+            Assertions.assertEquals("CROSS_IMG_BYTES", new String(zipEntryBytes.get("assets/cross789.png"), StandardCharsets.UTF_8));
+
+            // 验证文档内链接被成功重写为相对路径
+            String docContent = zipContents.get("推送接口/消息推送接口流程.md");
+            Assertions.assertNotNull(docContent);
+            Assertions.assertTrue(docContent.contains("../assets/9b1e19eccdbc4b40893430bfd356e849.jpg"));
+            Assertions.assertTrue(docContent.contains("../assets/cross789.png"));
+            Assertions.assertFalse(docContent.contains("/upload/"));
+        } finally {
+            FileUtils.deleteDirectory(tempUploadDir);
+        }
     }
 }

@@ -57,7 +57,7 @@ import java.util.zip.ZipOutputStream;
 @Component
 public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
 
-    private static final Pattern MD_LOCAL_IMG_PATTERN = Pattern.compile("(/upload/docs/([^/\\s)\"'>]+)/([a-zA-Z0-9._-]+))");
+    private static final Pattern MD_LOCAL_IMG_PATTERN = Pattern.compile("(/upload/((?:[^/\\s)\"'>]+/)*([a-zA-Z0-9._-]+\\.[a-zA-Z0-9]+)))");
 
     @Autowired
     private ApiProjectService apiProjectService;
@@ -159,7 +159,7 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         }
 
         // 提取项目引用的静态图片资源并打包到 assets/ 目录，同时将文档内图片链接重写为自适应相对路径
-        Map<String, byte[]> assetMap = bundleAssetsAndRewriteImages(docEntries);
+        Map<String, byte[]> assetMap = bundleAssetsAndRewriteImages(docEntries, detailVo.getProjectCode());
 
         // 打包为 ZIP 字节流
         return packageToZipBytes(docEntries, assetMap);
@@ -196,7 +196,7 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
     /**
      * 提取图片资源并重写文档中图片相对链接
      */
-    private Map<String, byte[]> bundleAssetsAndRewriteImages(List<ZipDocEntry> docEntries) {
+    private Map<String, byte[]> bundleAssetsAndRewriteImages(List<ZipDocEntry> docEntries, String currentProjectCode) {
         Map<String, byte[]> assetMap = new LinkedHashMap<>();
         if (docAssetStorageService == null) {
             return assetMap;
@@ -219,14 +219,14 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
             while (matcher.find()) {
                 found = true;
                 String matchedImgUrl = matcher.group(1);
-                String docProjectCode = matcher.group(2);
+                String relativePath = matcher.group(2);
                 String imgFileName = matcher.group(3);
 
                 // 尝试从磁盘读取图片物理文件
                 String assetEntryKey = "assets/" + imgFileName;
                 if (!assetMap.containsKey(assetEntryKey)) {
-                    File imgFile = new File(String.join(File.separator, baseUploadPath, "docs", docProjectCode, imgFileName));
-                    if (imgFile.exists() && imgFile.isFile()) {
+                    File imgFile = resolveImageFile(baseUploadPath, relativePath, imgFileName, currentProjectCode);
+                    if (imgFile != null) {
                         try {
                             byte[] imgBytes = FileUtils.readFileToByteArray(imgFile);
                             assetMap.put(assetEntryKey, imgBytes);
@@ -248,6 +248,55 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         }
 
         return assetMap;
+    }
+
+    /**
+     * 阶梯式自适应定位物理图片文件（支持根目录上传、项目隔离目录以及跨项目引用图片）
+     *
+     * @param baseUploadPath      基础上传目录
+     * @param relativePath        /upload/ 后的相对路径（如 docs/citsgbt/abc.png 或 9b1e19...jpg）
+     * @param imgFileName         图片文件名
+     * @param currentProjectCode  当前项目 Code
+     * @return 存在的图片文件，若不存在返回 null
+     */
+    protected File resolveImageFile(String baseUploadPath, String relativePath, String imgFileName, String currentProjectCode) {
+        if (StringUtils.isBlank(baseUploadPath) || StringUtils.isBlank(imgFileName)) {
+            return null;
+        }
+        // 1. 优先按完整相对路径查找（支持 /upload/docs/{projectCode}/{fileName}、/upload/{fileName} 或跨项目路径）
+        if (StringUtils.isNotBlank(relativePath)) {
+            File imgFile = new File(baseUploadPath, relativePath.replace('/', File.separatorChar));
+            if (isValidImageFile(imgFile, baseUploadPath)) {
+                return imgFile;
+            }
+        }
+        // 2. 尝试在当前项目 docs/{currentProjectCode}/ 下查找
+        if (StringUtils.isNotBlank(currentProjectCode)) {
+            File imgFile = new File(String.join(File.separator, baseUploadPath, "docs", currentProjectCode, imgFileName));
+            if (isValidImageFile(imgFile, baseUploadPath)) {
+                return imgFile;
+            }
+        }
+        // 3. 尝试在 upload 根目录下查找
+        File rootImgFile = new File(baseUploadPath, imgFileName);
+        if (isValidImageFile(rootImgFile, baseUploadPath)) {
+            return rootImgFile;
+        }
+        return null;
+    }
+
+    /**
+     * 校验文件是否存在且防止路径遍历攻击
+     */
+    private boolean isValidImageFile(File file, String baseUploadPath) {
+        if (file == null || !file.exists() || !file.isFile()) {
+            return false;
+        }
+        try {
+            return file.getCanonicalPath().startsWith(new File(baseUploadPath).getCanonicalPath());
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     /**
