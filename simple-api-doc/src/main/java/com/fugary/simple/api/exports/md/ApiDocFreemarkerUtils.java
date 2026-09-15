@@ -427,36 +427,58 @@ public class ApiDocFreemarkerUtils {
     }
 
     /**
+     * 解析内联Schema默认名称
+     *
+     * @param schema
+     * @param schemaName
+     * @param fallback
+     * @return
+     */
+    public String resolveInlineSchemaName(Schema<?> schema, String schemaName, String fallback) {
+        if (schema != null && StringUtils.isNotBlank(schema.getName())) {
+            return schema.getName();
+        }
+        if (StringUtils.isNotBlank(schemaName)) {
+            return StringUtils.isNumeric(schemaName) ? fallback + "_" + schemaName : schemaName;
+        }
+        return fallback;
+    }
+
+    /**
      * 处理合并在一起的SchemaProperties
      *
      * @param schema
-     * @param schemaNames
+     * @param schemaName
      * @param schemaMap
      */
-    public void calcInlineSchemaProperties(Schema schema, Stack<String> schemaNames, Map<String, Schema<?>> schemaMap) {
+    public void calcInlineSchemaProperties(Schema<?> schema, String schemaName, Map<String, Schema<?>> schemaMap) {
+        if (schema == null) {
+            return;
+        }
+        if (schema.getItems() != null) {
+            calcInlineSchemaProperties(schema.getItems(), schemaName, schemaMap);
+            return;
+        }
         Pair<String, List<Schema>> xxxOfPair = getXxxOf(schema);
         List<Schema> xxxOf = xxxOfPair.getRight();
-        if (CollectionUtils.isNotEmpty(xxxOf)) {
-            xxxOf.forEach(xxx -> calcInlineSchemaProperties(xxx, schemaNames, schemaMap));
+        if (StringUtils.isBlank(schema.getName()) && StringUtils.isBlank(schema.get$ref())
+                && (MapUtils.isNotEmpty(schema.getProperties()) || CollectionUtils.isNotEmpty(xxxOf))) {
+            String refName = schemaName;
+            // 同名请求、响应和公共模型保留各自的字段与锚点。
+            for (int suffix = 2; schemaMap.containsKey(refName) && schemaMap.get(refName) != schema; suffix++) {
+                refName = schemaName + "_" + suffix;
+            }
+            schema.setName(refName);
+            schema.set$ref(RefUtils.constructRef(refName));
+            schemaMap.put(refName, schema);
+        }
+        String parentName = StringUtils.defaultIfBlank(schema.getName(), schemaName);
+        for (int i = 0; i < xxxOf.size(); i++) {
+            calcInlineSchemaProperties(xxxOf.get(i), parentName + "." + xxxOfPair.getLeft() + (i + 1), schemaMap);
         }
         if (MapUtils.isNotEmpty(schema.getProperties())) {
-            schema.getProperties().forEach((key, value) -> {
-                if (value != null) {
-                    String schemaKey = (String) key;
-                    Schema valueSchema = (Schema) value;
-                    if (valueSchema.getItems() != null) {
-                        valueSchema = valueSchema.getItems();
-                    }
-                    if (StringUtils.isBlank(valueSchema.getName()) && MapUtils.isNotEmpty(valueSchema.getProperties())) {
-                        schemaNames.push(schemaKey);
-                        String refName = StringUtils.join(schemaNames, ".");
-                        valueSchema.set$ref(RefUtils.constructRef(refName));
-                        schemaMap.put(refName, valueSchema);
-                        calcInlineSchemaProperties(valueSchema, schemaNames, schemaMap);
-                        schemaNames.pop();
-                    }
-                }
-            });
+            schema.getProperties().forEach((key, value) ->
+                    calcInlineSchemaProperties(value, parentName + "." + key, schemaMap));
         }
     }
 

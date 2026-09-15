@@ -3,6 +3,7 @@ package com.fugary.simple.api.exports;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.exports.md.*;
 import com.fugary.simple.api.exports.openapi.OpenApiApiDocExporterImpl;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
@@ -22,6 +23,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
@@ -57,6 +59,12 @@ class MixedProjectExportTest {
         api.setDocName("Test API");
         api.setMethod("GET");
         api.setUrl("/test");
+        ApiProjectInfoDetail response = new ApiProjectInfoDetail();
+        response.setSchemaName("200");
+        response.setStatusCode(200);
+        response.setContentType("application/json");
+        response.setSchemaContent("{\"schema\":{\"type\":\"object\",\"properties\":{\"inlineField\":{\"type\":\"string\"}}}}");
+        api.setResponsesSchemas(List.of(response));
         ApiDocDetailVo md = new ApiDocDetailVo();
         md.setId(2);
         md.setInfoId(10);
@@ -65,23 +73,38 @@ class MixedProjectExportTest {
         md.setDocKey("guide.md");
         md.setDocName("Guide");
         md.setDocContent("# Original Markdown");
+        ApiDocDetailVo secondApi = new ApiDocDetailVo();
+        secondApi.setId(3);
+        secondApi.setInfoId(10);
+        secondApi.setFolderId(1);
+        secondApi.setDocType(ApiDocConstants.DOC_TYPE_API);
+        secondApi.setDocName("Second API");
+        secondApi.setMethod("GET");
+        secondApi.setUrl("/second");
+        ApiProjectInfoDetail secondResponse = new ApiProjectInfoDetail();
+        secondResponse.setSchemaName("200");
+        secondResponse.setStatusCode(200);
+        secondResponse.setContentType("application/json");
+        secondResponse.setSchemaContent(response.getSchemaContent().replace("inlineField", "secondField"));
+        secondApi.setResponsesSchemas(List.of(secondResponse));
         ApiProjectDetailVo project = new ApiProjectDetailVo();
         project.setId(1);
         project.setProjectName("Mixed project");
         project.setFolders(List.of(root));
         project.setInfoList(List.of(info));
-        project.setDocs(List.of(api, md));
+        project.setDocs(List.of(api, md, secondApi));
         if ("new-project".equals(specVersion)) {
             project.setInfoList(List.of());
             api.setInfoId(null);
             md.setInfoId(null);
+            secondApi.setInfoId(null);
             specVersion = null;
         }
 
         ApiProjectService projects = mock(ApiProjectService.class);
         when(projects.loadProjectVo(any())).thenReturn(project);
         ApiProjectInfoDetailService details = spy(new ApiProjectInfoDetailServiceImpl());
-        doReturn(List.of(api, md)).when(details).loadDetailList(any());
+        doReturn(List.of(api, md, secondApi)).when(details).loadDetailList(any());
         doReturn(List.of()).when(details).loadByProject(any(), any());
         ApiFolderService folders = mock(ApiFolderService.class);
         when(folders.calcFolderMap(any())).thenReturn(Pair.of(Map.of(), Map.of(1, "Root")));
@@ -110,6 +133,9 @@ class MixedProjectExportTest {
         configuration.setClassForTemplateLoading(getClass(), "/templates");
         configuration.setDefaultEncoding(StandardCharsets.UTF_8.name());
         ApiDocFreemarkerUtils utils = new ApiDocFreemarkerUtils();
+        StaticMessageSource messages = new StaticMessageSource();
+        messages.setUseCodeAsDefaultMessage(true);
+        utils.setMessageSource(messages);
         configuration.setSharedVariable("utils", utils);
         configuration.setSharedVariable("message", (TemplateMethodModelEx) arguments -> arguments.get(0).toString());
         MarkdownApiDocViewGeneratorImpl generator = new MarkdownApiDocViewGeneratorImpl();
@@ -124,6 +150,10 @@ class MixedProjectExportTest {
         String markdown = markdownExporter.export(1, filter);
         assertTrue(markdown.contains("/test"));
         assertTrue(markdown.contains(md.getDocContent()));
+        assertTrue(markdown.contains("**`inlineField`**"));
+        assertTrue(markdown.contains("## _response_200"));
+        assertTrue(markdown.contains("**`secondField`**"));
+        assertTrue(markdown.contains("## _response_200_2"));
 
         MarkdownZipApiDocExporterImpl zipExporter = new MarkdownZipApiDocExporterImpl();
         zipExporter.setApiProjectService(projects);
@@ -131,14 +161,21 @@ class MixedProjectExportTest {
         zipExporter.setApiDocViewGenerator(generator);
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(zipExporter.export(1, filter)))) {
             boolean foundApi = false;
+            boolean foundSecondApi = false;
             boolean foundMd = false;
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
                 String content = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
-                foundApi |= entry.getName().equals("Test API.md") && content.contains("/test");
+                foundApi |= entry.getName().equals("Test API.md") && content.contains("/test")
+                        && content.contains("#### _response_200") && content.contains("**`inlineField`**")
+                        && !content.contains("**`secondField`**");
+                foundSecondApi |= entry.getName().equals("Second API.md") && content.contains("/second")
+                        && content.contains("#### _response_200") && content.contains("**`secondField`**")
+                        && !content.contains("**`inlineField`**");
                 foundMd |= entry.getName().equals("Guide.md") && content.contains(md.getDocContent());
             }
             assertTrue(foundApi);
+            assertTrue(foundSecondApi);
             assertTrue(foundMd);
         }
     }

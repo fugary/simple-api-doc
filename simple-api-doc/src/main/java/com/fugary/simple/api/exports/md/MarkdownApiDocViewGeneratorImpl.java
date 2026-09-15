@@ -57,10 +57,9 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
         SpecVersion specVersion = SchemaJsonUtils.resolveSpecVersion(apiDocDetail.getProjectInfoDetail() != null
                 ? apiDocDetail.getProjectInfoDetail().getSpecVersion() : null);
         // 处理 schemasMap，传递给模板
-        Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
-        if (context.getSchemasMap() != null) {
-            schemasMap.putAll(context.getSchemasMap());
-        } else {
+        Map<String, Schema<?>> schemasMap = context.getSchemasMap() != null
+                ? context.getSchemasMap() : new LinkedHashMap<>();
+        if (context.getSchemasMap() == null) {
             SimpleModelUtils.processComponents(apiDocDetail, specVersion, schemasMap);
         }
         ApiProjectInfoDetail parametersSchema = apiDocDetail.getParametersSchema();
@@ -72,43 +71,13 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
             }
         }
         List<FmApiDocSchema> requestSchemas = apiDocDetail.getRequestsSchemas().stream()
-                .map(requestSchema -> {
-                    if (StringUtils.isNotBlank(requestSchema.getSchemaContent())) {
-                        FmApiDocSchema newSchema = SimpleModelUtils.copy(requestSchema, FmApiDocSchema.class);
-                        MediaType mediaType = SchemaJsonUtils.fromJson(requestSchema.getSchemaContent(),
-                                MediaType.class, SchemaJsonUtils.isV31(specVersion));
-                        if (mediaType != null && mediaType.getSchema() != null) {
-                            newSchema.setSchema(SchemaJsonUtils.getSchema(mediaType.getSchema(), schemasMap));
-                            Schema<?> schema = newSchema.getSchema();
-                            if (schema != null) {
-                                Stack<String> schemaNames = new Stack<>();
-                                schemaNames.push(StringUtils.defaultIfBlank(schema.getName(), "_request"));
-                                apiDocFreemarkerUtils.calcInlineSchemaProperties(schema, schemaNames, schemasMap);
-                            }
-                        }
-                        return newSchema;
-                    }
-                    return null;
-                }).filter(Objects::nonNull).collect(Collectors.toList());
+                .filter(requestSchema -> StringUtils.isNotBlank(requestSchema.getSchemaContent()))
+                .map(requestSchema -> parseBodySchema(requestSchema, specVersion, schemasMap, "_request"))
+                .collect(Collectors.toList());
         model.put("requestsSchemas", requestSchemas);
         List<FmApiDocSchema> responseSchemas = apiDocDetail.getResponsesSchemas().stream()
-                .map(responseSchema -> {
-                    FmApiDocSchema newSchema = SimpleModelUtils.copy(responseSchema, FmApiDocSchema.class);
-                    if (StringUtils.isNotBlank(newSchema.getSchemaContent())) {
-                        MediaType mediaType = SchemaJsonUtils.fromJson(responseSchema.getSchemaContent(),
-                                MediaType.class, SchemaJsonUtils.isV31(specVersion));
-                        if (mediaType != null && mediaType.getSchema() != null) {
-                            newSchema.setSchema(SchemaJsonUtils.getSchema(mediaType.getSchema(), schemasMap));
-                            Schema<?> schema = newSchema.getSchema();
-                            if (schema != null) {
-                                Stack<String> schemaNames = new Stack<>();
-                                schemaNames.push(StringUtils.defaultIfBlank(schema.getName(), "_response"));
-                                apiDocFreemarkerUtils.calcInlineSchemaProperties(schema, schemaNames, schemasMap);
-                            }
-                        }
-                    }
-                    return newSchema;
-                }).sorted((docSchema1, docSchema2) -> {
+                .map(responseSchema -> parseBodySchema(responseSchema, specVersion, schemasMap, "_response"))
+                .sorted((docSchema1, docSchema2) -> {
                     int status1 = docSchema1.getStatusCode() == null ? 600 : docSchema1.getStatusCode();
                     int status2 = docSchema2.getStatusCode() == null ? 600 : docSchema2.getStatusCode();
                     return status1 - status2;
@@ -135,6 +104,22 @@ public class MarkdownApiDocViewGeneratorImpl implements ApiDocViewGenerator, Ini
             log.error("模板渲染失败", e);
             throw new RuntimeException(e);
         }
+    }
+
+    private FmApiDocSchema parseBodySchema(ApiProjectInfoDetail detail, SpecVersion specVersion,
+                                         Map<String, Schema<?>> schemasMap, String fallback) {
+        FmApiDocSchema result = SimpleModelUtils.copy(detail, FmApiDocSchema.class);
+        if (StringUtils.isNotBlank(detail.getSchemaContent())) {
+            MediaType mediaType = SchemaJsonUtils.fromJson(detail.getSchemaContent(),
+                    MediaType.class, SchemaJsonUtils.isV31(specVersion));
+            if (mediaType != null) {
+                Schema<?> schema = SchemaJsonUtils.getSchema(mediaType.getSchema(), schemasMap);
+                result.setSchema(schema);
+                apiDocFreemarkerUtils.calcInlineSchemaProperties(schema,
+                        apiDocFreemarkerUtils.resolveInlineSchemaName(schema, detail.getSchemaName(), fallback), schemasMap);
+            }
+        }
+        return result;
     }
 
     /**
