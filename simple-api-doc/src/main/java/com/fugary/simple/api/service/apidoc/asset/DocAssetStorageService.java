@@ -1,6 +1,8 @@
 package com.fugary.simple.api.service.apidoc.asset;
 
+import java.io.File;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * 文档静态资源（图片等）存储与链接替换服务
@@ -8,6 +10,11 @@ import java.util.Map;
  * @author gary.fu
  */
 public interface DocAssetStorageService {
+
+    /**
+     * 匹配 Markdown 中的本地图片 URL（支持相对路径与带域名绝对路径）
+     */
+    Pattern MD_LOCAL_IMG_PATTERN = Pattern.compile("(?:https?://[^/\\s)\"'>]+)?(/upload/((?:[^/\\s)\"'>]+/)*([a-zA-Z0-9._-]+\\.[a-zA-Z0-9]+)))");
 
     /**
      * 保存图片资源并返回访问 URL（基于 MD5 命名与 projectCode 目录隔离，支持幂等去重）
@@ -43,4 +50,25 @@ public interface DocAssetStorageService {
      * @return 上传根目录路径（如 C:/Users/xxx/upload）
      */
     String getBaseUploadPath();
+
+    /**
+     * 定位当前项目目录内的物理图片文件
+     *
+     * @param relativePath        /upload/ 后的相对路径（如 docs/citsgbt/abc.png）
+     * @param imgFileName         图片文件名
+     * @param currentProjectCode  当前项目 Code
+     * @return 存在的图片文件，若不存在返回 null
+     */
+    File resolveImageFile(String relativePath, String imgFileName, String currentProjectCode);
+
+    /**
+     * 定位当前项目目录内的物理图片文件（支持指定根上传目录）
+     *
+     * @param baseUploadPath      基础上传目录
+     * @param relativePath        /upload/ 后的相对路径
+     * @param imgFileName         图片文件名
+     * @param currentProjectCode  当前项目 Code
+     * @return 存在的图片文件，若不存在返回 null
+     */
+    File resolveImageFile(String baseUploadPath, String relativePath, String imgFileName, String currentProjectCode);
 }

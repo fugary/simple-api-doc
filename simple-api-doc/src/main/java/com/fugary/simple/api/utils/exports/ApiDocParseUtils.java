@@ -568,6 +568,24 @@ public class ApiDocParseUtils {
     }
 
     /**
+     * 计算单 Markdown 文件导出时的全局排序键（同级目录下 Markdown 说明文档优先置顶，API 接口紧随其后集中展现）
+     *
+     * @param doc 接口或 Markdown 文档
+     * @param folderMap 文件夹 ID -> ApiFolder 映射表
+     * @return 排序键字符串
+     */
+    public static String getSingleMdDocSortKey(ApiDoc doc, Map<Integer, ApiFolder> folderMap) {
+        if (doc == null) {
+            return "";
+        }
+        ApiFolder folder = (doc.getFolderId() != null && folderMap != null) ? folderMap.get(doc.getFolderId()) : null;
+        String folderSortKey = getFolderSortKey(folder, folderMap);
+        // MD 说明文档优先级为 0（置顶），API 接口优先级为 1（集中在后）
+        String typeWeight = ApiDocConstants.DOC_TYPE_MD.equals(doc.getDocType()) ? "0" : "1";
+        return folderSortKey + "-0-" + typeWeight + "-" + String.format("%06d_%d", doc.getSortId() == null ? 0 : doc.getSortId(), doc.getId() == null ? 0 : doc.getId());
+    }
+
+    /**
      * 获取从根目录到当前文件夹的层级展示名称列表（自动忽略 rootFlag 根节点）
      *
      * @param folderId 当前文件夹 ID

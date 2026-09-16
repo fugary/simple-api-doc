@@ -118,6 +118,23 @@ class MarkdownApiDocViewGeneratorImplTest {
         String markdown = generator.generate(new MdViewContext(doc));
         assertModel(markdown, "Result", "first");
         Assertions.assertTrue(markdown.contains("**`second`**"), "组合模型的第二个分支不能丢失");
+        Assertions.assertFalse(markdown.contains("Result." + composition), "组合模型的分支不应该拆成伪模型");
+    }
+
+    @Test
+    void testComposedInlineSchemasNestedObjects() {
+        ApiDocDetailVo doc = createDoc();
+        String schema = "{\"allOf\":["
+                + "{\"type\":\"object\",\"properties\":{\"head\":{\"type\":\"object\",\"properties\":{\"code\":{\"type\":\"integer\"}}}}},"
+                + "{\"type\":\"object\",\"properties\":{\"page\":{\"type\":\"object\",\"properties\":{\"size\":{\"type\":\"integer\"}}}}}"
+                + "]}";
+        doc.setResponsesSchemas(List.of(bodySchema("CustomResponse", schema)));
+        String markdown = generator.generate(new MdViewContext(doc));
+        assertModel(markdown, "CustomResponse", "head");
+        assertModel(markdown, "CustomResponse", "page");
+        assertModel(markdown, "CustomResponse.head", "code");
+        assertModel(markdown, "CustomResponse.page", "size");
+        Assertions.assertFalse(markdown.contains("allOf"), "不应包含 allOf 伪模型");
     }
 
     @Test

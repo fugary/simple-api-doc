@@ -29,6 +29,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.fugary.simple.api.utils.SchemaJsonUtils.FORMATED_MAPPER;
@@ -43,8 +45,17 @@ public class ApiDocFreemarkerUtils {
     private MessageSource messageSource;
 
     private Parser markdownParser = Parser.builder().build();
-    ;
     private HtmlRenderer htmlRenderer = HtmlRenderer.builder().build();
+
+    private static final Pattern SIMPLE_ANCHOR_PATTERN = Pattern.compile("^\\[([a-zA-Z0-9_.-]+)\\]\\(#\\1\\)$");
+
+    private final Map<String, String> markdownHtmlCache = Collections.synchronizedMap(
+            new LinkedHashMap<>(1024, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+                    return size() > 2048;
+                }
+            });
 
     /**
      * 解析Ref
@@ -393,7 +404,14 @@ public class ApiDocFreemarkerUtils {
     }
 
     /**
-     * 使用 flexmark 将 Markdown 转换为 HTML
+     * 判断字符串中是否包含需要 Markdown/HTML 语法解析的特殊字符
+     */
+    private static boolean containsMarkdownChars(String str) {
+        return StringUtils.containsAny(str, "*_`[]<>\n\r~#!&|\\");
+    }
+
+    /**
+     * 使用 flexmark 将 Markdown 转换为 HTML（包含纯文本与锚点直出快路径，以及 LRU 缓存）
      *
      * @param markdown Markdown 格式字符串
      * @return HTML 格式字符串
@@ -402,6 +420,20 @@ public class ApiDocFreemarkerUtils {
         if (StringUtils.isBlank(markdown)) {
             return "";
         }
+        // 快路径 1：不含任何 Markdown 语法的纯文本（如 string、integer 等数据类型），直接返回
+        if (!containsMarkdownChars(markdown)) {
+            return markdown;
+        }
+        // 快路径 2：简单自身锚点链接 [Name](#Name)，直接拼接 HTML 标签直出
+        Matcher anchorMatcher = SIMPLE_ANCHOR_PATTERN.matcher(markdown);
+        if (anchorMatcher.matches()) {
+            return "<a href=\"#" + anchorMatcher.group(1) + "\">" + anchorMatcher.group(1) + "</a>";
+        }
+        // 复杂 Markdown 内容走 LRU 缓存与 Flexmark 解析
+        return markdownHtmlCache.computeIfAbsent(markdown, this::doMarkdownToHtml);
+    }
+
+    private String doMarkdownToHtml(String markdown) {
         // 使用 flexmark 解析 Markdown 并渲染为 HTML
         Node document = markdownParser.parse(markdown);
         String result = htmlRenderer.render(document);
@@ -459,8 +491,7 @@ public class ApiDocFreemarkerUtils {
             calcInlineSchemaProperties(schema.getItems(), schemaName, schemaMap);
             return;
         }
-        Pair<String, List<Schema>> xxxOfPair = getXxxOf(schema);
-        List<Schema> xxxOf = xxxOfPair.getRight();
+        List<Schema> xxxOf = getXxxOf(schema).getRight();
         if (StringUtils.isBlank(schema.getName()) && StringUtils.isBlank(schema.get$ref())
                 && (MapUtils.isNotEmpty(schema.getProperties()) || CollectionUtils.isNotEmpty(xxxOf))) {
             String refName = schemaName;
@@ -473,8 +504,42 @@ public class ApiDocFreemarkerUtils {
             schemaMap.put(refName, schema);
         }
         String parentName = StringUtils.defaultIfBlank(schema.getName(), schemaName);
-        for (int i = 0; i < xxxOf.size(); i++) {
-            calcInlineSchemaProperties(xxxOf.get(i), parentName + "." + xxxOfPair.getLeft() + (i + 1), schemaMap);
+        if (CollectionUtils.isNotEmpty(xxxOf)) {
+            for (Schema<?> subSchema : xxxOf) {
+                calcInlineComposedProperties(subSchema, parentName, schemaMap);
+            }
+        }
+        if (MapUtils.isNotEmpty(schema.getProperties())) {
+            schema.getProperties().forEach((key, value) ->
+                    calcInlineSchemaProperties(value, parentName + "." + key, schemaMap));
+        }
+    }
+
+    /**
+     * 处理组合 Schema (allOf/anyOf/oneOf) 的分支属性，不将分支展开为伪模型（如 allOf1, allOf2），
+     * 而是直接将其包含的内联对象字段作为父模型的嵌套属性（parentName.propKey）进行处理。
+     *
+     * @param schema
+     * @param parentName
+     * @param schemaMap
+     */
+    private void calcInlineComposedProperties(Schema<?> schema, String parentName, Map<String, Schema<?>> schemaMap) {
+        if (schema == null) {
+            return;
+        }
+        if (schema.getItems() != null) {
+            calcInlineComposedProperties(schema.getItems(), parentName, schemaMap);
+            return;
+        }
+        // 如果是已有的公共组件引用（带 $ref 或 name），由组件本身展示，不需要作为匿名分支展开
+        if (StringUtils.isNotBlank(schema.get$ref()) || StringUtils.isNotBlank(schema.getName())) {
+            return;
+        }
+        List<Schema> xxxOf = getXxxOf(schema).getRight();
+        if (CollectionUtils.isNotEmpty(xxxOf)) {
+            for (Schema<?> subSchema : xxxOf) {
+                calcInlineComposedProperties(subSchema, parentName, schemaMap);
+            }
         }
         if (MapUtils.isNotEmpty(schema.getProperties())) {
             schema.getProperties().forEach((key, value) ->

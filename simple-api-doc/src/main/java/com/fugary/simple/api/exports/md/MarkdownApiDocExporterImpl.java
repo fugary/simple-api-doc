@@ -12,8 +12,9 @@ import com.fugary.simple.api.exports.ApiDocViewGenerator;
 import com.fugary.simple.api.exports.ApiExportFilter;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
-import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
@@ -29,16 +30,27 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+/**
+ * 单个 Markdown 文件导出实现（支持说明文档优先排序、标题动态降级防冲突、本地图片 Base64 内嵌与相对链接锚点重写）
+ *
+ * @author gary.fu
+ */
 @Slf4j
 @Setter
 @Getter
@@ -51,6 +63,8 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
     @Autowired
     private ApiDocViewGenerator apiDocViewGenerator;
+    @Autowired(required = false)
+    private DocAssetStorageService docAssetStorageService;
     @Autowired
     private Configuration freemarkerConfig; // FreeMarker 自动配置的 Configuration
 
@@ -92,14 +106,19 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         context.setGenerateComponents(false);
         Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
         context.setSchemasMap(schemasMap);
-        // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
-        docDetailList.sort(Comparator.comparing(d -> ApiDocParseUtils.getDocSortKey(d, folderMap)));
+        // 对 docDetailList 按照树形结构排序（同级目录下 Markdown 说明文档优先置顶，API 接口紧随其后集中展现）
+        docDetailList.sort(Comparator.comparing(d -> ApiDocParseUtils.getSingleMdDocSortKey(d, folderMap)));
+
+        // 收集文档目标映射表用于相对链接重写为单文件锚点
+        Map<String, String> docTargetMap = buildDocTargetMap(docDetailList);
+        Map<String, String> imageCache = new HashMap<>();
 
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             List<String> folderNames = ApiDocParseUtils.getFolderNames(apiDocDetail.getFolderId(), folderMap);
-            String folderPath = String.join("/", folderNames);
+            String folderPath = String.join(" / ", folderNames);
             String topLevelFolder = folderNames.isEmpty() ? "" : folderNames.get(0);
-            
+            boolean isSubFolder = StringUtils.isNotBlank(folderPath);
+
             apiDocDetail.setFolderPath(folderPath);
             apiDocDetail.setTopLevelFolder(topLevelFolder);
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
@@ -109,9 +128,33 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
                 apiDocDetail.setProjectInfoDetail(projectInfoDetailVo);
                 SimpleModelUtils.processComponents(apiDocDetail, specVersion, schemasMap);
                 String apiMarkdown = apiDocViewGenerator.generate(context);
+                // 子目录下（### 🔗 接口名）：接口内部小节降级1级（### 基本信息 -> #### 基本信息）
+                // 根目录下（## 🔗 接口名）：接口内部小节保持3级（### 基本信息），结构清晰自洽
+                if (isSubFolder) {
+                    apiMarkdown = MarkdownHeadingUtils.demoteHeadings(apiMarkdown, 1);
+                }
+                // 内联图片为 Base64
+                apiMarkdown = inlineImagesAsBase64(apiMarkdown, detailVo.getProjectCode(), imageCache);
+                // 重写相对链接为文档内锚点
+                apiMarkdown = MarkdownHeadingUtils.rewriteDocLinks(apiMarkdown, docTargetMap);
                 apiDocDetail.setApiMarkdown(apiMarkdown);
+            } else {
+                String docContent = apiDocDetail.getDocContent();
+                // 剥离 Frontmatter、去除重复首行标题，并将内部标题规范降级：子目录为 ####+（从属于 ### 📄 章节），根目录为 ###+（从属于 ## 📄 章节）
+                int targetMinLevel = isSubFolder ? 4 : 3;
+                docContent = MarkdownHeadingUtils.normalizeDocMarkdown(docContent, apiDocDetail.getDocName(), targetMinLevel);
+                // 内联图片为 Base64
+                docContent = inlineImagesAsBase64(docContent, detailVo.getProjectCode(), imageCache);
+                // 重写相对链接为文档内锚点
+                docContent = MarkdownHeadingUtils.rewriteDocLinks(docContent, docTargetMap);
+                apiDocDetail.setDocContent(docContent);
             }
         }
+        // 项目描述内联图片
+        if (StringUtils.isNotBlank(detailVo.getDescription())) {
+            detailVo.setDescription(inlineImagesAsBase64(detailVo.getDescription(), detailVo.getProjectCode(), imageCache));
+        }
+
         // 排序 schemasMap
         schemasMap = apiDocViewGenerator.sortSchemasMap(schemasMap, context.getDirectSchemaNames());
 
@@ -136,4 +179,81 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
         }
     }
 
+    /**
+     * 构建文档相对路径及名称与目标标题的映射表，用于单文档内相对链接转换为锚点跳转
+     */
+    private Map<String, String> buildDocTargetMap(List<ApiDocDetailVo> docDetailList) {
+        Map<String, String> docTargetMap = new HashMap<>();
+        for (ApiDocDetailVo doc : docDetailList) {
+            String docName = doc.getDocName();
+            if (StringUtils.isNotBlank(docName)) {
+                docTargetMap.put(docName, docName);
+                docTargetMap.put(docName + ".md", docName);
+                if (doc.getId() != null) {
+                    docTargetMap.put(String.valueOf(doc.getId()), docName);
+                }
+                if (StringUtils.isNotBlank(doc.getUrl())) {
+                    docTargetMap.put(doc.getUrl(), docName);
+                    String fileName = FilenameUtils.getName(doc.getUrl());
+                    if (StringUtils.isNotBlank(fileName)) {
+                        docTargetMap.put(fileName, docName);
+                    }
+                }
+            }
+        }
+        return docTargetMap;
+    }
+
+    /**
+     * 扫描并将 Markdown 中的本地图片资源替换为 Base64 Data URL
+     *
+     * @param content     原始 Markdown 内容
+     * @param projectCode 项目 Code
+     * @param cache       Base64 缓存，避免同张图片多次重复编码
+     * @return 替换后的内容
+     */
+    protected String inlineImagesAsBase64(String content, String projectCode, Map<String, String> cache) {
+        if (StringUtils.isBlank(content) || docAssetStorageService == null) {
+            return content;
+        }
+
+        Matcher matcher = DocAssetStorageService.MD_LOCAL_IMG_PATTERN.matcher(content);
+        StringBuilder sb = new StringBuilder();
+        boolean found = false;
+
+        while (matcher.find()) {
+            String fullMatchedUrl = matcher.group(0);
+            String relativePath = matcher.group(2);
+            String imgFileName = matcher.group(3);
+
+            String dataUrl = cache.get(fullMatchedUrl);
+            if (dataUrl == null) {
+                File imgFile = docAssetStorageService.resolveImageFile(relativePath, imgFileName, projectCode);
+                if (imgFile != null) {
+                    try {
+                        byte[] imgBytes = FileUtils.readFileToByteArray(imgFile);
+                        String mimeType = MediaTypeFactory.getMediaType(imgFileName)
+                                .map(MediaType::toString)
+                                .orElse("image/png");
+                        String base64 = Base64.getEncoder().encodeToString(imgBytes);
+                        dataUrl = "data:" + mimeType + ";base64," + base64;
+                    } catch (IOException e) {
+                        log.warn("读取本地图片失败: {}", imgFile.getAbsolutePath(), e);
+                    }
+                }
+                cache.put(fullMatchedUrl, StringUtils.defaultString(dataUrl));
+            }
+
+            if (StringUtils.isNotEmpty(dataUrl)) {
+                found = true;
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(dataUrl));
+            }
+        }
+
+        if (found) {
+            matcher.appendTail(sb);
+            return sb.toString();
+        }
+        return content;
+    }
 }

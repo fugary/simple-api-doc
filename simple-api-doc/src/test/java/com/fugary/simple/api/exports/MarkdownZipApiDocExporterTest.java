@@ -8,10 +8,12 @@ import com.fugary.simple.api.exports.md.MarkdownZipApiDocExporterImpl;
 import com.fugary.simple.api.exports.md.MarkdownApiDocExporterImpl;
 import com.fugary.simple.api.exports.md.ApiDocFreemarkerUtils;
 import com.fugary.simple.api.exports.md.MarkdownApiDocViewGeneratorImpl;
+import com.fugary.simple.api.exports.md.MdViewContext;
 import com.fugary.simple.api.imports.markdown.MarkdownDocImporterImpl;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
+import com.fugary.simple.api.service.impl.apidoc.asset.DocAssetStorageServiceImpl;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
@@ -61,6 +63,11 @@ public class MarkdownZipApiDocExporterTest {
 
         ApiDocViewGenerator mockViewGenerator = Mockito.mock(ApiDocViewGenerator.class);
         Mockito.when(mockViewGenerator.generate(any())).thenReturn("### 接口详情与参数说明");
+
+        DocAssetStorageServiceImpl realAssetService = new DocAssetStorageServiceImpl();
+        Mockito.when(mockAssetStorageService.resolveImageFile(any(), any(), any()))
+                .thenAnswer(inv -> realAssetService.resolveImageFile(mockAssetStorageService.getBaseUploadPath(),
+                        inv.getArgument(0), inv.getArgument(1), inv.getArgument(2)));
 
         ReflectionTestUtils.setField(exporter, "apiProjectService", mockProjectService);
         ReflectionTestUtils.setField(exporter, "apiProjectInfoDetailService", mockProjectInfoDetailService);
@@ -371,6 +378,13 @@ public class MarkdownZipApiDocExporterTest {
     public void testExportWithImageAssets() throws IOException {
         int projectId = 102;
         String projectCode = "img-proj";
+        File tempUploadDir = Files.createTempDirectory("md-zip-assets-").toFile();
+        File projectAssetDir = new File(tempUploadDir, "docs/" + projectCode);
+        FileUtils.forceMkdir(projectAssetDir);
+        FileUtils.writeByteArrayToFile(new File(projectAssetDir, "arch123.png"), "ARCH_IMG".getBytes(StandardCharsets.UTF_8));
+        FileUtils.writeByteArrayToFile(new File(projectAssetDir, "flow456.jpg"), "FLOW_IMG".getBytes(StandardCharsets.UTF_8));
+
+        try {
         ApiProjectDetailVo project = new ApiProjectDetailVo();
         project.setId(projectId);
         project.setProjectCode(projectCode);
@@ -409,7 +423,7 @@ public class MarkdownZipApiDocExporterTest {
         Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
         Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(rootDoc, subDoc));
         Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
-        Mockito.when(mockAssetStorageService.getBaseUploadPath()).thenReturn(System.getProperty("java.io.tmpdir"));
+        Mockito.when(mockAssetStorageService.getBaseUploadPath()).thenReturn(tempUploadDir.getAbsolutePath());
 
         ExportDownloadVo downloadVo = new ExportDownloadVo();
         downloadVo.setType("zip");
@@ -434,6 +448,9 @@ public class MarkdownZipApiDocExporterTest {
         // 验证子目录文档相对链接为 ../assets/
         String subDocContent = zipContents.get("docs/流程说明.md");
         Assertions.assertTrue(subDocContent.contains("../assets/flow456.jpg"));
+        } finally {
+            FileUtils.deleteDirectory(tempUploadDir);
+        }
     }
 
     @Test
@@ -506,10 +523,9 @@ public class MarkdownZipApiDocExporterTest {
                 }
             }
 
-            // 验证 ZIP 中 assets 目录包含两个图片
+            // upload 根目录及其他项目目录中的图片均可作为通用资源打包
             Assertions.assertTrue(zipEntryBytes.containsKey("assets/9b1e19eccdbc4b40893430bfd356e849.jpg"));
             Assertions.assertEquals("ROOT_IMG_BYTES", new String(zipEntryBytes.get("assets/9b1e19eccdbc4b40893430bfd356e849.jpg"), StandardCharsets.UTF_8));
-
             Assertions.assertTrue(zipEntryBytes.containsKey("assets/cross789.png"));
             Assertions.assertEquals("CROSS_IMG_BYTES", new String(zipEntryBytes.get("assets/cross789.png"), StandardCharsets.UTF_8));
 
@@ -522,5 +538,114 @@ public class MarkdownZipApiDocExporterTest {
         } finally {
             FileUtils.deleteDirectory(tempUploadDir);
         }
+    }
+
+    @Test
+    public void testExportZipWithCentralizedModels() throws IOException {
+        int projectId = 200;
+        ApiProjectDetailVo project = new ApiProjectDetailVo();
+        project.setId(projectId);
+        project.setProjectCode("test-models-proj");
+        project.setProjectName("模型集中导出项目");
+
+        ApiFolder rootFolder = new ApiFolder();
+        rootFolder.setId(1);
+        rootFolder.setFolderName("root");
+        rootFolder.setRootFlag(true);
+
+        ApiFolder userFolder = new ApiFolder();
+        userFolder.setId(2);
+        userFolder.setFolderName("user");
+        userFolder.setParentId(1);
+
+        project.setFolders(List.of(rootFolder, userFolder));
+
+        // 根目录下接口
+        ApiDocDetailVo rootApiDoc = new ApiDocDetailVo();
+        rootApiDoc.setId(401);
+        rootApiDoc.setFolderId(1);
+        rootApiDoc.setDocType(ApiDocConstants.DOC_TYPE_API);
+        rootApiDoc.setDocName("登录接口");
+        rootApiDoc.setMethod("POST");
+        rootApiDoc.setUrl("/api/login");
+
+        // 子目录下接口
+        ApiDocDetailVo userApiDoc = new ApiDocDetailVo();
+        userApiDoc.setId(402);
+        userApiDoc.setFolderId(2);
+        userApiDoc.setDocType(ApiDocConstants.DOC_TYPE_API);
+        userApiDoc.setDocName("获取用户");
+        userApiDoc.setMethod("GET");
+        userApiDoc.setUrl("/api/user");
+
+        project.setDocs(List.of(rootApiDoc, userApiDoc));
+
+        // 模拟 ViewGenerator 返回包含模型链接以及自身锚点的内容
+        ApiDocViewGenerator viewGenerator = Mockito.mock(ApiDocViewGenerator.class);
+        Mockito.when(viewGenerator.generate(any())).thenAnswer(invocation -> {
+            MdViewContext ctx = invocation.getArgument(0);
+            if (ctx.getSchemasMap() != null) {
+                io.swagger.v3.oas.models.media.Schema<Object> userSchema = new io.swagger.v3.oas.models.media.Schema<>();
+                userSchema.setName("UserVO");
+                userSchema.setDescription("用户信息模型");
+                ctx.getSchemasMap().put("UserVO", userSchema);
+
+                io.swagger.v3.oas.models.media.Schema<Object> loginSchema = new io.swagger.v3.oas.models.media.Schema<>();
+                loginSchema.setName("LoginDTO");
+                loginSchema.setDescription("登录参数模型");
+                ctx.getSchemasMap().put("LoginDTO", loginSchema);
+            }
+            if ("/api/login".equals(ctx.getApiDocDetail().getUrl())) {
+                return "### 基本信息\n\n- [基本信息](#基本信息)\n- 参数模型：<a href=\"#LoginDTO\">LoginDTO</a>\n- 备用链接：[LoginDTO](#LoginDTO)";
+            } else {
+                return "### 基本信息\n\n- [基本信息](#基本信息)\n- 响应模型：<a href=\"#UserVO\">UserVO</a>\n- 备用链接：[UserVO](#UserVO)";
+            }
+        });
+        Mockito.when(viewGenerator.sortSchemasMap(any(), any())).thenAnswer(inv -> inv.getArgument(0));
+        ReflectionTestUtils.setField(exporter, "apiDocViewGenerator", viewGenerator);
+
+        Mockito.when(mockProjectService.loadProjectVo(any(ProjectDetailQueryVo.class))).thenReturn(project);
+        Mockito.when(mockProjectInfoDetailService.loadDetailList(any())).thenReturn(List.of(rootApiDoc, userApiDoc));
+        Mockito.when(mockProjectInfoDetailService.loadByProject(eq(projectId), any())).thenReturn(Collections.emptyList());
+
+        ExportDownloadVo downloadVo = new ExportDownloadVo();
+        downloadVo.setType("zip");
+
+        byte[] zipBytes = exporter.export(projectId, downloadVo);
+        Assertions.assertNotNull(zipBytes);
+
+        Map<String, String> zipContents = new HashMap<>();
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zipBytes), StandardCharsets.UTF_8)) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (entry.getName().endsWith(".md")) {
+                    zipContents.put(entry.getName(), new String(IOUtils.toByteArray(zis), StandardCharsets.UTF_8));
+                }
+                zis.closeEntry();
+            }
+        }
+
+        // 1. 验证生成了独立的 models/models.md 文件
+        Assertions.assertTrue(zipContents.containsKey("models/models.md"));
+        String modelsContent = zipContents.get("models/models.md");
+        Assertions.assertFalse(modelsContent.contains("<a id="));
+        Assertions.assertTrue(modelsContent.contains("## UserVO"));
+        Assertions.assertTrue(modelsContent.contains("用户信息模型"));
+        Assertions.assertTrue(modelsContent.contains("## LoginDTO"));
+        Assertions.assertTrue(modelsContent.contains("登录参数模型"));
+
+        // 2. 验证根目录下文档（登录接口）的模型链接被重写为 ./models/models.md#Anchor，但内部自身锚点 #基本信息 保持不变
+        String rootDocContent = zipContents.get("登录接口.md");
+        Assertions.assertNotNull(rootDocContent);
+        Assertions.assertTrue(rootDocContent.contains("href=\"./models/models.md#LoginDTO\""));
+        Assertions.assertTrue(rootDocContent.contains("[LoginDTO](./models/models.md#LoginDTO)"));
+        Assertions.assertTrue(rootDocContent.contains("[基本信息](#基本信息)"));
+
+        // 3. 验证子目录下文档（user/获取用户.md）的模型链接被重写为 ../models/models.md#Anchor，自身锚点保持不变
+        String userDocContent = zipContents.get("user/获取用户.md");
+        Assertions.assertNotNull(userDocContent);
+        Assertions.assertTrue(userDocContent.contains("href=\"../models/models.md#UserVO\""));
+        Assertions.assertTrue(userDocContent.contains("[UserVO](../models/models.md#UserVO)"));
+        Assertions.assertTrue(userDocContent.contains("[基本信息](#基本信息)"));
     }
 }

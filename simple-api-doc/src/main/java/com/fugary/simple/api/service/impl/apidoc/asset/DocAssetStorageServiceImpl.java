@@ -57,9 +57,7 @@ public class DocAssetStorageServiceImpl implements DocAssetStorageService {
             return null;
         }
 
-        String cleanProjectCode = StringUtils.isNotBlank(projectCode)
-                ? projectCode.trim().replaceAll("[^a-zA-Z0-9._-]", "_")
-                : "default";
+        String cleanProjectCode = sanitizeProjectCode(projectCode);
 
         String md5 = DigestUtils.md5Hex(imageBytes);
         String ext = FilenameUtils.getExtension(originalFileName);
@@ -212,5 +210,58 @@ public class DocAssetStorageServiceImpl implements DocAssetStorageService {
         String cleanPath = docPath.replace('\\', '/');
         int lastSlash = cleanPath.lastIndexOf('/');
         return lastSlash > 0 ? cleanPath.substring(0, lastSlash) : "";
+    }
+
+    @Override
+    public File resolveImageFile(String relativePath, String imgFileName, String currentProjectCode) {
+        return resolveImageFile(getBaseUploadPath(), relativePath, imgFileName, currentProjectCode);
+    }
+
+    @Override
+    public File resolveImageFile(String baseUploadPath, String relativePath, String imgFileName, String currentProjectCode) {
+        if (StringUtils.isBlank(baseUploadPath) || StringUtils.isBlank(imgFileName)
+                || StringUtils.isBlank(currentProjectCode)) {
+            return null;
+        }
+        String cleanProjectCode = sanitizeProjectCode(currentProjectCode);
+        File uploadBaseDir = new File(baseUploadPath);
+        File projectDir = new File(String.join(File.separator, baseUploadPath, "docs", cleanProjectCode));
+
+        // 优先按完整相对路径查找，支持 upload 根目录及其他项目目录中的通用资源
+        if (StringUtils.isNotBlank(relativePath)) {
+            File imgFile = new File(baseUploadPath, relativePath.replace('/', File.separatorChar));
+            if (isValidImageFile(imgFile, uploadBaseDir)) {
+                return imgFile;
+            }
+        }
+
+        // 兼容仅保留文件名的当前项目资源引用
+        File projectImageFile = new File(projectDir, imgFileName);
+        if (isValidImageFile(projectImageFile, uploadBaseDir)) {
+            return projectImageFile;
+        }
+        return null;
+    }
+
+    /**
+     * 校验文件是否存在且防止路径遍历攻击
+     */
+    protected boolean isValidImageFile(File file, File allowedDirectory) {
+        if (file == null || !file.exists() || !file.isFile()) {
+            return false;
+        }
+        try {
+            Path filePath = file.toPath().toRealPath();
+            Path allowedPath = allowedDirectory.getCanonicalFile().toPath();
+            return filePath.startsWith(allowedPath) && !Files.isSymbolicLink(file.toPath());
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private String sanitizeProjectCode(String projectCode) {
+        return StringUtils.isNotBlank(projectCode)
+                ? projectCode.trim().replaceAll("[^a-zA-Z0-9._-]", "_")
+                : "default";
     }
 }

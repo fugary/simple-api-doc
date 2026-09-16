@@ -14,6 +14,7 @@ import com.fugary.simple.api.imports.markdown.MarkdownDocImporterImpl;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
+import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SchemaYamlUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
@@ -28,15 +29,26 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.stereotype.Component;
+import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import freemarker.template.TemplateMethodModelEx;
+import freemarker.template.TemplateModelException;
+import io.swagger.v3.oas.models.SpecVersion;
+import io.swagger.v3.oas.models.media.Schema;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
@@ -57,7 +69,8 @@ import java.util.zip.ZipOutputStream;
 @Component
 public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
 
-    private static final Pattern MD_LOCAL_IMG_PATTERN = Pattern.compile("(/upload/((?:[^/\\s)\"'>]+/)*([a-zA-Z0-9._-]+\\.[a-zA-Z0-9]+)))");
+    public static final Pattern MD_ANCHOR_LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(#([^\\)\\s]+)\\)");
+    public static final Pattern HTML_ANCHOR_LINK_PATTERN = Pattern.compile("(<a\\b[^>]*?\\bhref=[\"'])#([^\"'\\s>]+)([\"'])", Pattern.CASE_INSENSITIVE);
 
     @Autowired
     private ApiProjectService apiProjectService;
@@ -67,6 +80,8 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
     private ApiDocViewGenerator apiDocViewGenerator;
     @Autowired(required = false)
     private DocAssetStorageService docAssetStorageService;
+    @Autowired(required = false)
+    private Configuration freemarkerConfig;
 
     @Override
     public byte[] export(Integer projectId, ApiExportFilter exportFilter) {
@@ -112,12 +127,24 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         // 对 docDetailList 按照树形结构排序（保证输出顺序与 UI 树一致）
         docDetailList.sort(Comparator.comparing(d -> ApiDocParseUtils.getDocSortKey(d, folderMap)));
 
+        Map<Integer, ApiProjectInfo> projectInfoMap = projectInfos.stream()
+                .filter(info -> info.getId() != null)
+                .collect(Collectors.toMap(ApiProjectInfo::getId, Function.identity(), (a, b) -> a));
+
         boolean withFrontmatter = exportFilter.getWithFrontmatter() == null || Boolean.TRUE.equals(exportFilter.getWithFrontmatter());
 
         // 收集所有 Markdown 文件条目与引用的静态资源
         List<ZipDocEntry> docEntries = new ArrayList<>();
         Set<String> usedEntryPaths = new HashSet<>();
         boolean hasRootReadme = false;
+
+        // 初始化全局数据模型收集上下文（ZIP 导出模式下统一收拢至 models/models.md）
+        MdViewContext context = new MdViewContext();
+        context.setGenerateComponents(false);
+        Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
+        context.setSchemasMap(schemasMap);
+        context.setDirectSchemaNames(new ArrayList<>());
+        usedEntryPaths.add("models/models.md");
 
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
             List<String> folderNames = getSanitizedFolderNames(apiDocDetail.getFolderId(), folderMap);
@@ -132,8 +159,23 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
             String bodyContent;
             if (ApiDocConstants.DOC_TYPE_API.equals(apiDocDetail.getDocType())) {
                 apiDocDetail.setProject(detailVo);
-                apiDocDetail.setProjectInfoDetail(projectInfoDetailVo);
-                bodyContent = apiDocViewGenerator.generate(new MdViewContext(apiDocDetail));
+                ApiProjectInfo apiInfo = projectInfoMap.get(apiDocDetail.getInfoId());
+                if (apiInfo == null && !projectInfos.isEmpty()) {
+                    apiInfo = projectInfos.get(0);
+                }
+                ApiProjectInfoDetailVo docInfoDetailVo = apiProjectInfoDetailService.parseInfoDetailVo(apiInfo, apiInfoDetails, List.of(apiDocDetail));
+                if (docInfoDetailVo == null) {
+                    docInfoDetailVo = new ApiProjectInfoDetailVo();
+                }
+                if (docInfoDetailVo.getSpecVersion() == null && projectInfoDetailVo != null) {
+                    docInfoDetailVo.setSpecVersion(projectInfoDetailVo.getSpecVersion());
+                }
+                apiDocDetail.setProjectInfoDetail(docInfoDetailVo);
+
+                SpecVersion specVersion = SchemaJsonUtils.resolveSpecVersion(docInfoDetailVo.getSpecVersion());
+                context.setApiDocDetail(apiDocDetail);
+                SimpleModelUtils.processComponents(apiDocDetail, specVersion, schemasMap);
+                bodyContent = apiDocViewGenerator.generate(context);
                 String docTitle = StringUtils.defaultIfBlank(apiDocDetail.getDocName(), apiDocDetail.getUrl());
                 if (StringUtils.isNotBlank(docTitle) && !bodyContent.startsWith("# ")) {
                     bodyContent = "# " + docTitle + "\n\n" + bodyContent;
@@ -146,7 +188,7 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
             if (withFrontmatter) {
                 finalContent = buildMarkdownContentWithFrontmatter(apiDocDetail, bodyContent);
             } else {
-                finalContent = stripFrontmatterIfPresent(bodyContent);
+                finalContent = MarkdownHeadingUtils.stripFrontmatter(bodyContent);
             }
             docEntries.add(new ZipDocEntry(entryPath, folderNames.size(), finalContent));
         }
@@ -156,6 +198,15 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
             String rootReadmeContent = generateRootReadme(detailVo, projectInfoDetailVo, exportFilter, withFrontmatter);
             String rootReadmePath = calcUniqueEntryPath("", "README.md", usedEntryPaths);
             docEntries.add(0, new ZipDocEntry(rootReadmePath, 0, rootReadmeContent));
+        }
+
+        // 若存在数据模型，重写文档中的模型锚点链接为相对路径，并生成独立的 models/models.md
+        if (MapUtils.isNotEmpty(schemasMap)) {
+            rewriteModelLinks(docEntries, schemasMap);
+            String modelsContent = generateModelsMarkdown(schemasMap, context.getDirectSchemaNames(), withFrontmatter);
+            if (StringUtils.isNotBlank(modelsContent)) {
+                docEntries.add(new ZipDocEntry("models/models.md", 1, modelsContent));
+            }
         }
 
         // 提取项目引用的静态图片资源并打包到 assets/ 目录，同时将文档内图片链接重写为自适应相对路径
@@ -202,30 +253,29 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
             return assetMap;
         }
 
-        String baseUploadPath = docAssetStorageService.getBaseUploadPath();
+        Set<String> missingAssets = new HashSet<>();
         for (ZipDocEntry docEntry : docEntries) {
             String content = docEntry.getContent();
             if (StringUtils.isBlank(content)) {
                 continue;
             }
 
-            Matcher matcher = MD_LOCAL_IMG_PATTERN.matcher(content);
+            Matcher matcher = DocAssetStorageService.MD_LOCAL_IMG_PATTERN.matcher(content);
             StringBuilder sb = new StringBuilder();
-            boolean found = false;
+            boolean rewritten = false;
 
             int depth = docEntry.getFolderDepth();
             String relativeAssetPrefix = depth == 0 ? "./assets/" : "../".repeat(depth) + "assets/";
 
             while (matcher.find()) {
-                found = true;
                 String matchedImgUrl = matcher.group(1);
                 String relativePath = matcher.group(2);
                 String imgFileName = matcher.group(3);
 
                 // 尝试从磁盘读取图片物理文件
                 String assetEntryKey = "assets/" + imgFileName;
-                if (!assetMap.containsKey(assetEntryKey)) {
-                    File imgFile = resolveImageFile(baseUploadPath, relativePath, imgFileName, currentProjectCode);
+                if (!assetMap.containsKey(assetEntryKey) && !missingAssets.contains(assetEntryKey)) {
+                    File imgFile = docAssetStorageService.resolveImageFile(relativePath, imgFileName, currentProjectCode);
                     if (imgFile != null) {
                         try {
                             byte[] imgBytes = FileUtils.readFileToByteArray(imgFile);
@@ -234,69 +284,26 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
                             log.warn("读取本地图片资源失败: path={}", imgFile.getAbsolutePath(), e);
                         }
                     }
+                    if (!assetMap.containsKey(assetEntryKey)) {
+                        missingAssets.add(assetEntryKey);
+                    }
                 }
 
-                // 将 Markdown 中的绝对 URL 替换为相对路径
-                String replacement = relativeAssetPrefix + imgFileName;
-                matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+                // 仅在资源成功打包后重写链接，未找到或越界资源保留原始 URL
+                if (assetMap.containsKey(assetEntryKey)) {
+                    rewritten = true;
+                    String replacement = relativeAssetPrefix + imgFileName;
+                    matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+                }
             }
 
-            if (found) {
+            if (rewritten) {
                 matcher.appendTail(sb);
                 docEntry.setContent(sb.toString());
             }
         }
 
         return assetMap;
-    }
-
-    /**
-     * 阶梯式自适应定位物理图片文件（支持根目录上传、项目隔离目录以及跨项目引用图片）
-     *
-     * @param baseUploadPath      基础上传目录
-     * @param relativePath        /upload/ 后的相对路径（如 docs/citsgbt/abc.png 或 9b1e19...jpg）
-     * @param imgFileName         图片文件名
-     * @param currentProjectCode  当前项目 Code
-     * @return 存在的图片文件，若不存在返回 null
-     */
-    protected File resolveImageFile(String baseUploadPath, String relativePath, String imgFileName, String currentProjectCode) {
-        if (StringUtils.isBlank(baseUploadPath) || StringUtils.isBlank(imgFileName)) {
-            return null;
-        }
-        // 1. 优先按完整相对路径查找（支持 /upload/docs/{projectCode}/{fileName}、/upload/{fileName} 或跨项目路径）
-        if (StringUtils.isNotBlank(relativePath)) {
-            File imgFile = new File(baseUploadPath, relativePath.replace('/', File.separatorChar));
-            if (isValidImageFile(imgFile, baseUploadPath)) {
-                return imgFile;
-            }
-        }
-        // 2. 尝试在当前项目 docs/{currentProjectCode}/ 下查找
-        if (StringUtils.isNotBlank(currentProjectCode)) {
-            File imgFile = new File(String.join(File.separator, baseUploadPath, "docs", currentProjectCode, imgFileName));
-            if (isValidImageFile(imgFile, baseUploadPath)) {
-                return imgFile;
-            }
-        }
-        // 3. 尝试在 upload 根目录下查找
-        File rootImgFile = new File(baseUploadPath, imgFileName);
-        if (isValidImageFile(rootImgFile, baseUploadPath)) {
-            return rootImgFile;
-        }
-        return null;
-    }
-
-    /**
-     * 校验文件是否存在且防止路径遍历攻击
-     */
-    private boolean isValidImageFile(File file, String baseUploadPath) {
-        if (file == null || !file.exists() || !file.isFile()) {
-            return false;
-        }
-        try {
-            return file.getCanonicalPath().startsWith(new File(baseUploadPath).getCanonicalPath());
-        } catch (IOException e) {
-            return false;
-        }
     }
 
     /**
@@ -399,19 +406,6 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         return "---\n" + yaml.trim() + "\n---\n\n" + rawBody.stripLeading();
     }
 
-    /**
-     * 剥离正文可能包含的 Frontmatter 头部
-     */
-    private String stripFrontmatterIfPresent(String content) {
-        if (StringUtils.isBlank(content)) {
-            return "";
-        }
-        Matcher matcher = MarkdownDocImporterImpl.FRONTMATTER_PATTERN.matcher(content);
-        if (matcher.matches()) {
-            return matcher.group(2).stripLeading();
-        }
-        return content;
-    }
 
     /**
      * 计算文档文件名
@@ -471,6 +465,130 @@ public class MarkdownZipApiDocExporterImpl implements ApiDocExporter<byte[]> {
         return ApiDocParseUtils.getFolderNames(folderId, folderMap).stream()
                 .map(this::sanitizePathSegment)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 批量重写各文档中的数据模型锚点链接为指向 models/models.md 的相对路径
+     */
+    private void rewriteModelLinks(List<ZipDocEntry> docEntries, Map<String, Schema<?>> schemasMap) {
+        if (MapUtils.isEmpty(schemasMap)) {
+            return;
+        }
+        Set<String> schemaNames = schemasMap.keySet();
+        for (ZipDocEntry docEntry : docEntries) {
+            String content = docEntry.getContent();
+            if (StringUtils.isBlank(content)) {
+                continue;
+            }
+            int depth = docEntry.getFolderDepth();
+            String relativeModelsPath = depth == 0 ? "./models/models.md" : "../".repeat(depth) + "models/models.md";
+            String rewritten = rewriteContentModelLinks(content, relativeModelsPath, schemaNames);
+            docEntry.setContent(rewritten);
+        }
+    }
+
+    /**
+     * 重写单个文档内容中的模型链接
+     */
+    private String rewriteContentModelLinks(String content, String relativeModelsPath, Set<String> schemaNames) {
+        if (StringUtils.isBlank(content) || CollectionUtils.isEmpty(schemaNames)) {
+            return content;
+        }
+        // 1. 替换 Markdown 格式链接：[Text](#Anchor) -> [Text](relativeModelsPath#Anchor)
+        Matcher mdMatcher = MD_ANCHOR_LINK_PATTERN.matcher(content);
+        StringBuilder sb = new StringBuilder();
+        while (mdMatcher.find()) {
+            String text = mdMatcher.group(1);
+            String anchor = mdMatcher.group(2);
+            if (isSchemaAnchor(anchor, schemaNames)) {
+                mdMatcher.appendReplacement(sb, Matcher.quoteReplacement("[" + text + "](" + relativeModelsPath + "#" + anchor + ")"));
+            }
+        }
+        mdMatcher.appendTail(sb);
+        String intermediate = sb.toString();
+
+        // 2. 替换 HTML 格式链接：<a ... href="#Anchor" ...> -> <a ... href="relativeModelsPath#Anchor" ...>
+        Matcher htmlMatcher = HTML_ANCHOR_LINK_PATTERN.matcher(intermediate);
+        sb = new StringBuilder();
+        while (htmlMatcher.find()) {
+            String prefix = htmlMatcher.group(1);
+            String anchor = htmlMatcher.group(2);
+            String quote = htmlMatcher.group(3);
+            if (isSchemaAnchor(anchor, schemaNames)) {
+                htmlMatcher.appendReplacement(sb, Matcher.quoteReplacement(prefix + relativeModelsPath + "#" + anchor + quote));
+            }
+        }
+        htmlMatcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    private boolean isSchemaAnchor(String anchor, Set<String> schemaNames) {
+        if (StringUtils.isBlank(anchor)) {
+            return false;
+        }
+        if (schemaNames.contains(anchor)) {
+            return true;
+        }
+        try {
+            String decoded = URLDecoder.decode(anchor, StandardCharsets.UTF_8);
+            return schemaNames.contains(decoded);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * 生成统一的数据模型文档 models/models.md 内容
+     */
+    private String generateModelsMarkdown(Map<String, Schema<?>> schemasMap, List<String> directSchemaNames, boolean withFrontmatter) {
+        Map<String, Schema<?>> sortedSchemasMap = apiDocViewGenerator.sortSchemasMap(schemasMap, directSchemaNames);
+        Map<String, Object> model = new HashMap<>();
+        model.put("schemasMap", sortedSchemasMap);
+        model.put("withFrontmatter", withFrontmatter);
+        try {
+            Template template = getFreemarkerConfig().getTemplate("ExportModelsMdView.md.ftl");
+            return FreeMarkerTemplateUtils.processTemplateIntoString(template, model);
+        } catch (IOException | TemplateException e) {
+            log.error("渲染 ExportModelsMdView.md.ftl 失败", e);
+            throw new RuntimeException("渲染数据模型文档失败", e);
+        }
+    }
+
+    /**
+     * 获取或初始化 FreeMarker 配置
+     */
+    public Configuration getFreemarkerConfig() {
+        if (freemarkerConfig != null) {
+            return freemarkerConfig;
+        }
+        if (apiDocViewGenerator instanceof MarkdownApiDocViewGeneratorImpl) {
+            Configuration cfg = ((MarkdownApiDocViewGeneratorImpl) apiDocViewGenerator).getFreemarkerConfig();
+            if (cfg != null) {
+                this.freemarkerConfig = cfg;
+                return cfg;
+            }
+        }
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_31);
+        cfg.setClassForTemplateLoading(this.getClass(), "/templates");
+        cfg.setDefaultEncoding(StandardCharsets.UTF_8.name());
+        ApiDocFreemarkerUtils utils = new ApiDocFreemarkerUtils();
+        ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
+        messages.setBasename("messages");
+        messages.setUseCodeAsDefaultMessage(true);
+        utils.setMessageSource(messages);
+        try {
+            cfg.setSharedVariable("utils", utils);
+            cfg.setSharedVariable("message", (TemplateMethodModelEx) arguments -> {
+                if (CollectionUtils.isNotEmpty(arguments)) {
+                    return messages.getMessage(arguments.get(0).toString(), null, Locale.getDefault());
+                }
+                return "";
+            });
+        } catch (TemplateModelException e) {
+            log.error("初始化 FreeMarker 默认配置失败", e);
+        }
+        this.freemarkerConfig = cfg;
+        return freemarkerConfig;
     }
 
     @Data

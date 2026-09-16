@@ -1,48 +1,55 @@
 # ${apiProject.projectName}
 
-<#if utils.isNotBlank(apiProject.apiVersion)>
-${message('api.label.version')}: ${apiProject.apiVersion}
+<#if utils.isNotBlank(apiVersion)>
+* **${message('api.label.version')}**: ${apiVersion}
 </#if>
-
 <#if utils.isNotBlank(apiProject.description)>
-## ${message('api.label.apiDescription')}
 
 ${apiProject.description}
 </#if>
+<#if envList?? && (envList?size > 0)>
 
-<#if envList??>
-## ${message('api.label.apiAddress')}
-
+**${message('api.label.apiAddress')}**:
 <#list envList as env>
-${env.name!''}: ${env.url!''}
+* **${env.name!''}**: `${env.url!''}`
 </#list>
 </#if>
-
 <#if apiDocs?? && (apiDocs?size > 0)>
 <#assign currentFolder = "">
 <#list apiDocs as apiDoc>
-<#if apiDoc.topLevelFolder != currentFolder>
-<#assign currentFolder = apiDoc.topLevelFolder>
-<#if utils.isNotBlank(currentFolder)>
+<#assign isSubFolder = utils.isNotBlank(apiDoc.folderPath)>
+<#if (apiDoc.folderPath!"") != currentFolder>
+<#assign currentFolder = (apiDoc.folderPath!"")>
+<#if isSubFolder>
 
-# ${currentFolder}
+---
+
+## 📁 ${currentFolder}
 </#if>
 </#if>
+<#assign headingPrefix = isSubFolder?then("###", "##")>
 
-## ${apiDoc.docName}
 <#if apiDoc.docType=='md'>
+${headingPrefix} 📄 ${apiDoc.docName}
+
 ${apiDoc.docContent!""}
 <#elseif apiDoc.docType=='api'>
+<#if utils.isNotBlank(apiDoc.docName)><#assign docTitle = apiDoc.docName><#else><#assign docTitle = (apiDoc.url!"")></#if>
+${headingPrefix} 🔗 <#if utils.isNotBlank(apiDoc.method)>[${apiDoc.method?upper_case}] </#if>${docTitle}<#if utils.isNotBlank(apiDoc.url) && docTitle != apiDoc.url> (`${apiDoc.url}`)</#if>
+
 ${apiDoc.apiMarkdown!""}
 </#if>
 </#list>
 </#if>
 
 <#if schemasMap?? && (schemasMap?size > 0)>
-# ${message('api.label.apiModel')}
+
+---
+
+## 📦 ${message('api.label.apiModel')}
 
 <#list schemasMap as name, schema>
-## ${name}
+### ${name}
 <#if utils.isNotBlank(utils.getSchemaDescription(schema))>
 ${utils.getSchemaDescription(schema)}
 </#if>
