@@ -43,7 +43,7 @@ public class MarkdownApiDocExporterTest {
 
         mockProjectService = Mockito.mock(ApiProjectService.class);
         mockProjectInfoDetailService = Mockito.mock(ApiProjectInfoDetailService.class);
-        mockAssetStorageService = Mockito.mock(DocAssetStorageService.class);
+        mockAssetStorageService = Mockito.spy(new com.fugary.simple.api.service.impl.apidoc.asset.DocAssetStorageServiceImpl());
 
         ApiDocViewGenerator mockViewGenerator = Mockito.mock(ApiDocViewGenerator.class);
         Mockito.when(mockViewGenerator.generate(any())).thenReturn("### 基本信息\n\n* **请求方式**: GET\n\n### 请求参数\n\n无参数");
@@ -177,8 +177,15 @@ public class MarkdownApiDocExporterTest {
         // 验证接口内部标题降级：用户中心下的接口 ### 基本信息 降级为 #### 基本信息
         Assertions.assertTrue(exportedMd.contains("#### 基本信息"));
 
-        // 4. 验证图片 Base64 内嵌化
-        Assertions.assertTrue(exportedMd.contains("![架构图](data:image/png;base64,"));
+        // 4. 验证默认情况下不嵌入图片 Base64，保留原始图片链接
+        Assertions.assertTrue(exportedMd.contains("![架构图](/upload/docs/test-proj/arch.png)"));
+        Assertions.assertFalse(exportedMd.contains("data:image/png;base64"));
+
+        // 验证开启 embedImages 时，内联图片为 Base64
+        userAuthDoc.setDocContent("# 权限设计说明\n\n架构设计如下图：\n\n![架构图](/upload/docs/test-proj/arch.png)\n\n## 1. 认证机制\n\n### 1.1 Token\n\nJWT Token。");
+        downloadVo.setEmbedImages(true);
+        String exportedMdWithEmbed = exporter.export(projectId, downloadVo);
+        Assertions.assertTrue(exportedMdWithEmbed.contains("![架构图](data:image/png;base64,"));
 
         // 5. 验证跨文档相对链接已转换为单文档内部锚点
         Assertions.assertTrue(exportedMd.contains("[权限设计说明](#权限设计说明)"));

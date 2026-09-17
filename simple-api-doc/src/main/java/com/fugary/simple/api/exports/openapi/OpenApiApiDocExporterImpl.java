@@ -10,6 +10,7 @@ import com.fugary.simple.api.exports.ApiExportFilter;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
@@ -59,6 +60,8 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
     private ApiProjectInfoDetailService apiProjectInfoDetailService;
     @Autowired
     private ApiFolderService apiFolderService;
+    @Autowired(required = false)
+    private DocAssetStorageService docAssetStorageService;
 
     @Override
     public OpenAPI export(Integer projectId, ApiExportFilter exportFilter) {
@@ -103,6 +106,9 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
         SpecVersion specVersion = SchemaJsonUtils.resolveSpecVersion(projectInfoDetailVo.getSpecVersion());
         String oasVersion = StringUtils.defaultIfBlank(projectInfoDetailVo.getOasVersion(),
                 SchemaJsonUtils.defaultOasVersion(specVersion));
+        boolean shouldEmbedImages = Boolean.TRUE.equals(exportFilter.getEmbedImages());
+        Map<String, String> imageCache = shouldEmbedImages ? new HashMap<>() : null;
+        String projectDescription = inlineImages(detailVo.getDescription(), detailVo.getProjectCode(), shouldEmbedImages, imageCache);
         // 新建OpenAPI数据
         OpenAPI openAPI = new OpenAPI(specVersion)
                 .openapi(oasVersion)
@@ -111,7 +117,7 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 .servers(new ArrayList<>())
                 .info(new Info().title(detailVo.getProjectName())
                         .summary(detailVo.getProjectName())
-                        .description(detailVo.getDescription())
+                        .description(projectDescription)
                         .version(StringUtils.defaultIfBlank(detailVo.getApiVersion(), projectInfoDetailVo.getVersion())));
         processComponentsAndSecuritySchemas(projectInfoDetailVo, openAPI);
         List<ExtendMarkdownFile> markdownFiles = new ArrayList<>();
@@ -136,19 +142,22 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                         pathItem = new PathItem();
                         openAPI.getPaths().addPathItem(urlPath, pathItem);
                     }
+                    apiDocDetail.setDocContent(inlineImages(apiDocDetail.getDocContent(), detailVo.getProjectCode(), shouldEmbedImages, imageCache));
+                    apiDocDetail.setDescription(inlineImages(apiDocDetail.getDescription(), detailVo.getProjectCode(), shouldEmbedImages, imageCache));
                     populateOperation(openAPI, pathItem, folderCodePath, folderNamePath, apiFolder, apiDocDetail);
                     tags.add(new Tag().name(StringUtils.defaultIfBlank(apiFolder.getFolderName(), apiFolder.getFolderCode()))
                             .description(apiFolder.getDescription())); // 提取文件夹信息作为Tag
                 } else if (ApiDocConstants.DOC_TYPE_MD.equals(apiDocDetail.getDocType())) { // markdown处理
+                    String docContent = inlineImages(apiDocDetail.getDocContent(), detailVo.getProjectCode(), shouldEmbedImages, imageCache);
                     if (StringUtils.equals(ApiDocConstants.DOC_KEY_PREFIX + "openapi-info", apiDocDetail.getDocKey())) {
-                        openAPI.getInfo().description(apiDocDetail.getDocContent());
+                        openAPI.getInfo().description(docContent);
                     } else { // 目录下文件
                         ExtendMarkdownFile markdownFile = new ExtendMarkdownFile();
                         markdownFile.setFolderName(folderNamePath);
                         markdownFile.setFileName(apiDocDetail.getDocKey());
                         markdownFile.setTitle(apiDocDetail.getDocName());
                         markdownFile.setSortId(apiDocDetail.getSortId());
-                        markdownFile.setContent(apiDocDetail.getDocContent());
+                        markdownFile.setContent(docContent);
                         markdownFiles.add(markdownFile);
                     }
                 }
@@ -348,5 +357,12 @@ public class OpenApiApiDocExporterImpl implements ApiDocExporter<OpenAPI> {
                 });
             }
         }
+    }
+
+    private String inlineImages(String content, String projectCode, boolean shouldEmbedImages, Map<String, String> cache) {
+        if (!shouldEmbedImages || StringUtils.isBlank(content) || docAssetStorageService == null) {
+            return content;
+        }
+        return docAssetStorageService.inlineImagesAsBase64(content, projectCode, cache);
     }
 }

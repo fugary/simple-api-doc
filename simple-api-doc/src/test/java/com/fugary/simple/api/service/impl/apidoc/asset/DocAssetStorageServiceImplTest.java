@@ -101,4 +101,29 @@ class DocAssetStorageServiceImplTest {
 
         Assertions.assertNull(resolved);
     }
+
+    @Test
+    void inlineAndExtractBase64ImagesRoundTrip() throws Exception {
+        java.lang.reflect.Field field = DocAssetStorageServiceImpl.class.getDeclaredField("baseDataDir");
+        field.setAccessible(true);
+        field.set(service, uploadDirectory.getAbsolutePath());
+
+        byte[] originalBytes = new byte[]{10, 20, 30, 40, 50};
+        String base64 = java.util.Base64.getEncoder().encodeToString(originalBytes);
+        String markdownWithBase64 = "这是一个测试图片: ![test](data:image/png;base64," + base64 + ") 结束";
+
+        String extracted = service.extractAndSaveBase64Images(markdownWithBase64, "test-proj");
+        Assertions.assertTrue(extracted.contains("/upload/docs/test-proj/"));
+        Assertions.assertFalse(extracted.contains("data:image/png;base64"));
+
+        String localUrl = extracted.substring(extracted.indexOf("/upload/docs/test-proj/"), extracted.indexOf(")"));
+        String fileName = localUrl.substring(localUrl.lastIndexOf('/') + 1);
+        File savedFile = new File(uploadDirectory, "upload/docs/test-proj/" + fileName);
+        Assertions.assertTrue(savedFile.exists());
+        Assertions.assertArrayEquals(originalBytes, FileUtils.readFileToByteArray(savedFile));
+
+        String markdownWithLocalUrl = "这是一张本地图片: ![](" + localUrl + ")";
+        String inlined = service.inlineImagesAsBase64(markdownWithLocalUrl, "test-proj", new java.util.HashMap<>());
+        Assertions.assertTrue(inlined.contains("data:image/png;base64," + base64));
+    }
 }

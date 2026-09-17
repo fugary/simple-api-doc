@@ -45,6 +45,7 @@ const treeSelectKeys = defineModel('treeSelectKeys', {
 
 const exportZip = ref(true)
 const withFrontmatter = ref(true)
+const embedImages = ref(false)
 
 const exportDocIds = computed(() => {
   return treeSelectKeys.value.filter(id => isNumber(id)) || []
@@ -61,7 +62,8 @@ const exportSelectedDocs = () => {
     shareId: props.shareDoc?.shareId,
     projectCode: props.projectItem?.projectCode,
     type,
-    withFrontmatter: withFrontmatter.value
+    withFrontmatter: withFrontmatter.value,
+    embedImages: embedImages.value
   }
   if (docIds.length) {
     param.docIds = docIds
@@ -95,29 +97,39 @@ const exportSelectedDocs = () => {
     width="950px"
     @submit-keys="exportSelectedDocs"
   >
-    <template
-      v-if="exportType === 'md'"
-      #extra-filter
-    >
+    <template #extra-filter>
+      <template v-if="exportType === 'md'">
+        <el-tooltip
+          :content="$t('api.msg.exportZipTooltip')"
+          placement="top"
+        >
+          <el-checkbox
+            v-model="exportZip"
+          >
+            {{ $t('api.label.exportZip') }}
+          </el-checkbox>
+        </el-tooltip>
+        <el-tooltip
+          v-if="exportZip"
+          :content="$t('api.msg.withFrontmatterTooltip')"
+          placement="top"
+        >
+          <el-checkbox
+            v-model="withFrontmatter"
+          >
+            {{ $t('api.label.withFrontmatter') }}
+          </el-checkbox>
+        </el-tooltip>
+      </template>
       <el-tooltip
-        :content="$t('api.msg.exportZipTooltip')"
+        v-if="!exportZip || exportType !== 'md'"
+        :content="$t('api.msg.embedImagesTooltip')"
         placement="top"
       >
         <el-checkbox
-          v-model="exportZip"
+          v-model="embedImages"
         >
-          {{ $t('api.label.exportZip') }}
-        </el-checkbox>
-      </el-tooltip>
-      <el-tooltip
-        v-if="exportZip"
-        :content="$t('api.msg.withFrontmatterTooltip')"
-        placement="top"
-      >
-        <el-checkbox
-          v-model="withFrontmatter"
-        >
-          {{ $t('api.label.withFrontmatter') }}
+          {{ $t('api.label.embedImages') }}
         </el-checkbox>
       </el-tooltip>
     </template>

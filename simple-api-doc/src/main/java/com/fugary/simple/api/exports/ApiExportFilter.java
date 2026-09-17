@@ -27,4 +27,12 @@ public interface ApiExportFilter {
     default Boolean getWithFrontmatter() {
         return true;
     }
+
+    /**
+     * 是否将本地图片转换为 Base64 嵌入文档
+     * @return null 表示由具体导出器按格式使用默认策略
+     */
+    default Boolean getEmbedImages() {
+        return null;
+    }
 }

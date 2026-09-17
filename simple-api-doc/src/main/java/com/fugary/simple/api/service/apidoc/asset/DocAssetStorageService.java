@@ -71,4 +71,28 @@ public interface DocAssetStorageService {
      * @return 存在的图片文件，若不存在返回 null
      */
     File resolveImageFile(String baseUploadPath, String relativePath, String imgFileName, String currentProjectCode);
+
+    /**
+     * 匹配 Markdown 或 HTML 或纯文本中的 Base64 图片 Data URL
+     */
+    Pattern DATA_IMAGE_PATTERN = Pattern.compile("data:image/([a-zA-Z0-9+.-]+);base64,([A-Za-z0-9+/=\\r\\n]+)");
+
+    /**
+     * 将文本中的本地图片转换为 Base64 Data URL 嵌入
+     *
+     * @param content     原始 Markdown/文本内容
+     * @param projectCode 项目 Code
+     * @param cache       Base64 缓存（可为 null），避免同张图片多次重复编码
+     * @return 替换后的内容
+     */
+    String inlineImagesAsBase64(String content, String projectCode, Map<String, String> cache);
+
+    /**
+     * 识别并提取文本中的 Base64 Data URL 图片，解码保存到本地并替换为本地图片 URL
+     *
+     * @param content     原始 Markdown/文本内容
+     * @param projectCode 项目 Code
+     * @return 替换后的内容
+     */
+    String extractAndSaveBase64Images(String content, String projectCode);
 }

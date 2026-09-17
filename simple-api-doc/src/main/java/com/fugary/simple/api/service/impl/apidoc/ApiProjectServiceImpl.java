@@ -11,6 +11,7 @@ import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.imports.ApiDocImporter;
 import com.fugary.simple.api.mapper.api.ApiProjectMapper;
 import com.fugary.simple.api.service.apidoc.*;
+import com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService;
 import com.fugary.simple.api.tasks.ProjectAutoImportInvoker;
 import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.utils.JsonUtils;
@@ -19,6 +20,8 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
+import com.fugary.simple.api.web.vo.exports.ExportApiFolderVo;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectVo;
 import com.fugary.simple.api.web.vo.exports.ExportEnvConfigVo;
 import com.fugary.simple.api.web.vo.imports.ApiProjectImportVo;
@@ -87,6 +90,9 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
 
     @Autowired
     private SimpleApiConfigProperties simpleApiConfigProperties;
+
+    @Autowired(required = false)
+    private DocAssetStorageService docAssetStorageService;
 
     @SneakyThrows
     @Override
@@ -275,7 +281,47 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
         exportVo.setIconUrl(StringUtils.defaultIfBlank(importVo.getIconUrl(), exportVo.getIconUrl()));
         exportVo.setGroupCode(importVo.getGroupCode());
+        normalizeImportImages(exportVo);
         return SimpleResultUtils.createSimpleResult(exportVo);
+    }
+
+    /**
+     * 规范化清洗导入数据：自动识别并提取文档与接口正文中的 Base64 图片，解码落盘为本地静态资源并替换为系统 URL
+     *
+     * @param exportVo 导入解析后的项目数据
+     */
+    protected void normalizeImportImages(ExportApiProjectVo exportVo) {
+        if (exportVo == null || docAssetStorageService == null) {
+            return;
+        }
+        String cleanProjectCode = StringUtils.defaultIfBlank(exportVo.getProjectCode(), "default");
+        if (StringUtils.isNotBlank(exportVo.getDescription())) {
+            exportVo.setDescription(docAssetStorageService.extractAndSaveBase64Images(exportVo.getDescription(), cleanProjectCode));
+        }
+        List<ExportApiDocVo> allDocs = new ArrayList<>(Objects.requireNonNullElseGet(exportVo.getDocs(), ArrayList::new));
+        collectFolderDocs(exportVo.getFolders(), allDocs);
+        for (ExportApiDocVo doc : allDocs) {
+            if (StringUtils.isNotBlank(doc.getDocContent())) {
+                doc.setDocContent(docAssetStorageService.extractAndSaveBase64Images(doc.getDocContent(), cleanProjectCode));
+            }
+            if (StringUtils.isNotBlank(doc.getDescription())) {
+                doc.setDescription(docAssetStorageService.extractAndSaveBase64Images(doc.getDescription(), cleanProjectCode));
+            }
+        }
+    }
+
+    private void collectFolderDocs(List<ExportApiFolderVo> folders, List<ExportApiDocVo> targetDocs) {
+        if (CollectionUtils.isEmpty(folders)) {
+            return;
+        }
+        for (ExportApiFolderVo folder : folders) {
+            if (CollectionUtils.isNotEmpty(folder.getDocs())) {
+                targetDocs.addAll(folder.getDocs());
+            }
+            if (CollectionUtils.isNotEmpty(folder.getFolders())) {
+                collectFolderDocs(folder.getFolders(), targetDocs);
+            }
+        }
     }
 
     @Override

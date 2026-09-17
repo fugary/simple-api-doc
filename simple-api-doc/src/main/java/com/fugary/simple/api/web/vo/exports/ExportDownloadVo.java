@@ -23,4 +23,5 @@ public class ExportDownloadVo implements Serializable, ApiExportFilter {
     private String envContent;
     private boolean returnContent;
     private Boolean withFrontmatter = true;
+    private Boolean embedImages;
 }

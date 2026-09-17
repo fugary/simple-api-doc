@@ -32,6 +32,7 @@ public class OpenApiApiDocExporterTest {
     private ApiProjectService mockProjectService;
     private ApiProjectInfoDetailService mockProjectInfoDetailService;
     private ApiFolderService mockFolderService;
+    private com.fugary.simple.api.service.apidoc.asset.DocAssetStorageService mockAssetStorageService;
 
     @BeforeEach
     public void setup() {
@@ -39,14 +40,17 @@ public class OpenApiApiDocExporterTest {
         mockProjectService = Mockito.mock(ApiProjectService.class);
         mockProjectInfoDetailService = Mockito.mock(ApiProjectInfoDetailService.class);
         mockFolderService = Mockito.mock(ApiFolderService.class);
+        com.fugary.simple.api.service.impl.apidoc.asset.DocAssetStorageServiceImpl realAssetService = new com.fugary.simple.api.service.impl.apidoc.asset.DocAssetStorageServiceImpl();
+        mockAssetStorageService = Mockito.spy(realAssetService);
 
         ReflectionTestUtils.setField(exporter, "apiProjectService", mockProjectService);
         ReflectionTestUtils.setField(exporter, "apiProjectInfoDetailService", mockProjectInfoDetailService);
         ReflectionTestUtils.setField(exporter, "apiFolderService", mockFolderService);
+        ReflectionTestUtils.setField(exporter, "docAssetStorageService", mockAssetStorageService);
     }
 
     @Test
-    public void testOpenApiExportTreeAndPathOrder() {
+    public void testOpenApiExportTreeAndPathOrder() throws Exception {
         int projectId = 1;
         ApiProjectDetailVo project = new ApiProjectDetailVo();
         project.setId(projectId);
@@ -85,6 +89,8 @@ public class OpenApiApiDocExporterTest {
         List<ApiFolder> folders = List.of(rootFolder, authFolder, userFolder, roleFolder);
         project.setFolders(folders);
 
+        project.setDescription("这是测试系统：![架构图](/upload/docs/test-openapi/arch.png)");
+
         // 接口定义
         ApiDocDetailVo docLogin = new ApiDocDetailVo();
         docLogin.setId(101);
@@ -94,6 +100,11 @@ public class OpenApiApiDocExporterTest {
         docLogin.setUrl("/api/v1/auth/login");
         docLogin.setMethod("POST");
         docLogin.setSortId(10);
+        docLogin.setDescription("登录说明：![登录图](/upload/docs/test-openapi/arch.png)");
+
+        java.io.File tempImg = java.nio.file.Files.createTempFile("openapi_img", ".png").toFile();
+        org.apache.commons.io.FileUtils.writeByteArrayToFile(tempImg, new byte[]{1, 2, 3});
+        Mockito.when(mockAssetStorageService.resolveImageFile(any(), eq("arch.png"), eq("test-openapi"))).thenReturn(tempImg);
 
         ApiDocDetailVo docUserList = new ApiDocDetailVo();
         docUserList.setId(102);
@@ -149,5 +160,16 @@ public class OpenApiApiDocExporterTest {
         Assertions.assertNotNull(openAPI.getPaths().get("/api/v1/users").getPost());
         Assertions.assertEquals("用户列表", openAPI.getPaths().get("/api/v1/users").getGet().getSummary());
         Assertions.assertEquals("创建用户", openAPI.getPaths().get("/api/v1/users").getPost().getSummary());
+
+        // 验证默认情况下不嵌入图片 Base64
+        Assertions.assertTrue(openAPI.getInfo().getDescription().contains("/upload/docs/test-openapi/arch.png"));
+        Assertions.assertFalse(openAPI.getInfo().getDescription().contains("data:image/png;base64"));
+
+        // 验证开启 embedImages 时，内联图片 Base64
+        downloadVo.setEmbedImages(true);
+        OpenAPI openAPIWithImages = exporter.export(projectId, downloadVo);
+        Assertions.assertTrue(openAPIWithImages.getInfo().getDescription().contains("data:image/png;base64"));
+        Assertions.assertTrue(openAPIWithImages.getPaths().get("/api/v1/auth/login").getPost().getDescription().contains("data:image/png;base64"));
+        org.apache.commons.io.FileUtils.deleteQuietly(tempImg);
     }
 }

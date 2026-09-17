@@ -78,9 +78,10 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] Markdown 导出性能与模型关联优化（精准挂载关联模型、Flexmark 纯文本/锚点直出快路径与 LRU 缓存）：针对导出大型项目（数百接口与组件）卡死超时的问题，ZIP 导出改为仅挂载当前接口请求/响应实际引用的关联模型（杜绝全项目数百模型在每个单接口重复生成），表格生成量降低 99%；在 `ApiDocFreemarkerUtils` 中增加无语法纯文本直接返回与 `[Name](#Name)` 锚点直出快路径，并配置容量 2048 的 LRU 缓存，彻底消除 Flexmark 锁竞争与百万次重复解析，350 个接口大项目 ZIP 导出从超时 30+ 分钟直降至 2.4 秒。
 - [x] Markdown ZIP 导出数据模型统一独立收拢至 `models/models.md` 与相对链接自适应重写：在 ZIP 导出中将全项目数据模型（包含组件 Schema 与内联请求/响应模型）统一收拢至独立文件 `models/models.md`，单接口文档通过深度自适应相对路径（如 `../models/models.md#Model`）引用模型，单接口不再生成末尾重复模型表格，彻底消除各单接口文档重复附带数百个模型造成的体积膨胀与阅读割裂。
 - [x] Markdown 导出组合模型 (allOf) 扁平收拢与 Typora 空 a 标签彻底清除：深度对齐界面文档模式与 OpenAPI 继承语义，重构 `calcInlineSchemaProperties` 与 `calcInlineComposedProperties`，`allOf` 组合字段直接合并入父模型表格，内联对象属性挂载至父模型属性路径（如 `Parent.prop`），杜绝切分为 `.allOf1`、`.allOf2` 等无意义伪模型；移除 `ExportModelsMdView.md.ftl` 中的 `<a id="${name}"></a>`，全面采用标准标题锚点（`## ${name}`），彻底清除 Typora 中的原始 HTML 空标签渲染脏标记。
+- [x] 单文件导出（Markdown/JSON/YAML）嵌入图片选项与导入自动提取落盘闭环：在导出弹窗中新增【嵌入图片 (Base64)】复选框及说明 Tooltip；单文件导出统一默认关闭（优先保证文件轻量及 Typora 等外部阅读器兼容防卡顿，支持按需手动勾选生成离线自包含单文件），Markdown ZIP 模式自动隐藏；在 `DocAssetStorageService` 中统一收敛 `inlineImagesAsBase64` 与 `extractAndSaveBase64Images` 对偶操作，导入管道（`ApiProjectServiceImpl.processImportProject`）自动清洗正文 Base64 图片并解码落盘为系统静态资源（`/upload/docs/...`），形成无损双向闭环，保持数据库轻量与在线编辑器流畅。
 
 ---
-*Last Updated: 2026-09-16*
+*Last Updated: 2026-09-17*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：

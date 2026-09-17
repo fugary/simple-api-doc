@@ -30,20 +30,15 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.MediaTypeFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 /**
@@ -111,6 +106,7 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
 
         // 收集文档目标映射表用于相对链接重写为单文件锚点
         Map<String, String> docTargetMap = buildDocTargetMap(docDetailList);
+        boolean shouldEmbedImages = Boolean.TRUE.equals(exportFilter.getEmbedImages());
         Map<String, String> imageCache = new HashMap<>();
 
         for (ApiDocDetailVo apiDocDetail : docDetailList) {
@@ -134,7 +130,9 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
                     apiMarkdown = MarkdownHeadingUtils.demoteHeadings(apiMarkdown, 1);
                 }
                 // 内联图片为 Base64
-                apiMarkdown = inlineImagesAsBase64(apiMarkdown, detailVo.getProjectCode(), imageCache);
+                if (shouldEmbedImages) {
+                    apiMarkdown = inlineImagesAsBase64(apiMarkdown, detailVo.getProjectCode(), imageCache);
+                }
                 // 重写相对链接为文档内锚点
                 apiMarkdown = MarkdownHeadingUtils.rewriteDocLinks(apiMarkdown, docTargetMap);
                 apiDocDetail.setApiMarkdown(apiMarkdown);
@@ -144,14 +142,16 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
                 int targetMinLevel = isSubFolder ? 4 : 3;
                 docContent = MarkdownHeadingUtils.normalizeDocMarkdown(docContent, apiDocDetail.getDocName(), targetMinLevel);
                 // 内联图片为 Base64
-                docContent = inlineImagesAsBase64(docContent, detailVo.getProjectCode(), imageCache);
+                if (shouldEmbedImages) {
+                    docContent = inlineImagesAsBase64(docContent, detailVo.getProjectCode(), imageCache);
+                }
                 // 重写相对链接为文档内锚点
                 docContent = MarkdownHeadingUtils.rewriteDocLinks(docContent, docTargetMap);
                 apiDocDetail.setDocContent(docContent);
             }
         }
         // 项目描述内联图片
-        if (StringUtils.isNotBlank(detailVo.getDescription())) {
+        if (shouldEmbedImages && StringUtils.isNotBlank(detailVo.getDescription())) {
             detailVo.setDescription(inlineImagesAsBase64(detailVo.getDescription(), detailVo.getProjectCode(), imageCache));
         }
 
@@ -213,47 +213,6 @@ public class MarkdownApiDocExporterImpl implements ApiDocExporter<String> {
      * @return 替换后的内容
      */
     protected String inlineImagesAsBase64(String content, String projectCode, Map<String, String> cache) {
-        if (StringUtils.isBlank(content) || docAssetStorageService == null) {
-            return content;
-        }
-
-        Matcher matcher = DocAssetStorageService.MD_LOCAL_IMG_PATTERN.matcher(content);
-        StringBuilder sb = new StringBuilder();
-        boolean found = false;
-
-        while (matcher.find()) {
-            String fullMatchedUrl = matcher.group(0);
-            String relativePath = matcher.group(2);
-            String imgFileName = matcher.group(3);
-
-            String dataUrl = cache.get(fullMatchedUrl);
-            if (dataUrl == null) {
-                File imgFile = docAssetStorageService.resolveImageFile(relativePath, imgFileName, projectCode);
-                if (imgFile != null) {
-                    try {
-                        byte[] imgBytes = FileUtils.readFileToByteArray(imgFile);
-                        String mimeType = MediaTypeFactory.getMediaType(imgFileName)
-                                .map(MediaType::toString)
-                                .orElse("image/png");
-                        String base64 = Base64.getEncoder().encodeToString(imgBytes);
-                        dataUrl = "data:" + mimeType + ";base64," + base64;
-                    } catch (IOException e) {
-                        log.warn("读取本地图片失败: {}", imgFile.getAbsolutePath(), e);
-                    }
-                }
-                cache.put(fullMatchedUrl, StringUtils.defaultString(dataUrl));
-            }
-
-            if (StringUtils.isNotEmpty(dataUrl)) {
-                found = true;
-                matcher.appendReplacement(sb, Matcher.quoteReplacement(dataUrl));
-            }
-        }
-
-        if (found) {
-            matcher.appendTail(sb);
-            return sb.toString();
-        }
-        return content;
+        return docAssetStorageService != null ? docAssetStorageService.inlineImagesAsBase64(content, projectCode, cache) : content;
     }
 }

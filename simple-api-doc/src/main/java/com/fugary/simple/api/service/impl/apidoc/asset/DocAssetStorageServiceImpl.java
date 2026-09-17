@@ -7,6 +7,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -263,5 +265,114 @@ public class DocAssetStorageServiceImpl implements DocAssetStorageService {
         return StringUtils.isNotBlank(projectCode)
                 ? projectCode.trim().replaceAll("[^a-zA-Z0-9._-]", "_")
                 : "default";
+    }
+
+    @Override
+    public String inlineImagesAsBase64(String content, String projectCode, Map<String, String> cache) {
+        if (StringUtils.isBlank(content)) {
+            return content;
+        }
+
+        Matcher matcher = MD_LOCAL_IMG_PATTERN.matcher(content);
+        StringBuilder sb = new StringBuilder();
+        boolean found = false;
+
+        while (matcher.find()) {
+            String fullMatchedUrl = matcher.group(0);
+            String relativePath = matcher.group(2);
+            String imgFileName = matcher.group(3);
+
+            String dataUrl = cache != null ? cache.get(fullMatchedUrl) : null;
+            if (dataUrl == null) {
+                File imgFile = resolveImageFile(relativePath, imgFileName, projectCode);
+                if (imgFile != null) {
+                    try {
+                        byte[] imgBytes = FileUtils.readFileToByteArray(imgFile);
+                        String mimeType = MediaTypeFactory.getMediaType(imgFileName)
+                                .map(MediaType::toString)
+                                .orElse("image/png");
+                        String base64 = Base64.getEncoder().encodeToString(imgBytes);
+                        dataUrl = "data:" + mimeType + ";base64," + base64;
+                    } catch (IOException e) {
+                        log.warn("读取本地图片失败: {}", imgFile.getAbsolutePath(), e);
+                    }
+                }
+                if (cache != null) {
+                    cache.put(fullMatchedUrl, StringUtils.defaultString(dataUrl));
+                }
+            }
+
+            if (StringUtils.isNotEmpty(dataUrl)) {
+                found = true;
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(dataUrl));
+            }
+        }
+
+        if (found) {
+            matcher.appendTail(sb);
+            return sb.toString();
+        }
+        return content;
+    }
+
+    @Override
+    public String extractAndSaveBase64Images(String content, String projectCode) {
+        if (StringUtils.isBlank(content)) {
+            return content;
+        }
+        Matcher matcher = DATA_IMAGE_PATTERN.matcher(content);
+        StringBuilder sb = new StringBuilder();
+        boolean found = false;
+        Map<String, String> cache = new HashMap<>();
+
+        while (matcher.find()) {
+            String fullDataUrl = matcher.group(0);
+            String mimeSubtype = matcher.group(1);
+            String base64Content = matcher.group(2);
+
+            String targetUrl = cache.get(fullDataUrl);
+            if (targetUrl == null) {
+                try {
+                    String cleanBase64 = base64Content.replaceAll("\\s+", "");
+                    byte[] imageBytes = Base64.getDecoder().decode(cleanBase64);
+                    String ext = resolveExtensionFromMimeSubtype(mimeSubtype);
+                    targetUrl = saveImage(imageBytes, "image." + ext, projectCode);
+                } catch (Exception e) {
+                    log.warn("解码或保存 Base64 图片失败", e);
+                }
+                cache.put(fullDataUrl, StringUtils.defaultString(targetUrl));
+            }
+
+            if (StringUtils.isNotEmpty(targetUrl)) {
+                found = true;
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(targetUrl));
+            }
+        }
+
+        if (found) {
+            matcher.appendTail(sb);
+            return sb.toString();
+        }
+        return content;
+    }
+
+    private String resolveExtensionFromMimeSubtype(String mimeSubtype) {
+        if (StringUtils.isBlank(mimeSubtype)) {
+            return "png";
+        }
+        String clean = mimeSubtype.toLowerCase().trim();
+        if (clean.contains("svg")) {
+            return "svg";
+        }
+        if (clean.equals("jpeg") || clean.equals("jpg")) {
+            return "jpg";
+        }
+        if (clean.contains("icon") || clean.equals("ico")) {
+            return "ico";
+        }
+        if (IMAGE_EXTENSIONS.contains(clean)) {
+            return clean;
+        }
+        return "png";
     }
 }
