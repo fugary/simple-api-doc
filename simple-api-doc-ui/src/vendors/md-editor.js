@@ -37,6 +37,23 @@ const imagePathTransformPlugin = (md) => {
   }
 }
 
+/**
+ * 修正 md-editor-v3 仅识别反引号结束围栏，导致 ~~~mermaid 不渲染的问题。
+ */
+const mermaidFencePlugin = (md) => {
+  const renderAttrs = md.renderer.renderAttrs.bind(md.renderer)
+  md.renderer.renderAttrs = (token) => {
+    if (token.type === 'fence' && token.info === 'mermaid' && token.markup.startsWith('~') &&
+      token.map && token.attrGet('data-closed') !== null) {
+      // map 包含围栏行；内容去掉末尾换行后计数，区分显式闭合与文末自动结束。
+      const blockLines = token.map[1] - token.map[0]
+      const contentLines = token.content ? token.content.replace(/\n$/, '').split('\n').length : 0
+      token.attrSet('data-closed', String(blockLines === contentLines + 2))
+    }
+    return renderAttrs(token)
+  }
+}
+
 export const initEditorLink = () => {
   document.addEventListener('click', (event) => {
     const link = event.target.closest('.md-doc-container a')
@@ -74,6 +91,7 @@ export default {
       },
       markdownItConfig (mdit) {
         mdit.use(imagePathTransformPlugin)
+        mdit.use(mermaidFencePlugin)
       }
     })
     initEditorLink()
