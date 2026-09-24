@@ -5,7 +5,8 @@ import {
   filterApiProjectItem,
   filterProjectItem,
   getFolderTreeIds,
-  calcDocRecentType
+  calcDocRecentType,
+  calcDocRecentTooltip
 } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
@@ -33,7 +34,7 @@ import { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep, debounce } from 'lodash-es'
-import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm, formatDate } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 import ApiDocBatchDeleteWindow from '@/views/components/api/doc/comp/ApiDocBatchDeleteWindow.vue'
 import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
@@ -128,16 +129,7 @@ const toggleRecentType = (type) => {
   searchParam.value.recentType = searchParam.value.recentType === type ? '' : type
 }
 
-const calcRecentTooltip = (data) => {
-  if (data.recentType === 'NEW') {
-    const timeStr = data.createDate ? formatDate(data.createDate) : ''
-    return $i18nBundle('api.msg.recentCreatedTooltip', [timeStr])
-  } else if (data.recentType === 'UPD') {
-    const timeStr = data.modifyDate ? formatDate(data.modifyDate) : ''
-    return $i18nBundle('api.msg.recentUpdatedTooltip', [timeStr, data.version || 1])
-  }
-  return ''
-}
+const calcRecentTooltip = calcDocRecentTooltip
 
 const searchFormOption = computed(() => {
   return {

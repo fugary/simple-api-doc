@@ -1,6 +1,6 @@
 <script setup lang="jsx">
 import { computed, inject } from 'vue'
-import { getFolderPaths } from '@/services/api/ApiProjectService'
+import { getFolderPaths, getDocRecentInfo } from '@/services/api/ApiProjectService'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
 import { $copyText, formatDate } from '@/utils'
@@ -35,6 +35,9 @@ const folderPaths = computed(() => {
   return []
 })
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
+
+const recentInfo = computed(() => getDocRecentInfo(docDetailInfo.value))
+
 const emit = defineEmits(['updateHistory'])
 const toShowHistoryWindow = (current) => {
   const isApi = current.docType === 'api'
@@ -178,6 +181,21 @@ const showAffixBtn = inject('showAffixBtn', null)
         {{ currentDoc?.docName || currentDoc?.url }}
       </el-text>
       <span v-else>{{ currentDoc?.docName || currentDoc?.url }}</span>
+      <el-tag
+        v-if="recentInfo"
+        v-common-tooltip="recentInfo.tooltip"
+        :type="recentInfo.type === 'NEW' ? 'success' : 'warning'"
+        size="small"
+        round
+        effect="plain"
+        class="margin-left2 recent-header-tag"
+      >
+        <span
+          class="recent-header-dot"
+          :class="recentInfo.type === 'NEW' ? 'dot-new' : 'dot-upd'"
+        />
+        {{ recentInfo.type === 'NEW' ? 'NEW' : 'UPD' }}
+      </el-tag>
       <el-button
         v-if="editable"
         class="margin-left2"
@@ -218,5 +236,33 @@ const showAffixBtn = inject('showAffixBtn', null)
 </template>
 
 <style scoped>
+.recent-header-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 11px;
+  height: 20px;
+  line-height: 20px;
+  padding: 0 8px;
+  cursor: default;
+  vertical-align: middle;
+}
 
+.recent-header-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.recent-header-dot.dot-new {
+  background-color: var(--el-color-success);
+  box-shadow: 0 0 4px rgba(103, 194, 58, 0.6);
+}
+
+.recent-header-dot.dot-upd {
+  background-color: var(--el-color-warning);
+  box-shadow: 0 0 4px rgba(230, 162, 60, 0.6);
+}
 </style>

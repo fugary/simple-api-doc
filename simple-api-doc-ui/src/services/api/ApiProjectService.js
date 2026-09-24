@@ -1,4 +1,5 @@
-import { processTreeData } from '@/utils'
+import { processTreeData, formatDate } from '@/utils'
+import { $i18nBundle } from '@/messages'
 import { cloneDeep } from 'lodash-es'
 
 // 递归检查文件夹及其子文件夹是否包含文档
@@ -76,6 +77,39 @@ export const calcDocRecentType = (doc, now = Date.now()) => {
     return 'NEW'
   }
   return null
+}
+
+/**
+ * 计算文档最近状态 Tooltip 提示文案
+ * @param doc
+ * @returns {string}
+ */
+export const calcDocRecentTooltip = (doc) => {
+  if (!doc) return ''
+  const type = doc.recentType || calcDocRecentType(doc)
+  if (type === 'NEW') {
+    const timeStr = doc.createDate ? formatDate(doc.createDate) : ''
+    return $i18nBundle('api.msg.recentCreatedTooltip', [timeStr])
+  } else if (type === 'UPD') {
+    const timeStr = doc.modifyDate ? formatDate(doc.modifyDate) : ''
+    return $i18nBundle('api.msg.recentUpdatedTooltip', [timeStr, doc.version || 1])
+  }
+  return ''
+}
+
+/**
+ * 获取文档最近状态信息（类型与 Tooltip）
+ * @param doc
+ * @returns {{type: ('NEW'|'UPD'), tooltip: string}|null}
+ */
+export const getDocRecentInfo = (doc) => {
+  if (!doc) return null
+  const type = doc.recentType || calcDocRecentType(doc)
+  if (!type) return null
+  return {
+    type,
+    tooltip: calcDocRecentTooltip(doc)
+  }
 }
 
 /**
