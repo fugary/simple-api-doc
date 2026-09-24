@@ -121,6 +121,7 @@ common.label.files = 'Files'
 common.label.originalContent = 'Original Content'
 common.label.modifiedContent = 'Modified Content'
 common.label.unlimited = 'Unlimited'
+common.label.all = 'All'
 
 //= ============通用============
 common.label.commonConfig = 'Config {0}'

@@ -48,6 +48,36 @@ export const calcFolderDocCount = (folders) => {
   return count
 }
 
+export const RECENT_DAYS = 30
+export const RECENT_DAYS_MS = RECENT_DAYS * 24 * 60 * 60 * 1000
+export const SEVEN_DAYS_MS = RECENT_DAYS_MS
+
+/**
+ * 计算文档最近状态类型（30天内创建标 NEW，30天内更新标 UPD）
+ * @param doc
+ * @param now
+ * @returns {'UPD'|'NEW'|null}
+ */
+export const calcDocRecentType = (doc, now = Date.now()) => {
+  if (!doc) return null
+  const createTime = doc.createDate ? new Date(doc.createDate).getTime() : 0
+  const modifyTime = doc.modifyDate ? new Date(doc.modifyDate).getTime() : 0
+
+  // 30天内更新：modifyDate 存在且在30天内，且版本 > 1 或修改时间晚于创建时间超过1秒
+  const isRecentModify = modifyTime && (now - modifyTime <= RECENT_DAYS_MS) &&
+    ((doc.version && doc.version > 1) || (createTime && modifyTime - createTime > 1000))
+  if (isRecentModify) {
+    return 'UPD'
+  }
+
+  // 30天内创建：createDate 存在且在30天内
+  const isRecentCreate = createTime && (now - createTime <= RECENT_DAYS_MS)
+  if (isRecentCreate) {
+    return 'NEW'
+  }
+  return null
+}
+
 /**
  * 计算ProjectItem
  * @param projectItem
@@ -73,6 +103,7 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
       doc.isDoc = true
       doc.parent = parentFolder
       doc.treeId = doc.id
+      doc.recentType = calcDocRecentType(doc)
       return doc
     })
     docTreeNodes = processTreeData(projectItem.folders, null, {
@@ -83,8 +114,13 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
       }
     })
     calcFolderDocCount(docTreeNodes)
-    if (searchParam?.keyword || projectItem.projectCode !== preference?.preferenceId) {
+    if (searchParam?.keyword || searchParam?.recentType || projectItem.projectCode !== preference?.preferenceId) {
       docTreeNodes = filterFoldersWithDocsNew(docTreeNodes)
+    }
+    if ((searchParam?.keyword || searchParam?.recentType) && docTreeNodes.length && preference?.lastExpandKeys) {
+      const expandKeySet = new Set(preference.lastExpandKeys)
+      getFolderTreeIds({ children: docTreeNodes }).forEach(id => expandKeySet.add(id))
+      preference.lastExpandKeys = [...expandKeySet]
     }
     if (docTreeNodes[0]?.id && preference?.lastExpandKeys && !preference.lastExpandKeys?.includes(docTreeNodes[0]?.treeId)) {
       preference.lastExpandKeys.push(docTreeNodes[0]?.treeId)
@@ -110,15 +146,21 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
 /**
  * 过滤ProjectItem数据
  * @param projectItem
- * @param keyword
+ * @param searchParam 关键字字符串或包含 keyword/recentType 的对象
  * @return {*}
  */
-export const filterProjectItem = (projectItem, keyword) => {
+export const filterProjectItem = (projectItem, searchParam) => {
   projectItem = cloneDeep(projectItem)
-  if (keyword && projectItem) {
-    keyword = keyword.toLowerCase()
-    projectItem.docs = projectItem.docs?.filter(doc => doc.docName?.toLowerCase().includes(keyword) ||
-        doc.url?.toLowerCase().includes(keyword))
+  if (!projectItem) return projectItem
+  const keyword = typeof searchParam === 'string' ? searchParam : searchParam?.keyword
+  const recentType = typeof searchParam === 'object' ? searchParam?.recentType : null
+  if (keyword) {
+    const kw = keyword.toLowerCase()
+    projectItem.docs = projectItem.docs?.filter(doc => doc.docName?.toLowerCase().includes(kw) ||
+        doc.url?.toLowerCase().includes(kw))
+  }
+  if (recentType) {
+    projectItem.docs = projectItem.docs?.filter(doc => (doc.recentType || calcDocRecentType(doc)) === recentType)
   }
   return projectItem
 }

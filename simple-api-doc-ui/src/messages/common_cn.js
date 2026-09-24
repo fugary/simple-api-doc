@@ -121,6 +121,7 @@ common.label.files = '文件'
 common.label.originalContent = '原文'
 common.label.modifiedContent = '对比'
 common.label.unlimited = '不限'
+common.label.all = '全部'
 
 //= ============通用============
 common.label.commonCode = '{0}代码'

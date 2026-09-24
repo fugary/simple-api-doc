@@ -424,3 +424,7 @@ api.msg.batchDeleteDocConfirm = 'Are you sure you want to delete the selected {0
 api.msg.batchDeleteDocConfirmWithLocked = 'Are you sure you want to delete the selected {0} document(s)? ({1} locked document(s) will be kept)'
 api.msg.noDocSelectedToDelete = 'Please select the documents to delete first.'
 api.msg.allSelectedDocsLocked = 'All selected documents are locked. No documents available to delete when keeping locked documents.'
+api.label.recentNew = 'New'
+api.label.recentUpdated = 'Updated'
+api.msg.recentCreatedTooltip = 'Created within 30 days: {0}'
+api.msg.recentUpdatedTooltip = 'Updated within 30 days: {0} (v{1})'

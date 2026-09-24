@@ -4,7 +4,8 @@ import {
   calcProjectItem,
   filterApiProjectItem,
   filterProjectItem,
-  getFolderTreeIds
+  getFolderTreeIds,
+  calcDocRecentType
 } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
@@ -32,7 +33,7 @@ import { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
 import { cloneDeep, debounce } from 'lodash-es'
-import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
+import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm, formatDate } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 import ApiDocBatchDeleteWindow from '@/views/components/api/doc/comp/ApiDocBatchDeleteWindow.vue'
 import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
@@ -85,20 +86,59 @@ sharePreference.isShare = !!props.shareDoc?.shareId
 const treeNodes = ref([])
 
 const calcProjectItemInfo = () => {
-  const filteredItem = filterProjectItem(projectItem.value, searchParam.value.keyword)
+  const filteredItem = filterProjectItem(projectItem.value, searchParam.value)
   const {
     docTreeNodes,
     currentSelectDoc
   } = calcProjectItem(filteredItem, searchParam.value, sharePreference)
-  currentDoc.value = currentSelectDoc
-  sharePreference.lastDocId = currentSelectDoc?.id
+  if (!currentDoc.value?.id) {
+    currentDoc.value = currentSelectDoc
+    sharePreference.lastDocId = currentSelectDoc?.id
+  }
   treeNodes.value = docTreeNodes
 }
 
 //* ************搜索框**************//
 const searchParam = ref({
-  keyword: ''
+  keyword: '',
+  recentType: ''
 })
+
+const recentCounts = computed(() => {
+  const docs = projectItem.value?.docs || []
+  let newCount = 0
+  let updCount = 0
+  docs.forEach(doc => {
+    const type = doc.recentType || calcDocRecentType(doc)
+    if (type === 'NEW') {
+      newCount++
+    } else if (type === 'UPD') {
+      updCount++
+    }
+  })
+  return {
+    totalCount: docs.length,
+    newCount,
+    updCount,
+    hasRecent: newCount > 0 || updCount > 0
+  }
+})
+
+const toggleRecentType = (type) => {
+  searchParam.value.recentType = searchParam.value.recentType === type ? '' : type
+}
+
+const calcRecentTooltip = (data) => {
+  if (data.recentType === 'NEW') {
+    const timeStr = data.createDate ? formatDate(data.createDate) : ''
+    return $i18nBundle('api.msg.recentCreatedTooltip', [timeStr])
+  } else if (data.recentType === 'UPD') {
+    const timeStr = data.modifyDate ? formatDate(data.modifyDate) : ''
+    return $i18nBundle('api.msg.recentUpdatedTooltip', [timeStr, data.version || 1])
+  }
+  return ''
+}
+
 const searchFormOption = computed(() => {
   return {
     labelWidth: '1px',
@@ -502,6 +542,38 @@ defineExpose(handlerData)
         :option="searchFormOption"
         :model="searchParam"
       />
+      <div
+        v-if="recentCounts.hasRecent"
+        class="recent-filter-bar margin-bottom2"
+      >
+        <el-check-tag
+          :checked="!searchParam.recentType"
+          class="recent-check-tag"
+          @change="searchParam.recentType = ''"
+        >
+          {{ $t('common.label.all') }} ({{ recentCounts.totalCount }})
+        </el-check-tag>
+        <el-check-tag
+          v-if="recentCounts.newCount > 0"
+          :checked="searchParam.recentType === 'NEW'"
+          type="success"
+          class="recent-check-tag recent-filter-new"
+          @change="toggleRecentType('NEW')"
+        >
+          <span class="filter-dot dot-new" />
+          {{ $t('api.label.recentNew') }} ({{ recentCounts.newCount }})
+        </el-check-tag>
+        <el-check-tag
+          v-if="recentCounts.updCount > 0"
+          :checked="searchParam.recentType === 'UPD'"
+          type="warning"
+          class="recent-check-tag recent-filter-upd"
+          @change="toggleRecentType('UPD')"
+        >
+          <span class="filter-dot dot-upd" />
+          {{ $t('api.label.recentUpdated') }} ({{ recentCounts.updCount }})
+        </el-check-tag>
+      </div>
     </div>
     <el-container class="scroll-main-container folder-tree-container">
       <el-scrollbar
@@ -559,6 +631,12 @@ defineExpose(handlerData)
                 />
                 <del v-if="data.deprecated">{{ node.label }}</del>
                 <span v-else>{{ node.label }}</span>
+                <span
+                  v-if="data.recentType"
+                  v-common-tooltip="calcRecentTooltip(data)"
+                  class="recent-status-dot"
+                  :class="data.recentType === 'NEW' ? 'recent-dot-new' : 'recent-dot-upd'"
+                />
                 <el-text
                   v-if="data.childDocCount&&shareDoc?.showChildrenLength!==false"
                   type="info"
@@ -684,5 +762,59 @@ defineExpose(handlerData)
 
 .folder-tree-container :deep(.el-backtop) {
   position: absolute;
+}
+
+.recent-filter-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+.recent-check-tag {
+  font-size: 11px;
+  line-height: 20px;
+  padding: 0 7px;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.filter-dot.dot-new {
+  background-color: var(--el-color-success);
+}
+
+.filter-dot.dot-upd {
+  background-color: var(--el-color-warning);
+}
+
+.recent-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: 6px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.recent-dot-new {
+  background-color: var(--el-color-success);
+  box-shadow: 0 0 4px rgba(103, 194, 58, 0.5);
+}
+
+.recent-dot-upd {
+  background-color: var(--el-color-warning);
+  box-shadow: 0 0 4px rgba(230, 162, 60, 0.5);
 }
 </style>

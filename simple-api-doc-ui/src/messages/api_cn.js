@@ -423,3 +423,7 @@ api.msg.batchDeleteDocConfirm = '确定要批量删除选中的 {0} 个文档？
 api.msg.batchDeleteDocConfirmWithLocked = '确定要批量删除选中的 {0} 个文档？（已自动保留 {1} 个已锁定文档）'
 api.msg.noDocSelectedToDelete = '请先勾选需要删除的文档'
 api.msg.allSelectedDocsLocked = '当前选中的文档均为锁定状态，在开启“保留已锁定文档”保护下无可删除文档'
+api.label.recentNew = '新增'
+api.label.recentUpdated = '更新'
+api.msg.recentCreatedTooltip = '30天内新建: {0}'
+api.msg.recentUpdatedTooltip = '30天内更新: {0} (版本: v{1})'
