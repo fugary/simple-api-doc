@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { login } from '@/services/login/LoginService'
 import { useTabsViewStore } from '@/stores/TabsViewStore'
 import { useGlobalSearchParamStore } from '@/stores/GlobalSearchParamStore'
+import { useDocSearchStore } from '@/stores/DocSearchStore'
 import { SYSTEM_KEY } from '@/config'
 import dayjs from 'dayjs'
 
@@ -54,6 +55,7 @@ export const useLoginConfigStore = defineStore('loginConfig', () => {
     },
     clearLoginInfo () {
       loginResult.value = null
+      useDocSearchStore().sessions = {}
     },
     updateUserInfo (mockUser) {
       if (loginResult.value) {

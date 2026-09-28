@@ -401,7 +401,9 @@ public class ApiFolderServiceImpl extends ServiceImpl<ApiFolderMapper, ApiFolder
         List<String> paths = new ArrayList<>();
         paths.add(nameExtractor.apply(apiFolder));
         ApiFolder currentFolder = apiFolder;
-        while (currentFolder != null && currentFolder.getParentId() != null) {
+        Set<Integer> visited = new HashSet<>();
+        visited.add(apiFolder.getId());
+        while (currentFolder != null && currentFolder.getParentId() != null && visited.add(currentFolder.getParentId())) {
             currentFolder = folderMap.get(currentFolder.getParentId());
             if (currentFolder != null) {
                 paths.add(0, nameExtractor.apply(currentFolder));

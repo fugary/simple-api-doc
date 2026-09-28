@@ -18,6 +18,8 @@ import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.doc.ApiDocSearchResultVo;
+import com.fugary.simple.api.web.vo.query.ApiDocSearchQueryVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import com.fugary.simple.api.web.vo.query.ApiDocHistoryQueryVo;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.validation.Valid;
 
 /**
  * Create date 2024/9/27<br>
@@ -44,6 +47,19 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/admin/docs")
 public class ApiDocController {
+
+    @Autowired
+    private ApiDocSearchService apiDocSearchService;
+
+    @PostMapping("/advancedSearch")
+    public SimpleResult<List<ApiDocSearchResultVo>> advancedSearch(@Valid @RequestBody ApiDocSearchQueryVo query) {
+        return SimpleResultUtils.createSimpleResult(apiDocSearchService.search(query, null));
+    }
+
+    @PostMapping("/searchProjects")
+    public SimpleResult<List<ApiProject>> searchProjects(@Valid @RequestBody ApiDocSearchQueryVo query) {
+        return SimpleResultUtils.createSimpleResult(apiDocSearchService.searchProjects(query));
+    }
 
     @Autowired
     private ApiDocService apiDocService;

@@ -8,7 +8,7 @@
  * @property {string} menuUrl 链接地址
  * @property {[MenuDto]} children 子菜单
  */
-import { $i18nMsg } from '@/messages'
+import { $i18nBundle, $i18nMsg } from '@/messages'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { GlobalLocales } from '@/consts/GlobalConstants'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
@@ -172,6 +172,12 @@ export const useBaseTopMenus = () => {
     {
       isSplit: true,
       menuCls: 'flex-grow'
+    },
+    {
+      icon: 'SearchFilled',
+      isDropdown: true,
+      attrs: { title: $i18nBundle('api.label.advancedSearch'), 'aria-label': $i18nBundle('api.label.advancedSearch') },
+      click: () => import('@/utils/DynamicUtils').then(({ showDocSearchWindow }) => showDocSearchWindow())
     },
     ...useThemeAndLocaleMenus(),
     {

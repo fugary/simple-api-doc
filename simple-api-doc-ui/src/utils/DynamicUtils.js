@@ -18,6 +18,15 @@ const SimpleJsonDataWindow = () => import('@/views/components/utils/SimpleJsonDa
 const ApiGenerateSampleWindow = () => import('@/views/components/api/doc/comp/ApiGenerateSampleWindow.vue')
 const ApiCompareWindow = () => import('@/views/components/utils/ApiCompareWindow.vue')
 const ApiTaskLogsWindow = () => import('@/views/components/api/project/ApiTaskLogsWindow.vue')
+const ApiDocSearchWindow = () => import('@/views/components/api/doc/ApiDocSearchWindow.vue')
+
+export const showDocSearchWindow = async (context = {}) => {
+  const dynamicHelper = new DynamicHelper()
+  await dynamicHelper.createAndRender(ApiDocSearchWindow, {
+    ...context,
+    onClosed: () => dynamicHelper.destroy()
+  })
+}
 
 export const showTaskLogsWindow = async (task) => {
   const dynamicHelper = new DynamicHelper()

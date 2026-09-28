@@ -13,6 +13,8 @@ import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
+import com.fugary.simple.api.web.vo.doc.ApiDocSearchResultVo;
+import com.fugary.simple.api.web.vo.query.ApiDocSearchQueryVo;
 import com.fugary.simple.api.web.vo.exports.ExportDownloadVo;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectDetailVo;
@@ -31,8 +33,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,6 +49,22 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/shares")
 public class SimpleShareController {
+
+    @Autowired
+    private ApiDocSearchService apiDocSearchService;
+
+    @PostMapping("/advancedSearch/{shareId}")
+    public SimpleResult<List<ApiDocSearchResultVo>> advancedSearch(@PathVariable("shareId") String shareId,
+                                                                 @Valid @RequestBody ApiDocSearchQueryVo query) {
+        if (!StringUtils.equals(shareId, SecurityUtils.getLoginShareId())) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_401);
+        }
+        ApiProjectShare share = apiProjectShareService.loadByShareId(shareId);
+        if (share == null || apiProjectService.getById(share.getProjectId()) == null) {
+            return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
+        }
+        return SimpleResultUtils.createSimpleResult(apiDocSearchService.search(query, share));
+    }
 
     @Value("${spring.application.name}")
     private String applicationName;

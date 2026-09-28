@@ -1,5 +1,6 @@
 <script setup lang="jsx">
 import { computed, ref, reactive, watch, nextTick, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   calcProjectItem,
   filterApiProjectItem,
@@ -30,6 +31,7 @@ import {
   isTreeNodeFirstFolder
 } from '@/services/api/ApiFolderService'
 import { calcProjectIconUrl, loadDetail } from '@/api/ApiProjectApi'
+import { loadProject as loadSharedProject } from '@/api/SimpleShareApi'
 import { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
@@ -37,10 +39,11 @@ import { cloneDeep, debounce } from 'lodash-es'
 import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 import ApiDocBatchDeleteWindow from '@/views/components/api/doc/comp/ApiDocBatchDeleteWindow.vue'
-import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
+import { addOrEditFolderWindow, showDocSearchWindow } from '@/utils/DynamicUtils'
 import emitter from '@/vendors/emitter'
 
 const shareConfigStore = useShareConfigStore()
+const route = useRoute()
 
 const props = defineProps({
   shareDoc: {
@@ -415,6 +418,52 @@ const handlerData = {
   scrollToTop
 }
 
+const selectSearchDoc = async (result) => {
+  if (!projectItem.value?.docs?.some(doc => doc.id === result.id)) {
+    const refreshedProject = props.shareDoc?.shareId
+      ? (await loadSharedProject(props.shareDoc.shareId))?.resultData
+      : await loadDetail(projectItem.value.projectCode)
+    if (!refreshedProject) return
+    projectItem.value = refreshedProject
+    await nextTick()
+  }
+  const doc = projectItem.value?.docs?.find(doc => doc.id === result.id)
+  if (!doc) return
+  searchParam.value.keyword = ''
+  searchParam.value.recentType = ''
+  const folders = new Map(projectItem.value.folders.map(folder => [folder.id, folder]))
+  const expanded = new Set(sharePreference.lastExpandKeys)
+  const visited = new Set()
+  let folderId = doc.folderId
+  while (folderId && !visited.has(folderId)) {
+    visited.add(folderId)
+    expanded.add(`folder_${folderId}`)
+    folderId = folders.get(folderId)?.parentId
+  }
+  sharePreference.lastExpandKeys = [...expanded]
+  sharePreference.lastDocId = doc.id
+  showDocDetails({ ...doc, isDoc: true }, false)
+  refreshFolderTreeInternal()
+}
+const openAdvancedSearch = () => showDocSearchWindow({
+  project: projectItem.value,
+  shareId: props.shareDoc?.shareId,
+  onSelectDoc: selectSearchDoc
+})
+const handleSearchDocSelection = result => {
+  if (result.projectId === projectItem.value?.id && route.params.projectCode === projectItem.value.projectCode) {
+    selectSearchDoc(result)
+  }
+}
+emitter.on('select-search-doc', handleSearchDocSelection)
+onUnmounted(() => emitter.off('select-search-doc', handleSearchDocSelection))
+watch([() => route.query.docId, () => projectItem.value?.projectCode], ([docId, projectCode]) => {
+  const id = Number(docId)
+  if (Number.isSafeInteger(id) && id > 0 && route.params.projectCode === projectCode) {
+    selectSearchDoc({ id })
+  }
+}, { immediate: true })
+
 defineExpose(handlerData)
 </script>
 
@@ -529,7 +578,26 @@ defineExpose(handlerData)
         style="margin-left: -10px;"
         :option="searchFormOption"
         :model="searchParam"
-      />
+      >
+        <el-input
+          v-model="searchParam.keyword"
+          v-bind="searchFormOption.attrs"
+          :placeholder="searchFormOption.placeholder"
+        >
+          <template #suffix>
+            <el-button
+              v-common-tooltip="$t('api.label.advancedSearch')"
+              text
+              size="small"
+              :aria-label="$t('api.label.advancedSearch')"
+              style="padding: 4px;"
+              @click="openAdvancedSearch"
+            >
+              <common-icon icon="Filter" />
+            </el-button>
+          </template>
+        </el-input>
+      </common-form-control>
       <div
         v-if="recentCounts.hasRecent"
         class="recent-filter-bar margin-bottom2"
