@@ -107,25 +107,21 @@ const searchParam = ref({
 
 const recentCounts = computed(() => {
   const docs = projectItem.value?.docs || []
-  let newCount = 0
   let updCount = 0
   docs.forEach(doc => {
     const type = doc.recentType || calcDocRecentType(doc)
-    if (type === 'NEW') {
-      newCount++
-    } else if (type === 'UPD') {
+    if (type === 'UPD') {
       updCount++
     }
   })
   return {
     totalCount: docs.length,
-    newCount,
     updCount,
-    hasRecent: newCount > 0 || updCount > 0
+    hasRecent: updCount > 0
   }
 })
 
-const toggleRecentType = (type) => {
+const toggleRecentType = (type = 'UPD') => {
   searchParam.value.recentType = searchParam.value.recentType === type ? '' : type
 }
 
@@ -546,17 +542,6 @@ defineExpose(handlerData)
           {{ $t('common.label.all') }} ({{ recentCounts.totalCount }})
         </el-check-tag>
         <el-check-tag
-          v-if="recentCounts.newCount > 0"
-          :checked="searchParam.recentType === 'NEW'"
-          type="success"
-          class="recent-check-tag recent-filter-new"
-          @change="toggleRecentType('NEW')"
-        >
-          <span class="filter-dot dot-new" />
-          {{ $t('api.label.recentNew') }} ({{ recentCounts.newCount }})
-        </el-check-tag>
-        <el-check-tag
-          v-if="recentCounts.updCount > 0"
           :checked="searchParam.recentType === 'UPD'"
           type="warning"
           class="recent-check-tag recent-filter-upd"
@@ -626,8 +611,7 @@ defineExpose(handlerData)
                 <span
                   v-if="data.recentType"
                   v-common-tooltip="calcRecentTooltip(data)"
-                  class="recent-status-dot"
-                  :class="data.recentType === 'NEW' ? 'recent-dot-new' : 'recent-dot-upd'"
+                  class="recent-status-dot recent-dot-upd"
                 />
                 <el-text
                   v-if="data.childDocCount&&shareDoc?.showChildrenLength!==false"
@@ -780,13 +764,6 @@ defineExpose(handlerData)
   height: 6px;
   border-radius: 50%;
   display: inline-block;
-}
-
-.filter-dot.dot-new {
-  background-color: var(--el-color-success);
-}
-
-.filter-dot.dot-upd {
   background-color: var(--el-color-warning);
 }
 
@@ -798,11 +775,6 @@ defineExpose(handlerData)
   margin-left: 6px;
   flex-shrink: 0;
   vertical-align: middle;
-}
-
-.recent-dot-new {
-  background-color: var(--el-color-success);
-  box-shadow: 0 0 4px rgba(103, 194, 58, 0.5);
 }
 
 .recent-dot-upd {

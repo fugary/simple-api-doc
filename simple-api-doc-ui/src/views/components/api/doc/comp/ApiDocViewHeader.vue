@@ -184,17 +184,13 @@ const showAffixBtn = inject('showAffixBtn', null)
       <el-tag
         v-if="recentInfo"
         v-common-tooltip="recentInfo.tooltip"
-        :type="recentInfo.type === 'NEW' ? 'success' : 'warning'"
+        type="warning"
         size="small"
         round
         effect="plain"
         class="margin-left2 recent-header-tag"
       >
-        <span
-          class="recent-header-dot"
-          :class="recentInfo.type === 'NEW' ? 'dot-new' : 'dot-upd'"
-        />
-        {{ recentInfo.type === 'NEW' ? 'NEW' : 'UPD' }}
+        <span class="recent-header-dot dot-upd" /> UPD
       </el-tag>
       <el-button
         v-if="editable"
@@ -254,11 +250,6 @@ const showAffixBtn = inject('showAffixBtn', null)
   height: 6px;
   border-radius: 50%;
   display: inline-block;
-}
-
-.recent-header-dot.dot-new {
-  background-color: var(--el-color-success);
-  box-shadow: 0 0 4px rgba(103, 194, 58, 0.6);
 }
 
 .recent-header-dot.dot-upd {

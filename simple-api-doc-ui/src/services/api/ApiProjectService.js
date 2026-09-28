@@ -54,27 +54,19 @@ export const RECENT_DAYS_MS = RECENT_DAYS * 24 * 60 * 60 * 1000
 export const SEVEN_DAYS_MS = RECENT_DAYS_MS
 
 /**
- * 计算文档最近状态类型（30天内创建标 NEW，30天内更新标 UPD）
+ * 计算文档最近状态类型（30天内更新/变动标 UPD）
  * @param doc
  * @param now
- * @returns {'UPD'|'NEW'|null}
+ * @returns {'UPD'|null}
  */
 export const calcDocRecentType = (doc, now = Date.now()) => {
   if (!doc) return null
   const createTime = doc.createDate ? new Date(doc.createDate).getTime() : 0
   const modifyTime = doc.modifyDate ? new Date(doc.modifyDate).getTime() : 0
+  const latestTime = Math.max(modifyTime, createTime)
 
-  // 30天内更新：modifyDate 存在且在30天内，且版本 > 1 或修改时间晚于创建时间超过1秒
-  const isRecentModify = modifyTime && (now - modifyTime <= RECENT_DAYS_MS) &&
-    ((doc.version && doc.version > 1) || (createTime && modifyTime - createTime > 1000))
-  if (isRecentModify) {
+  if (latestTime && (now - latestTime <= RECENT_DAYS_MS)) {
     return 'UPD'
-  }
-
-  // 30天内创建：createDate 存在且在30天内
-  const isRecentCreate = createTime && (now - createTime <= RECENT_DAYS_MS)
-  if (isRecentCreate) {
-    return 'NEW'
   }
   return null
 }
@@ -87,12 +79,10 @@ export const calcDocRecentType = (doc, now = Date.now()) => {
 export const calcDocRecentTooltip = (doc) => {
   if (!doc) return ''
   const type = doc.recentType || calcDocRecentType(doc)
-  if (type === 'NEW') {
-    const timeStr = doc.createDate ? formatDate(doc.createDate) : ''
-    return $i18nBundle('api.msg.recentCreatedTooltip', [timeStr])
-  } else if (type === 'UPD') {
-    const timeStr = doc.modifyDate ? formatDate(doc.modifyDate) : ''
-    return $i18nBundle('api.msg.recentUpdatedTooltip', [timeStr, doc.version || 1])
+  if (type === 'UPD') {
+    const latestTime = doc.modifyDate || doc.createDate
+    const timeStr = latestTime ? formatDate(latestTime) : ''
+    return $i18nBundle('api.msg.recentUpdatedTooltip', [timeStr])
   }
   return ''
 }
@@ -100,7 +90,7 @@ export const calcDocRecentTooltip = (doc) => {
 /**
  * 获取文档最近状态信息（类型与 Tooltip）
  * @param doc
- * @returns {{type: ('NEW'|'UPD'), tooltip: string}|null}
+ * @returns {{type: 'UPD', tooltip: string}|null}
  */
 export const getDocRecentInfo = (doc) => {
   if (!doc) return null
