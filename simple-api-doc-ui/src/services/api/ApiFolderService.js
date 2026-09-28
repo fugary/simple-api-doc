@@ -13,6 +13,7 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { checkExportProjectDocs, downloadExportProjectDocs } from '@/api/ApiProjectApi'
 import { useDark } from '@vueuse/core'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import { isMarkdownDoc } from '@/services/api/ApiProjectService'
 
 /**
  * 判断是否有API文档
@@ -341,16 +342,17 @@ export const getDocHandlers = (doc, preference, handlerData) => {
     }
   }]
 }
+
 /**
  * Node icon计算逻辑
  * @param data
  * @return {string|string}
  */
 export const calcNodeLeaf = (data) => {
-  if (!data.isDoc) {
+  if (!data?.isDoc) {
     return 'Folder'
   }
-  return data.docType === 'md' ? 'custom-markdown' : 'custom-api'
+  return isMarkdownDoc(data) ? 'custom-markdown' : 'custom-api'
 }
 
 export const useFolderDropdown = () => {

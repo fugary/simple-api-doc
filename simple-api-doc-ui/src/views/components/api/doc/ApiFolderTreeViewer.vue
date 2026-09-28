@@ -7,7 +7,8 @@ import {
   filterProjectItem,
   getFolderTreeIds,
   calcDocRecentType,
-  calcDocRecentTooltip
+  calcDocRecentTooltip,
+  isMarkdownDoc
 } from '@/services/api/ApiProjectService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
@@ -39,6 +40,7 @@ import { cloneDeep, debounce } from 'lodash-es'
 import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
 import ApiDocBatchDeleteWindow from '@/views/components/api/doc/comp/ApiDocBatchDeleteWindow.vue'
+import ApiDocRecentPopover from '@/views/components/api/doc/comp/ApiDocRecentPopover.vue'
 import { addOrEditFolderWindow, showDocSearchWindow } from '@/utils/DynamicUtils'
 import emitter from '@/vendors/emitter'
 
@@ -86,6 +88,48 @@ const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = sha
 })
 sharePreference.preferenceId = preferenceId
 sharePreference.isShare = !!props.shareDoc?.shareId
+sharePreference.recentDocs = sharePreference.recentDocs || []
+
+const recentDocs = computed(() => {
+  const list = sharePreference.recentDocs || []
+  if (!list.length) return []
+  const docs = projectItem.value?.docs
+  if (!docs?.length) {
+    return list
+  }
+  const docMap = new Map(docs.map(d => [d.id, d]))
+  return list.filter(item => docMap.has(item.id)).map(item => {
+    const doc = docMap.get(item.id)
+    return {
+      ...item,
+      docName: doc.docName || doc.label || item.docName,
+      url: doc.url || item.url,
+      method: doc.method || item.method,
+      docType: isMarkdownDoc(doc) ? 'md' : 'api',
+      deprecated: !!(doc.deprecated ?? item.deprecated)
+    }
+  })
+})
+
+watch(recentDocs, (newRecent) => {
+  const currentList = sharePreference?.recentDocs || []
+  if (projectItem.value?.docs?.length && currentList.length && newRecent.length < currentList.length) {
+    const validIds = new Set(newRecent.map(d => d.id))
+    sharePreference.recentDocs = currentList.filter(d => validIds.has(d.id))
+  }
+})
+
+const selectRecentDoc = (item) => {
+  selectSearchDoc({ id: item.id })
+}
+
+const handleRemoveRecentDoc = (item) => {
+  shareConfigStore.removeRecentDoc(preferenceId, item.id)
+}
+
+const handleClearRecentDocs = () => {
+  shareConfigStore.clearRecentDocs(preferenceId)
+}
 
 const treeNodes = ref([])
 
@@ -155,6 +199,7 @@ const showDocDetails = (doc, edit) => {
     doc.editing = !!edit
     clearAndSetValue(currentDoc, doc)
     sharePreference.lastDocId = doc.id
+    shareConfigStore.recordRecentDoc(preferenceId, doc)
   }
 }
 
@@ -508,6 +553,15 @@ defineExpose(handlerData)
             @click="toggleTheme()"
           />
         </el-link>
+        <api-doc-recent-popover
+          v-if="recentDocs?.length"
+          class="margin-right2"
+          :recent-docs="recentDocs"
+          :current-doc="currentDoc"
+          @select-doc="selectRecentDoc"
+          @remove-doc="handleRemoveRecentDoc"
+          @clear-docs="handleClearRecentDocs"
+        />
         <more-actions-link
           v-if="exportTopHandlers?.length"
           class="margin-right2"
@@ -549,6 +603,15 @@ defineExpose(handlerData)
           class="margin-left1 api-path-url"
           style="font-size:18px;margin-right: auto"
         >{{ $t('menu.label.apiManagement') }}</span>
+        <api-doc-recent-popover
+          v-if="recentDocs?.length"
+          class="margin-right2"
+          :recent-docs="recentDocs"
+          :current-doc="currentDoc"
+          @select-doc="selectRecentDoc"
+          @remove-doc="handleRemoveRecentDoc"
+          @clear-docs="handleClearRecentDocs"
+        />
         <more-actions-link
           v-if="exportTopHandlers?.length"
           class="margin-right2"

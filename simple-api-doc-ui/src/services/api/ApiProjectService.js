@@ -49,6 +49,10 @@ export const calcFolderDocCount = (folders) => {
   return count
 }
 
+export const isMarkdownDoc = (doc) => {
+  return doc?.docType === 'md' || doc?.docType === 'markdown' || doc?.contentType === 'markdown'
+}
+
 export const RECENT_DAYS = 30
 export const RECENT_DAYS_MS = RECENT_DAYS * 24 * 60 * 60 * 1000
 export const SEVEN_DAYS_MS = RECENT_DAYS_MS
