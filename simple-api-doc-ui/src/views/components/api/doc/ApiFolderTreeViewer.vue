@@ -674,7 +674,7 @@ defineExpose(handlerData)
         </el-check-tag>
         <el-check-tag
           :checked="searchParam.recentType === 'UPD'"
-          type="warning"
+          type="success"
           class="recent-check-tag recent-filter-upd"
           @change="toggleRecentType('UPD')"
         >
@@ -895,7 +895,7 @@ defineExpose(handlerData)
   height: 6px;
   border-radius: 50%;
   display: inline-block;
-  background-color: var(--el-color-warning);
+  background-color: var(--el-color-success);
 }
 
 .recent-status-dot {
@@ -909,7 +909,7 @@ defineExpose(handlerData)
 }
 
 .recent-dot-upd {
-  background-color: var(--el-color-warning);
-  box-shadow: 0 0 4px rgba(230, 162, 60, 0.5);
+  background-color: var(--el-color-success);
+  box-shadow: 0 0 4px rgba(103, 194, 58, 0.5);
 }
 </style>

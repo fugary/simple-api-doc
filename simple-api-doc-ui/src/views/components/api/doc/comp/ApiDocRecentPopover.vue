@@ -50,7 +50,7 @@ const handleClear = () => {
     <el-popover
       ref="popoverRef"
       placement="bottom-end"
-      :width="340"
+      :width="460"
       trigger="hover"
       transition="el-zoom-in-top"
       :show-after="100"
@@ -98,53 +98,53 @@ const handleClear = () => {
               v-for="item in recentDocs"
               :key="item.id"
               class="recent-item"
-              :class="{ 'is-active': item.id === currentDoc?.id }"
+              :class="{ 'is-active': item.id === currentDoc?.id, 'has-url': !!item.url }"
               @click="handleSelect(item)"
             >
-              <div class="recent-item-main">
-                <div class="recent-item-row1">
-                  <common-icon
-                    :icon="isMarkdownDoc(item) ? 'custom-markdown' : 'custom-api'"
-                    class="tree-label-icon"
-                    :class="isMarkdownDoc(item) ? 'md-icon' : 'api-icon'"
-                    :size="18"
-                  />
-                  <api-method-tag
-                    v-if="!isMarkdownDoc(item)"
-                    :method="item.method"
-                  />
-                  <del
-                    v-if="item.deprecated"
-                    class="recent-doc-name"
-                    :title="item.docName"
-                  >
-                    {{ item.docName }}
-                  </del>
-                  <span
-                    v-else
-                    class="recent-doc-name"
-                    :title="item.docName"
-                  >
-                    {{ item.docName }}
-                  </span>
-                  <el-tag
-                    v-if="item.id === currentDoc?.id"
-                    size="small"
-                    type="primary"
-                    effect="plain"
-                    class="recent-current-tag"
-                  >
-                    {{ $t('api.label.current') }}
-                  </el-tag>
-                </div>
-                <div
-                  v-if="item.url"
-                  class="recent-doc-url"
-                  :title="item.url"
-                >
-                  {{ item.url }}
-                </div>
-              </div>
+              <common-icon
+                :icon="isMarkdownDoc(item) ? 'custom-markdown' : 'custom-api'"
+                class="tree-label-icon"
+                :class="isMarkdownDoc(item) ? 'md-icon' : 'api-icon'"
+                :size="18"
+              />
+              <api-method-tag
+                v-if="!isMarkdownDoc(item)"
+                :method="item.method"
+              />
+              <del
+                v-if="item.deprecated"
+                class="recent-doc-name"
+                :title="item.docName"
+              >
+                {{ item.docName }}
+              </del>
+              <span
+                v-else
+                class="recent-doc-name"
+                :title="item.docName"
+              >
+                {{ item.docName }}
+              </span>
+              <el-tag
+                v-if="item.id === currentDoc?.id"
+                size="small"
+                type="primary"
+                effect="plain"
+                class="recent-current-tag"
+              >
+                {{ $t('api.label.current') }}
+              </el-tag>
+              <span
+                v-if="item.url"
+                class="recent-doc-url"
+                :title="item.url"
+              >
+                {{ item.url }}
+              </span>
+              <span
+                v-else
+                class="recent-doc-spacer"
+              />
               <div
                 class="recent-item-delete"
                 :title="$t('common.label.delete')"
@@ -200,11 +200,13 @@ const handleClear = () => {
 .recent-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 8px;
+  gap: 6px;
+  padding: 0 8px;
+  height: 34px;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-sizing: border-box;
 }
 
 .recent-item:hover {
@@ -213,18 +215,6 @@ const handleClear = () => {
 
 .recent-item.is-active {
   background-color: var(--el-color-primary-light-9);
-}
-
-.recent-item-main {
-  flex: 1;
-  min-width: 0;
-  margin-right: 6px;
-}
-
-.recent-item-row1 {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .tree-label-icon {
@@ -246,7 +236,12 @@ const handleClear = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
+  flex-shrink: 1;
+  max-width: calc(100% - 60px);
+}
+
+.recent-item.has-url .recent-doc-name {
+  max-width: 48%;
 }
 
 .recent-current-tag {
@@ -258,19 +253,25 @@ const handleClear = () => {
 }
 
 .recent-doc-url {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-top: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-doc-spacer {
+  flex: 1;
 }
 
 .recent-item-delete {
   opacity: 0;
   transition: opacity 0.2s;
   color: var(--el-text-color-secondary);
-  padding: 3px;
+  width: 20px;
+  height: 20px;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
