@@ -201,6 +201,7 @@ const handleContainerClick = (event) => {
       v-model="currentDoc"
       :history-count="historyCount"
       :editable="editable"
+      :preference-id="preferenceId"
       @update-history="$emit('updateHistory', $event)"
     />
     <el-container

@@ -205,6 +205,7 @@ const handleCopyMarkdown = () => {
       :current-doc-detail="apiDocDetail"
       :editable="editable"
       :history-count="historyCount"
+      :preference-id="paramTargetId"
       @update-history="$emit('updateHistory', $event)"
     />
     <api-doc-path-header

@@ -10,6 +10,8 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiDocApi'
 import { getDocHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
+import emitter from '@/vendors/emitter'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 const props = defineProps({
   editable: {
     type: Boolean,
@@ -22,6 +24,10 @@ const props = defineProps({
   currentDocDetail: {
     type: Object,
     default: undefined
+  },
+  preferenceId: {
+    type: String,
+    default: ''
   }
 })
 const currentDoc = defineModel({
@@ -37,6 +43,29 @@ const folderPaths = computed(() => {
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
 
 const recentInfo = computed(() => getDocRecentInfo(docDetailInfo.value))
+
+const shareConfigStore = useShareConfigStore()
+const pref = computed(() => (props.preferenceId && shareConfigStore.sharePreferenceView[props.preferenceId]) || {})
+const canNavBack = computed(() => (pref.value.navIndex ?? -1) > 0)
+const canNavForward = computed(() => {
+  const index = pref.value.navIndex ?? -1
+  const stack = pref.value.navStack || []
+  return index >= 0 && index < stack.length - 1
+})
+
+const handleNavBack = () => {
+  const targetDocId = shareConfigStore.navBack(props.preferenceId)
+  if (targetDocId) {
+    emitter.emit('select-api-doc', { id: targetDocId })
+  }
+}
+
+const handleNavForward = () => {
+  const targetDocId = shareConfigStore.navForward(props.preferenceId)
+  if (targetDocId) {
+    emitter.emit('select-api-doc', { id: targetDocId })
+  }
+}
 
 const emit = defineEmits(['updateHistory'])
 const toShowHistoryWindow = (current) => {
@@ -151,17 +180,51 @@ const showAffixBtn = inject('showAffixBtn', null)
     style="min-height: var(--el-header-height);height:auto;"
     :style="showAffixBtn?'padding-left: 50px;':''"
   >
-    <el-breadcrumb
-      v-if="folderPaths.length>1"
-      class="margin-top3"
-    >
-      <el-breadcrumb-item
-        v-for="(folderPath, index) in folderPaths"
-        :key="index"
+    <div class="doc-header-nav-bar margin-top3">
+      <div class="doc-nav-actions">
+        <el-button
+          link
+          size="small"
+          class="doc-nav-btn"
+          :disabled="!canNavBack"
+          :title="$t('api.label.navBack')"
+          @click="handleNavBack"
+        >
+          <common-icon
+            icon="ArrowBackFilled"
+            :size="18"
+          />
+        </el-button>
+        <el-button
+          link
+          size="small"
+          class="doc-nav-btn"
+          :disabled="!canNavForward"
+          :title="$t('api.label.navForward')"
+          @click="handleNavForward"
+        >
+          <common-icon
+            icon="ArrowForwardFilled"
+            :size="18"
+          />
+        </el-button>
+      </div>
+      <span
+        v-if="folderPaths.length > 0"
+        class="doc-header-path-prefix"
+      >/</span>
+      <el-breadcrumb
+        v-if="folderPaths.length > 0"
+        class="doc-header-breadcrumb"
       >
-        {{ folderPath }}
-      </el-breadcrumb-item>
-    </el-breadcrumb>
+        <el-breadcrumb-item
+          v-for="(folderPath, index) in folderPaths"
+          :key="index"
+        >
+          {{ folderPath }}
+        </el-breadcrumb-item>
+      </el-breadcrumb>
+    </div>
     <h2 class="margin-bottom1">
       <el-text
         v-if="currentDoc?.deprecated"
@@ -232,6 +295,49 @@ const showAffixBtn = inject('showAffixBtn', null)
 </template>
 
 <style scoped>
+.doc-header-nav-bar {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+}
+
+.doc-nav-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.doc-nav-btn {
+  padding: 4px;
+  height: 26px;
+  width: 26px;
+  border-radius: 4px;
+  color: var(--el-text-color-regular);
+}
+
+.doc-nav-btn:hover:not(:disabled) {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.doc-nav-btn.is-disabled {
+  color: var(--el-text-color-placeholder);
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.doc-header-path-prefix {
+  font-weight: 700;
+  color: var(--el-text-color-placeholder);
+  user-select: none;
+  font-size: 13px;
+  line-height: 26px;
+  margin: 0 9px 0 6px;
+}
+
+.doc-header-breadcrumb {
+  line-height: 26px;
+}
 .recent-header-tag {
   display: inline-flex;
   align-items: center;

@@ -12,6 +12,7 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
   const shareGenerateCodeConfig = ref({})
   const extractedEnvParams = ref({})
   const localEnvParams = ref({})
+  const isNavigatingHistory = ref(false)
 
   const clearShareToken = (shareId) => {
     delete shareConfig.value[shareId]
@@ -101,6 +102,72 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
     },
     getRecentDocs (preferenceId) {
       return (preferenceId && sharePreferenceView.value[preferenceId]?.recentDocs) || []
+    },
+    pushNavDoc (preferenceId, docId) {
+      if (!preferenceId || !docId) return
+      if (isNavigatingHistory.value) {
+        isNavigatingHistory.value = false
+        return
+      }
+      const pref = sharePreferenceView.value[preferenceId] = sharePreferenceView.value[preferenceId] || {}
+      let stack = pref.navStack || []
+      const index = pref.navIndex ?? -1
+
+      if (index >= 0 && stack[index] === docId) {
+        return
+      }
+
+      if (index >= 0 && index < stack.length - 1) {
+        stack = stack.slice(0, index + 1)
+      }
+
+      stack.push(docId)
+
+      const MAX_DEPTH = 50
+      if (stack.length > MAX_DEPTH) {
+        stack = stack.slice(stack.length - MAX_DEPTH)
+      }
+
+      pref.navStack = stack
+      pref.navIndex = stack.length - 1
+    },
+    navBack (preferenceId) {
+      if (!preferenceId) return null
+      const pref = sharePreferenceView.value[preferenceId]
+      if (!pref || !pref.navStack?.length) return null
+      if (pref.navIndex > 0) {
+        pref.navIndex--
+        isNavigatingHistory.value = true
+        return pref.navStack[pref.navIndex]
+      }
+      return null
+    },
+    navForward (preferenceId) {
+      if (!preferenceId) return null
+      const pref = sharePreferenceView.value[preferenceId]
+      if (!pref || !pref.navStack?.length) return null
+      if (pref.navIndex >= 0 && pref.navIndex < pref.navStack.length - 1) {
+        pref.navIndex++
+        isNavigatingHistory.value = true
+        return pref.navStack[pref.navIndex]
+      }
+      return null
+    },
+    cleanNavStack (preferenceId, validIds) {
+      if (!preferenceId || !validIds) return
+      const pref = sharePreferenceView.value[preferenceId]
+      if (!pref?.navStack?.length) return
+      const validSet = validIds instanceof Set ? validIds : new Set(validIds)
+      const currentDocId = pref.navIndex >= 0 ? pref.navStack[pref.navIndex] : null
+      const newStack = pref.navStack.filter(id => validSet.has(id))
+      if (newStack.length !== pref.navStack.length) {
+        pref.navStack = newStack
+        if (currentDocId && newStack.includes(currentDocId)) {
+          pref.navIndex = newStack.indexOf(currentDocId)
+        } else {
+          pref.navIndex = newStack.length - 1
+        }
+      }
     },
     clearAllShareToken: () => {
       shareConfig.value = {}

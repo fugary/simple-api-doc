@@ -116,6 +116,7 @@ watch(recentDocs, (newRecent) => {
   if (projectItem.value?.docs?.length && currentList.length && newRecent.length < currentList.length) {
     const validIds = new Set(newRecent.map(d => d.id))
     sharePreference.recentDocs = currentList.filter(d => validIds.has(d.id))
+    shareConfigStore.cleanNavStack(preferenceId, validIds)
   }
 })
 
@@ -142,6 +143,9 @@ const calcProjectItemInfo = () => {
   if (!currentDoc.value?.id) {
     currentDoc.value = currentSelectDoc
     sharePreference.lastDocId = currentSelectDoc?.id
+    if (currentSelectDoc?.id) {
+      shareConfigStore.pushNavDoc(preferenceId, currentSelectDoc.id)
+    }
   }
   treeNodes.value = docTreeNodes
 }
@@ -200,16 +204,21 @@ const showDocDetails = (doc, edit) => {
     clearAndSetValue(currentDoc, doc)
     sharePreference.lastDocId = doc.id
     shareConfigStore.recordRecentDoc(preferenceId, doc)
+    shareConfigStore.pushNavDoc(preferenceId, doc.id)
   }
 }
 
 const handleSelectDocFromEvent = (doc) => {
   if (doc?.id) {
-    doc.isDoc = true
-    showDocDetails(doc, false)
-    nextTick(() => {
-      treeRef.value?.setCurrentKey(doc.treeId || doc.id)
-    })
+    if (doc.docName || doc.docType) {
+      doc.isDoc = true
+      showDocDetails(doc, false)
+      nextTick(() => {
+        treeRef.value?.setCurrentKey(doc.treeId || doc.id)
+      })
+    } else {
+      selectSearchDoc({ id: doc.id })
+    }
   }
 }
 emitter.on('select-api-doc', handleSelectDocFromEvent)
