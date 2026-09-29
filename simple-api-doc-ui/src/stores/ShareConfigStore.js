@@ -1,7 +1,5 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { isMarkdownDoc } from '@/services/api/ApiProjectService'
-
 /**
  * 分享相关store
  */
@@ -59,61 +57,22 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
         delete extractedEnvParams.value[preferenceId]
       }
     },
-    recordRecentDoc (preferenceId, doc) {
-      if (!preferenceId || !doc?.id || !doc?.isDoc) return
-      const pref = sharePreferenceView.value[preferenceId] = sharePreferenceView.value[preferenceId] || {}
-      const list = pref.recentDocs || []
-      const docId = doc.id
-      const isMd = isMarkdownDoc(doc)
-      if (list[0]?.id === docId) {
-        list[0].accessTime = Date.now()
-        list[0].docName = doc.docName || doc.label || list[0].docName
-        list[0].url = doc.url || list[0].url
-        list[0].method = doc.method || list[0].method
-        list[0].docType = isMd ? 'md' : 'api'
-        list[0].deprecated = !!doc.deprecated
-        return
-      }
-      const filtered = list.filter(item => item.id !== docId)
-      filtered.unshift({
-        id: docId,
-        docName: doc.docName || doc.label,
-        docType: isMd ? 'md' : 'api',
-        method: doc.method,
-        url: doc.url,
-        deprecated: !!doc.deprecated,
-        accessTime: Date.now()
-      })
-      pref.recentDocs = filtered.slice(0, 10)
-    },
-    removeRecentDoc (preferenceId, docId) {
-      if (!preferenceId) return
-      const pref = sharePreferenceView.value[preferenceId]
-      if (pref?.recentDocs) {
-        pref.recentDocs = pref.recentDocs.filter(item => item.id !== docId)
-      }
-    },
-    clearRecentDocs (preferenceId) {
-      if (!preferenceId) return
-      const pref = sharePreferenceView.value[preferenceId]
-      if (pref) {
-        pref.recentDocs = []
-      }
-    },
-    getRecentDocs (preferenceId) {
-      return (preferenceId && sharePreferenceView.value[preferenceId]?.recentDocs) || []
-    },
-    pushNavDoc (preferenceId, docId) {
-      if (!preferenceId || !docId) return
+    pushNavDoc (preferenceId, doc) {
+      if (!preferenceId || !doc) return
       if (isNavigatingHistory.value) {
         isNavigatingHistory.value = false
         return
       }
+      const docId = typeof doc === 'object' ? doc.id : doc
+      if (!docId) return
+
       const pref = sharePreferenceView.value[preferenceId] = sharePreferenceView.value[preferenceId] || {}
       let stack = pref.navStack || []
       const index = pref.navIndex ?? -1
 
-      if (index >= 0 && stack[index] === docId) {
+      const currentEntry = index >= 0 ? stack[index] : null
+      const currentId = typeof currentEntry === 'object' ? currentEntry?.id : currentEntry
+      if (currentId === docId) {
         return
       }
 
@@ -131,6 +90,54 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
       pref.navStack = stack
       pref.navIndex = stack.length - 1
     },
+    getBackHistory (preferenceId) {
+      if (!preferenceId) return []
+      const pref = sharePreferenceView.value[preferenceId]
+      if (!pref || !pref.navStack?.length) return []
+      const index = pref.navIndex ?? -1
+      if (index <= 0) return []
+      const result = []
+      for (let i = index - 1; i >= 0; i--) {
+        const item = pref.navStack[i]
+        if (item != null) {
+          result.push({
+            id: typeof item === 'object' ? item.id : item,
+            index: i
+          })
+        }
+      }
+      return result
+    },
+    getForwardHistory (preferenceId) {
+      if (!preferenceId) return []
+      const pref = sharePreferenceView.value[preferenceId]
+      if (!pref || !pref.navStack?.length) return []
+      const index = pref.navIndex ?? -1
+      if (index < 0 || index >= pref.navStack.length - 1) return []
+      const result = []
+      for (let i = index + 1; i < pref.navStack.length; i++) {
+        const item = pref.navStack[i]
+        if (item != null) {
+          result.push({
+            id: typeof item === 'object' ? item.id : item,
+            index: i
+          })
+        }
+      }
+      return result
+    },
+    navToIndex (preferenceId, targetIndex) {
+      if (!preferenceId) return null
+      const pref = sharePreferenceView.value[preferenceId]
+      if (!pref || !pref.navStack?.length) return null
+      if (targetIndex >= 0 && targetIndex < pref.navStack.length) {
+        pref.navIndex = targetIndex
+        isNavigatingHistory.value = true
+        const entry = pref.navStack[targetIndex]
+        return typeof entry === 'object' ? entry.id : entry
+      }
+      return null
+    },
     navBack (preferenceId) {
       if (!preferenceId) return null
       const pref = sharePreferenceView.value[preferenceId]
@@ -138,7 +145,8 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
       if (pref.navIndex > 0) {
         pref.navIndex--
         isNavigatingHistory.value = true
-        return pref.navStack[pref.navIndex]
+        const entry = pref.navStack[pref.navIndex]
+        return typeof entry === 'object' ? entry.id : entry
       }
       return null
     },
@@ -149,23 +157,56 @@ export const useShareConfigStore = defineStore('shareConfigStore', () => {
       if (pref.navIndex >= 0 && pref.navIndex < pref.navStack.length - 1) {
         pref.navIndex++
         isNavigatingHistory.value = true
-        return pref.navStack[pref.navIndex]
+        const entry = pref.navStack[pref.navIndex]
+        return typeof entry === 'object' ? entry.id : entry
       }
       return null
+    },
+    removeNavIndex (preferenceId, targetIndex) {
+      if (!preferenceId) return
+      const pref = sharePreferenceView.value[preferenceId]
+      if (!pref || !pref.navStack?.length) return
+      if (targetIndex < 0 || targetIndex >= pref.navStack.length) return
+
+      const stack = [...pref.navStack]
+      stack.splice(targetIndex, 1)
+      pref.navStack = stack
+
+      if (stack.length === 0) {
+        pref.navIndex = -1
+      } else if (targetIndex < pref.navIndex) {
+        pref.navIndex--
+      } else if (targetIndex === pref.navIndex) {
+        pref.navIndex = Math.min(pref.navIndex, stack.length - 1)
+      }
+    },
+    clearNavStack (preferenceId) {
+      if (!preferenceId) return
+      const pref = sharePreferenceView.value[preferenceId]
+      if (pref) {
+        pref.navStack = []
+        pref.navIndex = -1
+      }
     },
     cleanNavStack (preferenceId, validIds) {
       if (!preferenceId || !validIds) return
       const pref = sharePreferenceView.value[preferenceId]
       if (!pref?.navStack?.length) return
       const validSet = validIds instanceof Set ? validIds : new Set(validIds)
-      const currentDocId = pref.navIndex >= 0 ? pref.navStack[pref.navIndex] : null
-      const newStack = pref.navStack.filter(id => validSet.has(id))
+      const currentEntry = pref.navIndex >= 0 ? pref.navStack[pref.navIndex] : null
+      const currentDocId = typeof currentEntry === 'object' ? currentEntry?.id : currentEntry
+
+      const newStack = pref.navStack.filter(item => {
+        const id = typeof item === 'object' ? item.id : item
+        return validSet.has(id)
+      })
       if (newStack.length !== pref.navStack.length) {
         pref.navStack = newStack
-        if (currentDocId && newStack.includes(currentDocId)) {
-          pref.navIndex = newStack.indexOf(currentDocId)
+        const foundIndex = newStack.findIndex(item => (typeof item === 'object' ? item.id : item) === currentDocId)
+        if (foundIndex >= 0) {
+          pref.navIndex = foundIndex
         } else {
-          pref.navIndex = newStack.length - 1
+          pref.navIndex = newStack.length > 0 ? newStack.length - 1 : -1
         }
       }
     },

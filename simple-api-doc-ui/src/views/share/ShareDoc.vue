@@ -138,6 +138,7 @@ const waterMarkContent = computed(() => {
 const isTreeCollapsed = ref(false)
 const showAffixBtn = computed(() => isMobile.value || isTreeCollapsed.value || splitRef.value?.elementSizes?.[0] < 50)
 provide('showAffixBtn', showAffixBtn)
+provide('projectItem', projectItem)
 
 const onTreeCollapse = (collapsed) => {
   isTreeCollapsed.value = collapsed

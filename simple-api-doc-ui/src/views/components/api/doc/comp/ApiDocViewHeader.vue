@@ -10,8 +10,9 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiDocApi'
 import { getDocHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
-import emitter from '@/vendors/emitter'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
+import ApiDocNavDropdown from '@/views/components/api/doc/comp/ApiDocNavDropdown.vue'
+
 const props = defineProps({
   editable: {
     type: Boolean,
@@ -52,20 +53,6 @@ const canNavForward = computed(() => {
   const stack = pref.value.navStack || []
   return index >= 0 && index < stack.length - 1
 })
-
-const handleNavBack = () => {
-  const targetDocId = shareConfigStore.navBack(props.preferenceId)
-  if (targetDocId) {
-    emitter.emit('select-api-doc', { id: targetDocId })
-  }
-}
-
-const handleNavForward = () => {
-  const targetDocId = shareConfigStore.navForward(props.preferenceId)
-  if (targetDocId) {
-    emitter.emit('select-api-doc', { id: targetDocId })
-  }
-}
 
 const emit = defineEmits(['updateHistory'])
 const toShowHistoryWindow = (current) => {
@@ -181,33 +168,20 @@ const showAffixBtn = inject('showAffixBtn', null)
     :style="showAffixBtn?'padding-left: 50px;':''"
   >
     <div class="doc-header-nav-bar margin-top3">
-      <div class="doc-nav-actions">
-        <el-button
-          link
-          size="small"
-          class="doc-nav-btn"
+      <div
+        class="doc-nav-actions"
+        @contextmenu.prevent
+      >
+        <api-doc-nav-dropdown
+          direction="back"
+          :preference-id="preferenceId"
           :disabled="!canNavBack"
-          :title="$t('api.label.navBack')"
-          @click="handleNavBack"
-        >
-          <common-icon
-            icon="ArrowBackFilled"
-            :size="18"
-          />
-        </el-button>
-        <el-button
-          link
-          size="small"
-          class="doc-nav-btn"
+        />
+        <api-doc-nav-dropdown
+          direction="forward"
+          :preference-id="preferenceId"
           :disabled="!canNavForward"
-          :title="$t('api.label.navForward')"
-          @click="handleNavForward"
-        >
-          <common-icon
-            icon="ArrowForwardFilled"
-            :size="18"
-          />
-        </el-button>
+        />
       </div>
       <span
         v-if="folderPaths.length > 0"
@@ -305,25 +279,6 @@ const showAffixBtn = inject('showAffixBtn', null)
   display: inline-flex;
   align-items: center;
   gap: 2px;
-}
-
-.doc-nav-btn {
-  padding: 4px;
-  height: 26px;
-  width: 26px;
-  border-radius: 4px;
-  color: var(--el-text-color-regular);
-}
-
-.doc-nav-btn:hover:not(:disabled) {
-  background-color: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-.doc-nav-btn.is-disabled {
-  color: var(--el-text-color-placeholder);
-  cursor: not-allowed;
-  opacity: 0.4;
 }
 
 .doc-header-path-prefix {
