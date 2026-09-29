@@ -184,7 +184,7 @@ const showAffixBtn = inject('showAffixBtn', null)
       <el-tag
         v-if="recentInfo"
         v-common-tooltip="recentInfo.tooltip"
-        type="success"
+        type="primary"
         size="small"
         round
         effect="plain"
@@ -253,7 +253,7 @@ const showAffixBtn = inject('showAffixBtn', null)
 }
 
 .recent-header-dot.dot-upd {
-  background-color: var(--el-color-success);
-  box-shadow: 0 0 4px rgba(103, 194, 58, 0.6);
+  background-color: var(--el-color-primary);
+  box-shadow: 0 0 4px rgba(64, 158, 255, 0.6);
 }
 </style>
