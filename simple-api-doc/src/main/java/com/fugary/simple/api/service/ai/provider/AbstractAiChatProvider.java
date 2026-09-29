@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClientResponseException;
@@ -231,6 +232,32 @@ public abstract class AbstractAiChatProvider implements AiChatProvider {
             return genericMatcher.group(1).trim();
         }
         return content;
+    }
+
+    /**
+     * 构建基础 URL 和路径拼接，自动处理首尾斜杠
+     */
+    protected String buildUrl(String baseUrl, String path) {
+        if (StringUtils.isBlank(baseUrl)) {
+            return path;
+        }
+        String cleanBase = baseUrl.replaceAll("/+$", "");
+        if (StringUtils.isBlank(path)) {
+            return cleanBase;
+        }
+        return cleanBase + (path.startsWith("/") ? path : "/" + path);
+    }
+
+    /**
+     * 创建通用的 Bearer JSON 请求头
+     */
+    protected HttpHeaders createBearerJsonHeaders(String apiKey) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (StringUtils.isNotBlank(apiKey)) {
+            headers.setBearerAuth(apiKey.trim());
+        }
+        return headers;
     }
 }
 

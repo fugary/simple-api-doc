@@ -45,6 +45,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - `/docs`: 项目文档及静态引导页。
 
 ## 5. 当前开发进度 (Current Status)
+- [x] 接口文档智能问答助手第一阶段 (Agentic RAG)：零外部向量数据库与无冷启动依赖，新增 `AgentTool` 抽象及 `search_docs` / `get_doc` 只读工具，基于 `ApiDocSearchService` 与 `ApiDocViewGenerator` 生成极低 Token 开销的精简 Markdown 视图；在 `OpenAiChatProvider` 中实现 Function Calling（tools / tool_calls）多轮协议；实现具备 4 轮迭代控制、防死循环截断与 Grounding 真实性核验的 `AiAgentServiceImpl`，严格校验 `doc://{id}` 真实性并装配真实 `relatedDocs` 元数据；提供 `/agent/chat` SSE 端点；在 `ApiDocSearchWindow` 中集成模式切换，支持检索过程折叠、权威关联接口卡片置顶、Markdown 正文渲染、正文接口链接点击直达及一键转入高级搜索手动查找。
 - [x] 独立高级文档搜索：顶部导航与项目目录共用搜索弹窗，支持所有可读项目、当前项目及指定项目，按文档名称、接口 URL、描述/Markdown 正文组合查询，提供类型、方法与状态筛选、分页摘要高亮及文档定位；分享搜索仅覆盖已授权且启用的文档，项目详情继续使用 `includeDocContent(false)` 按需加载正文。
 - [x] 分组与项目权限精细化控制：支持项目分组功能，优化项目及分组的用户权限关联，前端新增分组权限配置及编辑页面。
 - [x] 多表单防重复提交优化：优化保存项目、分组、分享等数据时的判重逻辑，若内容无变化则不再重复保存数据库。

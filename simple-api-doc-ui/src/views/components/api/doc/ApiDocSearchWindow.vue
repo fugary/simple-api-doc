@@ -12,6 +12,7 @@ import { ALL_METHODS } from '@/consts/ApiConstants'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import HighlightedText from '@/views/components/utils/HighlightedText.vue'
+import ApiDocAiChatPanel from '@/views/components/api/doc/comp/ApiDocAiChatPanel.vue'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
 
@@ -23,19 +24,48 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const showWindow = ref(true)
+const canUseAi = computed(() => !!props.project && !props.shareId)
+const tabOptions = computed(() => [
+  {
+    value: 'search',
+    label: $i18nBundle('api.label.advancedSearch'),
+    icon: 'Search'
+  },
+  {
+    value: 'ai',
+    label: $i18nBundle('api.label.aiAssistant'),
+    icon: 'ChatDotRound'
+  }
+])
 const searchStore = useDocSearchStore()
 const loginStore = useLoginConfigStore()
 const sessionKey = props.shareId ? `share:${props.shareId}` : `${loginStore.accountInfo?.id}:${props.project?.id || 'all'}`
 const defaultModel = () => ({ scope: props.shareId ? 'share' : props.project ? 'selected' : 'all', projectId: props.project?.id, docName: '', url: '', content: '', docType: undefined, method: undefined, status: undefined })
+const defaultAiState = () => ({
+  queryInput: '',
+  toolSteps: [],
+  relatedDocs: [],
+  answerContent: '',
+  isStepsExpanded: true
+})
 searchStore.sessions[sessionKey] ||= {
   model: defaultModel(),
   submitted: null,
   records: [],
   searched: false,
   more: false,
-  page: { pageNumber: 1, pageSize: 20, totalCount: 0 }
+  page: { pageNumber: 1, pageSize: 20, totalCount: 0 },
+  activeTab: 'search',
+  aiState: defaultAiState()
 }
 const session = searchStore.sessions[sessionKey]
+session.activeTab ||= 'search'
+session.aiState ||= defaultAiState()
+
+const activeTab = ref(canUseAi.value && session.activeTab === 'ai' ? 'ai' : 'search')
+watch(activeTab, (val) => {
+  session.activeTab = val
+})
 // 分页控件先更新本地状态，只有请求成功后才保存为结果对应的页码。
 const tablePage = ref(session.page)
 const loading = ref(false)
@@ -187,6 +217,13 @@ const openDoc = async (doc) => {
   }
   showWindow.value = false
 }
+const handleSwitchToSearch = (keyword) => {
+  activeTab.value = 'search'
+  if (keyword) {
+    session.model.docName = keyword
+    runSearch()
+  }
+}
 onUnmounted(() => {
   searchVersion++
   projectVersion++
@@ -198,7 +235,7 @@ if (session.model.scope === 'selected') loadProjects()
 <template>
   <common-window
     v-model="showWindow"
-    :title="$t('api.label.advancedSearch')"
+    :title="activeTab === 'ai' && canUseAi ? $t('api.label.aiAssistant') : $t('api.label.advancedSearch')"
     width="min(960px, 96vw)"
     :show-buttons="false"
     :close-on-click-modal="false"
@@ -207,128 +244,166 @@ if (session.model.scope === 'selected') loadProjects()
     append-to-body
   >
     <div class="doc-search-window">
-      <common-form
-        class="doc-search-form"
-        :model="session.model"
-        :options="options"
-        label-width="auto"
-        inline
-        :submit-label="$t('common.label.search')"
-        :disable-buttons="loading"
-        @submit-form="runSearch()"
+      <div
+        v-if="canUseAi"
+        class="search-tab-header"
       >
-        <template #buttons>
-          <el-button @click="reset">
-            {{ $t('common.label.reset') }}
-          </el-button>
-          <el-button
-            link
-            type="primary"
-            @click="session.more = !session.more"
-          >
-            {{ $t(session.more ? 'api.label.searchLess' : 'api.label.searchMore') }}
-          </el-button>
-          <el-text
-            v-if="conditionsChanged && !loading"
-            v-common-tooltip="$t('api.msg.searchChanged')"
-            class="doc-search-hint"
-            type="info"
-            size="small"
-            role="status"
-          >
-            <common-icon icon="InfoFilled" />
-            {{ $t('api.label.searchPending') }}
-          </el-text>
-        </template>
-      </common-form>
-      <el-alert
-        v-if="failed"
-        type="error"
-        :closable="false"
-        :title="$t('api.msg.searchFailed')"
-      />
-      <common-table
-        v-model:page="tablePage"
-        :columns="columns"
-        :data="session.records"
-        :loading="loading"
-        row-key="id"
-        max-height="45vh"
-        @current-page-change="runSearch($event, true)"
-        @page-size-change="runSearch(1, true, $event)"
+        <el-segmented
+          v-model="activeTab"
+          :options="tabOptions"
+        >
+          <template #default="{ item }">
+            <div class="search-segment-item">
+              <common-icon :icon="item.icon" />
+              <span>{{ item.label }}</span>
+            </div>
+          </template>
+        </el-segmented>
+      </div>
+
+      <div
+        v-show="activeTab === 'search'"
+        class="doc-search-pane"
       >
-        <template #empty>
-          {{ $t(session.searched ? 'common.msg.noData' : 'api.msg.searchStart') }}
-        </template>
-        <template #project="{ item: doc }">
-          <div>{{ doc.projectName }}</div>
-          <el-text
-            type="info"
-            size="small"
-          >
-            {{ doc.folderPath }}
-          </el-text>
-        </template>
-        <template #document="{ item: doc }">
-          <tree-icon-label
-            class="doc-search-title"
-            :node="{ isLeaf: true, label: doc.docName }"
-            :icon-leaf="calcNodeLeaf({ isDoc: true, docType: doc.docType })"
-          >
-            <api-method-tag
-              v-if="doc.docType === 'api'"
-              :method="doc.method"
-            />
-            <el-link
+        <common-form
+          class="doc-search-form"
+          :model="session.model"
+          :options="options"
+          label-width="auto"
+          inline
+          :submit-label="$t('common.label.search')"
+          :disable-buttons="loading"
+          @submit-form="runSearch()"
+        >
+          <template #buttons>
+            <el-button @click="reset">
+              {{ $t('common.label.reset') }}
+            </el-button>
+            <el-button
+              link
               type="primary"
-              underline="hover"
-              @click="openDoc(doc)"
+              @click="session.more = !session.more"
             >
-              <highlighted-text
-                :text="doc.docName"
-                :keyword="session.submitted?.docName"
-              />
-            </el-link>
-            <el-tag
-              v-if="doc.status === 0"
-              size="small"
+              {{ $t(session.more ? 'api.label.searchLess' : 'api.label.searchMore') }}
+            </el-button>
+            <el-text
+              v-if="conditionsChanged && !loading"
+              v-common-tooltip="$t('api.msg.searchChanged')"
+              class="doc-search-hint"
               type="info"
+              size="small"
+              role="status"
             >
-              {{ $t('common.label.statusDisabled') }}
-            </el-tag>
-          </tree-icon-label>
-          <div
-            v-if="doc.url"
-            class="doc-search-url"
-          >
-            <highlighted-text
-              :text="doc.url"
-              :keyword="session.submitted?.url"
-            />
-          </div>
-          <div
-            v-if="doc.snippet"
-            class="doc-search-snippet"
-          >
+              <common-icon icon="InfoFilled" />
+              {{ $t('api.label.searchPending') }}
+            </el-text>
+          </template>
+        </common-form>
+        <el-alert
+          v-if="failed"
+          type="error"
+          :closable="false"
+          :title="$t('api.msg.searchFailed')"
+        />
+        <common-table
+          v-model:page="tablePage"
+          :columns="columns"
+          :data="session.records"
+          :loading="loading"
+          row-key="id"
+          max-height="45vh"
+          @current-page-change="runSearch($event, true)"
+          @page-size-change="runSearch(1, true, $event)"
+        >
+          <template #empty>
+            {{ $t(session.searched ? 'common.msg.noData' : 'api.msg.searchStart') }}
+          </template>
+          <template #project="{ item: doc }">
+            <div>{{ doc.projectName }}</div>
             <el-text
               type="info"
               size="small"
             >
-              {{ $t('api.label.searchContent') }}：
+              {{ doc.folderPath }}
             </el-text>
-            <highlighted-text
-              :text="doc.snippet"
-              :keyword="session.submitted?.content"
-            />
-          </div>
-        </template>
-      </common-table>
+          </template>
+          <template #document="{ item: doc }">
+            <tree-icon-label
+              class="doc-search-title"
+              :node="{ isLeaf: true, label: doc.docName }"
+              :icon-leaf="calcNodeLeaf({ isDoc: true, docType: doc.docType })"
+            >
+              <api-method-tag
+                v-if="doc.docType === 'api'"
+                :method="doc.method"
+              />
+              <el-link
+                type="primary"
+                underline="hover"
+                @click="openDoc(doc)"
+              >
+                <highlighted-text
+                  :text="doc.docName"
+                  :keyword="session.submitted?.docName"
+                />
+              </el-link>
+              <el-tag
+                v-if="doc.status === 0"
+                size="small"
+                type="info"
+              >
+                {{ $t('common.label.statusDisabled') }}
+              </el-tag>
+            </tree-icon-label>
+            <div
+              v-if="doc.url"
+              class="doc-search-url"
+            >
+              <highlighted-text
+                :text="doc.url"
+                :keyword="session.submitted?.url"
+              />
+            </div>
+            <div
+              v-if="doc.snippet"
+              class="doc-search-snippet"
+            >
+              <el-text
+                type="info"
+                size="small"
+              >
+                {{ $t('api.label.searchContent') }}：
+              </el-text>
+              <highlighted-text
+                :text="doc.snippet"
+                :keyword="session.submitted?.content"
+              />
+            </div>
+          </template>
+        </common-table>
+      </div>
+
+      <div
+        v-if="canUseAi"
+        v-show="activeTab === 'ai'"
+        class="doc-search-pane"
+      >
+        <api-doc-ai-chat-panel
+          :project="props.project"
+          :session-key="sessionKey"
+          :on-select-doc="openDoc"
+          @switch-to-search="handleSwitchToSearch"
+        />
+      </div>
     </div>
   </common-window>
 </template>
 
 <style scoped>
 .doc-search-window { width: 100%; min-width: 0; }
+.search-tab-header { margin-bottom: 14px; }
+.search-segment-item { display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: 13px; }
+.search-segment-item :deep(.el-icon) { font-size: 14px; }
 .doc-search-form :deep(.el-form) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
 .doc-search-form :deep(.el-form-item) { margin-right: 0; min-width: 0; }
 .doc-search-form :deep(.el-input), .doc-search-form :deep(.el-select) { width: 100%; }

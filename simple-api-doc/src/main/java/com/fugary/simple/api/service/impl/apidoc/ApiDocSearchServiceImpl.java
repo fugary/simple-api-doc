@@ -43,6 +43,20 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
         if (StringUtils.isNotBlank(query.getUrl()) || query.getMethod() != null) {
             wrapper.eq("doc_type", ApiDocConstants.DOC_TYPE_API);
         }
+        String keyword = StringUtils.trimToEmpty(query.getKeyword());
+        if (!keyword.isEmpty()) {
+            wrapper.and(w -> {
+                contains(w, "doc_name", keyword);
+                w.or(u -> contains(u, "url", keyword));
+                w.or(c -> c.nested(md -> {
+                    md.eq("doc_type", ApiDocConstants.DOC_TYPE_MD);
+                    contains(md, "doc_content", keyword);
+                }).or(api -> {
+                    api.eq("doc_type", ApiDocConstants.DOC_TYPE_API);
+                    contains(api, "description", keyword);
+                }));
+            });
+        }
         String content = StringUtils.trimToEmpty(query.getContent());
         if (!content.isEmpty()) {
             wrapper.and(body -> body.nested(md -> {
@@ -78,7 +92,8 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
         Map<Integer, String> folderPaths = apiFolderService.calcFolderNameMap(apiFolderService.list(Wrappers.<ApiFolder>query()
                 .select("id", "parent_id", "folder_name", "folder_code").in("project_id", projectIds)));
         // 正文仅为当前结果页加载，且仅返回有限长度的摘要。
-        Map<Integer, ApiDoc> bodies = content.isEmpty() ? Collections.emptyMap()
+        String snippetKeyword = !content.isEmpty() ? content : keyword;
+        Map<Integer, ApiDoc> bodies = snippetKeyword.isEmpty() ? Collections.emptyMap()
                 : apiDocService.list(Wrappers.<ApiDoc>query().select("id",
                         "CASE WHEN doc_type = 'md' THEN doc_content ELSE description END AS description")
                         .in("id", docs.getRecords().stream().map(ApiDoc::getId).collect(Collectors.toList())))
@@ -93,7 +108,7 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
             item.setFolderPath(folderPaths.getOrDefault(doc.getFolderId(), ""));
             ApiDoc body = bodies.get(doc.getId());
             if (body != null) {
-                item.setSnippet(snippet(body.getDescription(), content));
+                item.setSnippet(snippet(body.getDescription(), snippetKeyword));
             }
             return item;
         }).collect(Collectors.toList()));

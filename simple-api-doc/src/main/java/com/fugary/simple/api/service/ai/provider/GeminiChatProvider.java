@@ -2,6 +2,7 @@ package com.fugary.simple.api.service.ai.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fugary.simple.api.entity.api.AiConfig;
+import com.fugary.simple.api.service.ai.agent.tool.AiToolDefinition;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,6 +21,11 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
     @Override
     public String getProviderCode() {
         return "GEMINI";
+    }
+
+    @Override
+    public AiChatResponse chatWithTools(AiConfig config, List<Map<String, Object>> messages, List<AiToolDefinition> tools, String toolChoice) {
+        throw new UnsupportedOperationException("Gemini 原生协议暂未支持工具调用，请在 AI 配置中将提供商选为 OPENAI（兼容模式）使用 Gemini");
     }
 
     @Override
@@ -45,8 +51,8 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
             requestBody.put("generationConfig", generationConfig);
         }
 
-        String url = config.getBaseUrl().replaceAll("/+$", "") + "/models/" + config.getDefaultModel()
-                + ":generateContent?key=" + config.getApiKey();
+        String url = buildUrl(config.getBaseUrl(), "/models/" + config.getDefaultModel()
+                + ":generateContent?key=" + config.getApiKey());
         String rawResponse = callApi(url, headers, requestBody);
         JsonNode root = parseJson(rawResponse);
         JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
@@ -67,7 +73,7 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
 
     @Override
     public List<String> loadModels(AiConfig config) {
-        String url = config.getBaseUrl().replaceAll("/+$", "") + "/models?key=" + config.getApiKey();
+        String url = buildUrl(config.getBaseUrl(), "/models?key=" + config.getApiKey());
         String rawResponse = callApiGet(url, new HttpHeaders());
         JsonNode root = parseJson(rawResponse);
         JsonNode modelsNode = root.path("models");

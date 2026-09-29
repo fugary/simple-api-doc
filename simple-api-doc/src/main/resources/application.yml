@@ -7,6 +7,9 @@ server:
 spring:
   application:
     name: simple-api-doc
+  mvc:
+    async:
+      request-timeout: 180000
   messages:
     basename: messages
     encoding: UTF-8

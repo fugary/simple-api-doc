@@ -42,7 +42,7 @@ public class AnthropicChatProvider extends AbstractAiChatProvider {
             requestBody.put("temperature", request.getTemperature());
         }
 
-        String url = config.getBaseUrl().replaceAll("/+$", "") + "/messages";
+        String url = buildUrl(config.getBaseUrl(), "/messages");
         String rawResponse = callApi(url, headers, requestBody);
         JsonNode root = parseJson(rawResponse);
 
@@ -79,7 +79,7 @@ public class AnthropicChatProvider extends AbstractAiChatProvider {
         HttpHeaders headers = new HttpHeaders();
         headers.add("x-api-key", config.getApiKey());
         headers.add("anthropic-version", ANTHROPIC_VERSION);
-        String url = config.getBaseUrl().replaceAll("/+$", "") + "/models";
+        String url = buildUrl(config.getBaseUrl(), "/models");
         String rawResponse = callApiGet(url, headers);
         return extractModelIdsFromData(rawResponse);
     }

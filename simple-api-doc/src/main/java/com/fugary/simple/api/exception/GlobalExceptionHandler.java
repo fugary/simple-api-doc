@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 /**
  * Created by gary.fu on 2024/8/20.
@@ -18,6 +19,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Component
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	@ResponseBody
+	@ExceptionHandler({AsyncRequestTimeoutException.class})
+	public <T> SimpleResult<T> handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e) {
+		log.warn("异步请求超时: {}", e.getMessage());
+		return SimpleResultUtils.createError(SystemErrorConstants.CODE_500, "请求处理超时");
+	}
 
 	@ResponseBody
 	@ExceptionHandler({Exception.class})

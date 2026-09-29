@@ -11,6 +11,8 @@ public class ApiDocSearchQueryVo extends SimpleQueryVo {
     @Min(1)
     private Integer projectId;
     @Size(max = 200)
+    private String keyword;
+    @Size(max = 200)
     private String docName;
     @Size(max = 1000)
     private String url;
