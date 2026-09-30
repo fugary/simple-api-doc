@@ -44,7 +44,7 @@ public class SearchDocsAgentTool implements AgentTool {
 
         Map<String, Object> keywordsProp = new LinkedHashMap<>();
         keywordsProp.put("type", "string");
-        keywordsProp.put("description", "搜索关键词，支持包含业务术语或同义词，如：'退款 refund'");
+        keywordsProp.put("description", "按字面包含匹配的关键词或路径，不自动翻译、扩展同义词或删除尾缀。空格分隔的多个词按 OR 匹配，命中任意一个即可；请根据用户意图选择少量含义一致的替代表达，明确路径请保留原文。");
         properties.put("keywords", keywordsProp);
 
         Map<String, Object> methodProp = new LinkedHashMap<>();
@@ -90,7 +90,7 @@ public class SearchDocsAgentTool implements AgentTool {
             Page<ApiDocSearchResultVo> searchResult = apiDocSearchService.search(query, context.getShare());
             List<ApiDocSearchResultVo> records = searchResult.getRecords();
             if (records == null || records.isEmpty()) {
-                return "未检索到与 '" + keywords + "' 相关的接口或文档。请尝试提取更精简的关键词或相关同义词重新检索。";
+                return "本次查询未检索到与 '" + keywords + "' 匹配的接口或文档。";
             }
 
             List<CompactSearchDocDto> compactList = records.stream().map(doc -> {
@@ -110,7 +110,7 @@ public class SearchDocsAgentTool implements AgentTool {
                         .folderPath(doc.getFolderPath())
                         .build();
             }).collect(Collectors.toList());
-
+            compactList.forEach(doc -> context.getDiscoveredDocIds().add(doc.getDocId()));
             return JsonUtils.toJson(compactList);
         } catch (Exception e) {
             log.error("SearchDocsAgentTool execute error, args: {}", argumentsJson, e);

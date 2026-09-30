@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref, toRef, watch } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import { ElMessage } from 'element-plus'
@@ -8,34 +8,81 @@ import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { streamAgentChat } from '@/api/AiAgentApi'
 import { $copyText } from '@/utils'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
-
-import { useDocSearchStore } from '@/stores/DocSearchStore'
+import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
+import { useDocProjectSelector } from '@/services/api/ApiDocSearchService'
+import { defineFormOptions } from '@/components/utils'
 
 const props = defineProps({
   project: { type: Object, default: undefined },
-  sessionKey: { type: String, default: '' },
+  aiState: { type: Object, required: true },
+  aiConfigs: { type: Array, default: () => [] },
+  defaultConfigId: { type: [Number, String], default: null },
   onSelectDoc: { type: Function, default: undefined }
 })
 
 const emit = defineEmits(['switch-to-search'])
 
 const globalConfigStore = useGlobalConfigStore()
-const searchStore = useDocSearchStore()
 const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'default')
 
-const localAiState = ref({
-  queryInput: '',
-  toolSteps: [],
-  relatedDocs: [],
-  answerContent: '',
-  isStepsExpanded: true
-})
+const activeAiState = computed(() => props.aiState)
 
-const activeAiState = computed(() => {
-  if (props.sessionKey && searchStore.sessions[props.sessionKey]?.aiState) {
-    return searchStore.sessions[props.sessionKey].aiState
+const formData = props.aiState
+if (!props.aiConfigs.some(config => config.id === formData.configId)) {
+  formData.configId = props.defaultConfigId || props.aiConfigs[0]?.id || null
+  formData.model = ''
+}
+formData.projectId ||= props.project?.id || null
+
+const {
+  syncModelFromConfig,
+  buildModelFormOption
+} = useAiModelSelector(formData, computed(() => props.aiConfigs))
+
+if (formData.configId) {
+  syncModelFromConfig(formData.configId)
+}
+
+const configOptions = computed(() => buildAiConfigOptions(props.aiConfigs, props.defaultConfigId))
+formData.projectOptions ||= []
+const projects = toRef(formData, 'projectOptions')
+const { loadProjects, projectSelectAttrs } = useDocProjectSelector(() => formData.projectId, projects)
+if (!props.project) {
+  watch(projects, list => {
+    if (!formData.projectId && list.length) formData.projectId = list[0].id
+  })
+  loadProjects()
+}
+
+const configFormOptions = computed(() => {
+  const options = []
+  if (!props.project) {
+    options.push({
+      labelKey: 'api.label.project',
+      prop: 'projectId',
+      type: 'select',
+      children: projects.value.map(p => ({ label: p.projectName, value: p.id })),
+      attrs: {
+        ...projectSelectAttrs.value,
+        placeholder: $i18nBundle('api.msg.selectProjectFirst')
+      }
+    })
   }
-  return localAiState.value
+  if (props.aiConfigs.length > 0) {
+    options.push({
+      labelKey: 'api.label.aiConfigSelect',
+      prop: 'configId',
+      type: 'select',
+      children: configOptions.value,
+      attrs: {
+        clearable: false
+      }
+    })
+  }
+  if (formData.configId) {
+    options.push(buildModelFormOption())
+  }
+  return defineFormOptions(options)
 })
 
 const queryInput = computed({
@@ -88,9 +135,16 @@ const updateLastStepStatus = (status) => {
 }
 
 const runChat = async () => {
+  if (loading.value) return
   const query = queryInput.value.trim()
   if (!query) {
     ElMessage.warning($i18nBundle('api.msg.aiQueryEmpty'))
+    return
+  }
+
+  const targetProjectId = props.project?.id || formData.projectId
+  if (!targetProjectId) {
+    ElMessage.warning($i18nBundle('api.msg.selectProjectFirst'))
     return
   }
 
@@ -108,23 +162,30 @@ const runChat = async () => {
   answerContent.value = ''
   isStepsExpanded.value = true
 
-  abortController = new AbortController()
+  const controller = new AbortController()
+  abortController = controller
+  const isCurrentRequest = () => abortController === controller && !controller.signal.aborted
+  const onCurrentRequest = callback => data => {
+    if (isCurrentRequest()) callback(data)
+  }
 
   try {
     await streamAgentChat(
       {
         query,
-        projectId: props.project?.id
+        projectId: targetProjectId,
+        configId: formData.configId || undefined,
+        model: formData.model?.trim() || undefined
       },
       {
-        onStatus: (data) => {
+        onStatus: onCurrentRequest((data) => {
           if (toolSteps.value.length > 0 && toolSteps.value[0].tool === 'reasoning') {
             const steps = [...toolSteps.value]
             steps[0] = { ...steps[0], summary: data?.message || data?.text || '' }
             toolSteps.value = steps
           }
-        },
-        onToolStart: (data) => {
+        }),
+        onToolStart: onCurrentRequest((data) => {
           finishReasoningStep()
           const step = {
             tool: data.tool,
@@ -133,57 +194,59 @@ const runChat = async () => {
             status: 'running'
           }
           toolSteps.value = [...toolSteps.value, step]
-        },
-        onToolEnd: (data) => {
+        }),
+        onToolEnd: onCurrentRequest((data) => {
           const steps = [...toolSteps.value]
           const last = steps[steps.length - 1]
           if (last) {
             steps[steps.length - 1] = { ...last, status: 'finished', summary: data.summary }
             toolSteps.value = steps
           }
-        },
-        onRelatedDocs: (docs) => {
+        }),
+        onRelatedDocs: onCurrentRequest((docs) => {
           if (Array.isArray(docs)) {
             relatedDocs.value = docs
           }
-        },
-        onDelta: (data) => {
+        }),
+        onDelta: onCurrentRequest((data) => {
           finishReasoningStep()
           if (data?.text !== undefined) {
             answerContent.value = data.text
           }
-        },
-        onFinish: () => {
-          loading.value = false
+        }),
+        onFinish: onCurrentRequest(() => {
           finishReasoningStep()
-        },
-        onError: (err) => {
+        }),
+        onError: onCurrentRequest((err) => {
           errorMessage.value = err?.message || $i18nBundle('api.msg.aiResponseError')
-          loading.value = false
           updateLastStepStatus('error')
-        }
+        })
       },
-      abortController.signal
+      controller.signal
     )
   } catch (err) {
-    if (err.name !== 'AbortError') {
+    if (isCurrentRequest() && err.name !== 'AbortError') {
       errorMessage.value = err.message || $i18nBundle('common.msg.networkError')
       updateLastStepStatus('error')
     }
   } finally {
-    loading.value = false
-    abortController = null
+    if (abortController === controller) {
+      loading.value = false
+      abortController = null
+    }
   }
 }
 
 const stopChat = () => {
   if (abortController) {
-    abortController.abort()
+    const controller = abortController
     abortController = null
+    controller.abort()
     loading.value = false
     updateLastStepStatus('finished')
   }
 }
+onUnmounted(stopChat)
 
 const clearAll = () => {
   stopChat()
@@ -215,9 +278,8 @@ const handlePreviewClick = (event) => {
     if (href && href.startsWith('doc://')) {
       event.preventDefault()
       const docId = Number(href.replace('doc://', ''))
-      if (docId > 0) {
-        handleOpenDoc({ id: docId })
-      }
+      const doc = relatedDocs.value.find(item => item.id === docId)
+      if (doc) handleOpenDoc(doc)
     }
   }
 }
@@ -231,6 +293,26 @@ const switchToManualSearch = () => {
   <div class="api-ai-panel">
     <!-- 顶部输入与提问区 -->
     <div class="ai-input-card">
+      <div class="ai-config-bar">
+        <div
+          v-if="props.project"
+          class="ai-project-badge"
+        >
+          <span class="ai-scope-tag">
+            <common-icon icon="Folder" />
+            <span class="project-name">{{ props.project.projectName }}</span>
+          </span>
+        </div>
+        <common-form
+          class="ai-config-form"
+          :model="formData"
+          :options="configFormOptions"
+          label-width="auto"
+          inline
+          :show-buttons="false"
+        />
+      </div>
+
       <el-input
         v-model="queryInput"
         type="textarea"
@@ -241,15 +323,6 @@ const switchToManualSearch = () => {
         @keydown.enter.exact.prevent="runChat"
       />
       <div class="ai-input-actions">
-        <div class="ai-input-tips">
-          <span
-            v-if="props.project"
-            class="ai-scope-tag"
-          >
-            <common-icon icon="Folder" />
-            <span class="project-name">{{ props.project.projectName }}</span>
-          </span>
-        </div>
         <div class="ai-btn-group">
           <el-button
             v-if="loading"
@@ -498,9 +571,28 @@ const switchToManualSearch = () => {
   border-radius: 8px;
   padding: 12px;
 }
+.ai-config-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.ai-project-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 16px;
+  margin-bottom: 14px;
+}
+.ai-config-form :deep(.el-form-item) {
+  margin-bottom: 14px;
+  margin-right: 16px;
+}
+.ai-config-form :deep(.el-select) {
+  min-width: 180px;
+}
 .ai-input-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-top: 8px;
 }

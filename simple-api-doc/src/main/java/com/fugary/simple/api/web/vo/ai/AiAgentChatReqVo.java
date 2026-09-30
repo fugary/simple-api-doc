@@ -18,5 +18,7 @@ public class AiAgentChatReqVo {
 
     private Integer configId;
 
+    private String model;
+
     private String shareId;
 }

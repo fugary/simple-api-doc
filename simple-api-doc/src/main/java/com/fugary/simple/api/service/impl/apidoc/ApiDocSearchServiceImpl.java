@@ -44,28 +44,13 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
             wrapper.eq("doc_type", ApiDocConstants.DOC_TYPE_API);
         }
         String keyword = StringUtils.trimToEmpty(query.getKeyword());
-        if (!keyword.isEmpty()) {
-            wrapper.and(w -> {
-                contains(w, "doc_name", keyword);
-                w.or(u -> contains(u, "url", keyword));
-                w.or(c -> c.nested(md -> {
-                    md.eq("doc_type", ApiDocConstants.DOC_TYPE_MD);
-                    contains(md, "doc_content", keyword);
-                }).or(api -> {
-                    api.eq("doc_type", ApiDocConstants.DOC_TYPE_API);
-                    contains(api, "description", keyword);
-                }));
-            });
+        List<String> tokens = extractKeywordTokens(keyword);
+        if (!tokens.isEmpty()) {
+            wrapper.and(w -> tokens.forEach(token -> w.or(sub -> buildSingleKeywordCondition(sub, token))));
         }
         String content = StringUtils.trimToEmpty(query.getContent());
         if (!content.isEmpty()) {
-            wrapper.and(body -> body.nested(md -> {
-                md.eq("doc_type", ApiDocConstants.DOC_TYPE_MD);
-                contains(md, "doc_content", content);
-            }).or(api -> {
-                api.eq("doc_type", ApiDocConstants.DOC_TYPE_API);
-                contains(api, "description", content);
-            }));
+            wrapper.and(body -> containsDocContent(body, content));
         }
         if (share != null) {
             Set<Integer> docIds = SimpleModelUtils.getShareDocIds(share.getShareDocs());
@@ -92,8 +77,8 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
         Map<Integer, String> folderPaths = apiFolderService.calcFolderNameMap(apiFolderService.list(Wrappers.<ApiFolder>query()
                 .select("id", "parent_id", "folder_name", "folder_code").in("project_id", projectIds)));
         // 正文仅为当前结果页加载，且仅返回有限长度的摘要。
-        String snippetKeyword = !content.isEmpty() ? content : keyword;
-        Map<Integer, ApiDoc> bodies = snippetKeyword.isEmpty() ? Collections.emptyMap()
+        List<String> snippetTokens = !content.isEmpty() ? List.of(content) : tokens;
+        Map<Integer, ApiDoc> bodies = snippetTokens.isEmpty() ? Collections.emptyMap()
                 : apiDocService.list(Wrappers.<ApiDoc>query().select("id",
                         "CASE WHEN doc_type = 'md' THEN doc_content ELSE description END AS description")
                         .in("id", docs.getRecords().stream().map(ApiDoc::getId).collect(Collectors.toList())))
@@ -108,7 +93,7 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
             item.setFolderPath(folderPaths.getOrDefault(doc.getFolderId(), ""));
             ApiDoc body = bodies.get(doc.getId());
             if (body != null) {
-                item.setSnippet(snippet(body.getDescription(), snippetKeyword));
+                item.setSnippet(snippet(body.getDescription(), snippetTokens));
             }
             return item;
         }).collect(Collectors.toList()));
@@ -138,6 +123,22 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
                 input == null ? 20 : Math.max(1, Math.min(50, input.getPageSize())));
     }
 
+    private void buildSingleKeywordCondition(QueryWrapper<ApiDoc> qw, String token) {
+        contains(qw, "doc_name", token);
+        qw.or(u -> contains(u, "url", token));
+        qw.or(c -> containsDocContent(c, token));
+    }
+
+    private void containsDocContent(QueryWrapper<ApiDoc> wrapper, String keyword) {
+        wrapper.nested(md -> {
+            md.eq("doc_type", ApiDocConstants.DOC_TYPE_MD);
+            contains(md, "doc_content", keyword);
+        }).or(api -> {
+            api.eq("doc_type", ApiDocConstants.DOC_TYPE_API);
+            contains(api, "description", keyword);
+        });
+    }
+
     private <T> void contains(QueryWrapper<T> wrapper, String column, String value) {
         if (StringUtils.isNotBlank(value)) {
             // 参数绑定且按字面包含匹配，百分号和下划线不作为 SQL 通配符。
@@ -145,11 +146,25 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
         }
     }
 
-    static String snippet(String text, String keyword) {
+    private static List<String> extractKeywordTokens(String keyword) {
+        // 仅按空白分词并去重，业务语义和搜索词选择交由调用方判断。
+        return Arrays.stream(StringUtils.split(StringUtils.trimToEmpty(keyword)))
+                .distinct().collect(Collectors.toList());
+    }
+
+    private static String snippet(String text, List<String> tokens) {
         if (StringUtils.isEmpty(text)) return "";
-        int match = StringUtils.indexOfIgnoreCase(text, keyword);
+        int match = -1;
+        int kwLen = 0;
+        for (String token : tokens) {
+            int idx = StringUtils.indexOfIgnoreCase(text, token);
+            if (idx >= 0 && (match < 0 || idx < match)) {
+                match = idx;
+                kwLen = token.length();
+            }
+        }
         int start = Math.max(0, match - 60);
-        int end = Math.min(text.length(), Math.max(start + 240, match + keyword.length()));
+        int end = Math.min(text.length(), Math.max(start + 240, match + kwLen));
         return (start > 0 ? "…" : "") + text.substring(start, end).replaceAll("\\s+", " ")
                 + (end < text.length() ? "…" : "");
     }

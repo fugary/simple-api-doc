@@ -46,26 +46,27 @@ import java.util.stream.Collectors;
 @Service
 public class AiAgentServiceImpl implements AiAgentService {
 
-    private static final int MAX_ITERATIONS = 6;
+    private static final int MAX_ITERATIONS = 8;
     private static final Pattern DOC_LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(doc://(\\d+)\\)");
-    private static final Pattern MARKDOWN_HEADING_PATTERN = Pattern.compile("^#{1,4}\\s+(\\d+\\.|[一二三四五六七八九十]+[、.]|[\\u4e00-\\u9fa5]|Overview|Parameters|Response|Request).*");
+    private static final Pattern MARKDOWN_FENCE_PATTERN = Pattern.compile("^ {0,3}(`{3,}|~{3,})(.*)$");
 
     private static final String SYSTEM_PROMPT =
             "你是一个专业、严谨的 API 架构师与接口文档助理。你的任务是根据当前系统中的真实文档，解答开发者提出的业务调用与接口集成问题。\n\n" +
             "【可用工具】\n" +
-            "1. search_docs: 根据关键词或路径搜索相关接口。用户提问时，请先思考同义词或对应英文（如：'退钱' -> '退款 refund cancel'）后再搜索。\n" +
+            "1. search_docs: 根据关键词或路径按字面包含匹配文档，不会自动扩展同义词或删改尾缀；空格分隔的多个词按 OR 匹配。\n" +
             "2. get_doc: 阅读指定接口的详细参数、入参模型与说明。当需要梳理调用步骤或说明必填项时使用。\n\n" +
-            "【行为规范与红线】\n" +
-            "1. 真实性第一（禁止臆造）：你推荐的接口必须真实来源于工具调用结果。如果未检索到匹配接口，必须明确告知用户“当前项目中未找到相关接口”，严禁自行编造不存在的 URL 或参数。\n" +
-            "2. 引用规范：正文中提及某个具体接口时，必须且只能使用规范链接格式：`[HTTP_METHOD URL](doc://{docId})`，例如：`[POST /api/v1/refund](doc://102)`。如果找不到该接口的真实 ID，请不要加 doc:// 链接。\n" +
-            "3. 快速收敛与响应效率：\n" +
-            "   - 一旦通过 search_docs 或 get_doc 获取到能解答用户核心问题的接口或说明文档，请立即总结输出方案，严禁继续发散搜索次要次级关键词；\n" +
-            "   - 若连续搜索未找到结果，不要连续发起多次同义词盲搜；直接根据已有信息作答或告知用户未找到对应接口；\n" +
-            "   - 尽量在 1~2 轮工具调用内完成问答，减少无谓等待。\n" +
-            "4. 结构化表达与 Markdown 排版规范（至关重要）：\n" +
+            "【行为规范与核心指引】\n" +
+            "1. 真实性第一：推荐的接口、URL 与参数必须来源于工具结果；检索无匹配时说明本次未找到，不得推断整个项目不存在该能力，也不得编造接口。\n" +
+            "2. 引用规范：具体接口使用 `[HTTP_METHOD URL](doc://{docId})`，说明文档使用 `[文档名称](doc://{docId})`；ID 必须来自工具结果。\n" +
+            "3. 根据用户问题与已有证据决定检索策略：\n" +
+            "   - 优先使用用户给出的明确名称或路径，保留路径原文；自然语言问题自行提炼有区分度的核心词。\n" +
+            "   - 根据上下文判断同义词、英文名称或拼写变体，避免将不同含义混为一谈；必要时用少量同义表达扩大召回，不要将多个独立条件拆为 OR 搜索而丢失约束。\n" +
+            "   - 结果不足时，依据已有信息调整查询或查阅相关详情；证据已足够回答时直接作答，避免无依据地反复扩展和重复查询。\n" +
+            "   - 自行判断哪些文档需要读取详情。候选命中不等于相关或完整，按问题筛选并说明证据不足或结果范围，不能把有限候选当作全量清单。\n" +
+            "4. 结构化表达与 Markdown 排版规范：\n" +
             "   - 结构清晰层次分明：使用标准 Markdown 分级标题（### 1. 接口概述、### 2. 请求说明、### 3. 返回关键字段等）组织内容；\n" +
             "   - 代码块必须严格闭合：HTTP 请求头如使用 ```http 代码块展示，必须紧接着在末尾用 ``` 闭合，切勿将后续的正文说明、章节标题或参数列表包裹在未闭合的代码块内；请求体与响应体示例必须使用独立的 ```json ... ``` 闭合代码块；\n" +
-            "   - 参数说明规范：使用列表（如 `- **fieldName** (类型, 必填/可选): 说明`）或 Markdown 表格清晰展示，标注出核心必填入参和返回值中的关键串联字段；\n" +
+            "   - 参数说明规范：使用列表（如 `- **fieldName** (类型, 必填/可选): 说明`）或 Markdown 表格清晰展示核心字段；\n" +
             "   - 语言简练，直奔主题，避免客套。";
 
     @Autowired
@@ -109,6 +110,10 @@ public class AiAgentServiceImpl implements AiAgentService {
 
             // 2. 解析 AI 配置与 Provider
             AiConfig config = resolveAiConfig(req.getConfigId());
+            if (StringUtils.isNotBlank(req.getModel())) {
+                config = SimpleModelUtils.copy(config, AiConfig.class);
+                config.setDefaultModel(req.getModel().trim());
+            }
             AiChatProvider provider = getChatProvider(config.getProvider());
 
             // 3. 初始化上下文与权限
@@ -116,8 +121,6 @@ public class AiAgentServiceImpl implements AiAgentService {
             AgentContext context = AgentContext.builder()
                     .user(user)
                     .defaultProjectId(project.getId())
-                    .verifiedDocIds(new LinkedHashSet<>())
-                    .inspectedDocIds(new LinkedHashSet<>())
                     .build();
 
             // 4. 准备工具与历史会话
@@ -230,13 +233,27 @@ public class AiAgentServiceImpl implements AiAgentService {
                 return;
             }
 
-            if (StringUtils.isBlank(finalContent)) {
-                finalContent = "未能检索到与当前问题直接匹配的接口或业务文档。建议您检查当前项目是否包含该模块，或使用高级搜索尝试不同的关键词。";
+            boolean hasDocs = !context.getDiscoveredDocIds().isEmpty() || !context.getInspectedDocIds().isEmpty();
+
+            if (StringUtils.isBlank(finalContent) && hasDocs) {
+                try {
+                    AiChatResponse summaryRes = provider.chatWithTools(config, messages, toolDefinitions, "none");
+                    if (summaryRes != null && StringUtils.isNotBlank(summaryRes.getContent())) {
+                        finalContent = summaryRes.getContent();
+                    }
+                } catch (Exception e) {
+                    log.warn("生成最终总结失败", e);
+                }
             }
+
+            if (clientDisconnected.get()) return;
 
             // 6. Grounding 校验与关联接口卡片组装，并自动修复 Markdown 代码块格式
             String cleanedContent = sanitizeMarkdownContent(processGroundingAndCleanLinks(finalContent, context));
             List<ApiDocSearchResultVo> relatedDocs = buildRelatedDocs(cleanedContent, context);
+            if (StringUtils.isBlank(cleanedContent)) {
+                cleanedContent = buildFallbackContent(relatedDocs);
+            }
 
             // 7. 推送最终结果事件
             if (!sendSseEvent(emitter, "related_docs", relatedDocs)) return;
@@ -254,6 +271,23 @@ public class AiAgentServiceImpl implements AiAgentService {
                 } catch (Exception ignore) {}
             }
         }
+    }
+
+    private String buildFallbackContent(List<ApiDocSearchResultVo> docs) {
+        if (docs.isEmpty()) {
+            return "未能检索到与当前问题直接匹配的接口或业务文档。建议您检查当前项目是否包含该模块，或使用高级搜索尝试不同的关键词。";
+        }
+        StringBuilder content = new StringBuilder("AI 暂未生成完整回答，以下是本次检索或查阅到的候选文档，可点击查看：\n\n");
+        for (ApiDocSearchResultVo doc : docs) {
+            String label = ApiDocConstants.DOC_TYPE_API.equals(doc.getDocType())
+                    ? StringUtils.defaultString(doc.getMethod()) + " " + StringUtils.defaultString(doc.getUrl())
+                    : StringUtils.defaultString(doc.getDocName());
+            // 标签按普通文本处理，避免文档名称或 URL 中的 Markdown 符号破坏链接。
+            label = label.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+                    .replaceAll("\\s+", " ").trim();
+            content.append("- [").append(label).append("](doc://").append(doc.getId()).append(")\n");
+        }
+        return content.toString();
     }
 
     private boolean sendSseEvent(SseEmitter emitter, String eventName, Object data) {
@@ -280,10 +314,8 @@ public class AiAgentServiceImpl implements AiAgentService {
         Matcher matcher = DOC_LINK_PATTERN.matcher(content);
         StringBuffer sb = new StringBuffer();
         while (matcher.find()) {
-            String label = matcher.group(1);
             int docId = Integer.parseInt(matcher.group(2));
             if (isDocIdValidAndAccessible(docId, context)) {
-                context.getVerifiedDocIds().add(docId);
                 matcher.appendReplacement(sb, "[$1](doc://$2)");
             } else {
                 // 剔除无效链接，降级为普通文本标签
@@ -313,12 +345,12 @@ public class AiAgentServiceImpl implements AiAgentService {
             targetDocIds.add(Integer.parseInt(matcher.group(2)));
         }
 
-        // 2. 仅当正文未显式格式化任何 doc:// 链接时（防模型输出偏差），才回退使用已深度查阅的接口（最多 4 个）
-        if (targetDocIds.isEmpty() && context.getInspectedDocIds() != null) {
-            for (Integer id : context.getInspectedDocIds()) {
-                if (targetDocIds.size() >= 4) {
-                    break;
-                }
+        // 2. 仅当正文未显式格式化任何 doc:// 链接时（防模型输出偏差），才回退使用已查阅或已检索的接口（最多 6 个）
+        if (targetDocIds.isEmpty()) {
+            Set<Integer> candidates = new LinkedHashSet<>(context.getInspectedDocIds());
+            candidates.addAll(context.getDiscoveredDocIds());
+            for (Integer id : candidates) {
+                if (targetDocIds.size() >= 6) break;
                 if (isDocIdValidAndAccessible(id, context)) {
                     targetDocIds.add(id);
                 }
@@ -392,54 +424,27 @@ public class AiAgentServiceImpl implements AiAgentService {
     }
 
     /**
-     * 自动修复未闭合的代码块并阻断代码块吞噬 Markdown 标题等结构元素
+     * 仅在末尾补齐未闭合代码围栏，不根据正文含义猜测代码块的结束位置。
      */
     protected String sanitizeMarkdownContent(String content) {
         if (StringUtils.isBlank(content)) {
             return "";
         }
-        String[] lines = content.split("\r?\n", -1);
-        StringBuilder sb = new StringBuilder();
-        boolean inCodeBlock = false;
-        String currentLang = "";
-
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            String trimmed = line.trim();
-            if (trimmed.startsWith("```")) {
-                inCodeBlock = !inCodeBlock;
-                currentLang = inCodeBlock ? trimmed.substring(3).trim().toLowerCase() : "";
-                sb.append(line);
-            } else {
-                if (inCodeBlock) {
-                    boolean isLikelyHeading = false;
-                    if (trimmed.startsWith("# ") || trimmed.startsWith("## ") || trimmed.startsWith("### ") || trimmed.startsWith("#### ")) {
-                        // 在 http/json/xml 等典型 API 报文代码块中，任何 # 标题均不可能是合法代码，100% 为模型漏闭合导致的吞噬
-                        if (currentLang.contains("http") || currentLang.contains("json") || currentLang.contains("xml") || currentLang.isEmpty()) {
-                            isLikelyHeading = true;
-                        } else if (MARKDOWN_HEADING_PATTERN.matcher(trimmed).matches()) {
-                            isLikelyHeading = true;
-                        }
-                    }
-                    if (isLikelyHeading) {
-                        while (sb.length() > 0 && (sb.charAt(sb.length() - 1) == '\n' || sb.charAt(sb.length() - 1) == '\r')) {
-                            sb.deleteCharAt(sb.length() - 1);
-                        }
-                        sb.append("\n```\n\n");
-                        inCodeBlock = false;
-                        currentLang = "";
-                    }
+        String openFence = null;
+        for (String line : content.split("\r?\n", -1)) {
+            Matcher matcher = MARKDOWN_FENCE_PATTERN.matcher(line);
+            if (!matcher.matches()) continue;
+            String fence = matcher.group(1);
+            String suffix = matcher.group(2);
+            if (openFence == null) {
+                if (fence.charAt(0) != '`' || !suffix.contains("`")) {
+                    openFence = fence;
                 }
-                sb.append(line);
-            }
-            if (i < lines.length - 1) {
-                sb.append("\n");
+            } else if (fence.charAt(0) == openFence.charAt(0)
+                    && fence.length() >= openFence.length() && suffix.trim().isEmpty()) {
+                openFence = null;
             }
         }
-        // 如果末尾仍处于未闭合状态，自动补齐闭合标记
-        if (inCodeBlock) {
-            sb.append("\n```");
-        }
-        return sb.toString();
+        return openFence == null ? content : content + "\n" + openFence;
     }
 }

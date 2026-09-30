@@ -212,4 +212,56 @@ class ApiDocSearchServiceImplTest {
         root.setParentId(1);
         assertThat(service.search(query, null).getRecords().get(0).getFolderPath()).isEqualTo("根目录/订单接口");
     }
+
+    @Test
+    void searchWithMultiKeywordsSplitByWhitespace() {
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setKeyword("指南 orders");
+        assertThat(service.search(query, null).getRecords())
+                .extracting(ApiDocSearchResultVo::getId)
+                .containsExactly(3, 2, 1);
+    }
+
+    @Test
+    void keywordSearchDoesNotInferSynonymsOrStripSuffixes() {
+        addDoc(8, 10, "用户登陆", "api", "/session", "POST", 1, null, null, "认证");
+        addDoc(9, 10, "用户登录接口", "api", "/loginapi", "POST", 1, null, null, "认证");
+        addDoc(10, 10, "退出登录", "api", "/logout", "POST", 1, null, null, "认证");
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setKeyword("登录接口");
+        assertThat(service.search(query, null).getRecords()).extracting(ApiDocSearchResultVo::getId)
+                .containsExactly(9);
+        query.setKeyword("注销");
+        assertThat(service.search(query, null).getRecords()).isEmpty();
+        query.setKeyword("/logoutapi");
+        assertThat(service.search(query, null).getRecords()).isEmpty();
+        query.setKeyword("  登陆\t/loginapi\n登陆  ");
+        assertThat(service.search(query, null).getRecords()).extracting(ApiDocSearchResultVo::getId)
+                .containsExactly(9, 8);
+    }
+
+    @Test
+    void explicitKeywordsRespectProjectAndShareFilters() {
+        addDoc(8, 10, "用户登陆", "api", "/session", "POST", 1, null, null, "认证");
+        addDoc(9, 30, "私有登录", "api", "/login", "POST", 1, null, null, "认证");
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setKeyword("登陆 login");
+        query.setProjectId(10);
+        query.setMethod("POST");
+        assertThat(service.search(query, null).getRecords()).extracting(ApiDocSearchResultVo::getId)
+                .containsExactly(8);
+        ApiProjectShare share = new ApiProjectShare();
+        share.setProjectId(10);
+        share.setShareDocs("[2]");
+        assertThat(service.search(query, share).getRecords()).isEmpty();
+    }
+
+    @Test
+    void contentSnippetKeepsTheLiteralPhraseInsteadOfAnEarlierSynonym() {
+        addDoc(8, 10, "认证说明", "md", null, null, 1, null,
+                "login " + "前言 ".repeat(100) + "登录接口说明", null);
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setContent("登录接口说明");
+        assertThat(service.search(query, null).getRecords().get(0).getSnippet()).contains("登录接口说明");
+    }
 }

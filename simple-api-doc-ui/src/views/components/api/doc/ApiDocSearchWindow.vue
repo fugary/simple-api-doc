@@ -1,10 +1,11 @@
 <script setup>
-import { computed, h, onUnmounted, ref, watch } from 'vue'
+import { computed, h, onUnmounted, ref, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { debounce, isEqual } from 'lodash-es'
+import { isEqual } from 'lodash-es'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
-import { searchDocs, searchDocProjects } from '@/api/ApiDocSearchApi'
+import { searchDocs } from '@/api/ApiDocSearchApi'
+import { useDocProjectSelector } from '@/services/api/ApiDocSearchService'
 import { useDocSearchStore } from '@/stores/DocSearchStore'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { useSearchStatus } from '@/consts/GlobalConstants'
@@ -13,6 +14,7 @@ import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import HighlightedText from '@/views/components/utils/HighlightedText.vue'
 import ApiDocAiChatPanel from '@/views/components/api/doc/comp/ApiDocAiChatPanel.vue'
+import { getAiStatus } from '@/api/AiCacheApi'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
 
@@ -24,7 +26,25 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const showWindow = ref(true)
-const canUseAi = computed(() => !!props.project && !props.shareId)
+
+const aiConfigs = ref([])
+const defaultAiConfigId = ref(null)
+const aiEnabled = ref(false)
+
+if (!props.shareId) {
+  getAiStatus().then(res => {
+    if (res && res.success) {
+      const data = res.resultData || {}
+      aiEnabled.value = !!data.enabled
+      aiConfigs.value = data.configs || []
+      defaultAiConfigId.value = data.defaultConfigId || null
+    }
+  }).catch(() => {
+    aiEnabled.value = false
+  })
+}
+
+const canUseAi = computed(() => !props.shareId && aiEnabled.value && aiConfigs.value.length > 0)
 const tabOptions = computed(() => [
   {
     value: 'search',
@@ -37,17 +57,31 @@ const tabOptions = computed(() => [
     icon: 'ChatDotRound'
   }
 ])
+
 const searchStore = useDocSearchStore()
 const loginStore = useLoginConfigStore()
 const sessionKey = props.shareId ? `share:${props.shareId}` : `${loginStore.accountInfo?.id}:${props.project?.id || 'all'}`
-const defaultModel = () => ({ scope: props.shareId ? 'share' : props.project ? 'selected' : 'all', projectId: props.project?.id, docName: '', url: '', content: '', docType: undefined, method: undefined, status: undefined })
+const defaultModel = () => ({
+  scope: props.shareId ? 'share' : props.project ? 'selected' : 'all',
+  projectId: props.project?.id,
+  docName: '',
+  url: '',
+  content: '',
+  docType: undefined,
+  method: undefined,
+  status: undefined
+})
 const defaultAiState = () => ({
+  configId: null,
+  model: '',
+  projectId: props.project?.id || null,
   queryInput: '',
   toolSteps: [],
   relatedDocs: [],
   answerContent: '',
   isStepsExpanded: true
 })
+
 searchStore.sessions[sessionKey] ||= {
   model: defaultModel(),
   submitted: null,
@@ -62,24 +96,21 @@ const session = searchStore.sessions[sessionKey]
 session.activeTab ||= 'search'
 session.aiState ||= defaultAiState()
 
-const activeTab = ref(canUseAi.value && session.activeTab === 'ai' ? 'ai' : 'search')
-watch(activeTab, (val) => {
-  session.activeTab = val
-})
+const activeTab = toRef(session, 'activeTab')
 // 分页控件先更新本地状态，只有请求成功后才保存为结果对应的页码。
 const tablePage = ref(session.page)
 const loading = ref(false)
 const failed = ref(false)
-const projects = ref(session.projectOptions || [])
+session.projectOptions ||= []
+const projects = toRef(session, 'projectOptions')
 const includeContextProject = () => {
   if (props.project && !projects.value.some(project => project.id === props.project.id)) {
     projects.value.unshift({ id: props.project.id, projectName: props.project.projectName })
   }
 }
 includeContextProject()
-const projectsLoading = ref(false)
+const { loadProjects, projectSelectAttrs } = useDocProjectSelector(() => session.model.projectId, projects)
 let searchVersion = 0
-let projectVersion = 0
 
 const requestModel = computed(() => {
   const model = session.model
@@ -97,23 +128,6 @@ const conditionsChanged = computed(() => !!session.submitted && !isEqual(request
 watch(() => [session.model.url, session.model.method], ([url, method]) => {
   if (url.trim() || method) session.model.docType = 'api'
 })
-
-const loadProjects = debounce(async (keyword = '') => {
-  const version = ++projectVersion
-  projectsLoading.value = true
-  try {
-    const data = await searchDocProjects(keyword)
-    if (version === projectVersion) {
-      const selected = projects.value.find(project => project.id === session.model.projectId)
-      projects.value = selected && !data.some(project => project.id === selected.id) ? [selected, ...data] : data
-      session.projectOptions = projects.value
-    }
-  } catch {
-    // 请求层统一显示错误。
-  } finally {
-    if (version === projectVersion) projectsLoading.value = false
-  }
-}, 250)
 
 const docTypeLabel = ({ value, label }) => h(TreeIconLabel, {
   node: { isLeaf: true, label },
@@ -138,7 +152,7 @@ const options = computed(() => [{
   prop: 'projectId',
   type: 'select',
   enabled: session.model.scope === 'selected' && !props.shareId,
-  attrs: { filterable: true, remote: true, remoteShowSuffix: true, remoteMethod: loadProjects, loading: projectsLoading.value },
+  attrs: projectSelectAttrs.value,
   children: projects.value.map(project => ({ value: project.id, label: project.projectName }))
 }, {
   labelKey: 'api.label.docName', prop: 'docName', attrs: { maxlength: 200 }
@@ -226,8 +240,6 @@ const handleSwitchToSearch = (keyword) => {
 }
 onUnmounted(() => {
   searchVersion++
-  projectVersion++
-  loadProjects.cancel()
 })
 if (session.model.scope === 'selected') loadProjects()
 </script>
@@ -235,7 +247,7 @@ if (session.model.scope === 'selected') loadProjects()
 <template>
   <common-window
     v-model="showWindow"
-    :title="activeTab === 'ai' && canUseAi ? $t('api.label.aiAssistant') : $t('api.label.advancedSearch')"
+    :title="canUseAi && activeTab === 'ai' ? $t('api.label.aiAssistant') : $t('api.label.advancedSearch')"
     width="min(960px, 96vw)"
     :show-buttons="false"
     :close-on-click-modal="false"
@@ -262,7 +274,7 @@ if (session.model.scope === 'selected') loadProjects()
       </div>
 
       <div
-        v-show="activeTab === 'search'"
+        v-show="!canUseAi || activeTab === 'search'"
         class="doc-search-pane"
       >
         <common-form
@@ -390,7 +402,9 @@ if (session.model.scope === 'selected') loadProjects()
       >
         <api-doc-ai-chat-panel
           :project="props.project"
-          :session-key="sessionKey"
+          :ai-state="session.aiState"
+          :ai-configs="aiConfigs"
+          :default-config-id="defaultAiConfigId"
           :on-select-doc="openDoc"
           @switch-to-search="handleSwitchToSearch"
         />

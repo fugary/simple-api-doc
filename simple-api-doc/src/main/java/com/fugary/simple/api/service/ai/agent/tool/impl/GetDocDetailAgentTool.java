@@ -106,9 +106,7 @@ public class GetDocDetailAgentTool implements AgentTool {
                 }
             }
 
-            if (context.getInspectedDocIds() != null) {
-                context.getInspectedDocIds().add(docId);
-            }
+            context.getInspectedDocIds().add(docId);
 
             if (ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType())) {
                 String content = StringUtils.trimToEmpty(apiDoc.getDocContent());

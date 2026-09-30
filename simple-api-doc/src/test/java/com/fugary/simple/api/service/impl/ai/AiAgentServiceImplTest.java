@@ -4,6 +4,7 @@ import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.service.ai.AiConfigService;
+import com.fugary.simple.api.service.ai.agent.tool.AgentContext;
 import com.fugary.simple.api.service.ai.agent.tool.AgentTool;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolCall;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolDefinition;
@@ -16,6 +17,9 @@ import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.web.vo.ai.AiAgentChatReqVo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -24,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -114,11 +119,15 @@ class AiAgentServiceImplTest {
         AiAgentChatReqVo req = new AiAgentChatReqVo();
         req.setProjectId(10);
         req.setQuery("如何发起退款？");
+        req.setModel(" custom-model ");
 
         service.streamChat(req, emitter);
 
         // 验证工具调用了 1 次
         verify(searchTool, times(1)).execute(eq("{\"keywords\":\"退款\"}"), any());
+        verify(chatProvider, times(2)).chatWithTools(argThat(actual -> actual != config
+                && "custom-model".equals(actual.getDefaultModel())), any(), any(), any());
+        assertThat(config.getDefaultModel()).isEqualTo("gpt-4o-mini");
 
         // 验证 SSE 收到 tool_start, tool_end, related_docs, delta, finish
         verify(emitter, atLeast(4)).send(any(SseEmitter.SseEventBuilder.class));
@@ -127,7 +136,7 @@ class AiAgentServiceImplTest {
 
     @Test
     void testSanitizeMarkdownContent() {
-        // 测试未闭合的 http 代码块吞噬后续的 ## 标题
+        // 不根据标题内容猜测代码块边界，仅在末尾补齐。
         String unclosedHttp = "```http\n" +
                 "POST /user/register\n" +
                 "Content-Type: application/json\n\n" +
@@ -138,7 +147,7 @@ class AiAgentServiceImplTest {
                 "- **username**: 用户名";
 
         String sanitized = service.sanitizeMarkdownContent(unclosedHttp);
-        assertThat(sanitized).contains("}\n```\n\n## 2. 参数说明");
+        assertThat(sanitized).isEqualTo(unclosedHttp + "\n```");
 
         // 测试末尾未闭合的代码块自动补齐
         String danglingJson = "### 示例\n```json\n{\"code\":200}";
@@ -148,6 +157,105 @@ class AiAgentServiceImplTest {
         // 测试正常闭合的代码块不被篡改
         String normal = "```http\nGET /users\n```\n## 2. 说明\n正常内容";
         assertThat(service.sanitizeMarkdownContent(normal)).isEqualTo(normal);
+
+        // 代码注释和 Markdown 示例中的标题均不得触发内容改写。
+        String comments = "```python\n# Parameters\n# 中文注释\nprint('ok')\n```";
+        assertThat(service.sanitizeMarkdownContent(comments)).isEqualTo(comments);
+        String nestedFences = "````markdown\n# 示例\n```json\n{}\n```\n````";
+        assertThat(service.sanitizeMarkdownContent(nestedFences)).isEqualTo(nestedFences);
+        assertThat(service.sanitizeMarkdownContent("~~~text\n## 标题")).isEqualTo("~~~text\n## 标题\n~~~");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void emptyAnswerRetriesWithoutToolsAndFallsBackToAccessibleDocs(boolean inspected) throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        AgentTool tool = inspected ? getDocTool : searchTool;
+        AiChatResponse toolResponse = new AiChatResponse();
+        toolResponse.setToolCalls(List.of(new AiToolCall("call_1", tool.getName(), "{}")));
+        when(tool.execute(any(), any())).thenAnswer(call -> {
+            AgentContext context = call.getArgument(1);
+            (inspected ? context.getInspectedDocIds() : context.getDiscoveredDocIds()).addAll(List.of(101, 999));
+            return "已找到候选文档";
+        });
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto")))
+                .thenReturn(toolResponse, new AiChatResponse());
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("none"))).thenAnswer(call -> {
+            List<Map<String, Object>> messages = call.getArgument(1);
+            assertThat(messages.get(messages.size() - 1).get("role")).isEqualTo("tool");
+            assertThat((List<?>) call.getArgument(2)).hasSize(2);
+            return new AiChatResponse();
+        });
+
+        SseEmitter emitter = mock(SseEmitter.class);
+        service.streamChat(req, emitter);
+
+        verify(chatProvider, times(2)).chatWithTools(any(), any(), any(), eq("auto"));
+        verify(chatProvider).chatWithTools(any(), any(), any(), eq("none"));
+        String events = emittedEvents(emitter);
+        assertThat(events).contains("[POST /login](doc://101)", "候选文档", "SUCCESS")
+                .doesNotContain("doc://999", "未能检索到", "event:error");
+        verify(emitter).complete();
+    }
+
+    @Test
+    void failedSummaryStillReturnsDiscoveredDocs() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        AiChatResponse toolResponse = new AiChatResponse();
+        toolResponse.setToolCalls(List.of(new AiToolCall("call_1", "search_docs", "{}")));
+        when(searchTool.execute(any(), any())).thenAnswer(call -> {
+            AgentContext context = call.getArgument(1);
+            context.getDiscoveredDocIds().add(101);
+            return "已找到候选文档";
+        });
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto")))
+                .thenReturn(toolResponse, new AiChatResponse());
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("none")))
+                .thenThrow(new IllegalStateException("summary unavailable"));
+        SseEmitter emitter = mock(SseEmitter.class);
+
+        service.streamChat(req, emitter);
+
+        assertThat(emittedEvents(emitter)).contains("[POST /login](doc://101)", "SUCCESS")
+                .doesNotContain("event:error");
+    }
+
+    private AiAgentChatReqVo prepareFallbackChat() {
+        AiConfig config = new AiConfig();
+        config.setStatus(1);
+        config.setProvider("OPENAI");
+        when(aiConfigService.getDefaultAiConfig()).thenReturn(config);
+        ApiProject project = new ApiProject();
+        project.setId(10);
+        when(apiProjectService.getById(10)).thenReturn(project);
+        when(apiProjectAccessService.canAccessProject(eq(project), any())).thenReturn(true);
+        when(apiProjectService.list(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class)))
+                .thenReturn(List.of(project));
+        ApiDoc doc = new ApiDoc();
+        doc.setId(101);
+        doc.setProjectId(10);
+        doc.setDocType("api");
+        doc.setMethod("POST");
+        doc.setUrl("/login");
+        when(apiDocService.getById(101)).thenReturn(doc);
+        when(apiProjectAccessService.canAccessDoc(eq(doc), any())).thenReturn(true);
+        when(apiDocService.list(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class)))
+                .thenReturn(List.of(doc));
+        ApiDoc outsideProject = new ApiDoc();
+        outsideProject.setId(999);
+        outsideProject.setProjectId(20);
+        when(apiDocService.getById(999)).thenReturn(outsideProject);
+        AiAgentChatReqVo req = new AiAgentChatReqVo();
+        req.setProjectId(10);
+        req.setQuery("登录接口有哪些？");
+        return req;
+    }
+
+    private String emittedEvents(SseEmitter emitter) throws IOException {
+        ArgumentCaptor<SseEmitter.SseEventBuilder> events = ArgumentCaptor.forClass(SseEmitter.SseEventBuilder.class);
+        verify(emitter, atLeastOnce()).send(events.capture());
+        return events.getAllValues().stream().flatMap(event -> event.build().stream())
+                .map(part -> String.valueOf(part.getData())).collect(Collectors.joining("\n"));
     }
 
     @Test
