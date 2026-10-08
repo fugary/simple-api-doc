@@ -115,7 +115,7 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
         QueryWrapper<ApiProject> wrapper = Wrappers.<ApiProject>query().select("id", "project_code", "project_name");
         contains(wrapper, "project_name", query.getDocName());
         readableProjects(wrapper, "t_api_project", "id");
-        return apiProjectService.page(page(query), wrapper.orderByDesc("id"));
+        return apiProjectService.page(page(query), wrapper.orderByDesc("top_flag", "id"));
     }
 
     private <T> void readableProjects(QueryWrapper<T> wrapper, String table, String projectColumn) {

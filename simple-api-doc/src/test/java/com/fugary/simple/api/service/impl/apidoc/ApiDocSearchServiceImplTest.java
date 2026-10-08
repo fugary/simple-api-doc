@@ -45,7 +45,7 @@ class ApiDocSearchServiceImplTest {
                 "jdbc:h2:mem:" + UUID.randomUUID() + ";MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
         sql = new JdbcTemplate(source);
         jdbc = new NamedParameterJdbcTemplate(source);
-        sql.execute("CREATE TABLE t_api_project (id INT, project_name VARCHAR, project_code VARCHAR, user_name VARCHAR, group_code VARCHAR, status INT DEFAULT 1)");
+        sql.execute("CREATE TABLE t_api_project (id INT, project_name VARCHAR, project_code VARCHAR, user_name VARCHAR, group_code VARCHAR, status INT DEFAULT 1, top_flag BOOLEAN DEFAULT FALSE)");
         sql.execute("CREATE TABLE t_api_doc (id INT, project_id INT, folder_id INT, doc_name VARCHAR, doc_type VARCHAR, "
                 + "url VARCHAR, method VARCHAR, status INT, modify_from INT, modify_date TIMESTAMP, doc_content CLOB, description CLOB)");
         sql.execute("INSERT INTO t_api_project (id, project_name, project_code, user_name, group_code) VALUES (10, 'Mine', 'mine', 'alice', NULL), (20, 'Team', 'team', 'bob', 'readable'), "

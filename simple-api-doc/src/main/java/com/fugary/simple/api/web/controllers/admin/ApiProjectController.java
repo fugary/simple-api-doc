@@ -288,7 +288,7 @@ public class ApiProjectController {
 
     @GetMapping("/selectProjects")
     public SimpleResult<List<ApiProject>> selectProjects(@ModelAttribute ProjectQueryVo queryVo) {
-        QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query();
+        QueryWrapper<ApiProject> queryWrapper = Wrappers.<ApiProject>query().orderByDesc("top_flag", "id");
         String userName = SecurityUtils.getUserName(queryVo.getUserName());
         queryWrapper.eq(ApiDocConstants.STATUS_KEY, ApiDocConstants.STATUS_ENABLED);
         if (!checkGroupCodeQuery(queryVo)){
