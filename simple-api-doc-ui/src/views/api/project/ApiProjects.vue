@@ -703,8 +703,6 @@ const pageAttrs = {
   border-radius: 12px;
   transition: all 0.25s ease;
   overflow: hidden;
-  /* Sync top border width with hover state to prevent layout shift
-     Use default border color initially so it looks connected */
   border-top: 3px solid var(--el-border-color-lighter);
   flex: 1;
   display: flex;
@@ -727,9 +725,10 @@ const pageAttrs = {
 }
 
 /* Selected state */
-.project-selected {
+.project-card.project-selected,
+.project-card.project-selected:hover {
   border-color: var(--el-color-primary);
-  border-top-color: var(--el-color-primary);
+  box-shadow: 0 0 0 1px var(--el-color-primary), 0 8px 24px rgba(var(--el-color-primary-rgb), 0.18);
 }
 
 /* Card header styling */
