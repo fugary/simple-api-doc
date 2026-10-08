@@ -1,4 +1,4 @@
-import { ElMessage, ElText } from 'element-plus'
+import { ElMessage, ElTag, ElText } from 'element-plus'
 import {
   formatDate,
   getSingleSelectOptions,
@@ -663,19 +663,31 @@ export const calcHeaderSuggestions = name => {
   return header ? header.values : []
 }
 
+const AI_PROVIDER_STYLES = {
+  OPENAI: { label: 'OpenAI', type: 'success' },
+  ANTHROPIC: { label: 'Anthropic', type: 'warning' },
+  GEMINI: { label: 'Gemini', type: 'primary' }
+}
+
+const getAiProviderStyle = (item) => AI_PROVIDER_STYLES[item.provider || 'OPENAI'] || { label: item.provider, type: 'info' }
+
+const formatAiConfigName = (item) => {
+  return item.configName ? (item.baseUrl ? `${item.configName} (${item.baseUrl})` : item.configName) : (item.baseUrl || item.defaultModel || '')
+}
+
 /**
- * 格式化 AI 配置 label 节点 (支持 [默认] 标记高亮)
+ * 格式化 AI 配置 label 节点 (支持供应商和 [默认] 标记高亮)
  * @param {Object} item AI 配置项
  * @param {boolean} isDefault 是否默认配置
  * @return {import('vue').VNode|string}
  */
 export const renderAiConfigLabel = (item, isDefault) => {
   if (!item) return ''
-  const name = item.configName ? (item.baseUrl ? `${item.configName} (${item.baseUrl})` : item.configName) : (item.baseUrl || item.defaultModel || '')
-  if (!isDefault) return name
+  const provider = getAiProviderStyle(item)
   return h('span', [
-    name,
-    h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, `[${$i18nBundle('api.label.default')}]`)
+    h(ElTag, { type: provider.type, size: 'small', disableTransitions: true }, () => provider.label),
+    h('span', { class: 'margin-left1' }, formatAiConfigName(item)),
+    isDefault && h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, `[${$i18nBundle('api.label.default')}]`)
   ])
 }
 
@@ -688,7 +700,7 @@ export const renderAiConfigLabel = (item, isDefault) => {
 export const buildAiConfigOptions = (configs = [], defaultId = null) => {
   return (configs || []).map(item => {
     const isDefault = item.isDefault === 1 || item.id === defaultId
-    const name = item.configName ? (item.baseUrl ? `${item.configName} (${item.baseUrl})` : item.configName) : (item.baseUrl || item.defaultModel || '')
+    const name = `[${getAiProviderStyle(item).label}] ${formatAiConfigName(item)}`
     return {
       label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
       value: item.id,
