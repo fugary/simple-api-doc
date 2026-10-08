@@ -13,6 +13,7 @@ import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
+import { renderAiProviderTag } from '@/utils/AiProviderUtils'
 import AiConfigTestWindow from './AiConfigTestWindow.vue'
 
 const aiConfigStore = useAiConfigStore()
@@ -249,13 +250,7 @@ const columns = computed(() => {
     minWidth: '120px',
     align: 'center',
     formatter (data) {
-      const typeMap = {
-        OPENAI: 'success',
-        ANTHROPIC: 'warning',
-        GEMINI: '' // primary
-      }
-      const type = typeMap[data.provider] !== undefined ? typeMap[data.provider] : 'info'
-      return <ElTag type={type}>{data.provider}</ElTag>
+      return renderAiProviderTag(data.provider)
     }
   }, {
     labelKey: 'api.label.defaultModel',

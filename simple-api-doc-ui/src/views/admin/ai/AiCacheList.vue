@@ -10,6 +10,7 @@ import { ElText, ElTag, ElMessage } from 'element-plus'
 import { useDefaultPage } from '@/config'
 import { useSelectProjects } from '@/api/ApiProjectApi'
 import { isJson } from '@/services/api/ApiCommonService'
+import { renderAiProviderTag } from '@/utils/AiProviderUtils'
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage() },
@@ -56,11 +57,7 @@ const columns = computed(() => {
     prop: 'provider',
     minWidth: '100px',
     formatter (data) {
-      if (!data.provider) return ''
-      if (data.provider === 'OPENAI') return <ElTag type="success" disable-transitions>OpenAI</ElTag>
-      if (data.provider === 'ANTHROPIC') return <ElTag type="warning" disable-transitions>Anthropic</ElTag>
-      if (data.provider === 'GEMINI') return <ElTag type="primary" disable-transitions>Gemini</ElTag>
-      return <ElTag type="info" disable-transitions>{data.provider}</ElTag>
+      return renderAiProviderTag(data.provider)
     }
   }, {
     labelKey: 'api.label.aiCacheModelName',

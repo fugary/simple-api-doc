@@ -1,4 +1,5 @@
-import { ElMessage, ElTag, ElText } from 'element-plus'
+import { ElMessage, ElText } from 'element-plus'
+import { getAiProviderStyle, renderAiProviderTag } from '@/utils/AiProviderUtils'
 import {
   formatDate,
   getSingleSelectOptions,
@@ -663,14 +664,6 @@ export const calcHeaderSuggestions = name => {
   return header ? header.values : []
 }
 
-const AI_PROVIDER_STYLES = {
-  OPENAI: { label: 'OpenAI', type: 'success' },
-  ANTHROPIC: { label: 'Anthropic', type: 'warning' },
-  GEMINI: { label: 'Gemini', type: 'primary' }
-}
-
-const getAiProviderStyle = (item) => AI_PROVIDER_STYLES[item.provider || 'OPENAI'] || { label: item.provider, type: 'info' }
-
 const formatAiConfigName = (item) => {
   return item.configName ? (item.baseUrl ? `${item.configName} (${item.baseUrl})` : item.configName) : (item.baseUrl || item.defaultModel || '')
 }
@@ -683,9 +676,8 @@ const formatAiConfigName = (item) => {
  */
 export const renderAiConfigLabel = (item, isDefault) => {
   if (!item) return ''
-  const provider = getAiProviderStyle(item)
   return h('span', [
-    h(ElTag, { type: provider.type, size: 'small', disableTransitions: true }, () => provider.label),
+    renderAiProviderTag(item.provider || 'OPENAI', { size: 'small' }),
     h('span', { class: 'margin-left1' }, formatAiConfigName(item)),
     isDefault && h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, `[${$i18nBundle('api.label.default')}]`)
   ])
@@ -700,7 +692,7 @@ export const renderAiConfigLabel = (item, isDefault) => {
 export const buildAiConfigOptions = (configs = [], defaultId = null) => {
   return (configs || []).map(item => {
     const isDefault = item.isDefault === 1 || item.id === defaultId
-    const name = `[${getAiProviderStyle(item).label}] ${formatAiConfigName(item)}`
+    const name = `[${getAiProviderStyle(item.provider || 'OPENAI').label}] ${formatAiConfigName(item)}`
     return {
       label: isDefault ? `${name} [${$i18nBundle('api.label.default')}]` : name,
       value: item.id,
