@@ -15,7 +15,7 @@ const eventCallbacks = {
 /**
  * 流式执行 AI Agent 对话与工具调度
  *
- * @param {Object} params 请求参数 { query, projectId, configId, model }
+ * @param {Object} params 请求参数 { query, projectId, configId, model, includeProjectOverview }
  * @param {Object} callbacks 回调对象 { onStatus, onToolStart, onToolEnd, onRelatedDocs, onDelta, onFinish, onError }
  * @param {AbortSignal} [signal] 取消信号
  */

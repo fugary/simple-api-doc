@@ -46,4 +46,7 @@ public class AiConfigProperties {
      * 最大排队和处理中的任务数量限制
      */
     private int maxPendingTasks = 10;
+
+    /** 项目概览的字符预算；超限时去掉摘要，仍超限则退回按需搜索。 */
+    private int projectOverviewMaxChars = 100000;
 }

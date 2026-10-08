@@ -72,6 +72,7 @@ const defaultModel = () => ({
   status: undefined
 })
 const defaultAiState = () => ({
+  includeProjectOverview: false,
   configId: null,
   model: '',
   projectId: props.project?.id || null,

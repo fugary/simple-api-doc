@@ -455,6 +455,8 @@ api.label.navForwardHistory = '前进历史'
 api.msg.clearNavHistoryConfirm = '确定要清空历史记录吗？'
 
 api.label.aiAssistant = 'AI 业务助手'
+api.label.aiIncludeProjectOverview = '附加全部文档概览'
+api.msg.aiIncludeProjectOverview = '附加当前项目全部文档的目录、名称、方法、路径及简短摘要，帮助 AI 直接筛选；参数详情仍按需读取。会增加输入量，超限时会提示并改用按需搜索。'
 api.label.aiSend = '发送'
 api.label.aiRunning = '执行中'
 api.label.aiSampleQueries = '推荐提问'

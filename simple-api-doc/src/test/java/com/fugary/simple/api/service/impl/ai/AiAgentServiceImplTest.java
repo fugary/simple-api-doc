@@ -4,6 +4,7 @@ import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.service.ai.AiConfigService;
+import com.fugary.simple.api.service.ai.agent.AiProjectDocOverviewService;
 import com.fugary.simple.api.service.ai.agent.tool.AgentContext;
 import com.fugary.simple.api.service.ai.agent.tool.AgentTool;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolCall;
@@ -45,6 +46,7 @@ class AiAgentServiceImplTest {
     private final ApiFolderService apiFolderService = mock(ApiFolderService.class);
     private final ApiProjectAccessService apiProjectAccessService = mock(ApiProjectAccessService.class);
 
+    private final AiProjectDocOverviewService projectDocOverviewService = mock(AiProjectDocOverviewService.class);
     private final AiAgentServiceImpl service = new AiAgentServiceImpl();
 
     @BeforeEach
@@ -60,6 +62,7 @@ class AiAgentServiceImplTest {
         when(getDocTool.getParameters()).thenReturn(Map.of("type", "object"));
         when(getDocTool.toDefinition()).thenReturn(AiToolDefinition.builder().name("get_doc").build());
 
+        ReflectionTestUtils.setField(service, "projectDocOverviewService", projectDocOverviewService);
         ReflectionTestUtils.setField(service, "aiConfigService", aiConfigService);
         ReflectionTestUtils.setField(service, "chatProviders", List.of(chatProvider));
         ReflectionTestUtils.setField(service, "agentTools", List.of(searchTool, getDocTool));
@@ -217,6 +220,75 @@ class AiAgentServiceImplTest {
         service.streamChat(req, emitter);
 
         assertThat(emittedEvents(emitter)).contains("[POST /login](doc://101)", "SUCCESS")
+                .doesNotContain("event:error");
+    }
+
+    @Test
+    void overviewCanAnswerWithoutSearchingAndOnlyCitedDocumentsBecomeRelated() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        req.setIncludeProjectOverview(true);
+        when(projectDocOverviewService.build(any())).thenReturn(new AiProjectDocOverviewService.Overview(
+                "完整目录 OVERVIEW_MARKER", 2, "已附加全部 2 份文档"));
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenAnswer(call -> {
+            List<Map<String, Object>> messages = call.getArgument(1);
+            assertThat(messages.get(1).get("content").toString())
+                    .contains("OVERVIEW_MARKER", "登录接口有哪些");
+            assertThat(messages.get(0).get("content").toString()).doesNotContain("OVERVIEW_MARKER");
+            AiChatResponse response = new AiChatResponse();
+            response.setContent("[POST /login](doc://101) [越权文档](doc://999)");
+            return response;
+        });
+        SseEmitter emitter = mock(SseEmitter.class);
+        service.streamChat(req, emitter);
+        verify(searchTool, never()).execute(any(), any());
+        verify(getDocTool, never()).execute(any(), any());
+        verify(chatProvider).chatWithTools(any(), any(), any(), eq("auto"));
+        verify(apiDocService, never()).getById(102);
+        assertThat(emittedEvents(emitter)).contains("全部 2 份", "doc://101", "SUCCESS")
+                .doesNotContain("doc://999", "doc://102", "event:error");
+    }
+
+    @Test
+    void defaultModeDoesNotReadOverview() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        AiChatResponse response = new AiChatResponse();
+        response.setContent("请补充查询条件");
+        when(chatProvider.chatWithTools(any(), any(), any(), any())).thenReturn(response);
+        service.streamChat(req, mock(SseEmitter.class));
+        verifyNoInteractions(projectDocOverviewService);
+    }
+
+    @Test
+    void emptyOverviewAnswerRetriesButDoesNotRecommendTheEntireDirectory() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        req.setIncludeProjectOverview(true);
+        when(projectDocOverviewService.build(any())).thenReturn(new AiProjectDocOverviewService.Overview(
+                "完整目录", 2, "已附加全部 2 份文档"));
+        when(chatProvider.chatWithTools(any(), any(), any(), any())).thenReturn(new AiChatResponse());
+        SseEmitter emitter = mock(SseEmitter.class);
+        service.streamChat(req, emitter);
+        verify(chatProvider).chatWithTools(any(), any(), any(), eq("none"));
+        assertThat(emittedEvents(emitter)).contains("暂未生成有效回答", "SUCCESS")
+                .doesNotContain("doc://101", "doc://102", "未能检索到", "event:error");
+    }
+
+    @Test
+    void unavailableOverviewKeepsSearchAvailableAndReportsTheFallback() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        req.setIncludeProjectOverview(true);
+        when(projectDocOverviewService.build(any())).thenReturn(new AiProjectDocOverviewService.Overview(
+                "", 0, "概览超限，本次未附加，改用按需搜索"));
+        AiChatResponse toolResponse = new AiChatResponse();
+        toolResponse.setToolCalls(List.of(new AiToolCall("search", "search_docs", "{}")));
+        AiChatResponse answer = new AiChatResponse();
+        answer.setContent("[POST /login](doc://101)");
+        when(searchTool.execute(any(), any())).thenReturn("docId=101");
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto")))
+                .thenReturn(toolResponse, answer);
+        SseEmitter emitter = mock(SseEmitter.class);
+        service.streamChat(req, emitter);
+        verify(searchTool).execute(eq("{}"), any());
+        assertThat(emittedEvents(emitter)).contains("本次未附加", "doc://101", "SUCCESS")
                 .doesNotContain("event:error");
     }
 

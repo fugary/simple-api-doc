@@ -174,6 +174,7 @@ const runChat = async () => {
       {
         query,
         projectId: targetProjectId,
+        includeProjectOverview: !!formData.includeProjectOverview,
         configId: formData.configId || undefined,
         model: formData.model?.trim() || undefined
       },
@@ -323,6 +324,13 @@ const switchToManualSearch = () => {
         @keydown.enter.exact.prevent="runChat"
       />
       <div class="ai-input-actions">
+        <el-checkbox
+          v-model="formData.includeProjectOverview"
+          v-common-tooltip:top="$t('api.msg.aiIncludeProjectOverview')"
+          :disabled="loading"
+        >
+          {{ $t('api.label.aiIncludeProjectOverview') }}
+        </el-checkbox>
         <div class="ai-btn-group">
           <el-button
             v-if="loading"
@@ -592,7 +600,8 @@ const switchToManualSearch = () => {
 }
 .ai-input-actions {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
   margin-top: 8px;
 }
@@ -609,6 +618,7 @@ const switchToManualSearch = () => {
 }
 .ai-btn-group {
   display: flex;
+  margin-left: auto;
   gap: 8px;
 }
 

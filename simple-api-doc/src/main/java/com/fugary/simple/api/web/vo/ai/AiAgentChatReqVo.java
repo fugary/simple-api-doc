@@ -20,5 +20,8 @@ public class AiAgentChatReqVo {
 
     private String model;
 
+    /** 是否附加当前项目全部文档的简明概览，默认按需搜索。 */
+    private boolean includeProjectOverview;
+
     private String shareId;
 }
