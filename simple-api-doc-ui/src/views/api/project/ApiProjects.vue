@@ -50,7 +50,8 @@ const loadApiProjects = (pageNumber) => {
   }
   return searchMethod(pageNumber)
 }
-const selectGroup = (groupCode) => {
+const selectGroup = (groupCode, $event) => {
+  $event?.stopPropagation()
   searchParam.value.groupCode = groupCode
   loadApiProjects(1)
 }
@@ -429,7 +430,7 @@ const tableProjectItems = computed(() => {
             ? renderProjectGroupLabel(project.projectGroup)
             : (project.projectGroupLabel || project.groupCode)
           return <span class="project-group-title">
-            <ElLink type="primary" onClick={() => selectGroup(project.groupCode)}>
+            <ElLink type="primary" onClick={event => selectGroup(project.groupCode, event)}>
               {groupLabel}
             </ElLink>
             {project.canConfigGroupUsers && <>
@@ -638,7 +639,6 @@ const pageAttrs = {
             <div
               v-if="project.projectGroup"
               class="project-group-panel"
-              @click.stop
             >
               <common-descriptions
                 :column="1"
