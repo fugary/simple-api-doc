@@ -1,6 +1,7 @@
 package com.fugary.simple.api.service.ai.agent.tool.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiDoc;
@@ -30,7 +31,8 @@ import java.util.*;
 @Component
 public class GetDocDetailAgentTool implements AgentTool {
 
-    private static final int MAX_CONTENT_LENGTH = 3500;
+    @Autowired
+    private AiConfigProperties aiConfigProperties;
 
     @Autowired
     private ApiDocService apiDocService;
@@ -57,86 +59,130 @@ public class GetDocDetailAgentTool implements AgentTool {
 
     @Override
     public String getDescription() {
-        return "阅读指定接口或Markdown文档的详细参数、说明与返回结构。当需要梳理调用步骤或说明必填项时调用。";
+        return "分段阅读当前项目接口或Markdown文档的参数、说明与返回结构。返回 content、offset、totalLength、hasMore；"
+                + "hasMore=true 时可用 nextOffset 续读。回答字段或调用步骤前须查阅详情，不能把当前段未提及当作文档不存在。";
     }
 
     @Override
     public Map<String, Object> getParameters() {
         Map<String, Object> properties = new LinkedHashMap<>();
-
-        Map<String, Object> docIdProp = new LinkedHashMap<>();
-        docIdProp.put("type", "integer");
-        docIdProp.put("description", "接口或Markdown文档的ID（从 search_docs 结果中获取）");
-        properties.put("docId", docIdProp);
-
-        Map<String, Object> params = new LinkedHashMap<>();
-        params.put("type", "object");
-        params.put("properties", properties);
-        params.put("required", List.of("docId"));
-        return params;
+        properties.put("docId", Map.of("type", "integer", "minimum", 1,
+                "description", "接口或Markdown文档的ID，来自 search_docs 结果或附加的项目文档概览。"));
+        properties.put("offset", Map.of("type", "integer", "minimum", 0,
+                "description", "可选的正文起始位置，首次读取默认0；需要后文时原样传入上次返回的 nextOffset，不自行估算。"));
+        return Map.of("type", "object", "properties", properties, "required", List.of("docId"));
     }
 
     @Override
     public String execute(String argumentsJson, AgentContext context) {
         try {
             JsonNode argsNode = JsonUtils.getMapper().readTree(argumentsJson);
-            int docId = argsNode.path("docId").asInt(0);
-            if (docId <= 0) {
-                return "无效的 docId";
+            if (argsNode == null || !argsNode.isObject()) {
+                return "请提供包含 docId 的参数对象。";
             }
-
+            JsonNode docIdNode = argsNode.path("docId");
+            if (!docIdNode.isIntegralNumber() || !docIdNode.canConvertToInt() || docIdNode.asInt() <= 0) {
+                return "无效的 docId，必须为正整数。";
+            }
+            JsonNode offsetNode = argsNode.path("offset");
+            if (!offsetNode.isMissingNode() && (!offsetNode.isIntegralNumber()
+                    || !offsetNode.canConvertToInt() || offsetNode.asInt() < 0)) {
+                return "无效的 offset，请使用0或上次返回的 nextOffset。";
+            }
+            if (context == null) {
+                return "缺少文档访问上下文。";
+            }
+            int docId = docIdNode.asInt();
+            int offset = offsetNode.asInt(0);
             ApiDoc apiDoc = apiDocService.getById(docId);
-            if (apiDoc == null) {
-                return "未找到 ID 为 " + docId + " 的文档。";
+            if (apiDoc == null || apiDoc.getModifyFrom() != null
+                    || (!ApiDocConstants.DOC_TYPE_API.equals(apiDoc.getDocType())
+                    && !ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType()))) {
+                return "未找到可读取的当前版本接口或Markdown文档。";
+            }
+            if (context.getDefaultProjectId() != null
+                    && !Objects.equals(apiDoc.getProjectId(), context.getDefaultProjectId())) {
+                return "该文档不属于当前项目。";
+            }
+            if (!canRead(apiDoc, context.getShare())) {
+                return "无权访问此文档或当前分享未授权。";
             }
 
-            // 权限校验
-            ApiProjectShare share = context.getShare();
-            if (share != null) {
-                if (!Objects.equals(apiDoc.getProjectId(), share.getProjectId())) {
-                    return "无权访问此文档。";
-                }
-                Set<Integer> shareDocIds = SimpleModelUtils.getShareDocIds(share.getShareDocs());
-                if (!shareDocIds.isEmpty() && !shareDocIds.contains(docId)) {
-                    return "当前分享链接未授权查看此文档。";
-                }
-            } else {
-                if (!apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.READABLE)) {
-                    return "无权访问此文档。";
-                }
+            String content = loadContent(apiDoc);
+            if (StringUtils.isBlank(content)) {
+                return "文档暂无可读取的正文，不能据此推断接口参数或业务规则。";
             }
-
+            if (offset >= content.length() || (offset > 0 && Character.isLowSurrogate(content.charAt(offset))
+                    && Character.isHighSurrogate(content.charAt(offset - 1)))) {
+                return "offset 超出正文范围或不是有效字符边界，请使用0或上次返回的 nextOffset。";
+            }
+            String result = buildPage(apiDoc, content, offset);
+            // 成功生成并返回非空正文后才记录；已查阅某段不代表读完全文。
             context.getInspectedDocIds().add(docId);
-
-            if (ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType())) {
-                String content = StringUtils.trimToEmpty(apiDoc.getDocContent());
-                if (content.length() > MAX_CONTENT_LENGTH) {
-                    content = content.substring(0, MAX_CONTENT_LENGTH) + "\n\n...(内容过长已截断)...";
-                }
-                return "【Markdown文档】: " + apiDoc.getDocName() + " (ID: " + docId + ")\n" + content;
-            }
-
-            // API 接口类型生成精简的 Markdown 规格
-            ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);
-            ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDocVo.getInfoId());
-            if (apiInfo != null) {
-                ApiProjectInfoDetailVo apiInfoDetailVo = apiDocSchemaService.parseInfoDetailVo(apiInfo, apiDocVo);
-                ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
-                if (apiProject != null) {
-                    apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
-                    apiDocVo.setProject(apiProject);
-                }
-                apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
-            }
-
-            String markdown = apiDocViewGenerator.generate(new MdViewContext(apiDocVo));
-            if (markdown != null && markdown.length() > MAX_CONTENT_LENGTH) {
-                markdown = markdown.substring(0, MAX_CONTENT_LENGTH) + "\n\n...(接口字段较多已省略部分)...";
-            }
-            return "【接口详情】: " + apiDoc.getDocName() + " (ID: " + docId + ")\n" + markdown;
+            return result;
         } catch (Exception e) {
             log.error("GetDocDetailAgentTool execute error, args: {}", argumentsJson, e);
             return "获取文档详情失败: " + e.getMessage();
         }
+    }
+
+    private boolean canRead(ApiDoc apiDoc, ApiProjectShare share) {
+        if (share == null) {
+            return apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.READABLE);
+        }
+        if (!Objects.equals(apiDoc.getProjectId(), share.getProjectId())
+                || !ApiDocConstants.STATUS_ENABLED.equals(apiDoc.getStatus())) {
+            return false;
+        }
+        Set<Integer> shareDocIds = SimpleModelUtils.getShareDocIds(share.getShareDocs());
+        if (!shareDocIds.isEmpty() && !shareDocIds.contains(apiDoc.getId())) {
+            return false;
+        }
+        ApiProject project = apiProjectService.getById(share.getProjectId());
+        return project != null && ApiDocConstants.STATUS_ENABLED.equals(project.getStatus());
+    }
+
+    private String loadContent(ApiDoc apiDoc) {
+        if (ApiDocConstants.DOC_TYPE_MD.equals(apiDoc.getDocType())) {
+            return StringUtils.defaultString(apiDoc.getDocContent());
+        }
+        ApiDocDetailVo apiDocVo = apiDocSchemaService.loadDetailVo(apiDoc);
+        ApiProjectInfo apiInfo = apiProjectInfoService.getById(apiDocVo.getInfoId());
+        if (apiInfo != null) {
+            ApiProjectInfoDetailVo apiInfoDetailVo = apiDocSchemaService.parseInfoDetailVo(apiInfo, apiDocVo);
+            ApiProject apiProject = apiProjectService.getById(apiDocVo.getProjectId());
+            if (apiProject != null) {
+                apiInfoDetailVo.setProjectCode(apiProject.getProjectCode());
+                apiDocVo.setProject(apiProject);
+            }
+            apiDocVo.setProjectInfoDetail(apiInfoDetailVo);
+        }
+        return apiDocViewGenerator.generate(new MdViewContext(apiDocVo));
+    }
+
+    private String buildPage(ApiDoc apiDoc, String content, int offset) {
+        int pageChars = Math.max(1, aiConfigProperties.getDocDetailPageChars());
+        int end = offset + Math.min(pageChars, content.length() - offset);
+        // UTF-16 代理对必须完整返回，避免跨段丢失 emoji 等字符；至多多返回一个字符。
+        if (end < content.length() && Character.isHighSurrogate(content.charAt(end - 1))
+                && Character.isLowSurrogate(content.charAt(end))) {
+            end++;
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("docId", apiDoc.getId());
+        result.put("docName", apiDoc.getDocName());
+        result.put("docType", apiDoc.getDocType());
+        result.put("method", apiDoc.getMethod());
+        result.put("url", apiDoc.getUrl());
+        result.put("status", apiDoc.getStatus());
+        result.put("deprecated", apiDoc.getDeprecated());
+        result.put("offset", offset);
+        result.put("totalLength", content.length());
+        result.put("hasMore", end < content.length());
+        if (end < content.length()) {
+            result.put("nextOffset", end);
+        }
+        result.put("content", content.substring(offset, end));
+        return JsonUtils.toJson(result);
     }
 }

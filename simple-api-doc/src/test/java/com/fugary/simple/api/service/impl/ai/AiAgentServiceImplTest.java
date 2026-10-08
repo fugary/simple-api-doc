@@ -1,11 +1,14 @@
 package com.fugary.simple.api.service.impl.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.agent.AiProjectDocOverviewService;
 import com.fugary.simple.api.service.ai.agent.tool.AgentContext;
+import com.fugary.simple.api.service.ai.agent.tool.impl.GetDocDetailAgentTool;
 import com.fugary.simple.api.service.ai.agent.tool.AgentTool;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolCall;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolDefinition;
@@ -15,6 +18,7 @@ import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.web.vo.ai.AiAgentChatReqVo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -290,6 +295,56 @@ class AiAgentServiceImplTest {
         verify(searchTool).execute(eq("{}"), any());
         assertThat(emittedEvents(emitter)).contains("本次未附加", "doc://101", "SUCCESS")
                 .doesNotContain("event:error");
+    }
+
+    @Test
+    void continuesActualDocumentToolWithoutTriggeringDuplicateCallProtection() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        req.setQuery("token 是请求字段还是返回字段？");
+        ApiDoc doc = apiDocService.getById(101);
+        doc.setDocType("md");
+        doc.setDocName("登录说明");
+        doc.setDocContent("前文".repeat(6000) + "\nresponse.token 是返回字段");
+        GetDocDetailAgentTool detailTool = spy(new GetDocDetailAgentTool());
+        ReflectionTestUtils.setField(detailTool, "aiConfigProperties", new AiConfigProperties());
+        ReflectionTestUtils.setField(detailTool, "apiDocService", apiDocService);
+        ReflectionTestUtils.setField(detailTool, "apiProjectAccessService", apiProjectAccessService);
+        ReflectionTestUtils.setField(service, "agentTools", List.of(searchTool, detailTool));
+
+        AtomicInteger round = new AtomicInteger();
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenAnswer(call -> {
+            int current = round.incrementAndGet();
+            List<Map<String, Object>> messages = call.getArgument(1);
+            AiChatResponse response = new AiChatResponse();
+            if (current == 1) {
+                response.setToolCalls(List.of(new AiToolCall("read_start", "get_doc", "{\"docId\":101}")));
+            } else {
+                JsonNode result = JsonUtils.getMapper()
+                        .readTree(messages.get(messages.size() - 1).get("content").toString());
+                if (current == 2) {
+                    assertThat(result.path("hasMore").asBoolean()).isTrue();
+                    assertThat(result.path("content").asText()).doesNotContain("response.token");
+                    response.setToolCalls(List.of(new AiToolCall("read_next", "get_doc",
+                            "{\"docId\":101,\"offset\":" + result.path("nextOffset").asInt() + "}")));
+                } else {
+                    assertThat(current).isEqualTo(3);
+                    assertThat(result.path("hasMore").asBoolean()).isFalse();
+                    assertThat(result.path("content").asText()).contains("response.token 是返回字段");
+                    response.setContent("token 是返回字段，依据 [登录说明](doc://101)。");
+                }
+            }
+            return response;
+        });
+
+        SseEmitter emitter = mock(SseEmitter.class);
+        service.streamChat(req, emitter);
+
+        ArgumentCaptor<AgentContext> contexts = ArgumentCaptor.forClass(AgentContext.class);
+        verify(detailTool, times(2)).execute(anyString(), contexts.capture());
+        assertThat(contexts.getValue().getInspectedDocIds()).containsExactly(101);
+        verify(chatProvider, times(3)).chatWithTools(any(), any(), any(), eq("auto"));
+        assertThat(emittedEvents(emitter)).contains("token 是返回字段", "doc://101", "SUCCESS")
+                .doesNotContain("event:error", "不要重复查询");
     }
 
     private AiAgentChatReqVo prepareFallbackChat() {

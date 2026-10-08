@@ -17,7 +17,7 @@ public class AgentContext {
     private ApiUserVo user;
     private ApiProjectShare share;
     private Integer defaultProjectId;
-    // 查阅过详情的文档，兜底时优先展示。
+    // 成功返回过详情正文的文档（可能仅部分段落），兜底时优先展示。
     @Builder.Default
     private Set<Integer> inspectedDocIds = new LinkedHashSet<>();
     // 搜索返回的候选文档；记录不替代最终权限校验。

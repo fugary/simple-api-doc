@@ -49,4 +49,7 @@ public class AiConfigProperties {
 
     /** 项目概览的字符预算；超限时去掉摘要，仍超限则退回按需搜索。 */
     private int projectOverviewMaxChars = 100000;
+
+    /** 文档详情单次返回的字符数，剩余内容通过 get_doc 的 offset 续读。 */
+    private int docDetailPageChars = 12000;
 }
