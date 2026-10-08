@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.utils.JsonUtils;
+import com.fugary.simple.api.service.ai.agent.tool.AiToolDefinition;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -72,6 +74,23 @@ public abstract class AbstractAiChatProvider implements AiChatProvider {
             log.error("AI 接口请求异常, url: {}, error: {}", url, errorMsg, e);
             throw new RuntimeException(errorMsg, e);
         }
+    }
+
+    protected HttpHeaders createApiKeyJsonHeaders(String headerName, String apiKey) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set(headerName, apiKey);
+        return headers;
+    }
+
+    /** 三家协议共用工具定义，仅 Schema 字段名不同。 */
+    protected List<Map<String, Object>> formatToolDefinitions(List<AiToolDefinition> tools, String schemaKey) {
+        List<Map<String, Object>> definitions = new ArrayList<>();
+        for (AiToolDefinition tool : tools) {
+            definitions.add(Map.of("name", tool.getName(), "description", tool.getDescription(),
+                    schemaKey, tool.getParameters()));
+        }
+        return definitions;
     }
 
     /**

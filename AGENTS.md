@@ -45,6 +45,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - `/docs`: 项目文档及静态引导页。
 
 ## 5. 当前开发进度 (Current Status)
+- [x] AI 搜索原生工具调用与相关度优化：Gemini 与 Anthropic 原生协议支持多轮工具调用、同轮多工具结果回传、原始签名/思考块保留及总结阶段禁用工具；关键词搜索在权限筛选后、分页前按名称/路径精确匹配、命中词覆盖数与名称/路径/正文命中位置排序，保留字面匹配与无业务词表约束；新增 `keywordMatch=any|all`，`search_docs` 支持 `match` 与 `page` 并返回 `total/page/hasMore/docs`，保留完整的有界摘要，提示模型在回答参数与调用步骤前查阅详情。
 - [x] 接口文档智能问答助手 (Agentic RAG) 与高级搜索深度融合架构：零外部向量数据库与无冷启动依赖，新增 `AgentTool` 抽象及 `search_docs` / `get_doc` 只读工具，基于 `ApiDocSearchService` 与 `ApiDocViewGenerator` 生成极低 Token 开销的精简 Markdown 视图；在 `ApiDocSearchServiceImpl` 中仅按空白分词、去重并进行字面包含匹配，由 AI 根据上下文选择核心词与同义表达，不硬编码业务词表、不自动剥离名称或路径尾缀；在 `OpenAiChatProvider` 中实现 Function Calling 多轮协议；实现具备 8 轮迭代控制、thought_signature 透传、命名空间剥离、防死循环截断与 Grounding 真实性核验的 `AiAgentServiceImpl`，严格校验 `doc://{id}` 并装配真实 `relatedDocs` 元数据，由 AI 根据证据充分程度决定搜索、详情查阅与回答时机，Markdown 仅补齐末尾未闭合围栏，不按标题语言猜测内容边界，使用 `discoveredDocIds` / `inspectedDocIds` 有序 ID 集合追踪候选与已查阅文档，总结重试禁用工具调用，兜底回答复用权限校验后的关联文档；提供 `/agent/chat` SSE 端点；深度内聚于 `ApiDocSearchWindow` 弹窗（`el-segmented` 分段切换），目录树搜索框仅保留单一 Filter 按钮唤起；内存级无损记忆（通过 `DocSearchStore` 页面级存储，避免 localStorage 膨胀，刷新自然清理，弹窗开关无损记忆）；初始化动态调用 `getAiStatus` 判断 AI 功能启用与否并自动降级；在 `ApiDocAiChatPanel` 头部统一采用标准 `<common-form inline>` 与 `buildModelFormOption`（原生带 Tooltip 的 `Refresh` 刷新按钮、Loading 态及对齐高级搜索的自然行间距），通过 `useDocProjectSelector` 复用远程项目筛选与选择记忆，正文接口链接携带完整项目定位信息，支持全局项目切换、AI 接口配置（`buildAiConfigOptions`）与模型选择器；未命中时支持一键带入关键词转入高级搜索。
 - [x] 独立高级文档搜索：顶部导航与项目目录共用搜索弹窗，支持所有可读项目、当前项目及指定项目，按文档名称、接口 URL、描述/Markdown 正文组合查询，提供类型、方法与状态筛选、分页摘要高亮及文档定位；分享搜索仅覆盖已授权且启用的文档，项目详情继续使用 `includeDocContent(false)` 按需加载正文。
 - [x] 分组与项目权限精细化控制：支持项目分组功能，优化项目及分组的用户权限关联，前端新增分组权限配置及编辑页面。
@@ -84,7 +85,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] Chrome 式前进与后退长按/右键历史轨迹与最近访问概念归一：在详情头部将【后退】和【前进】按钮集成长按与右键（contextmenu）下拉历史菜单，纯 ID 轻量存储与动态映射；Markdown 与 API 分配专属图标与 Method 标签，支持单条删除与一键清空；彻底移除左侧目录树顶部的“最近访问”独立弹窗，统一为标准浏览器历史模型并精简工具栏。
 
 ---
-*Last Updated: 2026-09-29*
+*Last Updated: 2026-10-08*
 
 ## 6. 项目规则 (Project Rules)
 为了保证项目的开发的一致性和质量，AI 代理在协作时需遵循项目内置的规则：

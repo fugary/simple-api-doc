@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.impl.apidoc;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.*;
 import com.fugary.simple.api.service.apidoc.*;
@@ -14,6 +15,9 @@ import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.ParsedSql;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -91,8 +95,14 @@ class ApiDocSearchServiceImplTest {
 
     private <T> Page<T> queryPage(String table, Page<T> page, QueryWrapper<T> query, Class<T> type) {
         String suffix = segment(query);
-        page.setTotal(jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " " + suffix.split("ORDER BY")[0],
-                query.getParamNameValuePairs(), Long.class));
+        // 使用真实分页插件生成 COUNT SQL，并按 JDBC 占位符绑定参数，不能手工剥离 ORDER BY。
+        ParsedSql parsed = NamedParameterUtils.parseSqlStatement(
+                "SELECT " + query.getSqlSelect() + " FROM " + table + " " + suffix);
+        MapSqlParameterSource source = new MapSqlParameterSource(query.getParamNameValuePairs());
+        String countSql = new PaginationInnerInterceptor().autoCountSql(page,
+                NamedParameterUtils.substituteNamedParameters(parsed, source));
+        page.setTotal(sql.queryForObject(countSql, Long.class,
+                NamedParameterUtils.buildValueArray(parsed, source, null)));
         Map<String, Object> params = new HashMap<>(query.getParamNameValuePairs());
         params.put("limit", page.getSize());
         params.put("offset", (page.getCurrent() - 1) * page.getSize());
@@ -219,7 +229,29 @@ class ApiDocSearchServiceImplTest {
         query.setKeyword("指南 orders");
         assertThat(service.search(query, null).getRecords())
                 .extracting(ApiDocSearchResultVo::getId)
-                .containsExactly(3, 2, 1);
+                .containsExactly(1, 3, 2);
+    }
+
+    @Test
+    void relevancePaginationKeepsTotalsAcrossPagesAndEmptyResults() {
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setKeyword("指南 orders");
+        query.setPage(new SimplePage(1, 2, 0, 0));
+        Page<ApiDocSearchResultVo> first = service.search(query, null);
+        assertThat(first.getTotal()).isEqualTo(3);
+        assertThat(first.hasNext()).isTrue();
+        assertThat(first.getRecords()).extracting(ApiDocSearchResultVo::getId).containsExactly(1, 3);
+
+        query.setPage(new SimplePage(2, 2, 0, 0));
+        Page<ApiDocSearchResultVo> second = service.search(query, null);
+        assertThat(second.getTotal()).isEqualTo(3);
+        assertThat(second.hasNext()).isFalse();
+        assertThat(second.getRecords()).extracting(ApiDocSearchResultVo::getId).containsExactly(2);
+
+        query.setKeyword("不存在的关键词");
+        Page<ApiDocSearchResultVo> empty = service.search(query, null);
+        assertThat(empty.getTotal()).isZero();
+        assertThat(empty.getRecords()).isEmpty();
     }
 
     @Test
@@ -237,7 +269,7 @@ class ApiDocSearchServiceImplTest {
         assertThat(service.search(query, null).getRecords()).isEmpty();
         query.setKeyword("  登陆\t/loginapi\n登陆  ");
         assertThat(service.search(query, null).getRecords()).extracting(ApiDocSearchResultVo::getId)
-                .containsExactly(9, 8);
+                .containsExactly(8, 9);
     }
 
     @Test
@@ -254,6 +286,50 @@ class ApiDocSearchServiceImplTest {
         share.setProjectId(10);
         share.setShareDocs("[2]");
         assertThat(service.search(query, share).getRecords()).isEmpty();
+    }
+
+    @Test
+    void ranksExactMatchesAndCoverageBeforePaginationAndModificationTime() {
+        addDoc(8, 10, "退款", "api", "/refund", "POST", 1, null, null, "退款");
+        sql.update("UPDATE t_api_doc SET modify_date = TIMESTAMP '2020-01-01 00:00:00' WHERE id = 8");
+        for (int id = 9; id < 20; id++) {
+            addDoc(id, 10, "其他说明" + id, "md", null, null, 1, null, "附带提及退款", null);
+        }
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setKeyword("退款");
+        query.setPage(new SimplePage(1, 8, 0, 0));
+        assertThat(service.search(query, null).getRecords().get(0).getId()).isEqualTo(8);
+        addDoc(20, 10, "订单退款", "api", "/orders/refund", "POST", 1, null, null, "支持撤销");
+        query.setKeyword("订单 退款");
+        assertThat(service.search(query, null).getRecords().get(0).getId()).isEqualTo(20);
+    }
+
+    @Test
+    void allKeywordsCanMatchAcrossFieldsWithoutBroadeningPermissions() {
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setKeyword("订单 退款");
+        query.setKeywordMatch("all");
+        assertThat(service.search(query, null).getRecords()).extracting(ApiDocSearchResultVo::getId).containsExactly(2);
+        query.setKeyword("订单 token");
+        assertThat(service.search(query, null).getRecords()).extracting(ApiDocSearchResultVo::getId)
+                .containsExactlyInAnyOrder(1, 2, 3, 7);
+        ApiProjectShare share = new ApiProjectShare();
+        share.setProjectId(10);
+        share.setShareDocs("[1,2,7]");
+        assertThat(service.search(query, share).getRecords()).extracting(ApiDocSearchResultVo::getId)
+                .containsExactlyInAnyOrder(1, 2);
+        query.setKeyword("' OR 1=1 --");
+        assertThat(service.search(query, share).getTotal()).isZero();
+    }
+
+    @Test
+    void duplicateCaseVariantsDoNotInflateRelevanceAndWildcardsRemainLiteral() {
+        addDoc(8, 10, "Token", "api", "/auth", "POST", 1, null, null, "授权");
+        ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
+        query.setKeyword("token TOKEN");
+        assertThat(service.search(query, null).getRecords().get(0).getId()).isEqualTo(8);
+        query.setKeyword("100%");
+        assertThat(service.search(query, null).getRecords()).extracting(ApiDocSearchResultVo::getId).containsExactly(1);
     }
 
     @Test

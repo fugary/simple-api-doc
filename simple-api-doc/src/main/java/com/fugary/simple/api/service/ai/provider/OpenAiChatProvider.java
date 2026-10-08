@@ -70,15 +70,8 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
         requestBody.put("messages", messages);
         if (tools != null && !tools.isEmpty()) {
             List<Map<String, Object>> formattedTools = new ArrayList<>();
-            for (AiToolDefinition tool : tools) {
-                Map<String, Object> fn = new HashMap<>();
-                fn.put("name", tool.getName());
-                fn.put("description", tool.getDescription());
-                fn.put("parameters", tool.getParameters());
-                Map<String, Object> toolMap = new HashMap<>();
-                toolMap.put("type", "function");
-                toolMap.put("function", fn);
-                formattedTools.add(toolMap);
+            for (Map<String, Object> definition : formatToolDefinitions(tools, "parameters")) {
+                formattedTools.add(Map.of("type", "function", "function", definition));
             }
             requestBody.put("tools", formattedTools);
             requestBody.put("tool_choice", StringUtils.defaultIfBlank(toolChoice, "auto"));

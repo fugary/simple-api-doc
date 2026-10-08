@@ -46,7 +46,13 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
         String keyword = StringUtils.trimToEmpty(query.getKeyword());
         List<String> tokens = extractKeywordTokens(keyword);
         if (!tokens.isEmpty()) {
-            wrapper.and(w -> tokens.forEach(token -> w.or(sub -> buildSingleKeywordCondition(sub, token))));
+            wrapper.and(w -> tokens.forEach(token -> {
+                if ("all".equals(query.getKeywordMatch())) {
+                    w.and(sub -> buildSingleKeywordCondition(sub, token));
+                } else {
+                    w.or(sub -> buildSingleKeywordCondition(sub, token));
+                }
+            }));
         }
         String content = StringUtils.trimToEmpty(query.getContent());
         if (!content.isEmpty()) {
@@ -64,8 +70,12 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
                     .eq(query.getStatus() != null, ApiDocConstants.STATUS_KEY, query.getStatus());
             readableProjects(wrapper, "t_api_doc", "project_id");
         }
+        orderByRelevance(wrapper, keyword, tokens);
         wrapper.orderByDesc("modify_date", "id");
-        Page<ApiDoc> docs = apiDocService.page(page(query), wrapper);
+        Page<ApiDoc> docPage = page(query);
+        // 含绑定参数的相关度排序无法被 COUNT 优化器移除，改用子查询统计以避免非法聚合 SQL。
+        docPage.setOptimizeCountSql(tokens.isEmpty());
+        Page<ApiDoc> docs = apiDocService.page(docPage, wrapper);
         Page<ApiDocSearchResultVo> result = new Page<>(docs.getCurrent(), docs.getSize(), docs.getTotal());
         if (docs.getRecords().isEmpty()) {
             return result;
@@ -123,6 +133,34 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
                 input == null ? 20 : Math.max(1, Math.min(50, input.getPageSize())));
     }
 
+    private void orderByRelevance(QueryWrapper<ApiDoc> wrapper, String keyword, List<String> tokens) {
+        if (tokens.isEmpty()) {
+            return;
+        }
+        // 排序同样使用参数绑定；在数据库分页前排序，避免真正相关的旧文档被截掉。
+        String phrase = bindRankingValue(wrapper, "searchPhrase", keyword.toLowerCase(Locale.ROOT));
+        wrapper.orderByDesc("CASE WHEN LOWER(doc_name) = " + phrase + " OR LOWER(url) = " + phrase
+                + " THEN 1 ELSE 0 END");
+        List<String> coverage = new ArrayList<>();
+        List<String> fields = new ArrayList<>();
+        for (int i = 0; i < tokens.size(); i++) {
+            String value = bindRankingValue(wrapper, "searchToken" + i, tokens.get(i));
+            String name = "LOCATE(" + value + ", LOWER(doc_name)) > 0";
+            String url = "LOCATE(" + value + ", LOWER(url)) > 0";
+            String body = "LOCATE(" + value
+                    + ", LOWER(CASE WHEN doc_type = 'md' THEN doc_content ELSE description END)) > 0";
+            coverage.add("CASE WHEN " + name + " OR " + url + " OR " + body + " THEN 1 ELSE 0 END");
+            fields.add("CASE WHEN " + name + " THEN 3 WHEN " + url + " THEN 2 WHEN " + body + " THEN 1 ELSE 0 END");
+        }
+        wrapper.orderByDesc("(" + String.join(" + ", coverage) + ")",
+                "(" + String.join(" + ", fields) + ")");
+    }
+
+    private String bindRankingValue(QueryWrapper<ApiDoc> wrapper, String key, String value) {
+        wrapper.getParamNameValuePairs().put(key, value);
+        return "#{ew.paramNameValuePairs." + key + "}";
+    }
+
     private void buildSingleKeywordCondition(QueryWrapper<ApiDoc> qw, String token) {
         contains(qw, "doc_name", token);
         qw.or(u -> contains(u, "url", token));
@@ -149,7 +187,7 @@ public class ApiDocSearchServiceImpl implements ApiDocSearchService {
     private static List<String> extractKeywordTokens(String keyword) {
         // 仅按空白分词并去重，业务语义和搜索词选择交由调用方判断。
         return Arrays.stream(StringUtils.split(StringUtils.trimToEmpty(keyword)))
-                .distinct().collect(Collectors.toList());
+                .map(token -> token.toLowerCase(Locale.ROOT)).distinct().collect(Collectors.toList());
     }
 
     private static String snippet(String text, List<String> tokens) {

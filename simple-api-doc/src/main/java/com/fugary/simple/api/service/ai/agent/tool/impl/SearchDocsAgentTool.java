@@ -44,8 +44,13 @@ public class SearchDocsAgentTool implements AgentTool {
 
         Map<String, Object> keywordsProp = new LinkedHashMap<>();
         keywordsProp.put("type", "string");
-        keywordsProp.put("description", "按字面包含匹配的关键词或路径，不自动翻译、扩展同义词或删除尾缀。空格分隔的多个词按 OR 匹配，命中任意一个即可；请根据用户意图选择少量含义一致的替代表达，明确路径请保留原文。");
+        keywordsProp.put("description", "按字面包含匹配的关键词或路径，不自动翻译、扩展同义词或删除尾缀。空格分隔关键词；match=any 用于同义表达，match=all 用于必须同时满足的不同条件。明确路径请保留原文。");
+        keywordsProp.put("maxLength", 200);
         properties.put("keywords", keywordsProp);
+        properties.put("match", Map.of("type", "string", "enum", List.of("any", "all"),
+                "description", "默认 any：匹配任意词；all：每个词都必须命中，可分布在名称、路径或正文。"));
+        properties.put("page", Map.of("type", "integer", "minimum", 1,
+                "description", "结果页码，默认 1；hasMore=true 且证据不足时可以读取下一页。"));
 
         Map<String, Object> methodProp = new LinkedHashMap<>();
         methodProp.put("type", "string");
@@ -69,6 +74,13 @@ public class SearchDocsAgentTool implements AgentTool {
         try {
             JsonNode argsNode = JsonUtils.getMapper().readTree(argumentsJson);
             String keywords = argsNode.path("keywords").asText("").trim();
+            if (keywords.isEmpty() || keywords.length() > 200) {
+                return "请提供 1 到 200 个字符的检索关键词。";
+            }
+            String match = argsNode.path("match").asText("any");
+            if (!List.of("any", "all").contains(match)) {
+                return "match 仅支持 any 或 all。";
+            }
             String method = argsNode.path("method").asText(null);
             Integer projectId = (context != null && context.getDefaultProjectId() != null)
                     ? context.getDefaultProjectId()
@@ -76,6 +88,7 @@ public class SearchDocsAgentTool implements AgentTool {
 
             ApiDocSearchQueryVo query = new ApiDocSearchQueryVo();
             query.setKeyword(keywords);
+            query.setKeywordMatch(match);
             if (StringUtils.isNotBlank(method)) {
                 query.setMethod(method.trim().toUpperCase(Locale.ROOT));
             }
@@ -83,35 +96,27 @@ public class SearchDocsAgentTool implements AgentTool {
                 query.setProjectId(projectId);
             }
             SimplePage page = new SimplePage();
-            page.setPageNumber(1);
+            page.setPageNumber(Math.max(1, argsNode.path("page").asInt(1)));
             page.setPageSize(8); // 控制返回条数，避免 Token 膨胀
             query.setPage(page);
 
             Page<ApiDocSearchResultVo> searchResult = apiDocSearchService.search(query, context.getShare());
             List<ApiDocSearchResultVo> records = searchResult.getRecords();
-            if (records == null || records.isEmpty()) {
-                return "本次查询未检索到与 '" + keywords + "' 匹配的接口或文档。";
-            }
 
-            List<CompactSearchDocDto> compactList = records.stream().map(doc -> {
-                String desc = doc.getSnippet();
-                if (StringUtils.isNotBlank(desc) && desc.length() > 100) {
-                    desc = desc.substring(0, 100) + "...";
-                }
-                return CompactSearchDocDto.builder()
+            List<CompactSearchDocDto> compactList = records.stream().map(doc -> CompactSearchDocDto.builder()
                         .docId(doc.getId())
                         .docName(doc.getDocName())
                         .docType(doc.getDocType())
                         .method(doc.getMethod())
                         .url(doc.getUrl())
-                        .description(desc)
+                        .description(doc.getSnippet())
                         .projectId(doc.getProjectId())
                         .projectName(doc.getProjectName())
                         .folderPath(doc.getFolderPath())
-                        .build();
-            }).collect(Collectors.toList());
+                        .build()).collect(Collectors.toList());
             compactList.forEach(doc -> context.getDiscoveredDocIds().add(doc.getDocId()));
-            return JsonUtils.toJson(compactList);
+            return JsonUtils.toJson(Map.of("total", searchResult.getTotal(),
+                    "page", searchResult.getCurrent(), "hasMore", searchResult.hasNext(), "docs", compactList));
         } catch (Exception e) {
             log.error("SearchDocsAgentTool execute error, args: {}", argumentsJson, e);
             return "检索执行异常: " + e.getMessage();

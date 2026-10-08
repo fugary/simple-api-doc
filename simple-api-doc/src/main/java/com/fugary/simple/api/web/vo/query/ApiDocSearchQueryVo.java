@@ -12,6 +12,8 @@ public class ApiDocSearchQueryVo extends SimpleQueryVo {
     private Integer projectId;
     @Size(max = 200)
     private String keyword;
+    @Pattern(regexp = "any|all")
+    private String keywordMatch = "any";
     @Size(max = 200)
     private String docName;
     @Size(max = 1000)
