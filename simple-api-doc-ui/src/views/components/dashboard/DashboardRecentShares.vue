@@ -65,7 +65,7 @@ const showShareProjectTag = (item) => {
         </span>
         <el-link
           type="primary"
-          :underline="false"
+          underline="never"
           @click="router.push({ name: 'AdminProjectShares' })"
         >
           {{ $t('api.label.dashboardViewMore') }}
@@ -102,7 +102,7 @@ const showShareProjectTag = (item) => {
             <el-link
               tag="b"
               truncated
-              :underline="false"
+              underline="never"
               class="dashboard-item-title"
               :href="getShareUrl(item)"
               target="_blank"

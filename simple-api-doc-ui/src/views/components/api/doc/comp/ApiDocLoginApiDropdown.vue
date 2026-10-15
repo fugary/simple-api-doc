@@ -66,7 +66,7 @@ const handleOpenLoginApiDebug = (config) => {
   >
     <el-link
       type="primary"
-      :underline="false"
+      underline="never"
     >
       <span>{{ $t('api.label.loginApi') }}</span>
     </el-link>

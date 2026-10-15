@@ -1,6 +1,6 @@
 <script setup>
 import { useVModel } from '@vueuse/core'
-import { computed, ref, provide, unref, watch, onBeforeUnmount } from 'vue'
+import { computed, ref, provide, unref, watch } from 'vue'
 import { UPDATE_MODEL_EVENT } from 'element-plus'
 import { proxyMethod } from '@/components/utils'
 
@@ -167,12 +167,12 @@ const isFullscreen = defineModel('fullscreen', { type: Boolean, default: false }
 
 const fullscreenRef = ref()
 if (props.showFullscreen && props.dblclickToFullscreen) {
-  watch(fullscreenRef, (fullscreenRefVal) => {
+  watch(fullscreenRef, (fullscreenRefVal, oldValue, onCleanup) => {
     const headerElement = fullscreenRefVal?.parentElement
     if (headerElement) {
       const dblclickHandler = () => { isFullscreen.value = !isFullscreen.value }
       headerElement.addEventListener('dblclick', dblclickHandler)
-      onBeforeUnmount(() => headerElement.removeEventListener('dblclick', dblclickHandler))
+      onCleanup(() => headerElement.removeEventListener('dblclick', dblclickHandler))
     }
   })
 }

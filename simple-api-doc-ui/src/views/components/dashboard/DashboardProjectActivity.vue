@@ -61,7 +61,7 @@ const getProjectName = (item) => {
         </span>
         <el-link
           type="primary"
-          :underline="false"
+          underline="never"
           @click="router.push({ name: 'ApiProjects' })"
         >
           {{ $t('api.label.dashboardViewMore') }}

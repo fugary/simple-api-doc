@@ -679,7 +679,7 @@ export const renderAiConfigLabel = (item, isDefault) => {
   return h('span', [
     renderAiProviderTag(item.provider || 'OPENAI', { size: 'small' }),
     h('span', { class: 'margin-left1' }, formatAiConfigName(item)),
-    isDefault && h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, `[${$i18nBundle('api.label.default')}]`)
+    isDefault && h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, () => `[${$i18nBundle('api.label.default')}]`)
   ])
 }
 

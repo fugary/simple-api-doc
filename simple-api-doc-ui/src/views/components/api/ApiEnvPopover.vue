@@ -79,7 +79,7 @@ const openEditWindow = () => {
         <template #default="{ row }">
           <el-link
             type="primary"
-            :underline="false"
+            underline="never"
             @click="$copyText(row.value)"
           >
             {{ row.name }}
@@ -92,7 +92,7 @@ const openEditWindow = () => {
       >
         <template #default="{ row }">
           <el-link
-            :underline="false"
+            underline="never"
             style="display: inline-block; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;"
             @click="$copyText(row.desc)"
           >

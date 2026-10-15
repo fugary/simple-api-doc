@@ -64,7 +64,8 @@ const chartOption = computed(() => {
       right: '4%',
       bottom: '24%',
       top: '10%',
-      containLabel: true
+      outerBoundsMode: 'same',
+      outerBoundsContain: 'axisLabel'
     },
     xAxis: {
       type: 'category',

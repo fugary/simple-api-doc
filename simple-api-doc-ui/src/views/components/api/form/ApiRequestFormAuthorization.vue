@@ -70,7 +70,7 @@ const authTypeSelectOption = computed(() => {
                 {toLabelByKey(authOpt.labelKey)}
                 <ElLink
                   type="primary"
-                  underline={false}
+                  underline="never"
                   style="margin-left: 4px;"
                   onClick={(e) => {
                     e.stopPropagation()

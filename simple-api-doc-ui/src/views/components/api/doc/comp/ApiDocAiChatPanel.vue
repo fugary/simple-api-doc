@@ -491,7 +491,7 @@ const switchToManualSearch = () => {
             <el-link
               class="card-doc-name"
               type="primary"
-              :underline="false"
+              underline="never"
               @click="handleOpenDoc(doc)"
             >
               {{ doc.docName }}
