@@ -52,7 +52,7 @@ export const renderProjectGroupLabel = (group) => {
   }
   return h('span', [
     group.groupName,
-    group.userName ? h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, `(${group.userName})`) : null
+    group.userName ? h(ElText, { type: 'success', tag: 'b', class: 'margin-left1' }, () => `(${group.userName})`) : null
   ])
 }
 
