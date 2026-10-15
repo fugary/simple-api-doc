@@ -28,7 +28,6 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -199,113 +198,118 @@ public class ApiDocFreemarkerUtils {
      * @param schema
      * @return
      */
+    public String schemaToTable(String schemaContent, String specVersion, List<ApiProjectInfoDetail> components) {
+        SpecVersion version = SchemaJsonUtils.resolveSpecVersion(specVersion);
+        Map<String, Schema<?>> schemasMap = new LinkedHashMap<>();
+        SimpleModelUtils.processComponents(components, version, schemasMap);
+        Schema<?> schema = SchemaJsonUtils.fromJson(schemaContent, Schema.class, SchemaJsonUtils.isV31(version));
+        return schemaToTable(SchemaJsonUtils.getSchema(schema, schemasMap));
+    }
+
     public String schemaToTable(Schema<?> schema) {
-        Pair<List<String>, Map<String, Schema>> schemaPropertiesPair = getSchemaProperties(schema);
-        List<String> required = schemaPropertiesPair.getLeft();
-        Map<String, Schema> schemaProperties = schemaPropertiesPair.getRight();
-        if (MapUtils.isNotEmpty(schemaProperties)) {
-            boolean hasDescription = schemaProperties.values().stream().anyMatch(this::checkDescription);
-            StringBuilder sb = new StringBuilder();
-            // 添加表头
-            sb.append("| ").append(getMessage("api.label.paramName")).append(" | ")
-                    .append(getMessage("api.label.paramType")).append(" | ")
-                    .append(getMessage("api.label.required")).append(" | ");
-            appendConditional(hasDescription, () -> sb.append(getMessage("api.label.paramDesc")).append(" |"));
-            sb.append(System.lineSeparator());
-            sb.append("| --- | --- | --- |");
-            appendConditional(hasDescription, () -> sb.append(" --- |"));
-            sb.append(System.lineSeparator());
-            // 添加表内容
-            schemaProperties.forEach((key, property) -> {
-                sb.append("| ");
-                // 判断是否标记为废弃
-                if (isTrue(property.getDeprecated())) {
-                    sb.append("~~**`").append(key).append("`**~~");
-                } else {
-                    sb.append("**`").append(key).append("`**");
-                }
-                sb.append(" | ")
-                        .append(getSchemaName(property)).append(" | ");
-                // 判断是否必填
-                sb.append(isRequired(required, key) ? "`Y`" : "N").append(" | ");
-                appendConditional(hasDescription, () -> sb.append(getSchemaDescription(property)).append(" | "));
-                sb.append(System.lineSeparator());
-            });
-            return sb.toString();
-        } else if (schema != null) {
-            return getSchemaName(schema, false);
+        Pair<List<String>, Map<String, Schema>> properties = getSchemaProperties(schema);
+        if (MapUtils.isEmpty(properties.getRight())) {
+            return schema == null ? StringUtils.EMPTY : getSchemaName(schema, false);
         }
-        return StringUtils.EMPTY; // 如果没有属性，返回空字符串
+        StringBuilder sb = fieldTableHeader();
+        properties.getRight().forEach((name, property) -> appendFieldRow(sb, name, property,
+                property.getDescription(), isRequired(properties.getLeft(), name),
+                isTrue(property.getDeprecated()), schemaRemarks(property)));
+        return sb.toString();
     }
 
-    private boolean checkDescription(Schema schema) {
-        return schema != null && (StringUtils.isNotBlank(schema.getDescription())
-                || CollectionUtils.isNotEmpty(schema.getEnum()) || schema.getExample() != null || schema.getDefault() != null);
+    private StringBuilder fieldTableHeader() {
+        StringBuilder sb = new StringBuilder("| ");
+        for (String key : new String[]{"fieldName", "fieldType", "paramDesc", "defaultValue", "fieldRequired", "remark"}) {
+            sb.append(getMessage("api.label." + key)).append(" | ");
+        }
+        return sb.append(System.lineSeparator()).append("| --- | --- | --- | --- | --- | --- |")
+                .append(System.lineSeparator());
     }
 
-    private void appendConditional(Supplier<Boolean> supplier, Supplier<StringBuilder> appender) {
-        if (isTrue(supplier.get())) {
-            appender.get();
-        }
+    private void appendFieldRow(StringBuilder sb, String name, Schema<?> schema, String description,
+                                boolean required, boolean deprecated, String remarks) {
+        String fieldName = "**`" + name + "`**";
+        sb.append("| ").append(tableCell(deprecated ? "~~" + fieldName + "~~" : fieldName)).append(" | ")
+                .append(tableCell(getSchemaName(schema))).append(" | ")
+                .append(tableCell(markdownToHtml(description))).append(" | ")
+                .append(tableCell(getExample(schema == null ? null : schema.getDefault()))).append(" | ")
+                .append(required ? "`Y`" : "N").append(" | ")
+                .append(tableCell(remarks)).append(" | ").append(System.lineSeparator());
     }
 
-    private void appendConditional(Boolean check, Supplier<StringBuilder> appender) {
-        if (isTrue(check)) {
-            appender.get();
+    private String tableCell(String value) {
+        return StringUtils.defaultString(value).replace("|", "&#124;")
+                .replace("\r\n", "<br>").replace("\n", "<br>").replace("\r", "<br>");
+    }
+
+    private String schemaRemarks(Schema<?> schema) {
+        if (schema == null) {
+            return StringUtils.EMPTY;
         }
+        List<String> remarks = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(schema.getEnum())) {
+            remarks.add(getMessage("api.label.enums") + ": " + getEnums(schema.getEnum()));
+        }
+        if (schema.getExample() != null) {
+            remarks.add(getMessage("api.label.example") + ": " + getExample(schema.getExample()));
+        }
+        Map<String, Object> constraints = new LinkedHashMap<>();
+        constraints.put("format", schema.getFormat());
+        constraints.put("minimum", schema.getMinimum());
+        constraints.put("maximum", schema.getMaximum());
+        constraints.put("exclusiveMinimum", schema.getExclusiveMinimum());
+        constraints.put("exclusiveMaximum", schema.getExclusiveMaximum());
+        constraints.put("multipleOf", schema.getMultipleOf());
+        constraints.put("minLength", schema.getMinLength());
+        constraints.put("maxLength", schema.getMaxLength());
+        constraints.put("pattern", schema.getPattern());
+        constraints.put("minItems", schema.getMinItems());
+        constraints.put("maxItems", schema.getMaxItems());
+        constraints.put("uniqueItems", schema.getUniqueItems());
+        constraints.put("minProperties", schema.getMinProperties());
+        constraints.put("maxProperties", schema.getMaxProperties());
+        constraints.put("nullable", schema.getNullable());
+        constraints.put("readOnly", schema.getReadOnly());
+        constraints.put("writeOnly", schema.getWriteOnly());
+        constraints.put("deprecated", schema.getDeprecated());
+        constraints.forEach((key, value) -> {
+            if (value != null) {
+                remarks.add(key + ": " + getExample(value));
+            }
+        });
+        return String.join("<br>", remarks);
     }
 
     /**
-     * 将 Parameters 转换为 Markdown 格式的表格
-     *
-     * @param parameters OpenAPI 参数列表
-     * @return 生成的 Markdown 表格
+     * 参数与模型使用相同六列，参数位置保留在备注中。
      */
     public String parametersToTable(List<Parameter> parameters) {
-        if (parameters != null && !parameters.isEmpty()) {
-            boolean hasDescription = SimpleModelUtils.wrap(parameters).stream().anyMatch(parameter
-                    -> StringUtils.isNotBlank(parameter.getDescription()) || parameter.getExample() != null || checkDescription(parameter.getSchema()));
-            StringBuilder sb = new StringBuilder();
-            // 添加表头
-            sb.append("| ").append(getMessage("api.label.paramName")).append(" | ")
-                    .append(getMessage("api.label.paramType")).append(" | ")
-                    .append(getMessage("api.label.required")).append(" | ");
-            sb.append(getMessage("api.label.paramIn")).append(" |");
-            appendConditional(hasDescription, () -> sb.append(getMessage("api.label.paramDesc")).append(" | "));
-            sb.append(System.lineSeparator());
-
-            sb.append("| --- | --- | --- | --- |");
-            appendConditional(hasDescription, () -> sb.append("--- | "));
-            sb.append(System.lineSeparator());
-
-            // 添加表内容
-            for (Parameter parameter : parameters) {
-                sb.append("| ");
-                // 判断是否标记为废弃
-                if (isTrue(parameter.getDeprecated())) {
-                    sb.append("~~**`").append(parameter.getName()).append("`**~~");
-                } else {
-                    sb.append("**`").append(parameter.getName()).append("`**");
-                }
-                sb.append(" | ")
-                        .append(getSchemaName(parameter.getSchema())).append(" | ")
-                        .append(isTrue(parameter.getRequired()) ? "`Y`" : "N").append(" | ")
-                        .append("*").append(parameter.getIn()).append("*").append(" | ");
-                // 判断是否必填
-                appendConditional(hasDescription, () -> sb.append(getSchemaDescription(parameter)).append(" |"));
-                sb.append(System.lineSeparator());
-            }
-            return sb.toString();
+        if (CollectionUtils.isEmpty(parameters)) {
+            return StringUtils.EMPTY;
         }
-        return StringUtils.EMPTY; // 如果参数列表为空，返回空字符串
+        StringBuilder sb = fieldTableHeader();
+        for (Parameter parameter : parameters) {
+            Schema<?> schema = parameter.getSchema();
+            String description = StringUtils.defaultIfBlank(parameter.getDescription(),
+                    schema == null ? null : schema.getDescription());
+            List<String> remarks = new ArrayList<>();
+            if (StringUtils.isNotBlank(parameter.getIn())) {
+                remarks.add(getMessage("api.label.paramIn") + ": " + parameter.getIn());
+            }
+            if (parameter.getExample() != null) {
+                remarks.add(getMessage("api.label.example") + ": " + getExample(parameter.getExample()));
+            }
+            String schemaRemark = schemaRemarks(schema);
+            if (StringUtils.isNotBlank(schemaRemark)) {
+                remarks.add(schemaRemark);
+            }
+            appendFieldRow(sb, parameter.getName(), schema, description, isTrue(parameter.getRequired()),
+                    isTrue(parameter.getDeprecated()), String.join("<br>", remarks));
+        }
+        return sb.toString();
     }
 
-    /**
-     * 获取Schema描述
-     *
-     * @param target
-     * @return
-     */
     public String getSchemaDescription(Object target) {
         return getSchemaDescription(target, true);
     }

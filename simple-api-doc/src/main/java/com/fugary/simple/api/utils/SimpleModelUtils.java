@@ -550,7 +550,11 @@ public class SimpleModelUtils {
         if (apiDocDetail == null || apiDocDetail.getProjectInfoDetail() == null) {
             return;
         }
-        List<ApiProjectInfoDetail> componentSchemas = apiDocDetail.getProjectInfoDetail().getComponentSchemas();
+        processComponents(apiDocDetail.getProjectInfoDetail().getComponentSchemas(), specVersion, schemasMap);
+    }
+
+    public static void processComponents(List<ApiProjectInfoDetail> componentSchemas, SpecVersion specVersion,
+                                         Map<String, Schema<?>> schemasMap) {
         if (componentSchemas != null) {
             componentSchemas.forEach(detail -> {
                 if (!schemasMap.containsKey(detail.getSchemaName())) {

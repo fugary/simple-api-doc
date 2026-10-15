@@ -2,6 +2,7 @@ package com.fugary.simple.api.exports.md;
 
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
+import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import freemarker.template.Configuration;
 import freemarker.template.TemplateMethodModelEx;
 import io.swagger.v3.oas.models.media.ObjectSchema;
@@ -37,6 +38,34 @@ class MarkdownApiDocViewGeneratorImplTest {
         generator = new MarkdownApiDocViewGeneratorImpl();
         generator.setApiDocFreemarkerUtils(utils);
         generator.setFreemarkerConfig(configuration);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"V30", "V31"})
+    void modelPreviewUsesSameTableAsDetailMarkdown(String version) {
+        ApiProjectInfoDetail base = new ApiProjectInfoDetail();
+        base.setSchemaName("Base");
+        base.setSchemaContent("{\"type\":\"object\",\"required\":[\"enabled\"],\"properties\":{"
+                + "\"enabled\":{\"type\":\"boolean\",\"default\":false}}}");
+        ApiProjectInfoDetail model = new ApiProjectInfoDetail();
+        model.setSchemaName("Model");
+        model.setSchemaContent("{\"allOf\":[{\"$ref\":\"#/components/schemas/Base\"}],\"properties\":{"
+                + "\"child\":{\"$ref\":\"#/components/schemas/Base\"},"
+                + "\"count\":{\"type\":\"integer\",\"default\":0},"
+                + "\"nested\":{\"type\":\"object\",\"properties\":{\"hidden\":{\"type\":\"string\"}}}}}");
+        ApiProjectInfoDetailVo info = new ApiProjectInfoDetailVo();
+        info.setSpecVersion(version);
+        info.setComponentSchemas(List.of(base, model));
+        ApiDocDetailVo doc = createDoc();
+        doc.setProjectInfoDetail(info);
+        String preview = generator.getApiDocFreemarkerUtils().schemaToTable(
+                model.getSchemaContent(), version, info.getComponentSchemas());
+        String detail = generator.generate(new MdViewContext(doc));
+        Assertions.assertTrue(detail.contains(preview), "预览必须直接复用详情 Markdown 字段表");
+        Assertions.assertTrue(preview.contains("| `false` | `Y` |"));
+        Assertions.assertTrue(preview.contains("| `0` | N |"));
+        Assertions.assertFalse(preview.contains("**`hidden`**"), "不展开子对象字段");
+        Assertions.assertEquals(6, preview.lines().count(), "仅表头、分隔行和四个字段");
     }
 
     @Test

@@ -12,6 +12,8 @@ import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.exports.md.ApiDocFreemarkerUtils;
+import com.fugary.simple.api.web.vo.project.SchemaMarkdownVo;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.exports.ApiSchemaContentUtils;
@@ -52,6 +54,15 @@ public class ApiProjectInfoDetailController {
 
     @Autowired
     private ApiProjectAccessService apiProjectAccessService;
+
+    @Autowired
+    private ApiDocFreemarkerUtils apiDocFreemarkerUtils;
+
+    @PostMapping("/previewMarkdown")
+    public SimpleResult<String> previewMarkdown(@RequestBody SchemaMarkdownVo preview) {
+        return SimpleResultUtils.createSimpleResult(apiDocFreemarkerUtils.schemaToTable(
+                preview.getSchemaContent(), preview.getSpecVersion(), preview.getComponentSchemas()));
+    }
 
     private QueryWrapper<ApiProjectInfoDetail> buildComponentQueryWrapper(ProjectComponentQueryVo queryVo) {
         String keyword = StringUtils.trimToEmpty(queryVo.getKeyword());

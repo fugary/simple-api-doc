@@ -58,4 +58,7 @@ export const removeByQuery = function (param, config) {
   return $httpPost(`${BASE_URL}/removeByQuery`, param, config)
 }
 
+export const previewSchemaMarkdown = (data, config) => $httpPost(
+  `${BASE_URL}/previewMarkdown`, data, config)
+
 export default ApiProjectInfoDetailApi

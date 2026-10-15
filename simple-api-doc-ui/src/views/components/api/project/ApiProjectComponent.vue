@@ -6,6 +6,7 @@ import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElMessage, ElTag, ElText } from 'element-plus'
 import { $copyText, $coreConfirm, $coreError, formatDate, getSingleSelectOptions, getStyleGrow } from '@/utils'
+import ApiDocSchemaTable from '@/views/components/api/doc/comp/ApiDocSchemaTable.vue'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
 import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail, loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
@@ -241,6 +242,7 @@ watch(schemaContentObj, () => {
   }
 }, { deep: true })
 const codeHeight = '400px'
+const activeTab = ref('model')
 
 const currentProjectInfo = computed(() => {
   return projectInfos.value?.find(info => info.id === currentComponentModel.value.infoId)
@@ -552,9 +554,10 @@ defineExpose({
           </el-text>
         </template>
       </div>
-      <el-tabs>
+      <el-tabs v-model="activeTab">
         <el-tab-pane
           :label="$t('api.label.dataModel')"
+          name="model"
           lazy
         >
           <el-container
@@ -575,6 +578,7 @@ defineExpose({
         </el-tab-pane>
         <el-tab-pane
           label="JSON Schema"
+          name="schema"
           lazy
         >
           <common-form-control
@@ -621,6 +625,18 @@ defineExpose({
             :options="monacoEditorOptions"
             class="common-resize-vertical"
             @mount="editorRef=$event"
+          />
+        </el-tab-pane>
+        <el-tab-pane
+          :label="$t('api.label.schemaPreview')"
+          name="table"
+          lazy
+        >
+          <api-doc-schema-table
+            v-if="activeTab === 'table' && currentComponentModel && schemaContentObj"
+            :schema="schemaContentObj"
+            :spec-version="currentProjectInfo?.specVersion"
+            :component-schemas="componentSchemas"
           />
         </el-tab-pane>
       </el-tabs>
