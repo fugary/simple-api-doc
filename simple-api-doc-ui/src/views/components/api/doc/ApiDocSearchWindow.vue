@@ -80,6 +80,7 @@ const defaultAiState = () => ({
   toolSteps: [],
   relatedDocs: [],
   answerContent: '',
+  answerStatus: '',
   isStepsExpanded: true
 })
 

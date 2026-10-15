@@ -109,6 +109,10 @@ const answerContent = computed({
   get: () => activeAiState.value.answerContent || '',
   set: (val) => { activeAiState.value.answerContent = val }
 })
+const answerStatus = computed({
+  get: () => activeAiState.value.answerStatus || '',
+  set: (val) => { activeAiState.value.answerStatus = val }
+})
 let abortController = null
 
 /**
@@ -123,15 +127,12 @@ const finishReasoningStep = () => {
 }
 
 /**
- * 将最后一个步骤的状态更新为指定值（immutable 方式触发 store 更新）
+ * 更新正在执行的步骤；合并同一文档的读取后，该步骤不一定在列表末尾。
  */
-const updateLastStepStatus = (status) => {
-  const steps = [...toolSteps.value]
-  const last = steps[steps.length - 1]
-  if (last && last.status === 'running') {
-    steps[steps.length - 1] = { ...last, status }
-    toolSteps.value = steps
-  }
+const updateRunningStepStatus = (status, summary) => {
+  toolSteps.value = toolSteps.value.map(step => step.status === 'running'
+    ? { ...step, status, summary: summary ?? step.summary }
+    : step)
 }
 
 const runChat = async () => {
@@ -160,6 +161,7 @@ const runChat = async () => {
   ]
   relatedDocs.value = []
   answerContent.value = ''
+  answerStatus.value = ''
   isStepsExpanded.value = true
 
   const controller = new AbortController()
@@ -188,8 +190,23 @@ const runChat = async () => {
         }),
         onToolStart: onCurrentRequest((data) => {
           finishReasoningStep()
+          let docId
+          if (data.tool === 'get_doc') {
+            try {
+              const args = JSON.parse(data.arguments)
+              if (Number.isInteger(args?.docId) && args.docId > 0) docId = args.docId
+            } catch {
+              // 无效参数不合并，保留工具返回的错误信息。
+            }
+          }
+          const existingIndex = docId === undefined ? -1 : toolSteps.value.findIndex(step => step.docId === docId)
+          if (existingIndex >= 0) {
+            toolSteps.value = toolSteps.value.map((step, index) => index === existingIndex ? { ...step, status: 'running' } : step)
+            return
+          }
           const step = {
             tool: data.tool,
+            docId,
             label: data.tool === 'search_docs' ? $i18nBundle('api.label.aiSearchDocsStep') : $i18nBundle('api.label.aiGetDocStep'),
             detail: data.arguments,
             status: 'running'
@@ -197,12 +214,7 @@ const runChat = async () => {
           toolSteps.value = [...toolSteps.value, step]
         }),
         onToolEnd: onCurrentRequest((data) => {
-          const steps = [...toolSteps.value]
-          const last = steps[steps.length - 1]
-          if (last) {
-            steps[steps.length - 1] = { ...last, status: 'finished', summary: data.summary }
-            toolSteps.value = steps
-          }
+          updateRunningStepStatus('finished', data.summary)
         }),
         onRelatedDocs: onCurrentRequest((docs) => {
           if (Array.isArray(docs)) {
@@ -215,20 +227,23 @@ const runChat = async () => {
             answerContent.value = data.text
           }
         }),
-        onFinish: onCurrentRequest(() => {
+        onFinish: onCurrentRequest((data) => {
+          answerStatus.value = data?.status === 'SUCCESS' ? 'SUCCESS' : 'INCOMPLETE'
           finishReasoningStep()
         }),
         onError: onCurrentRequest((err) => {
+          answerStatus.value = 'ERROR'
           errorMessage.value = err?.message || $i18nBundle('api.msg.aiResponseError')
-          updateLastStepStatus('error')
+          updateRunningStepStatus('error')
         })
       },
       controller.signal
     )
   } catch (err) {
     if (isCurrentRequest() && err.name !== 'AbortError') {
+      answerStatus.value = 'ERROR'
       errorMessage.value = err.message || $i18nBundle('common.msg.networkError')
-      updateLastStepStatus('error')
+      updateRunningStepStatus('error')
     }
   } finally {
     if (abortController === controller) {
@@ -244,7 +259,8 @@ const stopChat = () => {
     abortController = null
     controller.abort()
     loading.value = false
-    updateLastStepStatus('finished')
+    answerStatus.value = 'CANCELLED'
+    updateRunningStepStatus('finished')
   }
 }
 onUnmounted(stopChat)
@@ -255,6 +271,7 @@ const clearAll = () => {
   toolSteps.value = []
   relatedDocs.value = []
   answerContent.value = ''
+  answerStatus.value = ''
   errorMessage.value = ''
 }
 
@@ -387,14 +404,24 @@ const switchToManualSearch = () => {
             color="var(--el-color-primary)"
           />
           <common-icon
-            v-else-if="toolSteps.some(s => s.status === 'error')"
+            v-else-if="answerStatus === 'ERROR' || toolSteps.some(s => s.status === 'error')"
             icon="CircleCloseFilled"
             color="var(--el-color-danger)"
           />
           <common-icon
-            v-else
+            v-else-if="answerStatus === 'INCOMPLETE'"
+            icon="WarningFilled"
+            color="var(--el-color-warning)"
+          />
+          <common-icon
+            v-else-if="answerStatus === 'SUCCESS'"
             icon="CircleCheckFilled"
             color="var(--el-color-success)"
+          />
+          <common-icon
+            v-else
+            icon="InfoFilled"
+            color="var(--el-text-color-secondary)"
           />
           <span class="thought-title-text">{{ $t('api.label.aiRetrievalSteps') }}</span>
           <span class="thought-count-badge">{{ toolSteps.length }}</span>
@@ -402,6 +429,10 @@ const switchToManualSearch = () => {
             v-if="loading"
             class="thought-status-tag running"
           >{{ $t('api.label.aiRunning') }}...</span>
+          <span
+            v-else-if="answerStatus === 'INCOMPLETE'"
+            class="thought-status-tag running"
+          >{{ $t('api.label.aiIncompleteAnswer') }}</span>
         </div>
         <div class="ai-thought-toggle">
           <common-icon

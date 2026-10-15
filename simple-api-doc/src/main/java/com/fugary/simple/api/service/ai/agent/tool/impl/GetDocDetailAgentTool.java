@@ -108,7 +108,13 @@ public class GetDocDetailAgentTool implements AgentTool {
                 return "无权访问此文档或当前分享未授权。";
             }
 
-            String content = loadContent(apiDoc);
+            String content = context.getDocContents().get(docId);
+            if (content == null) {
+                content = loadContent(apiDoc);
+                if (StringUtils.isNotBlank(content)) {
+                    context.getDocContents().put(docId, content);
+                }
+            }
             if (StringUtils.isBlank(content)) {
                 return "文档暂无可读取的正文，不能据此推断接口参数或业务规则。";
             }

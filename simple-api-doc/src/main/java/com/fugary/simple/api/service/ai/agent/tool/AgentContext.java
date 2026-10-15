@@ -5,7 +5,9 @@ import com.fugary.simple.api.web.vo.user.ApiUserVo;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -23,4 +25,7 @@ public class AgentContext {
     // 搜索返回的候选文档；记录不替代最终权限校验。
     @Builder.Default
     private Set<Integer> discoveredDocIds = new LinkedHashSet<>();
+    // 仅本次问答复用生成后的正文，续读仍重新校验项目与文档权限。
+    @Builder.Default
+    private Map<Integer, String> docContents = new HashMap<>();
 }

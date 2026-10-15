@@ -1,6 +1,9 @@
 package com.fugary.simple.api.service.impl.ai;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.AiConfig;
@@ -47,7 +50,6 @@ import java.util.stream.Collectors;
 @Service
 public class AiAgentServiceImpl implements AiAgentService {
 
-    private static final int MAX_ITERATIONS = 8;
     private static final Pattern DOC_LINK_PATTERN = Pattern.compile("\\[([^\\]]+)\\]\\(doc://(\\d+)\\)");
     private static final Pattern MARKDOWN_FENCE_PATTERN = Pattern.compile("^ {0,3}(`{3,}|~{3,})(.*)$");
 
@@ -67,6 +69,7 @@ public class AiAgentServiceImpl implements AiAgentService {
             "   - 搜索结果不足且 search_docs 的 hasMore=true 时可用 page 翻页，或依据已有信息调整查询；证据已足够回答时直接作答，避免无依据地反复扩展和重复查询。\n" +
             "   - 列表问题可依据概览或搜索结果筛选，但候选命中不等于相关；回答参数、必填项、请求/响应字段或调用步骤前，必须用 get_doc 读取对应证据，不可从摘要猜测。\n" +
             "   - get_doc 的 hasMore=true 表示尚有后文；当前段证据不足时按 nextOffset 继续读取，不得把本段未出现说成文档没有。hasMore=false 仅表示读到文末，不代表此前各段都已读过；工具失败也不算已取得证据。\n" +
+            "   - 同一 docId 和 offset 的详情只需读取一次；省略 offset 等同于0。已返回的正文仍在上下文中，需要后文时使用 nextOffset，不要重新读取相同段落。\n" +
             "   - 参数名、类型、必填条件、枚举和请求/响应归属以原文及Schema为准；示例值不等于默认值，非空示例不等于必填，条件分支的约束不能扩大到全部请求。\n" +
             "   - 每个关键结论紧邻对应文档引用，必要时简短摘录依据。业务流程区分文档明确要求与建议组合；不能把推测的调用顺序、前置条件写成既定规则。\n" +
             "   - 明确区分已确认、尚未读取和文档未说明；读取失败、仍有未读段落或证据不足时说明缺口，不能编造补齐。完整清单或不存在的结论须覆盖对应完整资料，否则标明仅限已查阅范围；仅凭概览、摘要或有限候选不能宣称找全某字段涉及的所有接口。\n" +
@@ -78,6 +81,9 @@ public class AiAgentServiceImpl implements AiAgentService {
 
     @Autowired
     private AiConfigService aiConfigService;
+
+    @Autowired
+    private AiConfigProperties aiConfigProperties;
 
     @Autowired
     private List<AiChatProvider> chatProviders;
@@ -160,21 +166,23 @@ public class AiAgentServiceImpl implements AiAgentService {
             // 5. ReAct 循环调度
             String finalContent = "";
             int round = 0;
+            int repeatedRounds = 0;
+            int maxToolRounds = Math.max(1, aiConfigProperties.getMaxToolRounds());
             Set<String> calledToolFingerprints = new HashSet<>();
 
-            while (round++ < MAX_ITERATIONS) {
+            while (round < maxToolRounds) {
+                round++;
                 if (clientDisconnected.get()) {
                     log.info("Client disconnected, stopping agent loop early");
                     return;
                 }
-                boolean isLastRound = round == MAX_ITERATIONS;
-                AiChatResponse response = provider.chatWithTools(config, messages, toolDefinitions, isLastRound ? "none" : "auto");
+                AiChatResponse response = provider.chatWithTools(config, messages, toolDefinitions, "auto");
                 if (clientDisconnected.get()) {
                     return;
                 }
                 List<AiToolCall> toolCalls = response.getToolCalls();
 
-                if (toolCalls == null || toolCalls.isEmpty() || isLastRound) {
+                if (toolCalls == null || toolCalls.isEmpty()) {
                     finalContent = response.getContent() != null ? response.getContent() : "";
                     break;
                 }
@@ -201,6 +209,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                 }
 
                 // 顺序执行各个工具调用并推流
+                boolean executedTool = false;
                 for (AiToolCall toolCall : toolCalls) {
                     if (clientDisconnected.get()) {
                         break;
@@ -209,13 +218,10 @@ public class AiAgentServiceImpl implements AiAgentService {
                     if (toolName != null && toolName.contains(":")) {
                         toolName = toolName.substring(toolName.lastIndexOf(':') + 1);
                     }
-                    String fp = toolName + ":" + toolCall.getArguments();
+                    String fp = buildToolFingerprint(toolName, toolCall.getArguments());
                     if (!calledToolFingerprints.add(fp)) {
-                        Map<String, Object> repeatMsg = new HashMap<>();
-                        repeatMsg.put("role", "tool");
-                        repeatMsg.put("tool_call_id", ensureToolCallId(toolCall));
-                        repeatMsg.put("content", "该查询已执行过，请参考此前返回结果，不要重复查询相同内容。");
-                        messages.add(repeatMsg);
+                        addToolResult(messages, toolCall, "该查询已执行过，请参考此前返回结果，不要重复查询相同内容。"
+                                + "若需续读文档，仅在此前结果 hasMore=true 时使用 nextOffset。");
                         continue;
                     }
 
@@ -229,25 +235,27 @@ public class AiAgentServiceImpl implements AiAgentService {
 
                     AgentTool tool = toolMap.get(toolName);
                     String toolResult = tool != null ? tool.execute(toolCall.getArguments(), context) : "未知工具: " + toolCall.getName();
+                    executedTool = true;
 
                     if (!sendSseEvent(emitter, "tool_end", Map.of(
                             "tool", toolName != null ? toolName : "",
-                            "summary", StringUtils.abbreviate(toolResult.replaceAll("\\s+", " "), 100)
+                            "summary", buildToolSummary(toolName, toolResult)
                     ))) {
                         clientDisconnected.set(true);
                         break;
                     }
 
-                    Map<String, Object> toolMsg = new HashMap<>();
-                    toolMsg.put("role", "tool");
-                    toolMsg.put("tool_call_id", ensureToolCallId(toolCall));
-                    toolMsg.put("content", toolResult);
-                    messages.add(toolMsg);
+                    addToolResult(messages, toolCall, toolResult);
                 }
 
                 if (clientDisconnected.get()) {
                     log.info("Client disconnected during tool execution, terminating agent loop early");
                     return;
+                }
+                repeatedRounds = executedTool ? 0 : repeatedRounds + 1;
+                if (repeatedRounds >= 2) {
+                    log.info("AI agent stopped repeated tool calls after {} rounds", round);
+                    break;
                 }
             }
 
@@ -255,14 +263,21 @@ public class AiAgentServiceImpl implements AiAgentService {
                 return;
             }
 
-            boolean hasDocs = hasOverviewDocs
-                    || !context.getDiscoveredDocIds().isEmpty() || !context.getInspectedDocIds().isEmpty();
-
-            if (StringUtils.isBlank(finalContent) && hasDocs) {
+            if (StringUtils.isBlank(finalContent)) {
+                // 单独收尾，不占用详情读取轮次；明确要求回答，避免仅重复发送相同上下文。
+                messages.add(Map.of("role", "user", "content",
+                        "请现在根据已返回的文档证据回答最初的问题，不再调用工具。先给出可以确认的结论及文档引用；"
+                                + "若详情未读完或证据不足，明确说明尚不能确认的部分，不编造字段、必填条件或调用顺序。"));
                 try {
                     AiChatResponse summaryRes = provider.chatWithTools(config, messages, toolDefinitions, "none");
-                    if (summaryRes != null && StringUtils.isNotBlank(summaryRes.getContent())) {
+                    if (summaryRes != null && (summaryRes.getToolCalls() == null || summaryRes.getToolCalls().isEmpty())
+                            && StringUtils.isNotBlank(summaryRes.getContent())) {
                         finalContent = summaryRes.getContent();
+                    } else {
+                        log.warn("AI agent summary returned no final answer: rounds={}, inspectedDocs={}, toolCalls={}, completionTokens={}",
+                                round, context.getInspectedDocIds().size(),
+                                summaryRes == null || summaryRes.getToolCalls() == null ? 0 : summaryRes.getToolCalls().size(),
+                                summaryRes == null ? null : summaryRes.getCompletionTokens());
                     }
                 } catch (Exception e) {
                     log.warn("生成最终总结失败", e);
@@ -274,7 +289,8 @@ public class AiAgentServiceImpl implements AiAgentService {
             // 6. Grounding 校验与关联接口卡片组装，并自动修复 Markdown 代码块格式
             String cleanedContent = sanitizeMarkdownContent(processGroundingAndCleanLinks(finalContent, context));
             List<ApiDocSearchResultVo> relatedDocs = buildRelatedDocs(cleanedContent, context);
-            if (StringUtils.isBlank(cleanedContent)) {
+            boolean fallback = StringUtils.isBlank(cleanedContent);
+            if (fallback) {
                 cleanedContent = relatedDocs.isEmpty() && hasOverviewDocs
                         ? "已附加项目文档概览，但 AI 暂未生成有效回答，请重试或使用高级搜索。"
                         : buildFallbackContent(relatedDocs);
@@ -283,7 +299,7 @@ public class AiAgentServiceImpl implements AiAgentService {
             // 7. 推送最终结果事件
             if (!sendSseEvent(emitter, "related_docs", relatedDocs)) return;
             if (!sendSseEvent(emitter, "delta", Map.of("text", cleanedContent))) return;
-            sendSseEvent(emitter, "finish", Map.of("status", "SUCCESS"));
+            sendSseEvent(emitter, "finish", Map.of("status", fallback ? "INCOMPLETE" : "SUCCESS"));
             try {
                 emitter.complete();
             } catch (Exception ignore) {}
@@ -296,6 +312,46 @@ public class AiAgentServiceImpl implements AiAgentService {
                 } catch (Exception ignore) {}
             }
         }
+    }
+
+    private void addToolResult(List<Map<String, Object>> messages, AiToolCall toolCall, String content) {
+        messages.add(Map.of("role", "tool", "tool_call_id", ensureToolCallId(toolCall), "content", content));
+    }
+
+    private String buildToolFingerprint(String toolName, String arguments) {
+        if (arguments != null) {
+            try {
+                JsonNode args = JsonUtils.getMapper().readTree(arguments);
+                if ("get_doc".equals(toolName) && args != null && args.isObject() && args.has("docId")) {
+                    // 工具只使用 docId 和 offset；忽略格式、字段顺序及多余字段，保留不同分页。
+                    return toolName + ":" + args.get("docId") + ":" + (args.has("offset") ? args.get("offset") : "0");
+                }
+                if ("search_docs".equals(toolName) && args != null && args.isObject()) {
+                    Map<String, JsonNode> sortedArgs = new TreeMap<>();
+                    args.fields().forEachRemaining(entry -> sortedArgs.put(entry.getKey(), entry.getValue()));
+                    return toolName + ":" + JsonUtils.toJson(sortedArgs);
+                }
+            } catch (IOException ignored) {
+                // 无效参数仍交由工具返回原有校验信息。
+            }
+        }
+        return toolName + ":" + arguments;
+    }
+
+    private String buildToolSummary(String toolName, String toolResult) {
+        if ("get_doc".equals(toolName) || "search_docs".equals(toolName)) {
+            try {
+                JsonNode result = JsonUtils.getMapper().readTree(toolResult);
+                if (result != null && result.isObject()) {
+                    // 过程保留原始结果摘要，但不展示仅供模型续读使用的分页信息。
+                    ((ObjectNode) result).remove(List.of("offset", "totalLength", "hasMore", "nextOffset", "page"));
+                    toolResult = JsonUtils.toJson(result);
+                }
+            } catch (IOException ignored) {
+                // 工具失败等非正文结果保留原有摘要。
+            }
+        }
+        return StringUtils.abbreviate(toolResult.replaceAll("\\s+", " "), 100);
     }
 
     private String buildFallbackContent(List<ApiDocSearchResultVo> docs) {

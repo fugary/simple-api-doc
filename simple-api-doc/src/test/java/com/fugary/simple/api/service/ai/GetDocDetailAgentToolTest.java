@@ -102,6 +102,10 @@ class GetDocDetailAgentToolTest {
         assertThat(result.path("content").asText()).contains("response.token 是返回值");
         assertThat(context.getInspectedDocIds()).containsExactly(101);
         verify(access, times(pages)).canAccessDoc(eq(doc), any());
+        if (api) {
+            verify(generator).generate(any());
+            verify(schemas).loadDetailVo(doc);
+        }
     }
 
     @Test
@@ -236,6 +240,19 @@ class GetDocDetailAgentToolTest {
         assertThat(result.path("method").asText()).isEqualTo("POST");
         assertThat(result.path("url").asText()).isEqualTo("/login");
         assertThat(result.path("content").asText()).contains("request.customerId 必填", "response.token");
+    }
+
+    @Test
+    void generatedContentIsOnlyReusedWithinTheCurrentQuestion() throws Exception {
+        prepareApi("原始正文");
+        assertThat(read(0).path("content").asText()).isEqualTo("原始正文");
+        when(generator.generate(any())).thenReturn("更新正文");
+        assertThat(read(0).path("content").asText()).isEqualTo("原始正文");
+        AgentContext nextQuestion = AgentContext.builder().defaultProjectId(10).build();
+        JsonNode result = JsonUtils.getMapper().readTree(tool.execute("{\"docId\":101}", nextQuestion));
+        assertThat(result.path("content").asText()).isEqualTo("更新正文");
+        verify(generator, times(2)).generate(any());
+        verify(access, times(3)).canAccessDoc(eq(doc), any());
     }
 
     private ApiDocDetailVo prepareApi(String content) {

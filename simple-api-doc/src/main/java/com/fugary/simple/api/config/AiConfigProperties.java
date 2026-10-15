@@ -52,4 +52,7 @@ public class AiConfigProperties {
 
     /** 文档详情单次返回的字符数，剩余内容通过 get_doc 的 offset 续读。 */
     private int docDetailPageChars = 12000;
+
+    /** 单次问答最多调用模型检索/查阅的轮数，不含必要时的最终回答。 */
+    private int maxToolRounds = 12;
 }
