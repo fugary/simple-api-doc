@@ -613,21 +613,42 @@ const switchToManualSearch = () => {
 .ai-config-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
+  column-gap: 16px;
   margin-bottom: 2px;
 }
 .ai-project-badge {
   display: inline-flex;
   align-items: center;
-  margin-right: 16px;
+  min-height: var(--el-component-size);
+  max-width: 100%;
   margin-bottom: 14px;
+}
+.ai-project-badge .project-name {
+  overflow-wrap: anywhere;
+}
+.ai-config-form {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.ai-config-form :deep(.el-form) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  column-gap: 16px;
 }
 .ai-config-form :deep(.el-form-item) {
+  min-width: 0;
   margin-bottom: 14px;
-  margin-right: 16px;
+  margin-right: 0;
 }
 .ai-config-form :deep(.el-select) {
-  min-width: 180px;
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 768px) {
+  .ai-config-form {
+    flex-basis: 100%;
+  }
 }
 .ai-input-actions {
   display: flex;

@@ -90,7 +90,7 @@ searchStore.sessions[sessionKey] ||= {
   records: [],
   searched: false,
   more: false,
-  page: { pageNumber: 1, pageSize: 20, totalCount: 0 },
+  page: { pageNumber: 1, pageSize: 10, totalCount: 0 },
   activeTab: 'search',
   aiState: defaultAiState()
 }
@@ -140,7 +140,7 @@ const options = computed(() => [{
   labelKey: 'api.label.searchScope',
   prop: 'scope',
   type: 'select',
-  disabled: !!props.shareId,
+  enabled: !props.shareId,
   attrs: { clearable: false },
   children: props.shareId
     ? [{ value: 'share', label: $i18nBundle('api.label.searchShare') }]
@@ -169,6 +169,7 @@ const options = computed(() => [{
   labelKey: 'api.label.searchDocType',
   prop: 'docType',
   type: 'select',
+  enabled: session.more,
   disabled: !!(session.model.url.trim() || session.model.method),
   slots: { label: docTypeLabel },
   children: [{ value: 'api', label: $i18nBundle('api.label.searchApi') }, { value: 'md', label: 'Markdown' }]
@@ -183,10 +184,10 @@ const options = computed(() => [{
   ...useSearchStatus({}), enabled: session.more && !props.shareId
 }])
 
-const columns = [
-  { labelKey: 'api.label.project', slot: 'project', minWidth: 180 },
+const columns = computed(() => [
+  { labelKey: 'api.label.project', slot: 'project', minWidth: 180, enabled: !props.shareId },
   { labelKey: 'api.label.docName', slot: 'document', minWidth: 400 }
-]
+])
 
 const runSearch = async (pageNumber = 1, useSubmitted = false, pageSize = session.page.pageSize) => {
   if (loading.value) return
@@ -219,7 +220,7 @@ const reset = () => {
   searchVersion++
   loading.value = false
   failed.value = false
-  Object.assign(session, { model: defaultModel(), submitted: null, searched: false, records: [], page: { pageNumber: 1, pageSize: 20, totalCount: 0 } })
+  Object.assign(session, { model: defaultModel(), submitted: null, searched: false, records: [], page: { pageNumber: 1, pageSize: 10, totalCount: 0 } })
   tablePage.value = session.page
   includeContextProject()
 }
@@ -250,7 +251,7 @@ if (session.model.scope === 'selected') loadProjects()
   <common-window
     v-model="showWindow"
     :title="canUseAi && activeTab === 'ai' ? $t('api.label.aiAssistant') : $t('api.label.advancedSearch')"
-    width="min(960px, 96vw)"
+    width="min(1040px, 96vw)"
     :show-buttons="false"
     :close-on-click-modal="false"
     close-on-press-escape
@@ -325,7 +326,6 @@ if (session.model.scope === 'selected') loadProjects()
           :data="session.records"
           :loading="loading"
           row-key="id"
-          max-height="45vh"
           @current-page-change="runSearch($event, true)"
           @page-size-change="runSearch(1, true, $event)"
         >
@@ -377,6 +377,14 @@ if (session.model.scope === 'selected') loadProjects()
                 :text="doc.url"
                 :keyword="session.submitted?.url"
               />
+            </div>
+            <div v-if="props.shareId && doc.folderPath">
+              <el-text
+                type="info"
+                size="small"
+              >
+                {{ doc.folderPath }}
+              </el-text>
             </div>
             <div
               v-if="doc.snippet"

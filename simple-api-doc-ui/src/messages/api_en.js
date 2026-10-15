@@ -457,7 +457,7 @@ api.msg.clearNavHistoryConfirm = 'Are you sure you want to clear navigation hist
 
 api.label.aiAssistant = 'AI Assistant'
 api.label.aiIncludeProjectOverview = 'Attach all document overviews'
-api.msg.aiIncludeProjectOverview = 'Attach the full document list of the current project with folders, names, methods, paths and short summaries. The AI can select documents directly and read details as needed. This increases input size; if the limit is exceeded, a notice is shown and search is used instead.'
+api.msg.aiIncludeProjectOverview = 'Attach a project document overview to help AI find relevant documents and read details as needed. This increases input size; long overviews are automatically shortened or replaced with on-demand search.'
 api.label.aiSend = 'Send'
 api.label.aiRunning = 'Running'
 api.label.aiIncompleteAnswer = 'No answer generated'
