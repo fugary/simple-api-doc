@@ -234,13 +234,14 @@ const handleCopyMarkdown = () => {
         </h3>
         <md-preview
           v-if="docContent"
-          class="md-doc-container"
+          class="md-doc-container api-doc-section-content"
           :theme="theme"
           :model-value="docContent"
         />
         <api-doc-security-requirements
           v-if="!shareDoc&&supportedAuthModels.length||editable"
           v-model="apiDocDetail"
+          class="api-doc-section"
           :editable="editable"
           @to-edit-security-schemas="$emit('toEditSecuritySchemas')"
           @schema-updated="loadDocDetail"
@@ -248,12 +249,14 @@ const handleCopyMarkdown = () => {
         <api-doc-parameters
           v-if="apiDocDetail?.parametersSchema||!apiDocDetail?.requestsSchemas?.length||editable"
           v-model="apiDocDetail"
+          class="api-doc-section"
           :editable="editable"
           @schema-updated="loadDocDetail"
         />
         <api-doc-request-body
           v-if="apiDocDetail?.requestsSchemas?.length||(editable&&!isGetMethod(apiDocDetail.method))"
           v-model="apiDocDetail"
+          class="api-doc-section"
           :theme="theme"
           :monaco-theme="monacoTheme"
           :editable="editable"
@@ -262,6 +265,7 @@ const handleCopyMarkdown = () => {
         <api-doc-response-body
           v-if="apiDocDetail?.responsesSchemas?.length||editable"
           v-model="apiDocDetail"
+          class="api-doc-section"
           :theme="theme"
           :monaco-theme="monacoTheme"
           :editable="editable"
@@ -338,6 +342,12 @@ const handleCopyMarkdown = () => {
 </template>
 
 <style scoped>
+.api-doc-section:not(:first-child) {
+  margin-top: 12px;
+}
+.api-doc-viewer :deep(.api-doc-section-content) {
+  padding: 4px 12px 4px;
+}
 .api-doc-viewer :deep(h3) {
   margin-block-start: 8px;
   margin-block-end: 8px;

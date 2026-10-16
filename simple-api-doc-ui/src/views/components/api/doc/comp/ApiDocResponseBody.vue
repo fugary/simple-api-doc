@@ -97,7 +97,7 @@ const toEditResponseSchema = (responseSchema) => {
             {{ responseSchema.description }}
           </el-text>
         </template>
-        <el-container class="flex-column">
+        <el-container class="flex-column api-doc-section-content">
           <el-container class="padding-10">
             <el-text
               v-if="responseSchema.contentType"
@@ -163,7 +163,10 @@ const toEditResponseSchema = (responseSchema) => {
         </el-container>
       </el-tab-pane>
     </el-tabs>
-    <el-container v-else>
+    <el-container
+      v-else
+      class="api-doc-section-content"
+    >
       <el-text type="info">
         {{ $t('common.msg.noData') }}
       </el-text>

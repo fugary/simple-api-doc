@@ -115,7 +115,7 @@ const toEditRequestSchema = (requestsSchema) => {
             </el-link>
           </span>
         </template>
-        <el-container class="flex-column">
+        <el-container class="flex-column api-doc-section-content">
           <md-preview
             v-if="requestsSchema.description"
             class="md-doc-container"
@@ -132,7 +132,10 @@ const toEditRequestSchema = (requestsSchema) => {
         </el-container>
       </el-tab-pane>
     </el-tabs>
-    <el-container v-else>
+    <el-container
+      v-else
+      class="api-doc-section-content"
+    >
       <el-text type="info">
         {{ $t('common.msg.noData') }}
       </el-text>

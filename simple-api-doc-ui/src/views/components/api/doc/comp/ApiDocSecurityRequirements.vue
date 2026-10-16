@@ -63,7 +63,10 @@ const toEditDocSecuritySchemas = () => {
         />
       </el-link>
     </h3>
-    <div v-if="hasSecurity">
+    <div
+      v-if="hasSecurity"
+      class="api-doc-section-content"
+    >
       <template
         v-for="({schema:security, defaultFlag}, index) in supportedSecurities"
         :key="index"
@@ -108,7 +111,10 @@ const toEditDocSecuritySchemas = () => {
         <div class="margin-bottom1" />
       </template>
     </div>
-    <el-container v-else>
+    <el-container
+      v-else
+      class="api-doc-section-content"
+    >
       <el-text type="info">
         {{ $t('common.msg.noData') }}
       </el-text>

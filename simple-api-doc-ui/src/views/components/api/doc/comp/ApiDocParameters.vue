@@ -52,11 +52,15 @@ const hasParameters = computed(() => {
     <api-doc-schema-tree
       v-if="projectInfoDetail&&hasParameters"
       v-model="apiDocDetail.parametersSchema"
+      class="api-doc-section-content"
       :spec-version="projectInfoDetail.specVersion"
       :component-schemas="projectInfoDetail.componentSchemas"
       :show-merge-all-of="showMergeAllOf"
     />
-    <el-container v-else>
+    <el-container
+      v-else
+      class="api-doc-section-content"
+    >
       <el-text type="info">
         {{ $t('common.msg.noData') }}
       </el-text>
