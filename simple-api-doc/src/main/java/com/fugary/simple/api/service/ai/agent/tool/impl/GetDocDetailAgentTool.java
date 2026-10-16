@@ -14,7 +14,6 @@ import com.fugary.simple.api.service.ai.agent.tool.AgentContext;
 import com.fugary.simple.api.service.ai.agent.tool.AgentTool;
 import com.fugary.simple.api.service.apidoc.*;
 import com.fugary.simple.api.utils.JsonUtils;
-import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +47,9 @@ public class GetDocDetailAgentTool implements AgentTool {
 
     @Autowired
     private ApiProjectAccessService apiProjectAccessService;
+
+    @Autowired
+    private ApiProjectShareService apiProjectShareService;
 
     @Autowired
     private ApiDocViewGenerator apiDocViewGenerator;
@@ -136,16 +138,7 @@ public class GetDocDetailAgentTool implements AgentTool {
         if (share == null) {
             return apiProjectAccessService.canAccessDoc(apiDoc, ApiGroupAuthority.READABLE);
         }
-        if (!Objects.equals(apiDoc.getProjectId(), share.getProjectId())
-                || !ApiDocConstants.STATUS_ENABLED.equals(apiDoc.getStatus())) {
-            return false;
-        }
-        Set<Integer> shareDocIds = SimpleModelUtils.getShareDocIds(share.getShareDocs());
-        if (!shareDocIds.isEmpty() && !shareDocIds.contains(apiDoc.getId())) {
-            return false;
-        }
-        ApiProject project = apiProjectService.getById(share.getProjectId());
-        return project != null && ApiDocConstants.STATUS_ENABLED.equals(project.getStatus());
+        return apiProjectShareService.canReadDoc(apiDoc, share);
     }
 
     private String loadContent(ApiDoc apiDoc) {

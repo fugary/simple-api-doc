@@ -86,6 +86,10 @@ const sharePreference = shareConfigStore.sharePreferenceView[preferenceId] = sha
 })
 sharePreference.preferenceId = preferenceId
 sharePreference.isShare = !!props.shareDoc?.shareId
+watch(() => [props.shareDoc?.aiSampleEnabled, props.shareDoc?.aiSearchEnabled], ([aiSampleEnabled, aiSearchEnabled]) => {
+  sharePreference.aiSampleEnabled = !!aiSampleEnabled
+  sharePreference.aiSearchEnabled = !!aiSearchEnabled
+}, { immediate: true })
 watch(() => projectItem.value?.docs, (docs) => {
   if (docs?.length) {
     const validIds = new Set(docs.map(d => d.id))

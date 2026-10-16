@@ -18,6 +18,8 @@ const formData = reactive({
 const schemaData = ref(null)
 const schemaType = ref('')
 const currentPreferenceId = ref('')
+const sharePreference = computed(() => shareConfigStore.sharePreferenceView[currentPreferenceId.value])
+const isShare = computed(() => !!sharePreference.value?.isShare)
 const aiConfigs = ref([])
 const defaultAiConfigId = ref(null)
 
@@ -53,7 +55,7 @@ const formOptions = computed(() => {
       }
     }
   ]
-  if (formData.provider === 'ai' && aiConfigs.value.length > 0) {
+  if (!isShare.value && formData.provider === 'ai' && aiConfigs.value.length > 0) {
     options.push({
       labelKey: 'api.label.aiConfigSelect',
       prop: 'configId',
@@ -84,9 +86,10 @@ const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
   schemaData.value = schemaBody
   schemaType.value = type
   currentPreferenceId.value = preferenceId
-  const isShare = !!shareConfigStore.sharePreferenceView[preferenceId]?.isShare
-  engineOptions.value = isShare ? originalChildren.filter(item => item.value !== 'ai') : originalChildren
-  const savedConfig = preferenceId ? (shareConfigStore.sharePreferenceView[preferenceId]?.apiGenerateSampleConfig || {}) : {}
+  engineOptions.value = originalChildren.map(item => ({ ...item }))
+  aiConfigs.value = []
+  defaultAiConfigId.value = null
+  const savedConfig = sharePreference.value?.apiGenerateSampleConfig || {}
   Object.assign(formData, {
     provider: 'openapi-sampler',
     configId: null,
@@ -96,31 +99,34 @@ const showGenerateSampleWindow = (schemaBody, type, preferenceId) => {
     ...savedConfig
   })
 
-  if (isShare && formData.provider === 'ai') {
-    formData.provider = 'openapi-sampler'
+  if (isShare.value) {
+    formData.configId = null
+    formData.model = ''
   }
-
-  if (isShare) {
+  const disableAi = () => {
+    engineOptions.value = originalChildren.filter(item => item.value !== 'ai')
+    if (formData.provider === 'ai') formData.provider = 'openapi-sampler'
+  }
+  if (isShare.value && !sharePreference.value?.aiSampleEnabled) {
+    disableAi()
     showDialog.value = true
   } else {
-    const aiOption = engineOptions.value.find(item => item.value === 'ai')
     getAiStatus({ preferenceId: currentPreferenceId.value }).then(res => {
-      if (res && res.success) {
-        const data = res.resultData || {}
-        const enabled = data.enabled ?? !!data
+      const data = res?.success ? res.resultData || {} : {}
+      const enabled = !!data.enabled && (!isShare.value || !!sharePreference.value?.aiSampleEnabled)
+      if (isShare.value) {
+        engineOptions.value = originalChildren.filter(item => item.value !== 'ai' || enabled)
+      } else {
+        engineOptions.value.find(item => item.value === 'ai').disabled = !enabled
         aiConfigs.value = data.configs || []
         defaultAiConfigId.value = data.defaultConfigId || null
-        if (aiOption) aiOption.disabled = !enabled
-        if (!enabled && formData.provider === 'ai') formData.provider = 'openapi-sampler'
-        if (enabled && (!formData.configId || !aiConfigs.value.some(c => c.id === formData.configId))) {
-          formData.configId = savedConfig.configId || defaultAiConfigId.value
+        if (enabled && !aiConfigs.value.some(c => c.id === formData.configId)) {
+          formData.configId = defaultAiConfigId.value
         }
         syncModelFromConfig(formData.configId)
       }
-    }).catch(() => {
-      if (aiOption) aiOption.disabled = true
-      if (formData.provider === 'ai') formData.provider = 'openapi-sampler'
-    }).finally(() => {
+      if (!enabled && formData.provider === 'ai') formData.provider = 'openapi-sampler'
+    }).catch(disableAi).finally(() => {
       showDialog.value = true
     })
   }

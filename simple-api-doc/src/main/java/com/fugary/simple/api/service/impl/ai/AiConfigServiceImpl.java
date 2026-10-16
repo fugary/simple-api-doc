@@ -71,6 +71,13 @@ public class AiConfigServiceImpl extends ServiceImpl<AiConfigMapper, AiConfig> i
     }
 
     @Override
+    public AiConfig getAvailableDefaultAiConfig() {
+        AiConfig config = getDefaultAiConfig();
+        return config != null && StringUtils.isNotBlank(config.getDefaultModel())
+                && StringUtils.isNotBlank(config.getApiKey()) ? config : null;
+    }
+
+    @Override
     public AiConfig getAiConfig(Integer id) {
         if (id == null) {
             return getDefaultAiConfig();

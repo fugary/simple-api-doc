@@ -15,6 +15,7 @@ import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import HighlightedText from '@/views/components/utils/HighlightedText.vue'
 import ApiDocAiChatPanel from '@/views/components/api/doc/comp/ApiDocAiChatPanel.vue'
 import { getAiStatus } from '@/api/AiCacheApi'
+import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import emitter from '@/vendors/emitter'
 
@@ -31,8 +32,9 @@ const aiConfigs = ref([])
 const defaultAiConfigId = ref(null)
 const aiEnabled = ref(false)
 
-if (!props.shareId) {
-  getAiStatus().then(res => {
+const shareConfigStore = useShareConfigStore()
+if (!props.shareId || shareConfigStore.sharePreferenceView[props.shareId]?.aiSearchEnabled) {
+  getAiStatus({ shareId: props.shareId }).then(res => {
     if (res && res.success) {
       const data = res.resultData || {}
       aiEnabled.value = !!data.enabled
@@ -44,7 +46,9 @@ if (!props.shareId) {
   })
 }
 
-const canUseAi = computed(() => !props.shareId && aiEnabled.value && aiConfigs.value.length > 0)
+const canUseAi = computed(() => aiEnabled.value && (props.shareId
+  ? !!shareConfigStore.sharePreferenceView[props.shareId]?.aiSearchEnabled
+  : aiConfigs.value.length > 0))
 const tabOptions = computed(() => [
   {
     value: 'search',
@@ -72,7 +76,7 @@ const defaultModel = () => ({
   status: undefined
 })
 const defaultAiState = () => ({
-  includeProjectOverview: false,
+  includeProjectOverview: !!props.shareId && props.project?.docs?.length > 0 && props.project.docs.length < 100,
   configId: null,
   model: '',
   projectId: props.project?.id || null,
@@ -412,6 +416,7 @@ if (session.model.scope === 'selected') loadProjects()
       >
         <api-doc-ai-chat-panel
           :project="props.project"
+          :share-id="props.shareId"
           :ai-state="session.aiState"
           :ai-configs="aiConfigs"
           :default-config-id="defaultAiConfigId"

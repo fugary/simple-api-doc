@@ -457,9 +457,6 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public boolean isEnabled() {
-        if (!aiConfigProperties.isEnabled()) {
-            return false;
-        }
         AiConfig config = aiConfigService.getDefaultAiConfig();
         return config != null && StringUtils.isNotBlank(config.getApiKey());
     }

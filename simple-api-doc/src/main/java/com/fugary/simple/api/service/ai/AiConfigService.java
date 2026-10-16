@@ -15,6 +15,9 @@ public interface AiConfigService extends IService<AiConfig> {
      */
     AiConfig getDefaultAiConfig();
 
+    /** 获取已配置模型和密钥的默认配置，不可用时返回 null。 */
+    AiConfig getAvailableDefaultAiConfig();
+
     /**
      * Get AI config by ID, or default if id is null
      *

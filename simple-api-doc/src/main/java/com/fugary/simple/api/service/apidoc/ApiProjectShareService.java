@@ -1,6 +1,8 @@
 package com.fugary.simple.api.service.apidoc;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.fugary.simple.api.entity.api.ApiDoc;
+import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.entity.api.ApiUser;
 import com.fugary.simple.api.web.vo.SimpleResult;
@@ -28,6 +30,18 @@ public interface ApiProjectShareService extends IService<ApiProjectShare> {
      * @return
      */
     ApiProjectShare loadByShareId(String shareId);
+
+    /** 从已认证的请求中加载有效分享；普通用户请求返回 null。 */
+    ApiProjectShare loadCurrentShare();
+
+    /** 当前版本文档是否在分享范围内，且所属项目仍启用。 */
+    boolean canReadDoc(ApiDoc doc, ApiProjectShare share);
+
+    /** 加载并校验分享文档，不允许使用其他项目或未分享的文档。 */
+    ApiDoc requireDoc(String docId, ApiProjectShare share);
+
+    /** 校验分享 AI 开关，并取得可用的默认模型配置。 */
+    AiConfig requireAiConfig(ApiProjectShare share, boolean search);
 
     /**
      * 复制数据

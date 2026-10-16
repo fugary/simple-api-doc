@@ -1,6 +1,9 @@
 import { BASE_URL } from '@/config'
+import { getShareConfig } from '@/api/SimpleShareApi'
 import { useLoginConfigStore } from '@/stores/LoginConfigStore'
 import { $i18nBundle } from '@/messages'
+import { SIMPLE_SHARE_ERROR_HEADER } from '@/consts/ApiConstants'
+import emitter from '@/vendors/emitter'
 
 const eventCallbacks = {
   status: 'onStatus',
@@ -22,11 +25,13 @@ const eventCallbacks = {
 export const streamAgentChat = async (params, callbacks = {}, signal = null) => {
   const loginStore = useLoginConfigStore()
 
-  const url = `${BASE_URL || ''}/admin/ai/agent/chat`
+  const url = `${BASE_URL || ''}/${params.shareId ? 'shares' : 'admin'}/ai/agent/chat`
   const headers = {
     'Content-Type': 'application/json'
   }
-  if (loginStore.accessToken) {
+  if (params.shareId) {
+    Object.assign(headers, getShareConfig(params.shareId).headers)
+  } else if (loginStore.accessToken) {
     headers.Authorization = `Bearer ${loginStore.accessToken}`
   }
 
@@ -36,6 +41,14 @@ export const streamAgentChat = async (params, callbacks = {}, signal = null) => 
     body: JSON.stringify(params),
     signal
   })
+
+  // 分享鉴权失败返回 HTTP 200 的 JSON，不能作为 SSE 读取。
+  if (response.headers.has(SIMPLE_SHARE_ERROR_HEADER) || response.headers.get('content-type')?.includes('application/json')) {
+    const data = await response.json()
+    const error = Object.assign(new Error(data.message || $i18nBundle('api.msg.aiStreamInterrupted')), { data })
+    if (params.shareId) emitter.emit('share-doc-error', error)
+    throw error
+  }
 
   if (!response.ok) {
     const errorText = await response.text()

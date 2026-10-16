@@ -14,6 +14,7 @@ import { defineFormOptions } from '@/components/utils'
 
 const props = defineProps({
   project: { type: Object, default: undefined },
+  shareId: { type: String, default: undefined },
   aiState: { type: Object, required: true },
   aiConfigs: { type: Array, default: () => [] },
   defaultConfigId: { type: [Number, String], default: null },
@@ -47,7 +48,7 @@ const configOptions = computed(() => buildAiConfigOptions(props.aiConfigs, props
 formData.projectOptions ||= []
 const projects = toRef(formData, 'projectOptions')
 const { loadProjects, projectSelectAttrs } = useDocProjectSelector(() => formData.projectId, projects)
-if (!props.project) {
+if (!props.shareId && !props.project) {
   watch(projects, list => {
     if (!formData.projectId && list.length) formData.projectId = list[0].id
   })
@@ -55,8 +56,9 @@ if (!props.project) {
 }
 
 const configFormOptions = computed(() => {
+  if (props.shareId) return []
   const options = []
-  if (!props.project) {
+  if (!props.shareId && !props.project) {
     options.push({
       labelKey: 'api.label.project',
       prop: 'projectId',
@@ -144,7 +146,7 @@ const runChat = async () => {
   }
 
   const targetProjectId = props.project?.id || formData.projectId
-  if (!targetProjectId) {
+  if (!props.shareId && !targetProjectId) {
     ElMessage.warning($i18nBundle('api.msg.selectProjectFirst'))
     return
   }
@@ -175,10 +177,11 @@ const runChat = async () => {
     await streamAgentChat(
       {
         query,
-        projectId: targetProjectId,
+        shareId: props.shareId,
+        projectId: props.shareId ? undefined : targetProjectId,
         includeProjectOverview: !!formData.includeProjectOverview,
-        configId: formData.configId || undefined,
-        model: formData.model?.trim() || undefined
+        configId: props.shareId ? undefined : formData.configId || undefined,
+        model: props.shareId ? undefined : formData.model?.trim() || undefined
       },
       {
         onStatus: onCurrentRequest((data) => {
@@ -190,14 +193,15 @@ const runChat = async () => {
         }),
         onToolStart: onCurrentRequest((data) => {
           finishReasoningStep()
+          let args
+          try {
+            args = JSON.parse(data.arguments)
+          } catch {
+            // 无效参数保留工具返回的错误信息。
+          }
           let docId
-          if (data.tool === 'get_doc') {
-            try {
-              const args = JSON.parse(data.arguments)
-              if (Number.isInteger(args?.docId) && args.docId > 0) docId = args.docId
-            } catch {
-              // 无效参数不合并，保留工具返回的错误信息。
-            }
+          if (data.tool === 'get_doc' && Number.isInteger(args?.docId) && args.docId > 0) {
+            docId = args.docId
           }
           const existingIndex = docId === undefined ? -1 : toolSteps.value.findIndex(step => step.docId === docId)
           if (existingIndex >= 0) {
@@ -207,14 +211,20 @@ const runChat = async () => {
           const step = {
             tool: data.tool,
             docId,
-            label: data.tool === 'search_docs' ? $i18nBundle('api.label.aiSearchDocsStep') : $i18nBundle('api.label.aiGetDocStep'),
+            label: data.tool === 'search_docs'
+              ? (args?.keywords ? $i18nBundle('api.label.aiSearchKeywords', [args.keywords]) : $i18nBundle('api.label.aiSearchDocsStep'))
+              : $i18nBundle('api.label.aiGetDocStep'),
             detail: data.arguments,
             status: 'running'
           }
           toolSteps.value = [...toolSteps.value, step]
         }),
         onToolEnd: onCurrentRequest((data) => {
-          updateRunningStepStatus('finished', data.summary)
+          let summary = data.summary
+          if (data.tool === 'search_docs' && Number.isInteger(data.total) && data.total >= 0) {
+            summary = $i18nBundle('api.label.aiSearchMatches', [data.total])
+          }
+          updateRunningStepStatus('finished', summary)
         }),
         onRelatedDocs: onCurrentRequest((docs) => {
           if (Array.isArray(docs)) {
@@ -311,7 +321,10 @@ const switchToManualSearch = () => {
   <div class="api-ai-panel">
     <!-- 顶部输入与提问区 -->
     <div class="ai-input-card">
-      <div class="ai-config-bar">
+      <div
+        v-if="!props.shareId"
+        class="ai-config-bar"
+      >
         <div
           v-if="props.project"
           class="ai-project-badge"
@@ -343,10 +356,10 @@ const switchToManualSearch = () => {
       <div class="ai-input-actions">
         <el-checkbox
           v-model="formData.includeProjectOverview"
-          v-common-tooltip:top="$t('api.msg.aiIncludeProjectOverview')"
+          v-common-tooltip:top="$t(props.shareId ? 'api.msg.aiIncludeShareOverview' : 'api.msg.aiIncludeProjectOverview')"
           :disabled="loading"
         >
-          {{ $t('api.label.aiIncludeProjectOverview') }}
+          {{ $t(props.shareId ? 'api.label.aiIncludeShareOverview' : 'api.label.aiIncludeProjectOverview') }}
         </el-checkbox>
         <div class="ai-btn-group">
           <el-button
@@ -535,11 +548,10 @@ const switchToManualSearch = () => {
             <code>{{ doc.url }}</code>
           </div>
           <div class="card-bottom">
-            <span class="card-project">{{ doc.projectName }}</span>
             <span
               v-if="doc.folderPath"
               class="card-folder"
-            >/ {{ doc.folderPath }}</span>
+            >{{ doc.folderPath }}</span>
             <div class="card-actions">
               <el-button
                 link
@@ -885,9 +897,6 @@ const switchToManualSearch = () => {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
   margin-top: 2px;
-}
-.card-project {
-  color: var(--el-text-color-secondary);
 }
 .card-actions {
   display: flex;

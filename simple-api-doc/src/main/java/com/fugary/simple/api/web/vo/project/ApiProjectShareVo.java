@@ -16,6 +16,8 @@ public class ApiProjectShareVo implements Serializable {
     private String shareName;
     private Boolean exportEnabled;
     private Boolean debugEnabled;
+    private Boolean aiSampleEnabled;
+    private Boolean aiSearchEnabled;
     private Boolean showChildrenLength;
     private Boolean showTreeIcon;
     private String copyRight;

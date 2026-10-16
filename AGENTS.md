@@ -45,6 +45,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - `/docs`: 项目文档及静态引导页。
 
 ## 5. 当前开发进度 (Current Status)
+- [x] 分享页可选 AI 示例生成与 AI 搜索：分享新增两个独立开关，默认关闭；复用现有示例生成窗口、搜索弹窗与 AI 面板，分享模式隐藏 AI 配置、模型和项目选择，使用系统默认 AI 配置与默认模型，无默认模型时隐藏 AI 入口。功能开关属于分享对象，`AiStatusVo` 仅表示 AI 可用性；搜索、详情、概览和引用限制在分享授权文档范围，后端校验分享有效期与开关，禁止分享调用模型生成及 Schema 补全。
 - [x] AI 问答收尾与重复调用优化：以 `simple.api.ai.max-tool-rounds` 配置工具轮次上限（默认 12），替代原先固定 8 轮含总结的调度；最终回答独立收尾并禁用工具，连续两轮仅有重复调用时提前收尾。单次问答复用已生成的详情正文，续读仍校验访问权限；兜底结果返回 `INCOMPLETE`，前端提示“未生成有效回答”，不再显示成功绿勾。同一文档的读取记录合并展示，保留结果摘要而隐藏分页信息。
 - [x] AI 搜索原生工具调用与相关度优化：Gemini 与 Anthropic 原生协议支持多轮工具调用、同轮多工具结果回传、原始签名/思考块保留及总结阶段禁用工具；关键词搜索在权限筛选后、分页前按名称/路径精确匹配、命中词覆盖数与名称/路径/正文命中位置排序，保留字面匹配与无业务词表约束；新增 `keywordMatch=any|all`，`search_docs` 支持 `match` 与 `page` 并返回 `total/page/hasMore/docs`，保留完整的有界摘要，提示模型在回答参数与调用步骤前查阅详情。
 - [x] 接口文档智能问答助手 (Agentic RAG) 与高级搜索深度融合架构：零外部向量数据库与无冷启动依赖，新增 `AgentTool` 抽象及 `search_docs` / `get_doc` 只读工具，基于 `ApiDocSearchService` 与 `ApiDocViewGenerator` 生成极低 Token 开销的精简 Markdown 视图；在 `ApiDocSearchServiceImpl` 中仅按空白分词、去重并进行字面包含匹配，由 AI 根据上下文选择核心词与同义表达，不硬编码业务词表、不自动剥离名称或路径尾缀；在 `OpenAiChatProvider` 中实现 Function Calling 多轮协议；实现具备 可配置工具轮次与独立收尾控制、thought_signature 透传、命名空间剥离、防死循环截断与 Grounding 真实性核验的 `AiAgentServiceImpl`，严格校验 `doc://{id}` 并装配真实 `relatedDocs` 元数据，由 AI 根据证据充分程度决定搜索、详情查阅与回答时机，Markdown 仅补齐末尾未闭合围栏，不按标题语言猜测内容边界，使用 `discoveredDocIds` / `inspectedDocIds` 有序 ID 集合追踪候选与已查阅文档，总结重试禁用工具调用，兜底回答复用权限校验后的关联文档；提供 `/agent/chat` SSE 端点；深度内聚于 `ApiDocSearchWindow` 弹窗（`el-segmented` 分段切换），目录树搜索框仅保留单一 Filter 按钮唤起；内存级无损记忆（通过 `DocSearchStore` 页面级存储，避免 localStorage 膨胀，刷新自然清理，弹窗开关无损记忆）；初始化动态调用 `getAiStatus` 判断 AI 功能启用与否并自动降级；在 `ApiDocAiChatPanel` 头部统一采用标准 `<common-form inline>` 与 `buildModelFormOption`（原生带 Tooltip 的 `Refresh` 刷新按钮、Loading 态及对齐高级搜索的自然行间距），通过 `useDocProjectSelector` 复用远程项目筛选与选择记忆，正文接口链接携带完整项目定位信息，支持全局项目切换、AI 接口配置（`buildAiConfigOptions`）与模型选择器；未命中时支持一键带入关键词转入高级搜索。
@@ -58,7 +59,7 @@ Simple API Doc 是一个基于 Spring Boot 开发的轻量级、高性能的 API
 - [x] 主题切换与 UI/UX 优化：优化登录页面视觉设计，支持暗黑与明亮主题平滑切换动画；优化左侧树形菜单的拖动分栏、拖拽排序、弹窗遮罩及回到顶部/全屏按钮的交互设计。
 - [x] API 响应多格式支持：支持 JSON 响应解析为树状表格形式查看，支持 XML 格式转 JSON 表格视图，支持 Event-Stream 实时推送数据预览。
 - [x] AI 数据模拟与缓存管理：支持多引擎（openapi-sampler, Mock.js, json-schema-faker）生成模拟数据，并新增持久化缓存及后台管理页面。
-- [x] AI 配置管理模块：支持在后台动态添加、编辑和切换 AI 接口配置（如 OpenAI, Anthropic 等），替代原有的硬编码配置方式，并支持多版本历史管理及一键回滚。
+- [x] AI 配置管理模块：支持在后台动态添加、编辑和切换 AI 接口配置（如 OpenAI, Anthropic 等），替代原有的硬编码配置方式，并支持多版本历史管理及一键回滚。运行时以数据库配置为准，`API_AI_ENABLED` 仅控制环境配置自动入库；AI 搜索过程展示关键词与总命中数量，模型仍接收完整结果，不按文档 ID 去重不同搜索的命中；单项目问答结果卡片只显示目录路径，不重复展示项目名称。
 - [x] AI 智能生成数据模型：支持输入业务需求文本一键生成 PascalCase 模型名称、描述及完整 JSON Schema 结构，自动填入表单，并支持弹窗扩宽及多 AI 配置切换。
 - [x] 全局变量提取规则关联项目接口：变量提取配置升级为支持选择项目 API 节点精准关联及匹配，具备 HTTP Method Tag/接口名富文本回显与自动适应 URL 变动能力，兼顾自定义模糊路径与正则通配匹配。
 - [x] 数据模型 ContextMenu 与锁定状态：数据模型左侧列表支持与文档树一致的锁定状态图标及 Tooltip 提示，支持右键快捷菜单（ContextMenu）实现编辑、复制、锁定/解锁及删除操作。

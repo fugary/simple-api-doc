@@ -298,6 +298,8 @@ const newOrEdit = async (id) => {
       }
       currentShare.value.showChildrenLength = currentShare.value.showChildrenLength ?? true
       currentShare.value.showTreeIcon = currentShare.value.showTreeIcon ?? true
+      currentShare.value.aiSampleEnabled = currentShare.value.aiSampleEnabled ?? false
+      currentShare.value.aiSearchEnabled = currentShare.value.aiSearchEnabled ?? false
       currentShare.value.shareDocsArr = currentShare.value.shareDocs ? (JSON.parse(currentShare.value.shareDocs) || []) : []
       if (!inProject && currentShare.value.projectId) {
         loadShareProjectData(currentShare.value.projectId)
@@ -309,6 +311,8 @@ const newOrEdit = async (id) => {
       status: 1,
       exportEnabled: true,
       debugEnabled: true,
+      aiSampleEnabled: false,
+      aiSearchEnabled: false,
       defaultTheme: 'dark',
       defaultShowLabel: 'docName',
       showChildrenLength: true,
@@ -489,6 +493,18 @@ const editFormOptions = computed(() => {
       value: 'url',
       labelKey: 'api.label.docLabelShowUrl'
     }]
+  }, {
+    labelKey: 'api.label.aiSampleEnabled',
+    prop: 'aiSampleEnabled',
+    style: getStyleGrow(5),
+    type: 'switch',
+    tooltip: $i18nBundle('api.msg.shareAiEnabled')
+  }, {
+    labelKey: 'api.label.aiSearchEnabled',
+    prop: 'aiSearchEnabled',
+    style: getStyleGrow(5),
+    type: 'switch',
+    tooltip: $i18nBundle('api.msg.shareAiEnabled')
   }, {
     labelKey: 'common.label.description',
     prop: 'description',

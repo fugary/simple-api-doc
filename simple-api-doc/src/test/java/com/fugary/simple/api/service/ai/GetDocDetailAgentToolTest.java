@@ -11,6 +11,7 @@ import com.fugary.simple.api.exports.md.MdViewContext;
 import com.fugary.simple.api.service.ai.agent.tool.AgentContext;
 import com.fugary.simple.api.service.ai.agent.tool.impl.GetDocDetailAgentTool;
 import com.fugary.simple.api.service.apidoc.*;
+import com.fugary.simple.api.service.impl.apidoc.ApiProjectShareServiceImpl;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.web.vo.project.ApiDocDetailVo;
 import com.fugary.simple.api.web.vo.project.ApiProjectInfoDetailVo;
@@ -30,6 +31,7 @@ class GetDocDetailAgentToolTest {
     private final ApiProjectInfoDetailService schemas = mock(ApiProjectInfoDetailService.class);
     private final ApiProjectInfoService infos = mock(ApiProjectInfoService.class);
     private final ApiProjectService projects = mock(ApiProjectService.class);
+    private final ApiProjectShareServiceImpl shares = new ApiProjectShareServiceImpl();
     private final ApiProjectAccessService access = mock(ApiProjectAccessService.class);
     private final ApiDocViewGenerator generator = mock(ApiDocViewGenerator.class);
     private final AiConfigProperties properties = new AiConfigProperties();
@@ -45,6 +47,8 @@ class GetDocDetailAgentToolTest {
         ReflectionTestUtils.setField(tool, "apiProjectInfoService", infos);
         ReflectionTestUtils.setField(tool, "apiProjectService", projects);
         ReflectionTestUtils.setField(tool, "apiProjectAccessService", access);
+        ReflectionTestUtils.setField(shares, "projectService", projects);
+        ReflectionTestUtils.setField(tool, "apiProjectShareService", shares);
         ReflectionTestUtils.setField(tool, "apiDocViewGenerator", generator);
         doc.setId(101);
         doc.setProjectId(10);

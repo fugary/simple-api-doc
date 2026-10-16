@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.service.ai.agent.AiProjectDocOverviewService;
 import com.fugary.simple.api.service.ai.agent.AiProjectDocOverviewService.Overview;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
@@ -71,6 +72,23 @@ class AiProjectDocOverviewServiceTest {
     @AfterEach
     void cleanUp() {
         sql.execute("DROP ALL OBJECTS");
+    }
+
+    @Test
+    void sharedOverviewOnlyIncludesAuthorizedEnabledCurrentDocs() {
+        project.setStatus(1);
+        ApiProjectShare share = new ApiProjectShare();
+        share.setProjectId(10);
+        share.setShareDocs("[2,3,4,5,6]");
+        when(access.canAccessProject(eq(project), any())).thenReturn(false);
+        Overview overview = service.build(project, share);
+        assertThat(overview.getDocCount()).isEqualTo(1);
+        assertThat(overview.getContent()).contains("分享文档概览", "[2,")
+                .doesNotContain("[1,", "[3,", "PRIVATE", "HISTORY", "OTHER_TYPE");
+        properties.setProjectOverviewMaxChars(overview.getContent().length());
+        assertThat(service.build(project, share).getContent()).isEqualTo(overview.getContent());
+        share.setProjectId(20);
+        assertThatThrownBy(() -> service.build(project, share)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

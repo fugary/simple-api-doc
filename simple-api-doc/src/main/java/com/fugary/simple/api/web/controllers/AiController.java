@@ -3,6 +3,9 @@ package com.fugary.simple.api.web.controllers;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.entity.api.AiConfig;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
+import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.exception.SimpleRuntimeException;
 import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.AiService;
@@ -53,12 +56,21 @@ public class AiController {
     private AiAgentService aiAgentService;
 
     @Autowired
+    private ApiProjectShareService shareService;
+
+    @Autowired
     @Qualifier("taskScheduler")
     private Executor taskExecutor;
 
     @GetMapping("/status")
     public SimpleResult<AiStatusVo> getAiStatus() {
         AiStatusVo vo = new AiStatusVo();
+        ApiProjectShare share = shareService.loadCurrentShare();
+        if (share != null) {
+            vo.setEnabled(aiConfigService.getAvailableDefaultAiConfig() != null);
+            vo.setConfigs(Collections.emptyList());
+            return SimpleResultUtils.createSimpleResult(vo);
+        }
         boolean enabled = aiService.isEnabled();
         vo.setEnabled(enabled);
         List<AiConfig> configs = aiConfigService.list(Wrappers.<AiConfig>query()
@@ -102,23 +114,28 @@ public class AiController {
         if (StringUtils.isBlank(schemaContent)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2018);
         }
+        ApiProjectShare share = shareService.loadCurrentShare();
+        if (share != null) {
+            AiConfig config = shareService.requireAiConfig(share, false);
+            shareService.requireDoc(req.getDocId(), share);
+            req.setProjectId(String.valueOf(share.getProjectId()));
+            req.setConfigId(config.getId());
+            req.setModel(null);
+            req.setConfig(null);
+        }
         return executeAiTask(() -> aiService.generateSample(req), "AI 生成示例数据失败");
     }
 
     @PostMapping({"/generate-descriptions", "/caches/generate-descriptions"})
     public SimpleResult<String> generateDescriptions(@RequestBody AiGenericTaskReq req) {
+        rejectShareEditing();
         return executeAiTask(() -> aiService.generateDescriptions(req), "智能补全 Schema 失败");
     }
 
     @PostMapping(value = "/agent/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter agentChat(@Valid @RequestBody AiAgentChatReqVo req, HttpServletRequest request) {
-        if (request != null && request.getServletPath() != null && request.getServletPath().startsWith("/shares/")) {
-            throw new SimpleRuntimeException(SystemErrorConstants.CODE_403, "分享模式不支持 AI 助手提问");
-        }
-        if (StringUtils.isNotBlank(req.getShareId())) {
-            throw new SimpleRuntimeException(SystemErrorConstants.CODE_403, "分享模式不支持 AI 助手提问");
-        }
-        if (req.getProjectId() == null || req.getProjectId() <= 0) {
+        if (StringUtils.isBlank(SecurityUtils.getLoginShareId())
+                && (req.getProjectId() == null || req.getProjectId() <= 0)) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_400, "请指定要咨询的 API 项目");
         }
         SseEmitter emitter = new SseEmitter(180_000L);
@@ -163,8 +180,15 @@ public class AiController {
         return emitter;
     }
 
+    private void rejectShareEditing() {
+        if (StringUtils.isNotBlank(SecurityUtils.getLoginShareId())) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_403);
+        }
+    }
+
     @PostMapping({"/generate-model", "/caches/generate-model"})
     public SimpleResult<String> generateModel(@RequestBody AiGenericTaskReq req) {
+        rejectShareEditing();
         return executeAiTask(() -> aiService.generateModel(req), "生成模型失败");
     }
 }

@@ -5,6 +5,7 @@ import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.agent.AiProjectDocOverviewService;
 import com.fugary.simple.api.service.ai.agent.tool.AgentContext;
@@ -18,6 +19,7 @@ import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.web.vo.ai.AiAgentChatReqVo;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +52,7 @@ class AiAgentServiceImplTest {
     private final ApiDocService apiDocService = mock(ApiDocService.class);
     private final ApiProjectService apiProjectService = mock(ApiProjectService.class);
     private final ApiFolderService apiFolderService = mock(ApiFolderService.class);
+    private final ApiProjectShareService shareService = mock(ApiProjectShareService.class);
     private final ApiProjectAccessService apiProjectAccessService = mock(ApiProjectAccessService.class);
 
     private final AiProjectDocOverviewService projectDocOverviewService = mock(AiProjectDocOverviewService.class);
@@ -78,6 +81,78 @@ class AiAgentServiceImplTest {
         ReflectionTestUtils.setField(service, "apiProjectService", apiProjectService);
         ReflectionTestUtils.setField(service, "apiFolderService", apiFolderService);
         ReflectionTestUtils.setField(service, "apiProjectAccessService", apiProjectAccessService);
+        ReflectionTestUtils.setField(service, "shareService", shareService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void sharedChatUsesShareScopeAndDefaultModelWithoutLoginPermissions(boolean includeShareId) throws IOException {
+        ApiProjectShare share = new ApiProjectShare();
+        share.setShareId("shared");
+        share.setProjectId(10);
+        AiConfig config = new AiConfig();
+        config.setProvider("OPENAI");
+        config.setDefaultModel("default-model");
+        when(shareService.loadCurrentShare()).thenReturn(share);
+        when(shareService.requireAiConfig(share, true)).thenReturn(config);
+        ApiProject project = new ApiProject();
+        project.setId(10);
+        project.setProjectName("Shared project");
+        project.setStatus(1);
+        when(apiProjectService.getById(10)).thenReturn(project);
+        when(projectDocOverviewService.build(project, share)).thenReturn(
+                new AiProjectDocOverviewService.Overview("shared overview", 1, "shared scope"));
+        AiChatResponse search = new AiChatResponse();
+        search.setToolCalls(List.of(new AiToolCall("s1", "search_docs", "{}")));
+        AiChatResponse answer = new AiChatResponse();
+        answer.setContent("No matching document found.");
+        when(chatProvider.chatWithTools(any(), any(), any(), any())).thenReturn(search, answer);
+        when(searchTool.execute(any(), any())).thenReturn("{}");
+        AiAgentChatReqVo req = new AiAgentChatReqVo();
+        req.setShareId(includeShareId ? "shared" : null);
+        req.setProjectId(999);
+        req.setConfigId(999);
+        req.setModel("visitor-model");
+        req.setQuery("Find an API");
+        req.setIncludeProjectOverview(true);
+        SseEmitter emitter = mock(SseEmitter.class);
+        service.streamChat(req, emitter);
+        verify(searchTool).execute(any(), argThat(ctx -> ctx.getShare() == share && ctx.getDefaultProjectId() == 10));
+        verify(chatProvider, atLeastOnce()).chatWithTools(eq(config), any(), any(), any());
+        verify(projectDocOverviewService).build(project, share);
+        verify(shareService).loadCurrentShare();
+        verify(apiProjectService).getById(10);
+        verify(shareService).requireAiConfig(share, true);
+        verifyNoInteractions(apiProjectAccessService, aiConfigService);
+        assertThat(config.getDefaultModel()).isEqualTo("default-model");
+        verify(emitter).complete();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"untrusted_share", "mismatched_share", "disabled_project", "missing_project"})
+    void rejectsInvalidShareContextBeforeCallingAi(String scenario) throws IOException {
+        ApiProjectShare share = new ApiProjectShare();
+        share.setShareId("shared");
+        share.setProjectId(10);
+        if (!"untrusted_share".equals(scenario)) {
+            when(shareService.loadCurrentShare()).thenReturn(share);
+        }
+        ApiProject project = new ApiProject();
+        project.setId(10);
+        project.setStatus(0);
+        if ("disabled_project".equals(scenario)) {
+            when(apiProjectService.getById(10)).thenReturn(project);
+        }
+        AiAgentChatReqVo req = new AiAgentChatReqVo();
+        req.setShareId("mismatched_share".equals(scenario) ? "another-share" : "shared");
+        req.setProjectId(10);
+        req.setQuery("Find an API");
+        SseEmitter emitter = mock(SseEmitter.class);
+        service.streamChat(req, emitter);
+        verify(chatProvider, never()).chatWithTools(any(), any(), any(), any());
+        verify(searchTool, never()).execute(any(), any());
+        verifyNoInteractions(aiConfigService);
+        verify(emitter).complete();
     }
 
     @Test
@@ -238,7 +313,7 @@ class AiAgentServiceImplTest {
     void overviewCanAnswerWithoutSearchingAndOnlyCitedDocumentsBecomeRelated() throws IOException {
         AiAgentChatReqVo req = prepareFallbackChat();
         req.setIncludeProjectOverview(true);
-        when(projectDocOverviewService.build(any())).thenReturn(new AiProjectDocOverviewService.Overview(
+        when(projectDocOverviewService.build(any(), isNull())).thenReturn(new AiProjectDocOverviewService.Overview(
                 "完整目录 OVERVIEW_MARKER", 2, "已附加全部 2 份文档"));
         when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenAnswer(call -> {
             List<Map<String, Object>> messages = call.getArgument(1);
@@ -273,7 +348,7 @@ class AiAgentServiceImplTest {
     void emptyOverviewAnswerRetriesButDoesNotRecommendTheEntireDirectory() throws IOException {
         AiAgentChatReqVo req = prepareFallbackChat();
         req.setIncludeProjectOverview(true);
-        when(projectDocOverviewService.build(any())).thenReturn(new AiProjectDocOverviewService.Overview(
+        when(projectDocOverviewService.build(any(), isNull())).thenReturn(new AiProjectDocOverviewService.Overview(
                 "完整目录", 2, "已附加全部 2 份文档"));
         when(chatProvider.chatWithTools(any(), any(), any(), any())).thenReturn(new AiChatResponse());
         SseEmitter emitter = mock(SseEmitter.class);
@@ -287,7 +362,7 @@ class AiAgentServiceImplTest {
     void unavailableOverviewKeepsSearchAvailableAndReportsTheFallback() throws IOException {
         AiAgentChatReqVo req = prepareFallbackChat();
         req.setIncludeProjectOverview(true);
-        when(projectDocOverviewService.build(any())).thenReturn(new AiProjectDocOverviewService.Overview(
+        when(projectDocOverviewService.build(any(), isNull())).thenReturn(new AiProjectDocOverviewService.Overview(
                 "", 0, "概览超限，本次未附加，改用按需搜索"));
         AiChatResponse toolResponse = new AiChatResponse();
         toolResponse.setToolCalls(List.of(new AiToolCall("search", "search_docs", "{}")));
@@ -477,7 +552,7 @@ class AiAgentServiceImplTest {
     void summaryThatStillRequestsToolsIsNotTreatedAsAnAnswer() throws IOException {
         AiAgentChatReqVo req = prepareFallbackChat();
         req.setIncludeProjectOverview(true);
-        when(projectDocOverviewService.build(any())).thenReturn(new AiProjectDocOverviewService.Overview("目录", 1, "已附加目录"));
+        when(projectDocOverviewService.build(any(), isNull())).thenReturn(new AiProjectDocOverviewService.Overview("目录", 1, "已附加目录"));
         when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenReturn(new AiChatResponse());
         AiChatResponse summary = new AiChatResponse();
         summary.setContent("我将继续搜索。");
@@ -489,6 +564,37 @@ class AiAgentServiceImplTest {
 
         assertThat(emittedEvents(emitter)).contains("INCOMPLETE").doesNotContain("我将继续搜索", "SUCCESS", "event:error");
         verify(searchTool, never()).execute(any(), any());
+    }
+
+    @Test
+    void searchSummariesShowCountsWithoutDeduplicatingDocumentsAcrossQueries() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        String firstArgs = "{\"keywords\":\"订单\"}";
+        String secondArgs = "{\"keywords\":\"详情\"}";
+        String firstResult = "{\"docs\":[{\"docId\":101,\"description\":\"" + "订单说明".repeat(40)
+                + "\"}],\"total\":15,\"page\":1,\"hasMore\":true}";
+        String secondResult = "{\"docs\":[{\"docId\":101,\"description\":\"详情说明\"}],\"total\":1}";
+        AiChatResponse searches = new AiChatResponse();
+        searches.setToolCalls(List.of(new AiToolCall("s1", "search_docs", firstArgs),
+                new AiToolCall("s2", "search_docs", secondArgs)));
+        AiChatResponse answer = new AiChatResponse();
+        answer.setContent("已完成检索");
+        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenReturn(searches, answer);
+        when(searchTool.execute(eq(firstArgs), any())).thenReturn(firstResult);
+        when(searchTool.execute(eq(secondArgs), any())).thenReturn(secondResult);
+        SseEmitter emitter = mock(SseEmitter.class);
+
+        service.streamChat(req, emitter);
+
+        verify(searchTool).execute(eq(firstArgs), any());
+        verify(searchTool).execute(eq(secondArgs), any());
+        ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
+        verify(chatProvider, times(2)).chatWithTools(any(), messages.capture(), any(), eq("auto"));
+        assertThat(messages.getValue().stream().filter(message -> "tool".equals(message.get("role")))
+                .map(message -> message.get("content"))).containsExactly(firstResult, secondResult);
+        String events = emittedEvents(emitter);
+        assertThat(events).contains("\"total\":15", "\"total\":1");
+        assertThat(events).doesNotContain("订单说明", "详情说明");
     }
 
     private AiAgentChatReqVo prepareFallbackChat() {

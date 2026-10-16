@@ -7,6 +7,8 @@ import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
+import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
@@ -31,15 +33,24 @@ public class AiProjectDocOverviewService {
     private AiConfigProperties aiConfigProperties;
 
     public Overview build(ApiProject project) {
+        return build(project, null);
+    }
+
+    public Overview build(ApiProject project, ApiProjectShare share) {
         if (project == null || project.getId() == null
-                || !apiProjectAccessService.canAccessProject(project, ApiGroupAuthority.READABLE)) {
+                || (share == null && !apiProjectAccessService.canAccessProject(project, ApiGroupAuthority.READABLE))
+                || (share != null && (!Objects.equals(project.getId(), share.getProjectId())
+                || !ApiDocConstants.STATUS_ENABLED.equals(project.getStatus())))) {
             throw new IllegalArgumentException("无权访问该项目文档或项目不存在");
         }
+        Set<Integer> shareDocIds = share == null ? Collections.emptySet() : SimpleModelUtils.getShareDocIds(share.getShareDocs());
         // 正文摘要在数据库端限长，避免读取全部 Markdown 和接口 Schema。
         List<ApiDoc> docs = apiDocService.list(Wrappers.<ApiDoc>query()
                 .select("id", "folder_id", "doc_name", "doc_type", "method", "url", "status",
                         "LEFT(CASE WHEN doc_type = 'md' THEN doc_content ELSE description END, 500) AS description")
                 .eq("project_id", project.getId())
+                .eq(share != null, "status", ApiDocConstants.STATUS_ENABLED)
+                .in(!shareDocIds.isEmpty(), "id", shareDocIds)
                 .isNull(ApiDocConstants.DB_MODIFY_FROM_KEY)
                 .in("doc_type", ApiDocConstants.DOC_TYPE_API, ApiDocConstants.DOC_TYPE_MD)
                 .orderByAsc("folder_id", "sort_id", "id"));
@@ -47,23 +58,23 @@ public class AiProjectDocOverviewService {
                 Wrappers.<ApiFolder>query().select("id", "parent_id", "folder_name", "folder_code")
                         .eq("project_id", project.getId())));
         int limit = Math.max(0, aiConfigProperties.getProjectOverviewMaxChars());
-        String content = format(project, docs, folders, true, limit);
+        String content = format(project, docs, folders, true, limit, share != null);
         boolean withDescriptions = !content.isEmpty();
         if (!withDescriptions) {
-            content = format(project, docs, folders, false, limit);
+            content = format(project, docs, folders, false, limit, share != null);
         }
         if (content.isEmpty()) {
             return new Overview("", 0,
                     "项目文档概览超出长度限制，本次未附加，改用按需搜索。");
         }
-        return new Overview(content, docs.size(), "已附加当前项目全部 " + docs.size() + " 份文档的"
+        return new Overview(content, docs.size(), (share == null ? "已附加当前项目全部 " : "已附加当前分享全部 ") + docs.size() + " 份文档的"
                 + (withDescriptions ? "简明概览" : "完整目录（已省略摘要）")
                 + "，正在分析问题；需要参数细节时会继续查阅详情。");
     }
 
     private String format(ApiProject project, List<ApiDoc> docs, Map<Integer, String> folders,
-                          boolean withDescriptions, int limit) {
-        StringBuilder content = new StringBuilder("【项目文档概览：目录完整】\n");
+                          boolean withDescriptions, int limit, boolean shared) {
+        StringBuilder content = new StringBuilder(shared ? "【分享文档概览：仅包含本次分享授权文档】\n" : "【项目文档概览：目录完整】\n");
         content.append("项目：").append(JsonUtils.toJson(project.getProjectName()))
                 .append("；文档数量：").append(docs.size()).append('\n');
         if (withDescriptions && StringUtils.isNotBlank(project.getDescription())) {

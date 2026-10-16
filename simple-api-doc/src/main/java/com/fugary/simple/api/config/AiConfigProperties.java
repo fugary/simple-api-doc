@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 public class AiConfigProperties {
 
     /**
-     * 是否启用 AI 生成功能
+     * 是否自动导入环境中的 AI 配置；不控制数据库配置的运行时可用性。
      */
     private boolean enabled = true;
 

@@ -14,6 +14,7 @@ import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.agent.AiAgentService;
 import com.fugary.simple.api.service.ai.agent.AiProjectDocOverviewService;
 import com.fugary.simple.api.service.ai.agent.tool.AgentContext;
+import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.service.ai.agent.tool.AgentTool;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolCall;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolDefinition;
@@ -23,6 +24,7 @@ import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
+import com.fugary.simple.api.service.apidoc.ApiProjectShareService;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -106,6 +108,9 @@ public class AiAgentServiceImpl implements AiAgentService {
     @Autowired
     private ApiProjectAccessService apiProjectAccessService;
 
+    @Autowired
+    private ApiProjectShareService shareService;
+
     @Override
     public void streamChat(AiAgentChatReqVo req, SseEmitter emitter) {
         AtomicBoolean clientDisconnected = new AtomicBoolean(false);
@@ -119,14 +124,20 @@ public class AiAgentServiceImpl implements AiAgentService {
             }
 
             // 1. 校验项目存在且有权限（Controller 层已做前置参数校验，此处做业务层权限断言）
-            ApiProject project = apiProjectService.getById(req.getProjectId());
-            if (project == null || !apiProjectAccessService.canAccessProject(project, ApiGroupAuthority.READABLE)) {
+            ApiProjectShare share = shareService.loadCurrentShare();
+            if (StringUtils.isNotBlank(req.getShareId()) && (share == null || !req.getShareId().equals(share.getShareId()))) {
+                throw new IllegalArgumentException("分享访问凭证无效");
+            }
+            ApiProject project = apiProjectService.getById(share == null ? req.getProjectId() : share.getProjectId());
+            if (project == null || (share == null
+                    ? !apiProjectAccessService.canAccessProject(project, ApiGroupAuthority.READABLE)
+                    : !ApiDocConstants.STATUS_ENABLED.equals(project.getStatus()))) {
                 throw new RuntimeException("无权访问该项目文档或项目不存在");
             }
 
             // 2. 解析 AI 配置与 Provider
-            AiConfig config = resolveAiConfig(req.getConfigId());
-            if (StringUtils.isNotBlank(req.getModel())) {
+            AiConfig config = share == null ? resolveAiConfig(req.getConfigId()) : shareService.requireAiConfig(share, true);
+            if (share == null && StringUtils.isNotBlank(req.getModel())) {
                 config = SimpleModelUtils.copy(config, AiConfig.class);
                 config.setDefaultModel(req.getModel().trim());
             }
@@ -136,6 +147,7 @@ public class AiAgentServiceImpl implements AiAgentService {
             ApiUserVo user = SecurityUtils.getLoginUser();
             AgentContext context = AgentContext.builder()
                     .user(user)
+                    .share(share)
                     .defaultProjectId(project.getId())
                     .build();
 
@@ -151,7 +163,7 @@ public class AiAgentServiceImpl implements AiAgentService {
             String userPrompt = "[当前关注项目: " + project.getProjectName() + " (ID: " + project.getId() + ")]\n" + req.getQuery();
             boolean hasOverviewDocs = false;
             if (req.isIncludeProjectOverview()) {
-                AiProjectDocOverviewService.Overview overview = projectDocOverviewService.build(project);
+                AiProjectDocOverviewService.Overview overview = projectDocOverviewService.build(project, share);
                 if (clientDisconnected.get()) return;
                 if (StringUtils.isNotBlank(overview.getContent())) {
                     hasOverviewDocs = overview.getDocCount() > 0;
@@ -237,10 +249,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                     String toolResult = tool != null ? tool.execute(toolCall.getArguments(), context) : "未知工具: " + toolCall.getName();
                     executedTool = true;
 
-                    if (!sendSseEvent(emitter, "tool_end", Map.of(
-                            "tool", toolName != null ? toolName : "",
-                            "summary", buildToolSummary(toolName, toolResult)
-                    ))) {
+                    if (!sendSseEvent(emitter, "tool_end", buildToolEndData(toolName, toolResult))) {
                         clientDisconnected.set(true);
                         break;
                     }
@@ -338,11 +347,18 @@ public class AiAgentServiceImpl implements AiAgentService {
         return toolName + ":" + arguments;
     }
 
-    private String buildToolSummary(String toolName, String toolResult) {
+    private Map<String, Object> buildToolEndData(String toolName, String toolResult) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("tool", toolName != null ? toolName : "");
         if ("get_doc".equals(toolName) || "search_docs".equals(toolName)) {
             try {
                 JsonNode result = JsonUtils.getMapper().readTree(toolResult);
                 if (result != null && result.isObject()) {
+                    if ("search_docs".equals(toolName) && result.path("total").isIntegralNumber()) {
+                        // 仅精简界面摘要，模型仍接收完整搜索结果。
+                        data.put("total", result.get("total").longValue());
+                        return data;
+                    }
                     // 过程保留原始结果摘要，但不展示仅供模型续读使用的分页信息。
                     ((ObjectNode) result).remove(List.of("offset", "totalLength", "hasMore", "nextOffset", "page"));
                     toolResult = JsonUtils.toJson(result);
@@ -351,7 +367,8 @@ public class AiAgentServiceImpl implements AiAgentService {
                 // 工具失败等非正文结果保留原有摘要。
             }
         }
-        return StringUtils.abbreviate(toolResult.replaceAll("\\s+", " "), 100);
+        data.put("summary", StringUtils.abbreviate(toolResult.replaceAll("\\s+", " "), 100));
+        return data;
     }
 
     private String buildFallbackContent(List<ApiDocSearchResultVo> docs) {
@@ -415,7 +432,8 @@ public class AiAgentServiceImpl implements AiAgentService {
         if (context.getDefaultProjectId() != null && !Objects.equals(doc.getProjectId(), context.getDefaultProjectId())) {
             return false;
         }
-        return apiProjectAccessService.canAccessDoc(doc, ApiGroupAuthority.READABLE);
+        return context.getShare() == null ? apiProjectAccessService.canAccessDoc(doc, ApiGroupAuthority.READABLE)
+                : shareService.canReadDoc(doc, context.getShare());
     }
 
     private List<ApiDocSearchResultVo> buildRelatedDocs(String content, AgentContext context) {

@@ -3,11 +3,10 @@ import { getShareConfig } from '@/api/SimpleShareApi'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { useResourceApi } from '@/hooks/ApiHooks'
 const getAiConfig = (config = {}) => {
-  console.log('===============================config', config)
-  const { preferenceId, ...restConfig } = config
-  const isShare = preferenceId && useShareConfigStore().getShareToken(preferenceId)
+  const { preferenceId, shareId, ...restConfig } = config
+  const isShare = !!shareId || (preferenceId && useShareConfigStore().sharePreferenceView[preferenceId]?.isShare)
   const baseUrl = isShare ? '/shares/ai' : '/admin/ai'
-  const finalConfig = isShare ? Object.assign(getShareConfig(preferenceId), restConfig) : restConfig
+  const finalConfig = isShare ? Object.assign(getShareConfig(shareId || preferenceId), restConfig) : restConfig
   return { baseUrl, finalConfig }
 }
 
