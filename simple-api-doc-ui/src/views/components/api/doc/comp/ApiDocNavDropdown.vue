@@ -250,7 +250,7 @@ const handleClearHistory = () => {
   padding: 4px;
   height: 26px;
   width: 26px;
-  border-radius: 4px;
+  border-radius: 50%;
   color: var(--el-text-color-regular);
 }
 

@@ -201,6 +201,8 @@ const markdownPreview = ref()
       :editable="editable"
       :history-count="historyCount"
       :preference-id="paramTargetId"
+      :loading="loading"
+      @refresh="loadDocDetail"
       @update-history="$emit('updateHistory', $event)"
     />
     <api-doc-path-header

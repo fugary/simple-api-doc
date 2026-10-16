@@ -47,6 +47,7 @@ const currentDoc = defineModel({
   default: undefined
 })
 const historyCount = ref(0)
+const loading = ref(false)
 
 const finalizeLoad = () => {
   $coreHideLoading()
@@ -73,6 +74,8 @@ const finalizeLoad = () => {
 }
 
 const loadCurrentDoc = (id) => {
+  if (!id) return
+  loading.value = true
   currentDoc.value && (currentDoc.value.docContent = '')
   $coreShowLoading({ delay: 0, target: '.home-main' })
   if (!props.shareDoc) {
@@ -80,7 +83,7 @@ const loadCurrentDoc = (id) => {
       Object.assign(currentDoc.value, data.resultData)
       historyCount.value = data.addons?.historyCount || 0
       finalizeLoad()
-    }).catch(() => $coreHideLoading())
+    }).catch(() => $coreHideLoading()).finally(() => (loading.value = false))
   } else {
     return loadMdDoc({
       shareId: props.shareDoc.shareId,
@@ -91,7 +94,7 @@ const loadCurrentDoc = (id) => {
     }).catch(err => {
       emitter.emit('share-doc-error', err)
       $coreHideLoading()
-    })
+    }).finally(() => (loading.value = false))
   }
 }
 
@@ -198,6 +201,8 @@ const handleContainerClick = (event) => {
       :history-count="historyCount"
       :editable="editable"
       :preference-id="preferenceId"
+      :loading="loading"
+      @refresh="loadCurrentDoc(currentDoc.id)"
       @update-history="$emit('updateHistory', $event)"
     />
     <el-container

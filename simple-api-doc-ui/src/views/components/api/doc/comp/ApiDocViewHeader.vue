@@ -14,6 +14,7 @@ import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import ApiDocNavDropdown from '@/views/components/api/doc/comp/ApiDocNavDropdown.vue'
 
 const props = defineProps({
+  loading: Boolean,
   editable: {
     type: Boolean,
     default: false
@@ -54,7 +55,7 @@ const canNavForward = computed(() => {
   return index >= 0 && index < stack.length - 1
 })
 
-const emit = defineEmits(['updateHistory'])
+const emit = defineEmits(['updateHistory', 'refresh'])
 const toShowHistoryWindow = (current) => {
   const isApi = current.docType === 'api'
   const limit = 300
@@ -182,6 +183,21 @@ const showAffixBtn = inject('showAffixBtn', null)
           :preference-id="preferenceId"
           :disabled="!canNavForward"
         />
+        <el-button
+          link
+          size="small"
+          class="doc-refresh-btn"
+          :disabled="loading || !currentDoc?.id"
+          :title="$t('common.label.refresh')"
+          :aria-label="$t('common.label.refresh')"
+          @click="emit('refresh')"
+        >
+          <common-icon
+            icon="Refresh"
+            :size="18"
+            :class="{ 'is-loading': loading }"
+          />
+        </el-button>
       </div>
       <span
         v-if="folderPaths.length > 0"
@@ -201,23 +217,23 @@ const showAffixBtn = inject('showAffixBtn', null)
     </div>
     <h2 class="margin-bottom1">
       <el-text
-        v-if="currentDoc?.deprecated"
+        v-if="docDetailInfo?.deprecated"
         tag="del"
         type="warning"
         size="large"
         style="font-size: inherit; font-weight: inherit;"
       >
-        {{ currentDoc?.docName || currentDoc?.url }}
+        {{ docDetailInfo?.docName || docDetailInfo?.url }}
       </el-text>
       <el-text
-        v-else-if="currentDoc?.status === 0"
+        v-else-if="docDetailInfo?.status === 0"
         type="danger"
         size="large"
         style="font-size: inherit; font-weight: inherit;"
       >
-        {{ currentDoc?.docName || currentDoc?.url }}
+        {{ docDetailInfo?.docName || docDetailInfo?.url }}
       </el-text>
-      <span v-else>{{ currentDoc?.docName || currentDoc?.url }}</span>
+      <span v-else>{{ docDetailInfo?.docName || docDetailInfo?.url }}</span>
       <el-tag
         v-if="recentInfo"
         v-common-tooltip="recentInfo.tooltip"
@@ -288,6 +304,26 @@ const showAffixBtn = inject('showAffixBtn', null)
   font-size: 13px;
   line-height: 26px;
   margin: 0 9px 0 6px;
+}
+
+.doc-nav-actions .doc-refresh-btn {
+  margin-left: 0;
+  padding: 4px;
+  height: 26px;
+  width: 26px;
+  border-radius: 50%;
+  color: var(--el-text-color-regular);
+}
+
+.doc-refresh-btn:hover:not(:disabled) {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.doc-refresh-btn.is-disabled {
+  color: var(--el-text-color-placeholder);
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .doc-header-breadcrumb {
