@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { $copyText } from '@/utils'
+import DocCopyMenu from '@/views/components/api/doc/comp/DocCopyMenu.vue'
 import { MdPreview } from 'md-editor-v3'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { previewSchemaMarkdown } from '@/api/ApiProjectInfoDetailApi'
@@ -37,10 +37,7 @@ watch(() => [props.schema, props.componentSchemas, props.specVersion, globalConf
     if (!cancelled) loading.value = false
   }
 }, { immediate: true, deep: true })
-const handleCopyMarkdown = () => {
-  if (loading.value || failed.value || !markdown.value) return
-  $copyText(props.schemaName ? `# ${props.schemaName}\n\n${markdown.value}` : markdown.value)
-}
+const markdownPreview = ref()
 </script>
 
 <template>
@@ -53,25 +50,16 @@ const handleCopyMarkdown = () => {
     />
     <md-preview
       v-else
+      ref="markdownPreview"
       class="md-doc-container"
       :theme="globalConfig.isDarkTheme ? 'dark' : 'light'"
       :model-value="markdown"
     />
-    <div
+    <doc-copy-menu
       v-if="!loading && !failed && markdown"
-      v-common-tooltip="$t('api.label.copyMarkdown')"
-      class="floating-action-btn copy-md-btn"
-      role="button"
-      tabindex="0"
-      :aria-label="$t('api.label.copyMarkdown')"
-      @click="handleCopyMarkdown"
-      @keydown.enter.prevent="handleCopyMarkdown"
-      @keydown.space.prevent="handleCopyMarkdown"
-    >
-      <common-icon
-        icon="CopyDocument"
-        :size="16"
-      />
-    </div>
+      :markdown="markdown"
+      :title="schemaName"
+      :get-preview="() => markdownPreview?.$el"
+    />
   </div>
 </template>

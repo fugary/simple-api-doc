@@ -24,7 +24,7 @@ import { calcEnvSuggestions, useContainerCheck, useCopyRight, useScreenCheck } f
 import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderService'
 import ApiDocSecurityRequirements from '@/views/components/api/doc/comp/ApiDocSecurityRequirements.vue'
 import { cloneDeep } from 'lodash-es'
-import { $copyText } from '@/utils'
+import DocCopyMenu from '@/views/components/api/doc/comp/DocCopyMenu.vue'
 
 const props = defineProps({
   shareDoc: {
@@ -185,12 +185,7 @@ const docContent = computed(() => {
   return apiDocDetail.value?.docContent || apiDocDetail.value?.description
 })
 const { isSmallContainer, containerRef } = useContainerCheck()
-const handleCopyMarkdown = () => {
-  const name = apiDocDetail.value?.docName
-  const markdown = apiDocDetail.value?.apiMarkdown || ''
-  const content = name ? `# ${name}\n\n${markdown}` : markdown
-  $copyText(content)
-}
+const markdownPreview = ref()
 </script>
 
 <template>
@@ -278,6 +273,7 @@ const handleCopyMarkdown = () => {
         class="scroll-main-container"
       >
         <md-preview
+          ref="markdownPreview"
           class="md-doc-container"
           editor-id="api-doc-preview-only"
           :theme="theme"
@@ -300,18 +296,13 @@ const handleCopyMarkdown = () => {
       </span>
     </el-container>
     <template v-if="apiDocDetail">
-      <div
+      <doc-copy-menu
         v-if="viewAsMarkdown"
-        v-common-tooltip="$t('api.label.copyMarkdown')"
-        class="floating-action-btn copy-md-btn"
-        :style="shareDoc ? { bottom: '90px' } : {}"
-        @click="handleCopyMarkdown"
-      >
-        <common-icon
-          icon="CopyDocument"
-          :size="16"
-        />
-      </div>
+        :markdown="apiDocDetail.apiMarkdown"
+        :title="apiDocDetail.docName"
+        :get-preview="() => markdownPreview?.$el"
+        :bottom="shareDoc ? 90 : 140"
+      />
       <el-backtop
         v-if="viewAsMarkdown"
         v-common-tooltip="$t('common.label.backtop')"

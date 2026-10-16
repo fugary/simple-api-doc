@@ -499,6 +499,46 @@ export const $copyText = (text) => {
   }
 }
 
+export const copyRichText = async ({ html, text }) => {
+  if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' })
+      })])
+      return
+    } catch {
+      // HTTP deployments and browser permission restrictions need the copy-event fallback.
+    }
+  }
+  const activeElement = document.activeElement
+  const selection = window.getSelection()
+  const ranges = Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index).cloneRange())
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.cssText = 'position: fixed; left: -9999px; top: 0;'
+  document.body.append(textarea)
+  textarea.select()
+  let copied = false
+  const onCopy = event => {
+    if (!event.clipboardData) return
+    event.clipboardData.setData('text/html', html)
+    event.clipboardData.setData('text/plain', text)
+    event.preventDefault()
+    copied = true
+  }
+  document.addEventListener('copy', onCopy)
+  try {
+    if (!document.execCommand('copy') || !copied) throw new Error('Rich text copy failed')
+  } finally {
+    document.removeEventListener('copy', onCopy)
+    textarea.remove()
+    activeElement?.focus({ preventScroll: true })
+    selection.removeAllRanges()
+    ranges.forEach(range => selection.addRange(range))
+  }
+}
+
 export const checkShowColumn = (dataList, field) => {
   let hasFieldData = false
   dataList = dataList || []

@@ -7,7 +7,8 @@ import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.v
 import { useCopyRight, useContainerCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
-import { $copyText, $coreHideLoading, $coreShowLoading } from '@/utils'
+import { $coreHideLoading, $coreShowLoading } from '@/utils'
+import DocCopyMenu from '@/views/components/api/doc/comp/DocCopyMenu.vue'
 import { useInitLoadOnce } from '@/hooks/CommonHooks'
 import { calcPreferenceId, calcSharePreference, useShareDocTheme } from '@/services/api/ApiFolderService'
 import { resolveRelativeDocPath, findMatchingDoc, getDocAncestorTreeIds, scrollToAnchor, setPendingAnchor, consumePendingAnchor } from '@/services/api/MarkdownLinkService'
@@ -119,12 +120,7 @@ const copyRight = useCopyRight(props.shareDoc)
 const { isSmallContainer, containerRef } = useContainerCheck()
 defineEmits(['updateHistory'])
 
-const handleCopyMarkdown = () => {
-  const name = currentDoc.value?.docName
-  const markdown = currentDoc.value?.docContent || ''
-  const content = name ? `# ${name}\n\n${markdown}` : markdown
-  $copyText(content)
-}
+const markdownPreview = ref()
 
 const handleContainerClick = (event) => {
   const linkEl = event.target.closest('a')
@@ -210,6 +206,7 @@ const handleContainerClick = (event) => {
       @click="handleContainerClick"
     >
       <md-preview
+        ref="markdownPreview"
         class="md-doc-container"
         :editor-id="id"
         :theme="theme"
@@ -233,17 +230,12 @@ const handleContainerClick = (event) => {
       </span>
     </el-container>
     <template v-if="currentDoc">
-      <div
-        v-common-tooltip="$t('api.label.copyMarkdown')"
-        class="floating-action-btn copy-md-btn"
-        :style="shareDoc ? { bottom: '90px' } : {}"
-        @click="handleCopyMarkdown"
-      >
-        <common-icon
-          icon="CopyDocument"
-          :size="16"
-        />
-      </div>
+      <doc-copy-menu
+        :markdown="currentDoc.docContent"
+        :title="currentDoc.docName"
+        :get-preview="() => markdownPreview?.$el"
+        :bottom="shareDoc ? 90 : 140"
+      />
       <el-backtop
         v-common-tooltip="$t('common.label.backtop')"
         target=".md-editor-preview-wrapper"
