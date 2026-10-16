@@ -44,6 +44,10 @@ ${utils.parametersToTable(parameters)}
 </#if>
 <#if requestSchema.schema?? && requestSchema.schema??>
 * **${message('api.label.modelName')}**: **${utils.getSchemaName(requestSchema.schema)}**
+<#assign enumRemarks = utils.schemaEnumRemarks(requestSchema.schema)>
+<#if utils.isNotBlank(enumRemarks)>
+* **${message('api.label.remark')}**: ${enumRemarks}
+</#if>
 <#if utils.isNotBlank(utils.getXxxOfInfo(requestSchema.schema,true))>
 * ${utils.getXxxOfInfo(requestSchema.schema,true)}
 </#if>
@@ -71,6 +75,10 @@ ${utils.getApiSchemaExamples(requestSchema, v31)}
 * **${message('api.label.statusCode')}**: ${responseSchema.statusCode!''}
 <#if responseSchema.schema?? && responseSchema.schema??>
 * **${message('api.label.modelName')}**: **${utils.getSchemaName(responseSchema.schema)}**
+<#assign enumRemarks = utils.schemaEnumRemarks(responseSchema.schema)>
+<#if utils.isNotBlank(enumRemarks)>
+* **${message('api.label.remark')}**: ${enumRemarks}
+</#if>
 <#if utils.isNotBlank(utils.getXxxOfInfo(responseSchema.schema,true))>
 * ${utils.getXxxOfInfo(responseSchema.schema,true)}
 </#if>

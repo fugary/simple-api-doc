@@ -220,6 +220,23 @@ class MarkdownApiDocViewGeneratorImplTest {
         Assertions.assertEquals("#/components/schemas/Envelope", component.getProperties().get("parent").get$ref());
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2})
+    void inlineEnumBodiesKeepAllowedValues(int dimensions) {
+        String schema = "{\"type\":\"string\",\"enum\":[\"pending\",\"done\"]}";
+        for (int i = 0; i < dimensions; i++) {
+            schema = "{\"type\":\"array\",\"items\":" + schema + "}";
+        }
+        ApiDocDetailVo doc = createDoc();
+        doc.setRequestsSchemas(List.of(bodySchema(null, schema)));
+        doc.setResponsesSchemas(List.of(bodySchema("200", schema)));
+        String markdown = generator.generate(new MdViewContext(doc));
+        String enumValues = "`pending`, `done`";
+        Assertions.assertEquals(2, markdown.split(java.util.regex.Pattern.quote(enumValues), -1).length - 1,
+                "请求和响应正文都必须保留枚举说明，即使没有模型字段表");
+        Assertions.assertTrue(markdown.contains(dimensions == 0 ? "api.label.enums" : "api.label.itemEnums"));
+    }
+
     private ApiDocDetailVo createDoc() {
         ApiDocDetailVo doc = new ApiDocDetailVo();
         doc.setDocName("test");

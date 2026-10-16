@@ -103,9 +103,8 @@ public class ApiDocFreemarkerUtils {
             if (StringUtils.isNotBlank(refLink)) {
                 typeStr = StringUtils.join("[" + refLink + "](#", refLink, ")");
             }
-            String enumStr = getEnums(schema.getEnum());
-            if (StringUtils.isNotBlank(enumStr)) {
-                typeStr = StringUtils.join(typeStr, " (", getMessage("api.label.enums"), ": `", enumStr, "`)");
+            if (StringUtils.isNotBlank(schema.getFormat())) {
+                typeStr = StringUtils.defaultString(typeStr) + "(" + schema.getFormat() + ")";
             }
             return markdown ? markdownToHtml(typeStr) : typeStr;
         }
@@ -209,7 +208,9 @@ public class ApiDocFreemarkerUtils {
     public String schemaToTable(Schema<?> schema) {
         Pair<List<String>, Map<String, Schema>> properties = getSchemaProperties(schema);
         if (MapUtils.isEmpty(properties.getRight())) {
-            return schema == null ? StringUtils.EMPTY : getSchemaName(schema, false);
+            String type = schema == null ? StringUtils.EMPTY : getSchemaName(schema, false);
+            String remarks = schemaRemarks(schema);
+            return StringUtils.isBlank(remarks) ? type : type + "\n\n" + remarks;
         }
         StringBuilder sb = fieldTableHeader();
         properties.getRight().forEach((name, property) -> appendFieldRow(sb, name, property,
@@ -243,19 +244,50 @@ public class ApiDocFreemarkerUtils {
                 .replace("\r\n", "<br>").replace("\n", "<br>").replace("\r", "<br>");
     }
 
+    /** 收集当前值、数组元素和组合分支的枚举，不展开对象子字段。 */
+    public String schemaEnumRemarks(Schema<?> schema) {
+        List<String> remarks = new ArrayList<>();
+        collectSchemaEnums(schema, "", false, remarks, Collections.newSetFromMap(new IdentityHashMap<>()));
+        return String.join("<br>", remarks);
+    }
+
+    private void collectSchemaEnums(Schema<?> schema, String path, boolean item, List<String> remarks,
+                                   Set<Schema<?>> ancestors) {
+        if (schema == null || !ancestors.add(schema)) {
+            return;
+        }
+        if (CollectionUtils.isNotEmpty(schema.getEnum())) {
+            String label = getMessage(item ? "api.label.itemEnums" : "api.label.enums");
+            String location = path.isEmpty() || "items".equals(path) ? "" : " (" + path + ")";
+            remarks.add(label + location + ": " + getEnums(schema.getEnum()));
+        }
+        String prefix = path.isEmpty() ? "" : path + ".";
+        collectSchemaEnums(schema.getItems(), prefix + "items", true, remarks, ancestors);
+        List<List<Schema>> branches = Arrays.asList(schema.getAllOf(), schema.getAnyOf(), schema.getOneOf());
+        String[] names = {"allOf", "anyOf", "oneOf"};
+        for (int kind = 0; kind < branches.size(); kind++) {
+            List<Schema> branch = branches.get(kind);
+            for (int i = 0; branch != null && i < branch.size(); i++) {
+                collectSchemaEnums(branch.get(i), prefix + names[kind] + "[" + (i + 1) + "]",
+                        item, remarks, ancestors);
+            }
+        }
+        ancestors.remove(schema);
+    }
+
     private String schemaRemarks(Schema<?> schema) {
         if (schema == null) {
             return StringUtils.EMPTY;
         }
         List<String> remarks = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(schema.getEnum())) {
-            remarks.add(getMessage("api.label.enums") + ": " + getEnums(schema.getEnum()));
+        String enums = schemaEnumRemarks(schema);
+        if (StringUtils.isNotBlank(enums)) {
+            remarks.add(enums);
         }
         if (schema.getExample() != null) {
             remarks.add(getMessage("api.label.example") + ": " + getExample(schema.getExample()));
         }
         Map<String, Object> constraints = new LinkedHashMap<>();
-        constraints.put("format", schema.getFormat());
         constraints.put("minimum", schema.getMinimum());
         constraints.put("maximum", schema.getMaximum());
         constraints.put("exclusiveMinimum", schema.getExclusiveMinimum());
@@ -401,7 +433,7 @@ public class ApiDocFreemarkerUtils {
      */
     public String getEnums(List<?> enums) {
         if (enums != null) {
-            return enums.stream().map(Object::toString).map(value -> StringUtils.join("`", value, "`"))
+            return enums.stream().map(String::valueOf).map(value -> StringUtils.join("`", value, "`"))
                     .collect(Collectors.joining(", "));
         }
         return StringUtils.EMPTY;

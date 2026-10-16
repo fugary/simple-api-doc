@@ -49,4 +49,48 @@ class ApiDocFreemarkerUtilsTest {
         assertTrue(table.contains("api.label.enums: `a&#124;b`, `c`"));
         assertEquals(utils().schemaToTable(new Schema<>().addProperty("filter", schema)).split("\\R")[0], table.split("\\R")[0]);
     }
+    @Test
+    void formatsBelongToTypesAndEnumsOnlyToRemarks() {
+        Schema<String> item = new Schema<String>().type("string");
+        item.setEnum(List.of("0", "1"));
+        Schema<?> payments = new Schema<>().type("array").items(item);
+        Schema<?> id = new Schema<>().type("integer").format("int64");
+        Schema<?> date = new Schema<>().type("string").format("date-time");
+        Schema<?> model = new Schema<>().type("object");
+        model.addProperty("paymentTypes", payments);
+        model.addProperty("id", id);
+        model.addProperty("date", date);
+        ApiDocFreemarkerUtils utils = utils();
+        String table = utils.schemaToTable(model);
+        assertEquals("array<string>", utils.propertyType(payments, false));
+        assertTrue(table.contains("| integer(int64) |"));
+        assertTrue(table.contains("| string(date-time) |"));
+        assertTrue(table.contains("api.label.itemEnums: `0`, `1`"));
+        assertFalse(table.contains("format:"));
+        assertFalse(utils.propertyType(item, false).contains("api.label.enums"));
+        assertTrue(utils.schemaToTable(item).contains("api.label.enums: `0`, `1`"));
+        assertTrue(utils.parametersToTable(List.of(new Parameter().name("id").schema(id)))
+                .contains("| integer(int64) |"));
+    }
+    @Test
+    void composedEnumsKeepBranchLocationsWithoutExpandingProperties() {
+        ApiDocFreemarkerUtils utils = utils();
+        for (String kind : List.of("allOf", "anyOf", "oneOf")) {
+            String json = "{\"" + kind + "\":[{\"type\":\"string\",\"enum\":[\"a\"]},"
+                    + "{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[\"b\"]}}]}";
+            Schema<?> schema = com.fugary.simple.api.utils.SchemaJsonUtils.fromJson(json, Schema.class, false);
+            String table = utils.schemaToTable(new Schema<>().addProperty("choice", schema));
+            assertTrue(table.contains("api.label.enums (" + kind + "[1]): `a`"));
+            assertTrue(table.contains("api.label.itemEnums (" + kind + "[2].items): `b`"));
+        }
+        Schema<String> shared = new Schema<String>().type("string");
+        shared.setEnum(List.of("shared"));
+        Schema<Object> root = new Schema<>();
+        root.setOneOf(List.of(shared, shared, root));
+        root.addProperty("hidden", shared);
+        String remarks = utils.schemaEnumRemarks(root);
+        assertTrue(remarks.contains("oneOf[1]"));
+        assertTrue(remarks.contains("oneOf[2]"));
+        assertFalse(remarks.contains("hidden"));
+    }
 }
