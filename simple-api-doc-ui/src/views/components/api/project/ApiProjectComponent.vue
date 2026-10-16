@@ -635,6 +635,7 @@ defineExpose({
           <api-doc-schema-table
             v-if="activeTab === 'table' && currentComponentModel && schemaContentObj"
             :schema="schemaContentObj"
+            :schema-name="getSchemaNameLabel(currentComponentModel)"
             :spec-version="currentProjectInfo?.specVersion"
             :component-schemas="componentSchemas"
           />
