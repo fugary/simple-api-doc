@@ -6,16 +6,24 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      tag_name:
-        description: 'Tag name for the release (e.g., v2.1.1)'
+      version:
+        description: 'Release version (e.g., 2.9.6 or v2.9.6)'
         required: true
-        default: 'v'
+        type: string
+
+# Both entry points publish the same Docker latest tag; never interrupt a release.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout code
@@ -23,24 +31,64 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Prepare release
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          VERSION="${INPUT_VERSION:-$GITHUB_REF_NAME}"
+          VERSION="${VERSION#v}"
+          VERSION_PATTERN='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+          if [[ ! "$VERSION" =~ ^${VERSION_PATTERN}$ ]]; then
+            echo "::error::Use a stable version such as 2.9.6 or v2.9.6."
+            exit 1
+          fi
+          TAG="v$VERSION"
+          CREATE_TAG=false
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+              echo "::error::Run a new release from the main branch."
+              exit 1
+            fi
+            if git show-ref --verify --quiet "refs/tags/$TAG"; then
+              # A rerun may resume only the tag published by this exact workflow run.
+              TAG_SHA=$(git rev-parse "$TAG^{commit}")
+              if [[ "$GITHUB_RUN_ATTEMPT" -le 1 ]] || {
+                [[ "$TAG_SHA" != "$GITHUB_SHA" ]] && {
+                  [[ "$(git rev-parse "$TAG_SHA^")" != "$GITHUB_SHA" ]] ||
+                  ! git log -1 --format=%B "$TAG_SHA" | grep -Fxq "Release-Run: $GITHUB_RUN_ID"
+                }
+              }; then
+                echo "::error::Tag $TAG already exists. To retry a failed release, rerun its original workflow."
+                exit 1
+              fi
+              git checkout --detach "$TAG_SHA"
+            else
+              # Do not publish from a stale dispatch if main advanced while queued.
+              git fetch origin refs/heads/main:refs/remotes/origin/main
+              if [[ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]]; then
+                echo "::error::main has changed. Start a new workflow run from main."
+                exit 1
+              fi
+              CREATE_TAG=true
+            fi
+          elif [[ "$GITHUB_REF" != "refs/tags/$TAG" ]]; then
+            echo "::error::Release tags must use the format v2.9.6."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "create_tag=$CREATE_TAG" >> "$GITHUB_OUTPUT"
+          # Retrying an older release must not move latest backwards.
+          LATEST_TAG=$({ git tag --list; printf '%s\n' "$TAG"; } |
+            grep -E "^v${VERSION_PATTERN}$" |
+            sort -V | tail -n 1)
+          echo "is_latest=$([[ "$TAG" == "$LATEST_TAG" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Build Frontend
-        working-directory: simple-api-doc-ui
-        run: |
-          npm install -g vite
-          npm install --legacy-peer-deps --no-audit --no-fund
-          echo "Current directory: $(pwd)"
-          ls -F
-          npm run build
-
-      - name: Copy Frontend to Backend
-        run: |
-          mkdir -p simple-api-doc/src/main/resources/static/
-          cp -r simple-api-doc-ui/dist/* simple-api-doc/src/main/resources/static/
+          node-version: '22'
 
       - name: Set up JDK 11
         uses: actions/setup-java@v4
@@ -49,105 +97,85 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Update version files
+        if: steps.release.outputs.create_tag == 'true'
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          mvn -B versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          npm --prefix simple-api-doc-ui version "$VERSION" --no-git-tag-version --allow-same-version --ignore-scripts
+
+      - name: Check version consistency
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          ns = {'m': 'http://maven.apache.org/POM/4.0.0'}
+          versions = {
+              'pom.xml': ET.parse('pom.xml').findtext('m:version', namespaces=ns),
+              'simple-api-doc/pom.xml': ET.parse('simple-api-doc/pom.xml').findtext('m:parent/m:version', namespaces=ns),
+          }
+          for name in ('package.json', 'package-lock.json'):
+              path = Path('simple-api-doc-ui') / name
+              data = json.loads(path.read_text(encoding='utf-8'))
+              versions[str(path)] = data.get('version')
+              if name == 'package-lock.json':
+                  versions[f'{path} packages[""]'] = data.get('packages', {}).get('', {}).get('version')
+          for path, version in versions.items():
+              if version != os.environ['VERSION']:
+                  raise SystemExit(f'{path}: expected {os.environ["VERSION"]}, found {version}')
+          print(f'All version files match {os.environ["VERSION"]}.')
+          PY
+
+      - name: Build Frontend
+        working-directory: simple-api-doc-ui
+        run: |
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          npm run build
+
+      - name: Copy Frontend to Backend
+        run: |
+          mkdir -p simple-api-doc/src/main/resources/static/
+          cp -r simple-api-doc-ui/dist/* simple-api-doc/src/main/resources/static/
+
       - name: Build Backend with Maven
-        run: mvn clean install -Dmaven.test.skip=true -Pproduction
+        run: mvn -B clean verify -Pproduction
 
       - name: Find Release Artifact
         id: find_artifact
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
-          ARTIFACT_PATH=$(find simple-api-doc/target -name "simple-api-doc-*-assembly.zip" | head -n 1)
-          echo "artifact_path=$ARTIFACT_PATH" >> $GITHUB_OUTPUT
-          echo "Found artifact: $ARTIFACT_PATH"
+          ARTIFACT_PATH="simple-api-doc/target/simple-api-doc-$VERSION-assembly.zip"
+          test -s "$ARTIFACT_PATH"
+          echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version and push tag
+        if: steps.release.outputs.create_tag == 'true'
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pom.xml simple-api-doc/pom.xml simple-api-doc-ui/package.json simple-api-doc-ui/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "version: 发布 $VERSION" -m "Release-Run: $GITHUB_RUN_ID"
+          fi
+          git tag -a "$TAG" -m "发布 $VERSION"
+          # Reject concurrent branch changes; push the branch and tag together.
+          git push --atomic origin HEAD:refs/heads/main "refs/tags/$TAG"
 
       - name: Generate Changelog
-        id: changelog
-        shell: bash
-        run: |
-          git fetch --tags --force
-          CURRENT_TAG=${{ github.event.inputs.tag_name || github.ref_name }}
-          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -A 1 "^${CURRENT_TAG}$" | tail -n 1)
-          REPO_URL="https://github.com/fugary/simple-api-doc"
-          
-          if [ -z "$PREVIOUS_TAG" ] || [ "$PREVIOUS_TAG" == "$CURRENT_TAG" ]; then
-            REVISION_RANGE="-n 20"
-          else
-            REVISION_RANGE="$PREVIOUS_TAG..$CURRENT_TAG"
-          fi
-
-          # Function to get and filter logs
-          get_logs() {
-            local pattern=$1
-            local exclude_pattern="github-actions\[bot\]"
-            local exclude_msgs="(version:|docs: add github release automation workflow|mvn versions:set|Updating simple-api-doc-ui version)"
-            
-            git log --reverse $REVISION_RANGE --pretty=format:"%an|%s|%H" | \
-            grep -v "$exclude_pattern" | \
-            grep -vE "^[^|]+\|$exclude_msgs" | \
-            while IFS='|' read -r author subject hash; do
-                # Filter out commits that only modify .github/ or release.yml
-                local files=$(git diff-tree --no-commit-id --name-only -r "$hash")
-                local non_ignored_count=$(echo "$files" | grep -vE "^(\.github/|release\.yml)" | wc -l)
-                if [ "$non_ignored_count" -gt 0 ]; then
-                    if [ "$pattern" == "other" ]; then
-                        if [[ ! "$subject" =~ ^(feat|fix|bug|opt|dep|test): ]]; then
-                            echo "$subject|$hash"
-                        fi
-                    else
-                        if [[ "$subject" =~ ^($pattern): ]]; then
-                            echo "$subject|$hash"
-                        fi
-                    fi
-                fi
-            done | awk -F'|' '!seen[$1]++'
-          }
-
-          format_list() {
-            local title=$1
-            local data=$2
-            if [ -n "$data" ]; then
-              echo "### $title" >> changelog.txt
-              echo "$data" | awk -F'|' -v url="$REPO_URL" '{print (NR ". [" $1 "](" url "/commit/" $2 ")")}' >> changelog.txt
-              echo "" >> changelog.txt
-            fi
-          }
-
-          echo "## What's Changed" > changelog.txt
-          
-          FEATS=$(get_logs "feat")
-          FIXES=$(get_logs "fix|bug")
-          OPTS=$(get_logs "opt")
-          DEPS=$(get_logs "dep")
-          TESTS=$(get_logs "test")
-          OTHERS=$(get_logs "other")
-
-          format_list "🚀 Features" "$FEATS"
-          format_list "🐛 Bug Fixes" "$FIXES"
-          format_list "🧪 Tests" "$TESTS"
-          format_list "⚡ Optimizations" "$OPTS"
-          format_list "📦 Dependencies" "$DEPS"
-          format_list "📝 Other Changes" "$OTHERS"
-          
-          if [ -n "$PREVIOUS_TAG" ] && [ "$PREVIOUS_TAG" != "$CURRENT_TAG" ]; then
-            echo "**Full Changelog**: $REPO_URL/compare/$PREVIOUS_TAG...$CURRENT_TAG" >> changelog.txt
-          fi
-          
-          {
-            echo 'body<<EOF'
-            cat changelog.txt
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ steps.find_artifact.outputs.artifact_path }}
-          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
-          body: ${{ steps.changelog.outputs.body }}
-          generate_release_notes: false
-          draft: false
-          prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          python3 .github/scripts/release-notes.py "$TAG" "$RUNNER_TEMP/changelog.md"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -156,7 +184,6 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -169,7 +196,19 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/simple-api-doc:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/simple-api-doc:${{ github.event.inputs.tag_name || github.ref_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/simple-api-doc:${{ steps.release.outputs.tag }}
+            ${{ steps.release.outputs.is_latest == 'true' && format('{0}/simple-api-doc:latest', secrets.DOCKERHUB_USERNAME) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.find_artifact.outputs.artifact_path }}
+          fail_on_unmatched_files: true
+          tag_name: ${{ steps.release.outputs.tag }}
+          body_path: ${{ runner.temp }}/changelog.md
+          generate_release_notes: false
+          draft: false
+          prerelease: false
+          make_latest: ${{ steps.release.outputs.is_latest }}

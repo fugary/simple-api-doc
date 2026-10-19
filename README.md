@@ -38,6 +38,18 @@ docker run -p 9089:9089 fugary/simple-api-doc:latest
 启动后可以进入登录页面：http://localhost:9089/
 默认账号密码：`admin/12345678`
 
+### 发布新版本
+
+推荐在 GitHub 的 **Actions → Build and Release → Run workflow** 中选择 `main`，输入正式版本号（如 `2.9.6` 或 `v2.9.6`）。工作流自动更新根目录与后端 `pom.xml`、前端 `package.json` 和 `package-lock.json`，校验版本一致性并完成前后端构建与后端测试，然后提交版本修改、创建 `v2.9.6` 标签并一起推送，最后发布 Docker 镜像、GitHub Release 和安装包。版本号目前仅支持 `主版本.次版本.修订版本`，不支持预发布后缀。
+
+工作流使用内置 `GITHUB_TOKEN`（`contents: write`），仓库规则需允许它向 `main` 推送提交和创建 `v*` 标签；Docker Hub 继续使用仓库已有的 `DOCKERHUB_USERNAME` 和 `DOCKERHUB_TOKEN` Secrets。自动推送标签后在同一次运行中继续发布，无需额外配置个人访问令牌。
+
+也可以继续在本地执行 `new-version.bat 2.9.6`，检查并提交上述版本文件后，手动创建和推送 `v2.9.6` 标签触发发布。本地脚本只修改版本文件，不自动提交或打标签；标签触发的工作流会校验版本一致性，不修改源码版本。
+
+若前后端构建或测试失败，自动发版不会推送版本提交或标签；如果标签已成功推送但后续发布失败，请在原运行中选择 **Re-run all jobs**。重试会复用该运行创建的标签，不再次修改版本。新运行输入已经存在的版本会被拒绝。若提示 `main` 已变化，请从最新 `main` 重新发起运行。发布完成后，本地开发前请先拉取远程版本提交。
+
+仅当发布版本不低于仓库已有正式版本标签时，才更新 Docker 的 `latest` 和 GitHub Release 的最新版本标记；补发或重试旧版本仍会发布对应版本镜像和安装包。
+
 ### 截图示例
 
 ![image-20241014134412817](https://git.mengqingpo.com:8888/fugary/blogpic/uploads/5a91e5e6361da3eb0ea11a1df7487919/image-20241014134412817.png)
