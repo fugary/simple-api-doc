@@ -398,7 +398,7 @@ export const isGetMethod = method => {
  * @param groupConfig
  * @returns {*}
  */
-export const extractQueryParams = (requestParams, groupConfig) => {
+export const extractQueryParams = (requestParams, groupConfig, encode = true) => {
   const params = preProcessParams(requestParams)
   return params.reduce((results, item) => {
     let parsedVal = item.value
@@ -414,11 +414,11 @@ export const extractQueryParams = (requestParams, groupConfig) => {
       const flatObj = toFlatKeyValue(parsedVal)
       for (const [k, v] of Object.entries(flatObj)) {
         if (v !== undefined && v !== null && v !== '') {
-          addRequestParamsToResult(results, k, processEvnParams(groupConfig, v, true))
+          addRequestParamsToResult(results, k, processEvnParams(groupConfig, v, encode))
         }
       }
     } else {
-      const val = processEvnParams(groupConfig, item.value, true)
+      const val = processEvnParams(groupConfig, item.value, encode)
       if (isString(val) ? val.trim() : (val !== undefined && val !== null)) {
         addRequestParamsToResult(results, item.name, val)
       }
@@ -433,7 +433,7 @@ export const extractQueryParams = (requestParams, groupConfig) => {
  * @param paramTarget
  * @return {{data: (string|*), hasBody: boolean}}
  */
-export const calcRequestBody = (paramTarget) => {
+export const calcRequestBody = (paramTarget, encodeQuery = true) => {
   let checkResult = checkRequestBody(paramTarget.value.requestContentType || NONE,
     paramTarget.value, paramTarget.value.requestBody) // 原body检测
   const requestParams = preProcessParams(paramTarget.value?.requestParams)
@@ -446,7 +446,7 @@ export const calcRequestBody = (paramTarget) => {
       [paramsSendAs]: requestParams
     })
   } else {
-    checkResult.params = extractQueryParams(requestParams, paramTarget.value?.groupConfig)
+    checkResult.params = extractQueryParams(requestParams, paramTarget.value?.groupConfig, encodeQuery)
   }
   console.log('================================checkResult', checkResult)
   return checkResult

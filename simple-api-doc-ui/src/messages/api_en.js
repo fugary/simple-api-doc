@@ -1,5 +1,10 @@
 import { baseMessages } from '@/messages/base'
 export const api = baseMessages()
+api.label.requestCode = 'Request Code'
+api.label.requestCodeLanguage = 'Language / Library'
+api.label.copyRequestCode = 'Copy Code'
+api.msg.requestCodeDocument = 'Generated from the API definition. Replace sample parameters and file paths with actual values.'
+api.msg.requestCodeError = 'Failed to generate request code. Check the API definition or request parameters and try again.'
 
 api.label.method = 'Method'
 api.label.pin = 'Pin'

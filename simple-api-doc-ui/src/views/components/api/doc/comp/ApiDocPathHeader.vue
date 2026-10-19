@@ -51,7 +51,7 @@ const docFormOption = computed(() => {
     }
   }
 })
-defineEmits(['debug-api', 'config-auth', 'change-view-as'])
+defineEmits(['debug-api', 'config-auth', 'change-view-as', 'request-code'])
 const requestUrl = computed(() => {
   return joinPath(apiDocDetail.value.targetUrl, apiDocDetail.value?.url)
 })
@@ -94,18 +94,42 @@ const requestUrl = computed(() => {
       />
       {{ $t(viewAsMarkdown ? 'api.label.viewAsApi' : 'api.label.viewAsMarkdown') }}
     </el-button>
-    <el-button
+    <el-dropdown
       v-if="debugEnabled"
-      class="margin-top1"
+      class="margin-top1 margin-left2"
       type="primary"
-      style="padding-left: 10px;"
+      split-button
+      trigger="click"
       @click="$emit('debug-api', apiDocDetail)"
+      @command="$emit('request-code')"
     >
       <common-icon
         icon="PlayArrowFilled"
         :size="18"
       />
       {{ $t('api.label.debugAPI') }}
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item command="request-code">
+            <common-icon
+              icon="CodeFilled"
+              :size="18"
+            />
+            {{ $t('api.label.requestCode') }}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+    <el-button
+      v-else
+      class="margin-top1"
+      @click="$emit('request-code')"
+    >
+      <common-icon
+        icon="CodeFilled"
+        :size="18"
+      />
+      {{ $t('api.label.requestCode') }}
     </el-button>
     <el-badge
       v-if="authEnabled&&debugEnabled"

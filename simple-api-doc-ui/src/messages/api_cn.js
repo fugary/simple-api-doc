@@ -1,5 +1,10 @@
 import { baseMessages } from '@/messages/base'
 export const api = baseMessages()
+api.label.requestCode = '请求代码'
+api.label.requestCodeLanguage = '语言 / 调用库'
+api.label.copyRequestCode = '复制代码'
+api.msg.requestCodeDocument = '根据接口定义生成；请将示例参数和文件路径替换为实际值。'
+api.msg.requestCodeError = '生成请求代码失败，请检查接口定义或请求参数后重试。'
 
 api.label.method = '请求方法'
 api.label.pin = '置顶'

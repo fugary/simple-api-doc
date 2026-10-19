@@ -25,6 +25,20 @@ import { calcPreferenceId, useShareDocTheme } from '@/services/api/ApiFolderServ
 import ApiDocSecurityRequirements from '@/views/components/api/doc/comp/ApiDocSecurityRequirements.vue'
 import { cloneDeep } from 'lodash-es'
 import DocCopyMenu from '@/views/components/api/doc/comp/DocCopyMenu.vue'
+import ApiRequestCodeWindow from '@/views/components/api/doc/comp/ApiRequestCodeWindow.vue'
+import { buildDocCodeTarget } from '@/services/api/RequestCodeService'
+
+const requestCodeWindow = ref()
+const openRequestCode = () => requestCodeWindow.value.open(async () => {
+  let doc = apiDocDetail.value
+  if (viewAsMarkdown.value) {
+    const result = props.shareDoc?.shareId
+      ? await loadShareDoc({ shareId: props.shareDoc.shareId, docId: doc.id, markdown: false })
+      : await loadDoc(doc.id, false)
+    doc = { ...result.resultData, targetUrl: doc.targetUrl }
+  }
+  return buildDocCodeTarget(doc.projectInfoDetail || projectInfoDetail.value, doc)
+})
 
 const props = defineProps({
   shareDoc: {
@@ -217,6 +231,7 @@ const markdownPreview = ref()
       @update:view-as-markdown="loadDocDetail"
       @debug-api="$emit('toDebugApi', projectInfoDetail, apiDocDetail, handlerConfig)"
       @config-auth="toEditAuthorization"
+      @request-code="openRequestCode"
     />
     <el-container
       v-if="apiDocDetail"
@@ -332,6 +347,10 @@ const markdownPreview = ref()
       :clear-click="clearAuthorization"
     />
   </el-container>
+  <ApiRequestCodeWindow
+    ref="requestCodeWindow"
+    :monaco-theme="monacoTheme"
+  />
 </template>
 
 <style scoped>

@@ -156,36 +156,18 @@ const appendCurlOption = (lines, option, value, shell) => {
   lines.push(value === undefined ? option : `${option} ${quoteCurlValue(value, shell)}`)
 }
 
-const appendUrlencodedBody = (lines, paramTargetVal, shell) => {
-  preProcessParams(paramTargetVal[FORM_URL_ENCODED]).forEach(item => {
-    appendCurlOption(lines, '--data-urlencode', `${item.name}=${processEvnParams(paramTargetVal.groupConfig, item.value) ?? ''}`, shell)
-  })
-}
-
-const appendFormDataBody = (lines, paramTargetVal, shell) => {
-  preProcessParams(paramTargetVal[FORM_DATA]).forEach(item => {
-    if (isArray(item.value)) {
-      item.value.filter(file => !!file?.raw).forEach(file => {
-        appendCurlOption(lines, '-F', `${item.name}=@${file.name}`, shell)
-      })
-    } else {
-      appendCurlOption(lines, '-F', `${item.name}=${processEvnParams(paramTargetVal.groupConfig, item.value) ?? ''}`, shell)
-    }
-  })
-}
-
 const joinCurlCommand = (lines, shell) => {
   return shell === CURL_SHELL.CMD
     ? lines.join(' ^\r\n  ')
     : lines.join(' \\\n  ')
 }
 
-export const buildCurlCommand = async (paramTargetVal, requestPath, shell = CURL_SHELL.BASH) => {
+export const buildCodeRequest = async (paramTargetVal, requestPath) => {
   if (!paramTargetVal || !requestPath) {
     return ''
   }
   const method = (paramTargetVal.method || 'GET').toUpperCase()
-  const { data, hasBody, params: requestBodyParams, contentType } = calcRequestBody({ value: paramTargetVal })
+  const { data, hasBody, params: requestBodyParams, contentType } = calcRequestBody({ value: paramTargetVal }, false)
   const queryParams = requestBodyParams || {}
   const headers = preProcessParams(paramTargetVal.headerParams).reduce((results, item) => {
     results[item.name] = processEvnParams(paramTargetVal.groupConfig, item.value)
@@ -203,38 +185,58 @@ export const buildCurlCommand = async (paramTargetVal, requestPath, shell = CURL
         authContent = supportedModels.find(model => model.authType === authModel.authType) || supportedModels[0]
       }
     }
-    if (authContent.authType !== AUTH_TYPE.NONE) {
+    if (authContent && authContent.authType !== AUTH_TYPE.NONE) {
       await AUTH_OPTION_CONFIG[authContent.authType]?.parseAuthInfo(authContent, headers, authParams, { value: paramTargetVal })
     }
   }
-  let processedPath = requestPath
+  let processedPath = processEvnParams(paramTargetVal.groupConfig, requestPath)
   paramTargetVal?.pathParams?.forEach(pathParam => {
-    const pathValue = processEvnParams(paramTargetVal.groupConfig, pathParam.value, true)
-    if (pathValue) {
-      processedPath = processedPath.replace(new RegExp(`:${pathParam.name}`, 'g'), pathValue)
-        .replace(new RegExp(`\\{${pathParam.name}\\}`, 'g'), pathValue)
+    const pathValue = processEvnParams(paramTargetVal.groupConfig, pathParam.value)
+    if (pathValue !== undefined && pathValue !== null && pathValue !== '') {
+      const encoded = encodeURIComponent(pathValue)
+      processedPath = processedPath.split(`{${pathParam.name}}`).join(encoded)
+        .split('/').map(segment => segment === `:${pathParam.name}` ? encoded : segment).join('/')
     }
   })
-  const targetUrl = paramTargetVal?.targetUrl
+  const targetUrl = processEvnParams(paramTargetVal.groupConfig, paramTargetVal?.targetUrl)
   const url = appendQueryParams(joinPath(targetUrl, processedPath), authParams)
+  if (hasBody && contentType && contentType !== LANG_TO_CONTENT_TYPES[FORM_DATA] && !hasHeader(headers, 'Content-Type')) {
+    headers['Content-Type'] = contentType
+  }
+  const formType = [FORM_DATA, FORM_URL_ENCODED].find(type => LANG_TO_CONTENT_TYPES[type] === contentType)
+  const formParams = formType && (paramTargetVal[formType]?.length ? paramTargetVal[formType] : paramTargetVal.requestParams)
+  const fields = formType
+    ? preProcessParams(formParams).flatMap(item => {
+      if (formType === FORM_DATA && isArray(item.value)) {
+        return item.value.filter(file => !!file?.raw).map(file => ({ name: item.name, value: file.name, file: true }))
+      }
+      return [{ name: item.name, value: `${processEvnParams(paramTargetVal.groupConfig, item.value) ?? ''}` }]
+    })
+    : []
+  if (hasBody && formType === FORM_DATA) {
+    Object.keys(headers).filter(name => name.toLowerCase() === 'content-type').forEach(name => delete headers[name])
+  }
+  return { url, method, headers, hasBody, contentType, fields, body: formatCurlBody(data) }
+}
+
+export const buildCurlCommand = async (paramTargetVal, requestPath, shell = CURL_SHELL.BASH) => {
+  const request = await buildCodeRequest(paramTargetVal, requestPath)
+  return request ? formatCurlRequest(request, shell) : ''
+}
+
+export const formatCurlRequest = ({ url, method, headers, hasBody, contentType, fields, body }, shell = CURL_SHELL.BASH) => {
   const lines = [`curl ${quoteCurlValue(url, shell)}`]
   const bodyLines = []
   if (method) {
     appendCurlOption(lines, '-X', method, shell)
   }
   if (hasBody) {
-    if (contentType && contentType !== LANG_TO_CONTENT_TYPES[FORM_DATA] && !hasHeader(headers, 'Content-Type')) {
-      headers['Content-Type'] = contentType
-    }
     if (contentType === LANG_TO_CONTENT_TYPES[FORM_DATA]) {
-      appendFormDataBody(bodyLines, paramTargetVal, shell)
+      fields.forEach(field => appendCurlOption(bodyLines, field.file ? '-F' : '--form-string', `${field.name}=${field.file ? '@' : ''}${field.value}`, shell))
     } else if (contentType === LANG_TO_CONTENT_TYPES[FORM_URL_ENCODED]) {
-      appendUrlencodedBody(bodyLines, paramTargetVal, shell)
-    } else {
-      const body = formatCurlBody(data)
-      if (body) {
-        appendCurlOption(bodyLines, '--data-raw', body, shell)
-      }
+      fields.forEach(field => appendCurlOption(bodyLines, '--data-urlencode', `${field.name}=${field.value}`, shell))
+    } else if (body) {
+      appendCurlOption(bodyLines, '--data-raw', body, shell)
     }
   }
   Object.keys(headers).forEach(name => {
