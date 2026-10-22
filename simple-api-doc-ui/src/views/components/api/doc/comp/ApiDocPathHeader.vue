@@ -159,4 +159,10 @@ const requestUrl = computed(() => {
   display: flex;
   margin-top: 5px;
 }
+.doc-path-header > .el-dropdown {
+  flex-shrink: 0;
+}
+.doc-path-header :deep(.el-dropdown .el-button-group) {
+  display: inline-flex;
+}
 </style>
