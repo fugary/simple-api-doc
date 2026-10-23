@@ -281,6 +281,14 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         exportVo.setProjectName(StringUtils.defaultIfBlank(importVo.getProjectName(), exportVo.getProjectName()));
         exportVo.setIconUrl(StringUtils.defaultIfBlank(importVo.getIconUrl(), exportVo.getIconUrl()));
         exportVo.setGroupCode(importVo.getGroupCode());
+        // 已有项目复用目标标识，让预览、实际导入和定时同步生成相同的图片地址。
+        if (importVo instanceof ApiProjectTaskImportVo) {
+            Integer projectId = ((ApiProjectTaskImportVo) importVo).getProjectId();
+            ApiProject target = projectId == null ? null : getById(projectId);
+            if (target != null && StringUtils.isNotBlank(target.getProjectCode())) {
+                exportVo.setProjectCode(target.getProjectCode());
+            }
+        }
         normalizeImportImages(exportVo);
         return SimpleResultUtils.createSimpleResult(exportVo);
     }
@@ -349,9 +357,7 @@ public class ApiProjectServiceImpl extends ServiceImpl<ApiProjectMapper, ApiProj
         mountFolder = apiFolderService.getOrCreateMountFolder(apiProject, mountFolder);
         ApiProjectInfo projectInfo = apiProjectInfoService.saveApiProjectInfo(exportVo.getProjectInfo(), apiProject, mountFolder, importExists);
         if (Boolean.TRUE.equals(projectInfo.getDefaultFlag())) {
-            List<ExportEnvConfigVo> mergedEnvConfigs = ApiDocParseUtils.mergeEnvConfigs(apiProject.getEnvContent(), exportVo.getEnvContent());
-            SimpleModelUtils.copyNoneNullValue(exportVo, apiProject);
-            apiProject.setEnvContent(JsonUtils.toJson(mergedEnvConfigs));
+            ApiDocParseUtils.mergeImportProject(apiProject, exportVo);
         }
         updateById(SimpleModelUtils.addAuditInfo(apiProject));
         apiProjectInfoDetailService.saveApiProjectInfoDetails(apiProject, projectInfo, exportVo.getProjectInfoDetails());

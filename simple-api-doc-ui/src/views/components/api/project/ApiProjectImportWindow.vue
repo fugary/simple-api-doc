@@ -50,7 +50,7 @@ defineEmits(['import-success'])
     :close-on-click-modal="false"
     width="800px"
     :ok-click="doImportProject"
-    :ok-label="$t('api.label.importData')"
+    :ok-label="$t(project?.id ? 'api.label.previewImport' : 'api.label.importData')"
   >
     <api-project-import
       ref="importRef"

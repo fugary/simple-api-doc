@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.function.Supplier;
 
 /**
  * 文档静态资源（图片等）存储与链接替换实现
@@ -27,6 +28,19 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 public class DocAssetStorageServiceImpl implements DocAssetStorageService {
+
+    private static final ThreadLocal<Boolean> PREVIEW = new ThreadLocal<>();
+
+    /** 预览只计算图片链接，不保存图片；请求结束即清除标记。 */
+    public static <T> T withoutSavingImages(Supplier<T> action) {
+        Boolean previous = PREVIEW.get();
+        PREVIEW.set(true);
+        try {
+            return action.get();
+        } finally {
+            if (previous == null) { PREVIEW.remove(); } else { PREVIEW.set(previous); }
+        }
+    }
 
     private static final Set<String> IMAGE_EXTENSIONS = Set.of(
             "png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"
@@ -80,6 +94,9 @@ public class DocAssetStorageServiceImpl implements DocAssetStorageService {
             return targetUrl;
         }
 
+        if (Boolean.TRUE.equals(PREVIEW.get())) {
+            return targetUrl;
+        }
         try {
             FileUtils.forceMkdir(targetDir);
             Files.write(targetFile.toPath(), imageBytes);

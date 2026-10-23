@@ -1,4 +1,6 @@
 import { isFunction } from 'lodash-es'
+import { importProject, previewProjectImport } from '@/api/ApiProjectApi'
+import { triggerTask } from '@/api/ApiProjectTaskApi'
 import { DynamicHelper } from '@/components/directives'
 import { h, defineComponent, defineAsyncComponent } from 'vue'
 import ApiFolderEditWindow from '@/views/components/api/doc/comp/ApiFolderEditWindow.vue'
@@ -19,6 +21,28 @@ const ApiGenerateSampleWindow = () => import('@/views/components/api/doc/comp/Ap
 const ApiCompareWindow = () => import('@/views/components/utils/ApiCompareWindow.vue')
 const ApiTaskLogsWindow = () => import('@/views/components/api/project/ApiTaskLogsWindow.vue')
 const ApiDocSearchWindow = () => import('@/views/components/api/doc/ApiDocSearchWindow.vue')
+
+export const importProjectWithPreview = async (files, params = {}, config = {}) => {
+  params = { ...params }
+  files = [].concat(files || [])
+  const runImport = () => params.taskId ? triggerTask(params.taskId, config) : importProject(files, params, config)
+  if (!params.projectId && !params.taskId) return runImport()
+  const preview = await previewProjectImport(files, params, config)
+  if (!preview.success) return preview
+  const dynamicHelper = new DynamicHelper()
+  let resolveResult
+  const result = new Promise(resolve => { resolveResult = resolve })
+  await dynamicHelper.createAndRender(() => import('@/views/components/api/project/ApiImportPreviewWindow.vue'), {
+    preview: preview.resultData,
+    importAction: runImport,
+    onConfirmed: data => resolveResult(data),
+    onClosed: () => {
+      resolveResult({ success: false })
+      dynamicHelper.destroy()
+    }
+  })
+  return result
+}
 
 export const showDocSearchWindow = async (context = {}) => {
   const dynamicHelper = new DynamicHelper()

@@ -12,6 +12,7 @@ public class ApiProjectTaskImportVo extends ApiProjectImportVo {
 
     private static final long serialVersionUID = -1692614327176179589L;
     private Integer projectId;
+    private Integer taskId;
     private String taskType;
     private String taskName;
     private Integer scheduleRate;

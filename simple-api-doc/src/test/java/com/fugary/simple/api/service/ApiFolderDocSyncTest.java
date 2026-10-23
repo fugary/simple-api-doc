@@ -2,24 +2,16 @@ package com.fugary.simple.api.service;
 
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
-import com.fugary.simple.api.service.impl.apidoc.ApiFolderServiceImpl;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
 import com.fugary.simple.api.web.vo.exports.ExportApiDocVo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class ApiFolderDocSyncTest {
 
-    static class TestableApiFolderService extends ApiFolderServiceImpl {
-        @Override
-        public void processModifiedApiDoc(ExportApiDocVo apiDocVo, ApiDoc existsDoc) {
-            super.processModifiedApiDoc(apiDocVo, existsDoc);
-        }
-    }
-
     @Test
     public void testMarkdownDocContentUpdateOnReImport() {
-        TestableApiFolderService service = new TestableApiFolderService();
-
         // 模拟已存在于数据库中的 Markdown 文档（旧版本）
         ApiDoc existsDoc = new ApiDoc();
         existsDoc.setId(100);
@@ -36,7 +28,7 @@ public class ApiFolderDocSyncTest {
         newDocVo.setSummary("快速上手");
         newDocVo.setDocContent("# 快速上手\n\n从 Git 更新后的最新正文内容！");
 
-        service.processModifiedApiDoc(newDocVo, existsDoc);
+        ApiDocParseUtils.prepareImportDoc(newDocVo, existsDoc, new ApiProjectInfo(), null);
 
         // 验证：Markdown 文档应当保留并覆盖为从 Git 抓取的最新正文，而不会被数据库旧内容覆盖
         Assertions.assertEquals("# 快速上手\n\n从 Git 更新后的最新正文内容！", newDocVo.getDocContent());
@@ -45,8 +37,6 @@ public class ApiFolderDocSyncTest {
 
     @Test
     public void testMarkdownDocNamePreservedWhenModifiedInUi() {
-        TestableApiFolderService service = new TestableApiFolderService();
-
         // 模拟用户在 UI 中对文档进行了重命名 (docName != summary)
         ApiDoc existsDoc = new ApiDoc();
         existsDoc.setId(101);
@@ -62,7 +52,7 @@ public class ApiFolderDocSyncTest {
         newDocVo.setSummary("原标题");
         newDocVo.setDocContent("# 原标题\n\n更新后的正文。");
 
-        service.processModifiedApiDoc(newDocVo, existsDoc);
+        ApiDocParseUtils.prepareImportDoc(newDocVo, existsDoc, new ApiProjectInfo(), null);
 
         // 验证：用户自定义的 docName 得到保护和保留，同时正文内容更新为 Git 最新内容
         Assertions.assertEquals("用户自定义重命名", newDocVo.getDocName());
@@ -71,8 +61,6 @@ public class ApiFolderDocSyncTest {
 
     @Test
     public void testMarkdownDocTitleUpdatedWhenModifiedInGit() {
-        TestableApiFolderService service = new TestableApiFolderService();
-
         // 用户未在 UI 中重命名 (docName == summary)
         ApiDoc existsDoc = new ApiDoc();
         existsDoc.setId(102);
@@ -88,7 +76,7 @@ public class ApiFolderDocSyncTest {
         newDocVo.setSummary("新标题");
         newDocVo.setDocContent("# 新标题\n\n正文。");
 
-        service.processModifiedApiDoc(newDocVo, existsDoc);
+        ApiDocParseUtils.prepareImportDoc(newDocVo, existsDoc, new ApiProjectInfo(), null);
 
         // 验证：docName 自动同步为 Git 中的新标题
         Assertions.assertEquals("新标题", newDocVo.getDocName());
@@ -96,8 +84,6 @@ public class ApiFolderDocSyncTest {
 
     @Test
     public void testMarkdownDocLockedAndDeprecatedPreserved() {
-        TestableApiFolderService service = new TestableApiFolderService();
-
         ApiDoc existsDoc = new ApiDoc();
         existsDoc.setId(103);
         existsDoc.setDocType(ApiDocConstants.DOC_TYPE_MD);
@@ -113,7 +99,7 @@ public class ApiFolderDocSyncTest {
         newDocVo.setSummary("配置说明");
         newDocVo.setDocContent("# 配置说明\n\n新内容");
 
-        service.processModifiedApiDoc(newDocVo, existsDoc);
+        ApiDocParseUtils.prepareImportDoc(newDocVo, existsDoc, new ApiProjectInfo(), null);
 
         // 验证：导入未指定 locked/deprecated 时，保留已有状态
         Assertions.assertTrue(Boolean.TRUE.equals(newDocVo.getLocked()));
@@ -122,8 +108,6 @@ public class ApiFolderDocSyncTest {
 
     @Test
     public void testApiDocCustomDocContentPreservedOnReImport() {
-        TestableApiFolderService service = new TestableApiFolderService();
-
         // 模拟 API 接口文档，用户在 UI 中编写了自定义说明 docContent
         ApiDoc existsDoc = new ApiDoc();
         existsDoc.setId(200);
@@ -139,7 +123,7 @@ public class ApiFolderDocSyncTest {
         apiDocVo.setSummary("查询用户列表");
         apiDocVo.setDocContent(null);
 
-        service.processModifiedApiDoc(apiDocVo, existsDoc);
+        ApiDocParseUtils.prepareImportDoc(apiDocVo, existsDoc, new ApiProjectInfo(), null);
 
         // 验证：API 接口文档的用户自定义 docContent 被完好保留
         Assertions.assertEquals("这是开发人员在 UI 中手动补充的接口调用注意事项", apiDocVo.getDocContent());

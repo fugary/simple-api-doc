@@ -4,6 +4,8 @@ import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
+import com.fugary.simple.api.service.impl.apidoc.ApiImportPreviewService;
+import com.fugary.simple.api.web.vo.imports.ImportPreviewVo;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
@@ -59,6 +61,15 @@ public class ApiProjectImportController {
 
     @Autowired
     private ApiProjectTaskService apiProjectTaskService;
+
+    @Autowired
+    private ApiImportPreviewService importPreviewService;
+
+    // 沿用 load* 只读接口约定，避免将完整差异写入操作日志。
+    @PostMapping("/previewImportProject")
+    public SimpleResult<ImportPreviewVo> loadImportPreview(@ModelAttribute ApiProjectTaskImportVo importVo, HttpServletRequest request) {
+        return importPreviewService.preview(importVo, () -> parseProject(importVo, request));
+    }
 
     @SneakyThrows
     @PostMapping("/parseProject")

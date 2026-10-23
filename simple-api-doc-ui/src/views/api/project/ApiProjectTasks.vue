@@ -2,10 +2,10 @@
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { $coreAlert, $coreConfirm, $goto, checkShowColumn, getStyleGrow, isAdminUser, useBackUrl, useCurrentUserName } from '@/utils'
-import { importProject, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
+import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectTaskApi, { copyProjectTask, triggerTask } from '@/api/ApiProjectTaskApi'
+import ApiProjectTaskApi, { copyProjectTask } from '@/api/ApiProjectTaskApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions } from '@/components/utils'
@@ -28,7 +28,7 @@ import dayjs from 'dayjs'
 import { ElLink, ElTag, ElText, ElTooltip } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { inProjectCheckAccess, useSelectProjectGroups, renderProjectGroupLabel } from '@/api/ApiProjectGroupApi'
-import { addOrEditFolderWindow, showTaskLogsWindow } from '@/utils/DynamicUtils'
+import { importProjectWithPreview, addOrEditFolderWindow, showTaskLogsWindow } from '@/utils/DynamicUtils'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -195,14 +195,13 @@ const buttons = computed(() => {
     type: 'success',
     buttonIf: item => item.isWritable,
     click: item => {
-      $coreConfirm($i18nKey('common.msg.commonConfirm', 'api.label.importNow'))
-        .then(() => triggerTask(item.id, { loading: true, timeout: 60000 })
-          .then((data) => {
-            if (data.success) {
-              $coreAlert(data.message || $i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
-              loadProjectTasks()
-            }
-          }))
+      importProjectWithPreview([], { taskId: item.id }, { loading: true, timeout: 60000 })
+        .then((data) => {
+          if (data.success) {
+            $coreAlert(data.message || $i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+            loadProjectTasks()
+          }
+        })
     }
   }, {
     labelKey: 'common.label.edit',
@@ -541,7 +540,7 @@ const doImportNow = ({ form }) => {
       if (currentModel.value.authType !== AUTH_TYPE.NONE) {
         modelParam.authContent = JSON.stringify(currentModel.value.authContentModel || {})
       }
-      importProject([], modelParam, { loading: true })
+      importProjectWithPreview([], modelParam, { loading: true })
         .then((data) => {
           if (data.success) {
             $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))

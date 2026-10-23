@@ -11,8 +11,8 @@ import com.fugary.simple.api.mapper.api.ApiProjectInfoMapper;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoDetailService;
 import com.fugary.simple.api.service.apidoc.ApiProjectInfoService;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.exports.ApiDocParseUtils;
 import com.fugary.simple.api.web.vo.exports.ExportApiProjectInfoVo;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -49,18 +49,8 @@ public class ApiProjectInfoServiceImpl extends ServiceImpl<ApiProjectInfoMapper,
     @Override
     public ApiProjectInfo saveApiProjectInfo(ExportApiProjectInfoVo projectInfoVo, ApiProject apiProject, ApiFolder mountFolder, boolean importExists) {
         if (projectInfoVo != null) {
-            projectInfoVo.setProjectId(apiProject.getId());
-            projectInfoVo.setFolderId(mountFolder.getId());
-            ApiProjectInfo existsProjectInfo;
-            List<ApiProjectInfo> projectInfos = loadByProjectId(projectInfoVo.getProjectId());
-            if (importExists) { // 存在
-                existsProjectInfo = projectInfos.stream().filter(info -> info.getFolderId().equals(projectInfoVo.getFolderId())).findFirst().orElse(null);
-                if (existsProjectInfo != null) {
-                    SimpleModelUtils.copyNoneNullValue(existsProjectInfo, projectInfoVo);
-                } else {
-                    projectInfoVo.setDefaultFlag(CollectionUtils.isEmpty(projectInfos));
-                }
-            }
+            ApiDocParseUtils.prepareImportInfo(projectInfoVo, apiProject.getId(), mountFolder.getId(),
+                    loadByProjectId(apiProject.getId()), importExists);
             saveOrUpdate(SimpleModelUtils.addAuditInfo(projectInfoVo));
         }
         return projectInfoVo;

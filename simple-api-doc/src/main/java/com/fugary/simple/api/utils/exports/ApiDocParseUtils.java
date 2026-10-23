@@ -3,6 +3,8 @@ package com.fugary.simple.api.utils.exports;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.entity.api.ApiDoc;
+import com.fugary.simple.api.entity.api.ApiProjectInfo;
+import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProjectInfoDetail;
 import com.fugary.simple.api.utils.JsonUtils;
@@ -38,6 +40,112 @@ import java.util.stream.Stream;
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ApiDocParseUtils {
+
+    /** 来源按挂载目录匹配，已有配置补齐空值；新项目保持解析器给出的默认来源标记。 */
+    public static ApiProjectInfo prepareImportInfo(ExportApiProjectInfoVo incoming, Integer projectId, Integer folderId,
+                                                  List<ApiProjectInfo> savedInfos, boolean importExists) {
+        incoming.setProjectId(projectId);
+        incoming.setFolderId(folderId);
+        ApiProjectInfo existing = importExists ? savedInfos.stream()
+                .filter(info -> Objects.equals(info.getFolderId(), folderId)).findFirst().orElse(null) : null;
+        if (existing != null) {
+            SimpleModelUtils.copyNoneNullValue(existing, incoming);
+        } else if (importExists) {
+            incoming.setDefaultFlag(savedInfos.isEmpty());
+        }
+        return existing;
+    }
+
+    public static void mergeImportProject(ApiProject target, ExportApiProjectVo source) {
+        List<ExportEnvConfigVo> merged = mergeEnvConfigs(target.getEnvContent(), source.getEnvContent());
+        SimpleModelUtils.copyNoneNullValue(source, target);
+        target.setEnvContent(JsonUtils.toJson(merged));
+    }
+
+    /** 文档正文比较统一使用实体字段，忽略详情包装、审计字段和排序。 */
+    public static boolean isSameApiDoc(ApiDoc incoming, ApiDoc existing) {
+        return SimpleModelUtils.isSameData(SimpleModelUtils.copy(incoming, ApiDoc.class),
+                SimpleModelUtils.copy(existing, ApiDoc.class), "sortId");
+    }
+
+    /** 导入与只读预览共用文档属性合并，不执行保存。 */
+    public static void prepareImportDoc(ExportApiDocVo apiDocVo, ApiDoc existsDoc, ApiProjectInfo projectInfo, Integer folderId) {
+        apiDocVo.setVersion(1);
+        apiDocVo.setInfoId(projectInfo.getId());
+        apiDocVo.setProjectId(projectInfo.getProjectId());
+        apiDocVo.setFolderId(folderId);
+        if (existsDoc != null) {
+            apiDocVo.setId(existsDoc.getId());
+            apiDocVo.setStatus(existsDoc.getStatus());
+            apiDocVo.setVersion(existsDoc.getVersion());
+            apiDocVo.setSortId(existsDoc.getSortId());
+            apiDocVo.setFolderId(existsDoc.getFolderId());
+            processModifiedApiDoc(apiDocVo, existsDoc);
+        }
+        if (ApiDocConstants.DOC_TYPE_API.equals(apiDocVo.getDocType())) {
+            apiDocVo.setSpecVersion(projectInfo.getSpecVersion());
+        }
+    }
+
+    private static void processModifiedApiDoc(ExportApiDocVo apiDocVo, ApiDoc existsDoc) {
+        if (existsDoc != null) {
+            if (!StringUtils.equals(existsDoc.getDocName(), existsDoc.getSummary())) { // 修改过docName
+                apiDocVo.setDocName(existsDoc.getDocName());
+            }
+            if (ApiDocConstants.DOC_TYPE_API.equals(apiDocVo.getDocType()) && StringUtils.isNotBlank(existsDoc.getDocContent())) { // API文档保留自定义修改的docContent
+                apiDocVo.setDocContent(existsDoc.getDocContent());
+            }
+            if (apiDocVo.getDeprecated() == null && existsDoc.getDeprecated() != null) { // 导入无deprecated时保留已有deprecated状态
+                apiDocVo.setDeprecated(existsDoc.getDeprecated());
+            }
+            if (apiDocVo.getLocked() == null && existsDoc.getLocked() != null) { // 导入无locked时保留已有locked状态
+                apiDocVo.setLocked(existsDoc.getLocked());
+            }
+        }
+    }
+
+    /** 无 Tag 的虚拟目录直接匹配导入目标；其余目录按相对路径匹配。 */
+    public static String calcImportFolderPath(String mountPath, ExportApiFolderVo folder) {
+        return ApiDocConstants.SIMPLE_EMPTY_PATH_FOLDER_ALIAS.equals(folder.getFolderPath())
+                ? mountPath : mountPath + ApiDocConstants.FOLDER_PATH_SEPARATOR + folder.getFolderPath();
+    }
+
+    /** 保留用户修改的目录名称、标识和排序。 */
+    public static void prepareImportFolder(ExportApiFolderVo folder, ApiFolder existsFolder, ApiFolder parentFolder) {
+        if (existsFolder == null) {
+            folder.setParentId(parentFolder.getId());
+            folder.setProjectId(parentFolder.getProjectId());
+            if (StringUtils.isBlank(folder.getFolderCode())) {
+                folder.setFolderCode(folder.getFolderName());
+            }
+        } else {
+            if (StringUtils.isNotBlank(existsFolder.getFolderName())) {
+                folder.setFolderName(existsFolder.getFolderName());
+            }
+            if (StringUtils.isNotBlank(existsFolder.getFolderCode())) {
+                folder.setFolderCode(existsFolder.getFolderCode());
+            }
+            SimpleModelUtils.copyNoneNullValue(existsFolder, folder);
+            folder.setStatus(existsFolder.getStatus());
+            folder.setSortId(existsFolder.getSortId());
+        }
+    }
+
+    public static Map<Integer, List<ApiFolder>> calcChildFoldersMap(Collection<ApiFolder> folders) {
+        return folders.stream().filter(folder -> Objects.nonNull(folder.getParentId())).collect(Collectors.groupingBy(ApiFolder::getParentId));
+    }
+
+    public static int calcFolderDocCount(Map<Integer, List<ApiFolder>> childFoldersMap, ApiFolder parentFolder, List<? extends ApiDoc> apiDocs) {
+        // 直接计算当前文件夹的文档数量
+        int docCount = (int) apiDocs.stream().filter(doc -> parentFolder.getId().equals(doc.getFolderId())).count();
+        // 获取当前文件夹的子文件夹
+        List<ApiFolder> subFolders = childFoldersMap.getOrDefault(parentFolder.getId(), Collections.emptyList());
+        // 遍历子文件夹，递归累加文档数量
+        for (ApiFolder folder : subFolders) {
+            docCount += calcFolderDocCount(childFoldersMap, folder, apiDocs);
+        }
+        return docCount;
+    }
 
     // 注册 shutdown hook
     static {
@@ -178,6 +286,7 @@ public class ApiDocParseUtils {
             }
             List<ExportApiDocSchemaVo> requestsSchemas = apiDocVo.getRequestsSchemas();
             Map<String, ApiProjectInfoDetail> requestSchemaMap = toSchemaMap(existsDocDetail.getRequestsSchemas());
+            isChanged |= !requestSchemaMap.keySet().equals(toSchemaMap(requestsSchemas).keySet());
             for (ExportApiDocSchemaVo requestsSchema : requestsSchemas) {
                 ApiProjectInfoDetail existsRequestSchema = requestSchemaMap.get(getApiDocSchemaKey(requestsSchema));
                 if (mergeApiDocSchema(requestsSchema, existsRequestSchema)) {
@@ -186,6 +295,7 @@ public class ApiDocParseUtils {
             }
             List<ExportApiDocSchemaVo> responsesSchemas = apiDocVo.getResponsesSchemas();
             Map<String, ApiProjectInfoDetail> responseSchemaMap = toSchemaMap(existsDocDetail.getResponsesSchemas());
+            isChanged |= !responseSchemaMap.keySet().equals(toSchemaMap(responsesSchemas).keySet());
             for (ExportApiDocSchemaVo responsesSchema : responsesSchemas) {
                 ApiProjectInfoDetail existsResponseSchema = responseSchemaMap.get(getApiDocSchemaKey(responsesSchema));
                 if (mergeApiDocSchema(responsesSchema, existsResponseSchema)) {
@@ -196,7 +306,7 @@ public class ApiDocParseUtils {
         return isChanged;
     }
 
-    private static Map<String, ApiProjectInfoDetail> toSchemaMap(List<ApiProjectInfoDetail> list) {
+    private static Map<String, ApiProjectInfoDetail> toSchemaMap(List<? extends ApiProjectInfoDetail> list) {
         if (CollectionUtils.isEmpty(list)) {
             return Collections.emptyMap();
         }
@@ -224,9 +334,10 @@ public class ApiDocParseUtils {
         if (apiDocSchema == null && existsApiDocSchema == null) {
             return false;
         }
+        // Schema 每次导入都会保存；描述、状态码等变化也应计入更新，排除关联字段和不入库的 status。
         return apiDocSchema == null || existsApiDocSchema == null
-                || !StringUtils.equals(apiDocSchema.getSchemaContent(), existsApiDocSchema.getSchemaContent())
-                || !StringUtils.equals(apiDocSchema.getExamples(), existsApiDocSchema.getExamples());
+                || !SimpleModelUtils.isSameData(SimpleModelUtils.copy(apiDocSchema, ApiProjectInfoDetail.class), existsApiDocSchema,
+                        "id", "projectId", "infoId", "docId", ApiDocConstants.STATUS_KEY);
     }
 
     public static String getApiDocSchemaKey(ApiProjectInfoDetail s){

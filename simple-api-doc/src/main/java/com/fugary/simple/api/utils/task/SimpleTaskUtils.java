@@ -14,6 +14,7 @@ import com.fugary.simple.api.tasks.SimpleTaskManager;
 import com.fugary.simple.api.tasks.SimpleTaskWrapper;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.web.vo.project.ApiProjectTaskVo;
+import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.task.SimpleTaskVo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -39,6 +40,19 @@ import java.util.stream.Collectors;
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class SimpleTaskUtils {
+
+    /** 使用同一份任务配置填充预览和定时导入参数。 */
+    public static void fillImportOptions(ApiProjectTask task, ApiProjectTaskImportVo options) {
+        options.setProjectId(task.getProjectId());
+        options.setImportType(ApiDocConstants.IMPORT_TYPE_URL);
+        options.setUrl(task.getSourceUrl());
+        options.setAuthType(task.getAuthType());
+        options.setAuthContent(task.getAuthContent());
+        options.setSourceType(task.getSourceType());
+        options.setTaskName(task.getTaskName());
+        options.setTaskType(task.getTaskType());
+        options.setToFolder(task.getToFolder());
+    }
 
     /**
      * 包装任务执行

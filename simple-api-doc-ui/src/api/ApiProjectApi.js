@@ -183,17 +183,19 @@ export const calcProjectIconUrl = (iconUrl) => {
  * @param config 配置项
  * @return {Promise<*>}
  */
-export const importProject = (files, params = {}, config = {}) => {
+const uploadImport = (files, params, config, url) => {
   const formData = new FormData()
   files = isArray(files) ? files : [files]
   files.filter(file => file.raw).forEach(file => formData.append('files', file.raw))
   for (const key in params) {
     params[key] && formData.append(key, params[key])
   }
-  const url = params.projectId ? `${API_PROJECT_URL}/importExistsProject` : `${API_PROJECT_URL}/importProject`
   return $httpPost(url,
     formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 120000 }, config))
 }
+
+export const importProject = (files, params = {}, config = {}) => uploadImport(files, params, config, `${API_PROJECT_URL}/${params.projectId ? 'importExistsProject' : 'importProject'}`)
+export const previewProjectImport = (files, params = {}, config = {}) => uploadImport(files, params, config, `${API_PROJECT_URL}/previewImportProject`)
 
 /**
  * 快速嗅探文件或文本的数据格式类型

@@ -16,7 +16,7 @@ import { ElButton, ElUpload, ElText, ElAlert } from 'element-plus'
 import {
   calcProjectIconUrl,
   detectImportFileType,
-  importProject, uploadFiles
+  uploadFiles
 } from '@/api/ApiProjectApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
@@ -24,7 +24,7 @@ import { isFunction } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import CommonIcon from '@/components/common-icon/index.vue'
-import { addOrEditFolderWindow } from '@/utils/DynamicUtils'
+import { importProjectWithPreview, addOrEditFolderWindow } from '@/utils/DynamicUtils'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { useProjectGroupEditHook } from '@/hooks/ApiProjectGroupHooks'
 import ApiProjectGroupApi from '@/api/ApiProjectGroupApi'
@@ -424,7 +424,7 @@ const doImportProject = (autoAlert = true) => {
           modelParam.authContent = JSON.stringify(modelParam.authContentModel)
           delete modelParam.authContentModel
         }
-        importProject(importFiles.value, modelParam, {
+        importProjectWithPreview(importFiles.value, modelParam, {
           loading: true
         }).then(data => {
           if (data.success) {
@@ -464,7 +464,7 @@ defineExpose({
       :options="formOptions"
       :show-buttons="showButtons"
       :model="importModel"
-      :submit-label="$t('api.label.importData')"
+      :submit-label="$t(project?.id ? 'api.label.previewImport' : 'api.label.importData')"
       class-name="common-form-auto"
       v-bind="$attrs"
       @submit-form="doImportProject()"

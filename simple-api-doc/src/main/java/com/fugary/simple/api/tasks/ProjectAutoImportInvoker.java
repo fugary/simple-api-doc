@@ -12,6 +12,7 @@ import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
+import com.fugary.simple.api.utils.task.SimpleTaskUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
@@ -89,16 +90,8 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                 apiProject = apiProjectService.getById(projectTask.getProjectId());
                 if (apiProject != null) {
                     ApiProjectTaskImportVo importVo = new ApiProjectTaskImportVo();
-                    importVo.setProjectId(projectTask.getProjectId());
-                    importVo.setImportType(ApiDocConstants.IMPORT_TYPE_URL);
-                    importVo.setUrl(projectTask.getSourceUrl());
-                    importVo.setAuthType(projectTask.getAuthType());
-                    importVo.setAuthContent(projectTask.getAuthContent());
-                    importVo.setSourceType(projectTask.getSourceType());
+                    SimpleTaskUtils.fillImportOptions(projectTask, importVo);
                     importVo.setProjectName(apiProject.getProjectName());
-                    importVo.setTaskName(projectTask.getTaskName());
-                    importVo.setTaskType(projectTask.getTaskType());
-                    importVo.setToFolder(projectTask.getToFolder());
                     if (StringUtils.isBlank(importVo.getFileName()) && StringUtils.isNotBlank(importVo.getUrl())) {
                         String urlPath = StringUtils.substringBefore(importVo.getUrl(), "?");
                         int lastSlash = urlPath.lastIndexOf('/');
