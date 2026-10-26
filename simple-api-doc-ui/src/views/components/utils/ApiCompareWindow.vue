@@ -10,6 +10,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  description: {
+    type: String,
+    default: ''
+  },
   original: {
     type: Object,
     default: undefined
@@ -100,6 +104,14 @@ const codeHeight = computed(() => fullscreen.value ? 'calc(100dvh - 230px)' : pr
     ]"
   >
     <el-container class="flex-column">
+      <el-alert
+        v-if="description"
+        :title="description"
+        type="info"
+        :closable="false"
+        show-icon
+        class="margin-bottom2"
+      />
       <vue-monaco-diff-editor
         v-if="original && modified"
         :theme="useGlobalConfigStore().monacoTheme"

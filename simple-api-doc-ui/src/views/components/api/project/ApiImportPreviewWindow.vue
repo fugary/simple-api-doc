@@ -70,11 +70,25 @@ const fieldLabels = {
   importType: 'api.label.importSource',
   sourceType: 'api.label.importSource'
 }
+// 仅标注旧 Markdown 配置补齐默认值；真实规范升级仍按普通变更展示。
+const defaultSpecificationUpdates = computed(() => new Set(items.value.filter(item => {
+  if (item.type !== 'source' || item.status !== 'updated' ||
+    !item.changedFields?.some(field => ['specVersion', 'oasVersion'].includes(field))) return false
+  const original = JSON.parse(item.original || '{}')
+  const modified = JSON.parse(item.modified || '{}')
+  return original?.sourceType === 'markdown' && modified?.sourceType === 'markdown' &&
+    ['', 'markdown', 'V31'].includes(original.specVersion || '') &&
+    ['', '3.1.0'].includes(original.oasVersion || '') &&
+    modified.specVersion === 'V31' && modified.oasVersion === '3.1.0'
+})))
 const changeSummary = item => {
   if (item.type === 'sourceContent') return $i18nBundle('api.msg.importSourceSnapshot')
   if (!isChanged(item) || item.status === 'added') return $i18nBundle('api.label.importStatus_' + item.status)
   if (item.formatOnly) return $i18nBundle('api.label.importFormatOnly')
-  const labels = (item.changedFields || []).map(field => $i18nBundle(fieldLabels[field] || 'api.label.importFieldOther'))
+  const labels = (item.changedFields || []).map(field => $i18nBundle(
+    defaultSpecificationUpdates.value.has(item) && ['specVersion', 'oasVersion'].includes(field)
+      ? 'api.label.importDefaultSpecification'
+      : fieldLabels[field] || 'api.label.importFieldOther'))
   return [...new Set(labels)].join(' / ') || $i18nBundle('api.label.importFieldOther')
 }
 const filtered = computed(() => {
@@ -116,6 +130,7 @@ const showDiff = (item) => {
   if (!hasDiff(item)) return
   showApiCompareWindow({
     title: itemName(item),
+    description: defaultSpecificationUpdates.value.has(item) ? $i18nBundle('api.msg.importDefaultSpecification') : '',
     original: { content: item.original || '' },
     modified: { content: item.modified || '' },
     historyOptionsMethod: () => [{ labelKey: 'api.label.importDiffContent', prop: 'content' }]
