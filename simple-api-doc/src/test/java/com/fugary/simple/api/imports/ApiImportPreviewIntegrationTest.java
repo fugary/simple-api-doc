@@ -139,6 +139,30 @@ class ApiImportPreviewIntegrationTest {
         return view.getChanges().stream().filter(c -> ApiDocConstants.DOC_TYPE_API.equals(c.getType())).findFirst().orElseThrow();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"api", "md"})
+    void copiedDocGetsNewCreationTimeWithoutChangingOriginal(String docType) {
+        ExportApiProjectVo source = payload("Original content");
+        source.getDocs().get(0).setDocType(docType);
+        projects.importUpdateProject(project, source, options);
+        ApiDoc original = docs.loadByProject(project.getId()).get(0);
+        Date oldDate = new Date(1600000000000L);
+        original.setCreateDate(oldDate);
+        original.setModifyDate(oldDate);
+        docs.updateById(original);
+
+        long beforeCopy = System.currentTimeMillis();
+        SimpleResult<ApiDoc> result = docs.copyApiDoc(original, folders.getById(original.getFolderId()));
+        assertTrue(result.isSuccess(), result.getMessage());
+        ApiDoc copy = docs.getById(result.getResultData().getId());
+        assertNotEquals(original.getId(), copy.getId());
+        assertTrue(copy.getCreateDate().getTime() >= beforeCopy);
+        assertNull(copy.getModifyDate());
+        assertEquals(original.getDescription(), copy.getDescription());
+        assertEquals(oldDate, docs.getById(original.getId()).getCreateDate());
+        assertEquals(oldDate, docs.getById(original.getId()).getModifyDate());
+    }
+
     @Test void previewOnlyReadsAndReturnsDiffWithoutServerSession() {
         String before = database();
         ImportPreviewVo view = preview(payload("Preview"));

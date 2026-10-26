@@ -211,6 +211,7 @@ const markdownPreview = ref()
   >
     <api-doc-view-header
       v-model="apiDoc"
+      :project-item="projectItem"
       :current-doc-detail="apiDocDetail"
       :editable="editable"
       :history-count="historyCount"

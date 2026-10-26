@@ -56,20 +56,25 @@ export const isMarkdownDoc = (doc) => {
 export const RECENT_DAYS = 30
 export const RECENT_DAYS_MS = RECENT_DAYS * 24 * 60 * 60 * 1000
 export const SEVEN_DAYS_MS = RECENT_DAYS_MS
+const INITIAL_IMPORT_WINDOW_MS = 60 * 1000
 
 /**
  * 计算文档最近状态类型（30天内更新/变动标 UPD）
  * @param doc
+ * @param project
  * @param now
  * @returns {'UPD'|null}
  */
-export const calcDocRecentType = (doc, now = Date.now()) => {
+export const calcDocRecentType = (doc, project = doc?.project, now = Date.now()) => {
   if (!doc) return null
   const createTime = doc.createDate ? new Date(doc.createDate).getTime() : 0
   const modifyTime = doc.modifyDate ? new Date(doc.modifyDate).getTime() : 0
-  const latestTime = Math.max(modifyTime, createTime)
+  const projectCreateTime = project?.createDate ? new Date(project.createDate).getTime() : 0
+  // 无修改记录时，将项目创建后一分钟内新增的文档近似视为首次导入。
+  const laterAdded = projectCreateTime && createTime - projectCreateTime > INITIAL_IMPORT_WINDOW_MS
+  const latestTime = modifyTime || (laterAdded ? createTime : 0)
 
-  if (latestTime && (now - latestTime <= RECENT_DAYS_MS)) {
+  if (latestTime && now >= latestTime && now - latestTime <= RECENT_DAYS_MS) {
     return 'UPD'
   }
   return null
@@ -78,11 +83,12 @@ export const calcDocRecentType = (doc, now = Date.now()) => {
 /**
  * 计算文档最近状态 Tooltip 提示文案
  * @param doc
+ * @param project
  * @returns {string}
  */
-export const calcDocRecentTooltip = (doc) => {
+export const calcDocRecentTooltip = (doc, project = doc?.project) => {
   if (!doc) return ''
-  const type = doc.recentType || calcDocRecentType(doc)
+  const type = doc.recentType || calcDocRecentType(doc, project)
   if (type === 'UPD') {
     const latestTime = doc.modifyDate || doc.createDate
     const timeStr = latestTime ? formatDate(latestTime) : ''
@@ -94,15 +100,16 @@ export const calcDocRecentTooltip = (doc) => {
 /**
  * 获取文档最近状态信息（类型与 Tooltip）
  * @param doc
+ * @param project
  * @returns {{type: 'UPD', tooltip: string}|null}
  */
-export const getDocRecentInfo = (doc) => {
+export const getDocRecentInfo = (doc, project = doc?.project) => {
   if (!doc) return null
-  const type = doc.recentType || calcDocRecentType(doc)
+  const type = doc.recentType || calcDocRecentType(doc, project)
   if (!type) return null
   return {
     type,
-    tooltip: calcDocRecentTooltip(doc)
+    tooltip: calcDocRecentTooltip(doc, project)
   }
 }
 
@@ -131,7 +138,7 @@ export const calcProjectItem = (projectItem, searchParam, preference) => {
       doc.isDoc = true
       doc.parent = parentFolder
       doc.treeId = doc.id
-      doc.recentType = calcDocRecentType(doc)
+      doc.recentType = calcDocRecentType(doc, projectItem)
       return doc
     })
     docTreeNodes = processTreeData(projectItem.folders, null, {
@@ -188,7 +195,7 @@ export const filterProjectItem = (projectItem, searchParam) => {
         doc.url?.toLowerCase().includes(kw))
   }
   if (recentType) {
-    projectItem.docs = projectItem.docs?.filter(doc => (doc.recentType || calcDocRecentType(doc)) === recentType)
+    projectItem.docs = projectItem.docs?.filter(doc => calcDocRecentType(doc, projectItem) === recentType)
   }
   return projectItem
 }

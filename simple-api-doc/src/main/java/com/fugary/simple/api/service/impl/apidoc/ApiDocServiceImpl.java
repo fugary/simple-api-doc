@@ -173,6 +173,7 @@ public class ApiDocServiceImpl extends ServiceImpl<ApiDocMapper, ApiDoc> impleme
     public SimpleResult<ApiDoc> copyApiDoc(ApiDoc apiDoc, ApiFolder apiFolder) {
         ApiDoc newDoc = SimpleModelUtils.copy(apiDoc, ApiDoc.class);
         newDoc.setId(null);
+        newDoc.setCreateDate(null);
         newDoc.setModifier(null);
         newDoc.setModifyDate(null);
         if (newDoc.getSortId() == null) {

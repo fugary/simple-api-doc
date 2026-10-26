@@ -15,6 +15,10 @@ import ApiDocNavDropdown from '@/views/components/api/doc/comp/ApiDocNavDropdown
 
 const props = defineProps({
   loading: Boolean,
+  projectItem: {
+    type: Object,
+    default: undefined
+  },
   editable: {
     type: Boolean,
     default: false
@@ -44,7 +48,7 @@ const folderPaths = computed(() => {
 })
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
 
-const recentInfo = computed(() => getDocRecentInfo(docDetailInfo.value))
+const recentInfo = computed(() => getDocRecentInfo(docDetailInfo.value, props.projectItem))
 
 const shareConfigStore = useShareConfigStore()
 const pref = computed(() => (props.preferenceId && shareConfigStore.sharePreferenceView[props.preferenceId]) || {})

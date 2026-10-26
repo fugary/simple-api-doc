@@ -198,6 +198,7 @@ const handleContainerClick = (event) => {
   >
     <api-doc-view-header
       v-model="currentDoc"
+      :project-item="projectItem"
       :history-count="historyCount"
       :editable="editable"
       :preference-id="preferenceId"

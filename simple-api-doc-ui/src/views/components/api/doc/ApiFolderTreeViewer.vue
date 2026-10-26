@@ -125,7 +125,7 @@ const recentCounts = computed(() => {
   const docs = projectItem.value?.docs || []
   let updCount = 0
   docs.forEach(doc => {
-    const type = doc.recentType || calcDocRecentType(doc)
+    const type = calcDocRecentType(doc, projectItem.value)
     if (type === 'UPD') {
       updCount++
     }
@@ -141,7 +141,11 @@ const toggleRecentType = (type = 'UPD') => {
   searchParam.value.recentType = searchParam.value.recentType === type ? '' : type
 }
 
-const calcRecentTooltip = calcDocRecentTooltip
+watch(() => recentCounts.value.hasRecent, hasRecent => {
+  if (!hasRecent) searchParam.value.recentType = ''
+})
+
+const calcRecentTooltip = doc => calcDocRecentTooltip(doc, projectItem.value)
 
 const searchFormOption = computed(() => {
   return {
