@@ -496,7 +496,6 @@ api.msg.selectProjectFirst = '请先选择要咨询的 API 项目'
 
 api.label.previewImport = '预览导入'
 api.label.confirmImport = '确认导入'
-api.label.importOnlyChanges = '仅看变更'
 api.label.importChange = '变更'
 api.label.importItemType = '类型'
 api.label.importItemPath = '文档路径'
@@ -552,3 +551,5 @@ api.msg.importSourceSnapshot = '与上次导入的原文不同（含格式变化
 api.label.importFormatOnly = '格式 / 字段顺序更新（内容相同）'
 api.label.importDefaultSpecification = '默认规范信息补齐'
 api.msg.importDefaultSpecification = '来源仍为 Markdown。本次补齐内部使用的默认规范信息，用于 API、Schema 处理和导出；不会将 Markdown 文档转换为接口文档。'
+api.label.importViewAll = '查看全部'
+api.msg.importFilterEmpty = '当前筛选下无结果'

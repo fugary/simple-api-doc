@@ -1,26 +1,28 @@
 <script setup lang="jsx">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import { ElTag } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 import { showApiCompareWindow } from '@/utils/DynamicUtils'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, getFrontendPage } from '@/components/utils'
 
 const props = defineProps({ preview: { type: Object, required: true }, importAction: { type: Function, required: true } })
 const emit = defineEmits(['confirmed'])
 const showWindow = ref(true)
 const submitting = ref(false)
-const filter = ref({ keyword: '', onlyChanges: true })
-const formOptions = computed(() => defineFormOptions([
-  { prop: 'keyword', labelKey: 'common.label.keywords', attrs: { clearable: true } },
-  { prop: 'onlyChanges', type: 'checkbox', labelKey: 'api.label.importOnlyChanges' }
-]))
+const filter = ref({ keyword: '' })
+const changedStatuses = ['added', 'updated']
+const selectedStatuses = ref(props.preview.changed ? [...changedStatuses] : [])
+const allStatuses = computed(() => !selectedStatuses.value.length)
+const formOptions = defineFormOptions([
+  { prop: 'keyword', labelKey: 'common.label.keywords', attrs: { clearable: true } }
+])
 const statuses = ['added', 'updated', 'unchanged', 'locked']
 const tagTypes = { added: 'success', updated: 'warning', unchanged: 'info', locked: 'info' }
 const items = computed(() => props.preview.changes)
-const isChanged = item => ['added', 'updated'].includes(item.status)
+const isChanged = item => changedStatuses.includes(item.status)
 const categoryOf = item => {
   if (['api', 'md'].includes(item.type)) return 'docs'
   if (item.type === 'folder') return 'folders'
@@ -34,7 +36,6 @@ const tabs = computed(() => ['docs', 'models', 'folders', 'settings'].map(name =
 })))
 const activeTab = ref(tabs.value.find(tab => tab.changed)?.name || 'docs')
 const activeItems = computed(() => tabs.value.find(tab => tab.name === activeTab.value)?.items || [])
-const counts = computed(() => Object.fromEntries(statuses.map(status => [status, activeItems.value.filter(item => item.status === status).length])))
 const schemaTypes = { component: 'api.label.importSchemaComponent', security: 'api.label.importSchemaSecurity', security_requirements: 'api.label.importSchemaSecurityRequirements' }
 const typeLabel = item => $i18nBundle(schemaTypes[item.path] && item.type === 'model' ? schemaTypes[item.path] : 'api.label.importType_' + item.type)
 const itemName = item => item.type === 'sourceContent'
@@ -91,11 +92,28 @@ const changeSummary = item => {
       : fieldLabels[field] || 'api.label.importFieldOther'))
   return [...new Set(labels)].join(' / ') || $i18nBundle('api.label.importFieldOther')
 }
-const filtered = computed(() => {
+const keywordItems = computed(() => {
   const keyword = filter.value.keyword.trim().toLowerCase()
-  return activeItems.value.filter(item => (!filter.value.onlyChanges || isChanged(item)) &&
-    (!keyword || [itemName(item), item.path, item.method].some(value => value?.toLowerCase().includes(keyword))))
+  return activeItems.value.filter(item => !keyword ||
+    [itemName(item), item.path, item.method].some(value => value?.toLowerCase().includes(keyword)))
 })
+const counts = computed(() => Object.fromEntries(statuses.map(status => [status, keywordItems.value.filter(item => item.status === status).length])))
+const filtered = computed(() => keywordItems.value.filter(item => allStatuses.value || selectedStatuses.value.includes(item.status)))
+const page = ref(getFrontendPage(0, 10))
+watch([filtered, () => page.value.pageSize], () => {
+  page.value = getFrontendPage(filtered.value.length, page.value.pageSize)
+}, { immediate: true })
+const pageItems = computed(() => filtered.value.slice((page.value.pageNumber - 1) * page.value.pageSize, page.value.pageNumber * page.value.pageSize))
+const toggleStatus = status => {
+  const selected = selectedStatuses.value.includes(status)
+    ? selectedStatuses.value.filter(value => value !== status)
+    : [...selectedStatuses.value, status]
+  selectedStatuses.value = selected.length === statuses.length ? [] : selected
+}
+const clearFilters = () => {
+  filter.value.keyword = ''
+  selectedStatuses.value = []
+}
 const columns = computed(() => {
   const tab = activeTab.value
   const result = [
@@ -209,14 +227,43 @@ const allowClose = () => !submitting.value
         :label="$i18nBundle('api.label.importTabTitle', [$t('api.label.importTab_' + tab.name), tab.changed])"
       />
     </el-tabs>
-    <div class="preview-counts margin-bottom2">
-      <el-tag
+    <div
+      class="check-filter-bar margin-bottom2"
+      role="group"
+      :aria-label="$t('api.label.importChange')"
+    >
+      <el-check-tag
+        :checked="allStatuses"
+        class="check-filter-tag"
+        @change="selectedStatuses = []"
+      >
+        <common-icon
+          v-if="allStatuses"
+          icon="Check"
+          :size="12"
+        />
+        {{ $t('common.label.all') }} ({{ keywordItems.length }})
+      </el-check-tag>
+      <el-check-tag
         v-for="status in statuses"
         :key="status"
+        :checked="selectedStatuses.includes(status)"
         :type="tagTypes[status]"
+        class="check-filter-tag"
+        :style="{ '--filter-color': 'var(--el-color-' + tagTypes[status] + ')' }"
+        @change="toggleStatus(status)"
       >
-        {{ $t('api.label.importStatus_' + status) }} {{ counts[status] }}
-      </el-tag>
+        <common-icon
+          v-if="selectedStatuses.includes(status)"
+          icon="Check"
+          :size="12"
+        />
+        <span
+          v-else
+          class="check-filter-dot"
+        />
+        {{ $t('api.label.importStatus_' + status) }} ({{ counts[status] }})
+      </el-check-tag>
     </div>
     <common-form
       v-model:model="filter"
@@ -225,20 +272,30 @@ const allowClose = () => !submitting.value
       :show-buttons="false"
     />
     <common-table
-      :key="activeTab"
-      :data="filtered"
+      v-model:page="page"
+      :data="pageItems"
       :columns="columns"
       :buttons="buttons"
       :buttons-column-attrs="{ width: '110px' }"
-      frontend-paging
-      :frontend-page-size="20"
       @row-dblclick="showDiff"
-    />
+    >
+      <template #empty>
+        <span>{{ $t(activeItems.length ? 'api.msg.importFilterEmpty' : 'common.msg.noData') }}</span>
+        <el-button
+          v-if="activeItems.length && (filter.keyword || !allStatuses)"
+          link
+          type="primary"
+          class="margin-left2"
+          @click="clearFilters"
+        >
+          {{ $t('api.label.importViewAll') }}
+        </el-button>
+      </template>
+    </common-table>
   </common-window>
 </template>
 
 <style scoped>
 .preview-doc-name { width: 100%; min-width: 0; }
-.preview-counts { display: flex; gap: 12px; flex-wrap: wrap; }
 .source-text { overflow-wrap: anywhere; }
 </style>

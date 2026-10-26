@@ -618,11 +618,11 @@ defineExpose(handlerData)
       </common-form-control>
       <div
         v-if="recentCounts.hasRecent"
-        class="recent-filter-bar margin-bottom2"
+        class="check-filter-bar margin-bottom2"
       >
         <el-check-tag
           :checked="!searchParam.recentType"
-          class="recent-check-tag"
+          class="check-filter-tag"
           @change="searchParam.recentType = ''"
         >
           {{ $t('common.label.all') }} ({{ recentCounts.totalCount }})
@@ -630,10 +630,10 @@ defineExpose(handlerData)
         <el-check-tag
           :checked="searchParam.recentType === 'UPD'"
           type="primary"
-          class="recent-check-tag recent-filter-upd"
+          class="check-filter-tag"
           @change="toggleRecentType('UPD')"
         >
-          <span class="filter-dot dot-upd" />
+          <span class="check-filter-dot" />
           {{ $t('api.label.recentUpdated') }} ({{ recentCounts.updCount }})
         </el-check-tag>
       </div>
@@ -824,33 +824,6 @@ defineExpose(handlerData)
 
 .folder-tree-container :deep(.el-backtop) {
   position: absolute;
-}
-
-.recent-filter-bar {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 0 4px;
-}
-
-.recent-check-tag {
-  font-size: 11px;
-  line-height: 20px;
-  padding: 0 7px;
-  border-radius: 12px;
-  cursor: pointer;
-  user-select: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.filter-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-  background-color: var(--el-color-primary);
 }
 
 .recent-status-dot {

@@ -1052,3 +1052,31 @@ body,
     flex-shrink: 0;
     white-space: nowrap;
 }
+
+/* 文档树与导入预览共用的状态筛选标签。 */
+.check-filter-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+.el-check-tag.check-filter-tag {
+  font-size: 11px;
+  line-height: 20px;
+  padding: 0 7px;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.check-filter-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: var(--filter-color, var(--el-color-primary));
+}

@@ -497,7 +497,6 @@ api.msg.selectProjectFirst = 'Please select an API project first'
 
 api.label.previewImport = 'Preview Import'
 api.label.confirmImport = 'Confirm Import'
-api.label.importOnlyChanges = 'Changes Only'
 api.label.importChange = 'Change'
 api.label.importItemType = 'Type'
 api.label.importItemPath = 'Document Path'
@@ -553,3 +552,5 @@ api.msg.importSourceSnapshot = 'The fetched source differs from the last importe
 api.label.importFormatOnly = 'Formatting / field order update (same content)'
 api.label.importDefaultSpecification = 'Default specification metadata'
 api.msg.importDefaultSpecification = 'The source remains Markdown. Default specification metadata is filled in for API and Schema processing and export. Markdown documents are not converted to API documents.'
+api.label.importViewAll = 'View all'
+api.msg.importFilterEmpty = 'No results match the current filters'
