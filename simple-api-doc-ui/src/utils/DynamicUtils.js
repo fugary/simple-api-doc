@@ -42,7 +42,7 @@ const chooseImportMode = () => new Promise(resolve => {
       closeOnPressEscape: true,
       okLabel: $i18nBundle('api.label.previewImport'),
       okClick: () => choose('preview'),
-      buttons: [{ labelKey: 'api.label.directImport', click: () => choose('direct') }],
+      buttons: [{ labelKey: 'api.label.directImport', type: 'success', click: () => choose('direct') }],
       onClosed: () => {
         helper.destroy()
         resolve(mode)

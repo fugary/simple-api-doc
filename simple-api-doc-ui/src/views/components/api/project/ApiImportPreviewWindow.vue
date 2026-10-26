@@ -22,6 +22,14 @@ const formOptions = defineFormOptions([
 const statuses = ['added', 'updated', 'unchanged', 'locked']
 const tagTypes = { added: 'success', updated: 'primary', unchanged: 'info', locked: 'info' }
 const items = computed(() => props.preview.changes)
+const structureHint = computed(() => {
+  if (!items.value.some(item => item.type === 'source' && item.status !== 'added')) return ''
+  const docs = items.value.filter(item => ['api', 'md'].includes(item.type))
+  const added = docs.filter(item => item.status === 'added').length
+  return docs.length >= 5 && added / docs.length >= 0.8
+    ? $i18nBundle('api.msg.importStructureHint', [docs.length, added])
+    : ''
+})
 const isChanged = item => changedStatuses.includes(item.status)
 const categoryOf = item => {
   if (['api', 'md'].includes(item.type)) return 'docs'
@@ -34,6 +42,7 @@ const tabs = computed(() => ['docs', 'models', 'folders', 'settings'].map(name =
   items: items.value.filter(item => categoryOf(item) === name),
   changed: items.value.filter(item => categoryOf(item) === name && isChanged(item)).length
 })))
+const previewSummary = computed(() => $i18nBundle('api.msg.importPreviewSummary', tabs.value.map(tab => tab.changed)))
 const activeTab = ref(tabs.value.find(tab => tab.changed)?.name || 'docs')
 const activeItems = computed(() => tabs.value.find(tab => tab.name === activeTab.value)?.items || [])
 const schemaTypes = { component: 'api.label.importSchemaComponent', security: 'api.label.importSchemaSecurity', security_requirements: 'api.label.importSchemaSecurityRequirements' }
@@ -212,9 +221,18 @@ const allowClose = () => !submitting.value
       </el-descriptions-item>
     </el-descriptions>
     <el-alert
-      :title="$t(preview.changed ? 'api.msg.importPreviewHint' : 'api.msg.importPreviewUnchanged')"
-      :description="$t('api.msg.importPreviewReload')"
-      :type="preview.changed ? 'info' : 'success'"
+      v-if="structureHint"
+      :title="structureHint"
+      :description="$t('api.msg.importStructureAdvice')"
+      type="warning"
+      :closable="false"
+      show-icon
+      class="margin-bottom2"
+    />
+    <el-alert
+      :title="preview.changed ? previewSummary : $t('api.msg.importPreviewUnchanged')"
+      :description="preview.changed ? $t('api.msg.importPreviewHint') : ''"
+      :type="preview.changed ? 'primary' : 'success'"
       :closable="false"
       show-icon
       class="margin-bottom2"
