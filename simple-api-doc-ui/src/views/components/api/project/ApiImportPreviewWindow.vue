@@ -20,7 +20,7 @@ const formOptions = defineFormOptions([
   { prop: 'keyword', labelKey: 'common.label.keywords', attrs: { clearable: true } }
 ])
 const statuses = ['added', 'updated', 'unchanged', 'locked']
-const tagTypes = { added: 'success', updated: 'warning', unchanged: 'info', locked: 'info' }
+const tagTypes = { added: 'success', updated: 'primary', unchanged: 'info', locked: 'info' }
 const items = computed(() => props.preview.changes)
 const isChanged = item => changedStatuses.includes(item.status)
 const categoryOf = item => {

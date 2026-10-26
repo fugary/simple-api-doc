@@ -1,8 +1,10 @@
 import { isFunction } from 'lodash-es'
+import { $i18nBundle } from '@/messages'
 import { importProject, previewProjectImport } from '@/api/ApiProjectApi'
 import { triggerTask } from '@/api/ApiProjectTaskApi'
 import { DynamicHelper } from '@/components/directives'
-import { h, defineComponent, defineAsyncComponent } from 'vue'
+import { h, ref, defineComponent, defineAsyncComponent } from 'vue'
+import CommonWindow from '@/components/common-window/index.vue'
 import ApiFolderEditWindow from '@/views/components/api/doc/comp/ApiFolderEditWindow.vue'
 
 const ApiRequestPreviewWindow = () => import('@/views/components/api/ApiRequestPreviewWindow.vue')
@@ -22,11 +24,41 @@ const ApiCompareWindow = () => import('@/views/components/utils/ApiCompareWindow
 const ApiTaskLogsWindow = () => import('@/views/components/api/project/ApiTaskLogsWindow.vue')
 const ApiDocSearchWindow = () => import('@/views/components/api/doc/ApiDocSearchWindow.vue')
 
+const chooseImportMode = () => new Promise(resolve => {
+  const helper = new DynamicHelper()
+  const visible = ref(true)
+  let mode
+  const choose = value => {
+    mode = value
+    visible.value = false
+  }
+  helper.createAndRender({
+    setup: () => () => h(CommonWindow, {
+      modelValue: visible.value,
+      'onUpdate:modelValue': value => { visible.value = value },
+      title: $i18nBundle('api.label.importData'),
+      width: '460px',
+      appendToBody: true,
+      closeOnPressEscape: true,
+      okLabel: $i18nBundle('api.label.previewImport'),
+      okClick: () => choose('preview'),
+      buttons: [{ labelKey: 'api.label.directImport', click: () => choose('direct') }],
+      onClosed: () => {
+        helper.destroy()
+        resolve(mode)
+      }
+    }, () => $i18nBundle('api.msg.chooseImportMode'))
+  })
+})
+
 export const importProjectWithPreview = async (files, params = {}, config = {}) => {
   params = { ...params }
   files = [].concat(files || [])
   const runImport = () => params.taskId ? triggerTask(params.taskId, config) : importProject(files, params, config)
   if (!params.projectId && !params.taskId) return runImport()
+  const mode = await chooseImportMode()
+  if (mode === 'direct') return runImport()
+  if (mode !== 'preview') return { success: false }
   const preview = await previewProjectImport(files, params, config)
   if (!preview.success) return preview
   const dynamicHelper = new DynamicHelper()

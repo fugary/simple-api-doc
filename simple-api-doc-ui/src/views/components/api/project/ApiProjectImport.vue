@@ -464,7 +464,7 @@ defineExpose({
       :options="formOptions"
       :show-buttons="showButtons"
       :model="importModel"
-      :submit-label="$t(project?.id ? 'api.label.previewImport' : 'api.label.importData')"
+      :submit-label="$t('api.label.importData')"
       class-name="common-form-auto"
       v-bind="$attrs"
       @submit-form="doImportProject()"
