@@ -26,8 +26,12 @@ const structureHint = computed(() => {
   if (!items.value.some(item => item.type === 'source' && item.status !== 'added')) return ''
   const docs = items.value.filter(item => ['api', 'md'].includes(item.type))
   const added = docs.filter(item => item.status === 'added').length
-  return docs.length >= 5 && added / docs.length >= 0.8
-    ? $i18nBundle('api.msg.importStructureHint', [docs.length, added])
+  if (!docs.length || added / docs.length < 0.8) return ''
+  const folders = items.value.filter(item => item.type === 'folder')
+  const addedFolders = folders.filter(item => item.status === 'added').length
+  // 少量文档也可能导错来源，结合目录新增占比补充判断。
+  return docs.length >= 5 || (folders.length && addedFolders / folders.length >= 0.8)
+    ? $i18nBundle('api.msg.importStructureHint', [docs.length, added, folders.length, addedFolders])
     : ''
 })
 const isChanged = item => changedStatuses.includes(item.status)
