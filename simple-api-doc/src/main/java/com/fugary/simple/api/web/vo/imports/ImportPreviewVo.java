@@ -14,6 +14,7 @@ public class ImportPreviewVo implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     private String projectName;
+    private String previewKey;
     private String targetFolder;
     private String source;
     private String sourceTitle;

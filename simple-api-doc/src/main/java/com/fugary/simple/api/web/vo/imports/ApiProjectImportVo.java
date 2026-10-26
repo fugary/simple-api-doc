@@ -18,4 +18,5 @@ public class ApiProjectImportVo extends UrlWithAuthVo {
     private String importType;
     private String sourceType;
     private String groupCode;
+    private String previewKey;
 }

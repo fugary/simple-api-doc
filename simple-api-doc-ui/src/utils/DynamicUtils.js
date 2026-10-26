@@ -53,14 +53,16 @@ const chooseImportMode = () => new Promise(resolve => {
 
 export const importProjectWithPreview = async (files, params = {}, config = {}) => {
   params = { ...params }
+  delete params.previewKey
   files = [].concat(files || [])
-  const runImport = () => params.taskId ? triggerTask(params.taskId, config) : importProject(files, params, config)
+  const runImport = () => params.taskId ? triggerTask(params.taskId, config, params.previewKey) : importProject(files, params, config)
   if (!params.projectId && !params.taskId) return runImport()
   const mode = await chooseImportMode()
   if (mode === 'direct') return runImport()
   if (mode !== 'preview') return { success: false }
   const preview = await previewProjectImport(files, params, config)
   if (!preview.success) return preview
+  params.previewKey = preview.resultData.previewKey
   const dynamicHelper = new DynamicHelper()
   let resolveResult
   const result = new Promise(resolve => { resolveResult = resolve })

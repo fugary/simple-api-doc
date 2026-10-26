@@ -10,6 +10,7 @@ import com.fugary.simple.api.event.log.OperationLogEvent;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
 import com.fugary.simple.api.service.apidoc.ApiProjectTaskService;
 import com.fugary.simple.api.service.apidoc.content.DocContentProvider;
+import com.fugary.simple.api.service.impl.apidoc.ImportSourceCache;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.task.SimpleTaskUtils;
@@ -23,7 +24,6 @@ import com.fugary.simple.api.web.vo.imports.DocSourceData;
 import com.fugary.simple.api.web.vo.imports.ApiProjectTaskImportVo;
 import com.fugary.simple.api.web.vo.imports.ImportStatisticsVo;
 import com.fugary.simple.api.web.vo.imports.UrlWithAuthVo;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -59,6 +59,9 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
     @Autowired
     private DocContentProvider<UrlWithAuthVo> urlDocContentProvider;
 
+    @Autowired
+    private ImportSourceCache importSourceCache;
+
     private ApplicationContext applicationContext;
 
     /**
@@ -66,8 +69,11 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
      *
      * @param projectTask
      */
-    @SneakyThrows
     public SimpleResult<ApiProject> importProject(ApiProjectTask projectTask) {
+        return importProject(projectTask, null);
+    }
+
+    public SimpleResult<ApiProject> importProject(ApiProjectTask projectTask, String previewKey) {
         long start = System.currentTimeMillis();
         HttpServletRequest request = HttpRequestUtils.getCurrentRequest();
         HttpServletResponse response = HttpRequestUtils.getCurrentResponse();
@@ -91,6 +97,8 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                 if (apiProject != null) {
                     ApiProjectTaskImportVo importVo = new ApiProjectTaskImportVo();
                     SimpleTaskUtils.fillImportOptions(projectTask, importVo);
+                    importVo.setTaskId(projectTask.getId());
+                    importVo.setPreviewKey(previewKey);
                     importVo.setProjectName(apiProject.getProjectName());
                     if (StringUtils.isBlank(importVo.getFileName()) && StringUtils.isNotBlank(importVo.getUrl())) {
                         String urlPath = StringUtils.substringBefore(importVo.getUrl(), "?");
@@ -100,7 +108,8 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                         }
                     }
                     logBuilder.logData(SimpleModelUtils.logDataString(List.of(importVo)));
-                    SimpleResult<DocSourceData> contentResult = urlDocContentProvider.getContent(importVo);
+                    SimpleResult<DocSourceData> contentResult = importSourceCache.getContent(importVo, false,
+                            () -> urlDocContentProvider.getContent(importVo));
                     if (!contentResult.isSuccess()) {
                         String errorMessage = MessageFormat.format("[{0}]项目任务[{1}]获取远程文档失败：{2}", apiProject.getProjectName(), projectTask.getTaskName(), contentResult.getMessage());
                         publishEvent(logBuilder, apiProject, createDate, errorMessage, false, null, null);
@@ -131,6 +140,7 @@ public class ProjectAutoImportInvoker implements ApplicationContextAware {
                         updateTaskExecDate(projectTask);
                         return SimpleResultUtils.createError(errorMessage);
                     }
+                    importSourceCache.discard(importVo.getPreviewKey());
                     updateTaskExecDate(projectTask);
                     long costTime = System.currentTimeMillis() - start;
                     log.info("import project task {}/{} cost {}ms", apiProject.getProjectName(), projectTask.getTaskName(), costTime);

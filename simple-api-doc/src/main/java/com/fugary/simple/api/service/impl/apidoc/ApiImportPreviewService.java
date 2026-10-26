@@ -24,7 +24,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-/** 只读比较当前项目与解析结果；确认仍调用原导入接口，不保存预览会话。 */
+/** 只读比较当前项目与解析结果；确认调用原导入接口，URL/Git 复用短期来源缓存。 */
 @Service
 @RequiredArgsConstructor
 public class ApiImportPreviewService {

@@ -29,6 +29,21 @@ class DocAssetStorageServiceImplTest {
     }
 
     @Test
+    void failedCaptureRestoresImageSavingAndClearsCapturedBytes() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "baseDataDir", uploadDirectory.getAbsolutePath());
+        byte[] image = {1, 2, 3};
+        java.util.concurrent.atomic.AtomicInteger captures = new java.util.concurrent.atomic.AtomicInteger();
+        Assertions.assertThrows(IllegalStateException.class, () -> DocAssetStorageServiceImpl.captureImages(pending -> captures.incrementAndGet(), () -> {
+            service.saveImage(image, "picture.png", "test-proj");
+            throw new IllegalStateException("Download failed");
+        }));
+        Assertions.assertFalse(new File(uploadDirectory, "upload").exists());
+        String url = service.saveImage(image, "picture.png", "test-proj");
+        Assertions.assertEquals(1, captures.get());
+        Assertions.assertArrayEquals(image, Files.readAllBytes(uploadDirectory.toPath().resolve(url.substring(1))));
+    }
+
+    @Test
     void resolvesImageOnlyFromCurrentProjectDirectory() throws IOException {
         File projectDirectory = new File(uploadDirectory, "docs/current-project");
         FileUtils.forceMkdir(projectDirectory);

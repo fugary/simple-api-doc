@@ -5,8 +5,9 @@ const BASE_URL = '/admin/tasks'
 
 const ApiProjectTaskApi = useResourceApi(BASE_URL)
 
-export const triggerTask = function (taskId, config) {
-  return $httpPost(`${BASE_URL}/trigger/${taskId}`, null, config)
+export const triggerTask = function (taskId, config, previewKey) {
+  const query = previewKey ? `?previewKey=${encodeURIComponent(previewKey)}` : ''
+  return $httpPost(`${BASE_URL}/trigger/${taskId}${query}`, null, config)
 }
 
 /**

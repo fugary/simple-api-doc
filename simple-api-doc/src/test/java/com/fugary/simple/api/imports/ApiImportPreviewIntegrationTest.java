@@ -15,6 +15,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import com.fugary.simple.api.event.log.OperationLogEvent;
 import com.fugary.simple.api.service.impl.apidoc.ApiImportPreviewService;
+import com.fugary.simple.api.service.impl.apidoc.ImportSourceCache;
+import com.fugary.simple.api.utils.SimpleModelUtils;
+import org.springframework.test.util.ReflectionTestUtils;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
 import com.fugary.simple.api.web.vo.SimpleResult;
@@ -57,6 +60,7 @@ class ApiImportPreviewIntegrationTest {
     @Autowired ApiProjectImportController imports;
     @Autowired LogEvents events;
     @Autowired ApiProjectTaskService tasks;
+    @Autowired ImportSourceCache sourceCache;
 
     @TestConfiguration
     static class LogEvents {
@@ -84,6 +88,7 @@ class ApiImportPreviewIntegrationTest {
     }
 
     @AfterEach void cleanup() {
+        sourceCache.clear();
         login("preview-user");
         projects.deleteApiProject(project.getId());
         RequestContextHolder.resetRequestAttributes();
@@ -146,7 +151,7 @@ class ApiImportPreviewIntegrationTest {
         assertEquals(before, database());
     }
 
-    @Test void originalImportFetchesCurrentSourceAfterPreview() {
+    @Test void confirmedImportReusesPreviewSourceAndReleasesCache() {
         options.setImportType(ApiDocConstants.IMPORT_TYPE_URL);
         options.setSourceType("markdown");
         options.setUrl("https://example.test/guide.md");
@@ -157,8 +162,197 @@ class ApiImportPreviewIntegrationTest {
         assertTrue(imports.loadImportPreview(options, request).isSuccess());
         assertTrue(docs.loadByProject(project.getId()).isEmpty());
         assertTrue(imports.importExistsProject(options, request).isSuccess());
-        assertTrue(docs.loadByProject(project.getId()).get(0).getDocContent().contains("Latest version"));
-        org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(2)).getContent(any(UrlWithAuthVo.class));
+        assertTrue(docs.loadByProject(project.getId()).get(0).getDocContent().contains("Preview version"));
+        assertFalse(cachedSource(options).isSuccess());
+        org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(1)).getContent(any(UrlWithAuthVo.class));
+    }
+
+    private SimpleResult<DocSourceData> cachedSource(ApiProjectTaskImportVo options) {
+        return sourceCache.getContent(SimpleModelUtils.copy(options, ApiProjectTaskImportVo.class), false,
+                () -> SimpleResultUtils.createError("Cache miss"));
+    }
+
+    @Test void expiredCacheFallsBackToOriginalDownloadAndImport() {
+        options.setImportType("url");
+        options.setSourceType("markdown");
+        options.setUrl("https://example.test/guide.md");
+        when(urlContent.getContent(any())).thenReturn(
+                SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide\nPreview")),
+                SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide\nLatest")));
+        org.springframework.test.util.ReflectionTestUtils.setField(sourceCache, "ttlMillis", -1L);
+        try {
+            assertTrue(imports.loadImportPreview(options, new MockHttpServletRequest()).isSuccess());
+            sourceCache.cleanExpired();
+            assertTrue(imports.importExistsProject(options, new MockHttpServletRequest()).isSuccess());
+            assertTrue(docs.loadByProject(project.getId()).get(0).getDocContent().contains("Latest"));
+            org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(2)).getContent(any());
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(sourceCache, "ttlMillis", 600000L);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"fileName", "projectName", "iconUrl", "groupCode", "authContent"})
+    void changedImportParametersFallBackToFreshSource(String field) {
+        options.setImportType("url");
+        options.setSourceType("markdown");
+        options.setUrl("https://example.test/guide.md");
+        ApiProjectTaskImportVo confirmation = SimpleModelUtils.copy(options, ApiProjectTaskImportVo.class);
+        when(urlContent.getContent(any())).thenReturn(
+                SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide\nPreview")),
+                SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide\nLatest")));
+        ImportPreviewVo preview = imports.loadImportPreview(options, new MockHttpServletRequest()).getResultData();
+        confirmation.setPreviewKey(preview.getPreviewKey());
+        ReflectionTestUtils.setField(confirmation, field, "changed");
+        assertTrue(imports.importExistsProject(confirmation, new MockHttpServletRequest()).isSuccess());
+        assertTrue(docs.loadByProject(project.getId()).get(0).getDocContent().contains("Latest"));
+        assertTrue(cachedSource(options).isSuccess());
+        org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(2)).getContent(any());
+    }
+
+    @Test void separateConfirmationRequestReusesAutomaticallyDetectedSource() {
+        options.setImportType("url");
+        options.setSourceType(null);
+        options.setFileName(null);
+        options.setUrl("https://example.test/guide.md");
+        ApiProjectTaskImportVo confirmation = SimpleModelUtils.copy(options, ApiProjectTaskImportVo.class);
+        when(urlContent.getContent(any())).thenReturn(SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide")));
+        ImportPreviewVo preview = imports.loadImportPreview(options, new MockHttpServletRequest()).getResultData();
+        confirmation.setPreviewKey(preview.getPreviewKey());
+        assertTrue(imports.importExistsProject(confirmation, new MockHttpServletRequest()).isSuccess());
+        org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(1)).getContent(any());
+    }
+
+    @Test void missingCachePreservesOriginalDownloadFailure() {
+        options.setImportType("url");
+        options.setUrl("https://example.test/guide.md");
+        options.setPreviewKey("missing");
+        when(urlContent.getContent(any())).thenReturn(SimpleResultUtils.createError(2009, "Download failed"));
+        SimpleResult<ApiProject> result = imports.importExistsProject(options, new MockHttpServletRequest());
+        assertEquals(2009, result.getCode());
+        assertEquals("Download failed", result.getMessage());
+        assertTrue(docs.loadByProject(project.getId()).isEmpty());
+    }
+
+    @Test void unsuccessfulPreviewReleasesDownloadedSource() {
+        options.setImportType("url");
+        options.setUrl("https://example.test/guide.md");
+        when(urlContent.getContent(any())).thenReturn(SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Not OpenAPI")));
+        assertFalse(imports.loadImportPreview(options, new MockHttpServletRequest()).isSuccess());
+        assertNotNull(options.getPreviewKey());
+        assertFalse(cachedSource(options).isSuccess());
+    }
+
+    @Test void failedImageRestoreFallsBackAndReleasesCache() {
+        DocAssetStorageService failingAssets = org.mockito.Mockito.mock(DocAssetStorageService.class);
+        ImportSourceCache cache = new ImportSourceCache(failingAssets);
+        byte[] image = UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String code = "cache-test-" + UUID.randomUUID();
+        try {
+            SimpleResult<DocSourceData> preview = cache.getContent(options, true, () -> {
+                String url = assets.saveImage(image, "picture.png", code);
+                return SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide\n![](" + url + ")"));
+            });
+            assertTrue(preview.isSuccess());
+            assertFalse(Files.exists(Path.of(assets.getBaseUploadPath(), "docs", code)));
+            AtomicInteger downloads = new AtomicInteger();
+            String key = options.getPreviewKey();
+            for (int i = 0; i < 2; i++) {
+                options.setPreviewKey(key);
+                SimpleResult<DocSourceData> restored = cache.getContent(options, false, () -> {
+                    downloads.incrementAndGet();
+                    return SimpleResultUtils.createSimpleResult(DocSourceData.ofText("Fresh source"));
+                });
+                assertEquals("Fresh source", restored.getResultData().getTextContent());
+            }
+            assertEquals(2, downloads.get());
+            org.mockito.Mockito.verify(failingAssets, org.mockito.Mockito.times(1)).saveImage(any(), any(), any());
+        } finally {
+            cache.clear();
+        }
+    }
+
+    @Test void cacheIsBoundToUserSourceAndTarget() {
+        options.setImportType("url");
+        options.setSourceType("markdown");
+        options.setUrl("https://example.test/guide.md");
+        when(urlContent.getContent(any())).thenReturn(SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide")));
+        assertTrue(imports.loadImportPreview(options, new MockHttpServletRequest()).isSuccess());
+        login("another-user");
+        assertFalse(cachedSource(options).isSuccess());
+        login("preview-user");
+        options.setAuthContent("changed-token");
+        assertFalse(cachedSource(options).isSuccess());
+        options.setAuthContent(null);
+        options.setToFolder(Integer.MAX_VALUE);
+        assertFalse(cachedSource(options).isSuccess());
+        options.setToFolder(null);
+        assertTrue(cachedSource(options).isSuccess());
+        when(access.canAccessProject(any(ApiProject.class), any())).thenReturn(false);
+        assertFalse(imports.importExistsProject(options, new MockHttpServletRequest()).isSuccess());
+        assertTrue(docs.loadByProject(project.getId()).isEmpty());
+    }
+
+    @Test void cacheCapacityEvictsOldestAndSkipsOversizedSources() {
+        options.setImportType("url");
+        options.setSourceType("markdown");
+        options.setUrl("https://example.test/guide.md");
+        org.springframework.test.util.ReflectionTestUtils.setField(sourceCache, "maxTotalBytes", 20L);
+        org.springframework.test.util.ReflectionTestUtils.setField(sourceCache, "maxEntryBytes", 20L);
+        try {
+            when(urlContent.getContent(any())).thenReturn(SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Guide")));
+            assertTrue(imports.loadImportPreview(options, new MockHttpServletRequest()).isSuccess());
+            String firstKey = options.getPreviewKey();
+            assertTrue(imports.loadImportPreview(options, new MockHttpServletRequest()).isSuccess());
+            String secondKey = options.getPreviewKey();
+            options.setPreviewKey(firstKey);
+            assertFalse(cachedSource(options).isSuccess());
+            options.setPreviewKey(secondKey);
+            assertTrue(cachedSource(options).isSuccess());
+            when(urlContent.getContent(any())).thenReturn(SimpleResultUtils.createSimpleResult(DocSourceData.ofText("# Too large for cache")));
+            assertTrue(imports.loadImportPreview(options, new MockHttpServletRequest()).isSuccess());
+            assertNull(options.getPreviewKey());
+            assertTrue(imports.importExistsProject(options, new MockHttpServletRequest()).isSuccess());
+            org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(4)).getContent(any());
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(sourceCache, "maxTotalBytes", 268435456L);
+            org.springframework.test.util.ReflectionTestUtils.setField(sourceCache, "maxEntryBytes", 67108864L);
+        }
+    }
+
+    @Test void gitPreviewRetainsImagesWithoutSavingOrCloningAgain() throws Exception {
+        options.setImportType("url");
+        options.setSourceType("markdown");
+        options.setUrl("https://example.test/repo.git");
+        String imageProject = "cache-test-" + UUID.randomUUID();
+        java.util.concurrent.atomic.AtomicReference<Path> clonePath = new java.util.concurrent.atomic.AtomicReference<>();
+        byte[] bytes = UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        com.fugary.simple.api.service.impl.apidoc.git.GitDocContentProviderImpl git =
+                new com.fugary.simple.api.service.impl.apidoc.git.GitDocContentProviderImpl() {
+                    @Override protected void doCloneRepository(String url, String branch, java.io.File dir,
+                            org.eclipse.jgit.transport.CredentialsProvider credentials) throws Exception {
+                        clonePath.set(dir.toPath());
+                        Files.write(dir.toPath().resolve("picture.png"), bytes);
+                        Files.writeString(dir.toPath().resolve("guide.md"), "# Guide\n![picture](picture.png)");
+                    }
+                };
+        org.springframework.test.util.ReflectionTestUtils.setField(git, "docAssetStorageService", assets);
+        com.fugary.simple.api.web.vo.git.GitRepoInfo repo = com.fugary.simple.api.web.vo.git.GitRepoInfo.builder()
+                .cloneUrl(options.getUrl()).repo(imageProject).branch("main").build();
+        when(urlContent.getContent(any())).thenAnswer(call -> git.getContent(repo, options));
+        Path imageDir = Path.of(assets.getBaseUploadPath(), "docs", imageProject);
+        try {
+            assertTrue(imports.loadImportPreview(options, new MockHttpServletRequest()).isSuccess());
+            assertFalse(Files.exists(imageDir));
+            assertFalse(Files.exists(clonePath.get()));
+            assertTrue(imports.importExistsProject(options, new MockHttpServletRequest()).isSuccess());
+            String name = org.apache.commons.codec.digest.DigestUtils.md5Hex(bytes) + ".png";
+            assertArrayEquals(bytes, Files.readAllBytes(imageDir.resolve(name)));
+            assertTrue(docs.loadByProject(project.getId()).get(0).getDocContent().contains("/upload/docs/" + imageProject + "/" + name));
+            org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(1)).getContent(any());
+        } finally {
+            org.apache.commons.io.FileUtils.deleteDirectory(imageDir.toFile());
+        }
     }
 
     @Test void filePreviewAndOriginalImportReuseTheSameUpload() {
@@ -323,7 +517,9 @@ class ApiImportPreviewIntegrationTest {
     }
 
 
-    @Test void zipImagesAndFoldersRemainTemporaryWhenCancelled() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void zipPreviewKeepsImagesUnwrittenAndUrlConfirmationRestoresThem(boolean urlMode) throws Exception {
         options.setSourceType("markdown");
         options.setFileName("docs.zip");
         byte[] image = UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -337,8 +533,12 @@ class ApiImportPreviewIntegrationTest {
             zip.closeEntry();
         }
         String before = database();
-        SimpleResult<ImportPreviewVo> result = previews.preview(options, () -> projects.processImportProject(
-                DocSourceData.ofBinary(output.toByteArray(), "docs.zip"), options));
+        DocSourceData source = DocSourceData.ofBinary(output.toByteArray(), "docs.zip");
+        options.setImportType(urlMode ? "url" : "file");
+        options.setUrl(urlMode ? "https://example.test/docs.zip" : null);
+        when(urlContent.getContent(any())).thenReturn(SimpleResultUtils.createSimpleResult(source));
+        SimpleResult<ImportPreviewVo> result = urlMode ? imports.loadImportPreview(options, new MockHttpServletRequest())
+                : previews.preview(options, () -> projects.processImportProject(source, options));
         assertTrue(result.isSuccess(), result.getMessage());
         ImportPreviewVo view = result.getResultData();
         assertTrue(view.getChanges().stream().anyMatch(c -> ApiDocConstants.DOC_TYPE_MD.equals(c.getType())));
@@ -346,6 +546,18 @@ class ApiImportPreviewIntegrationTest {
         Path path = Paths.get(assets.getBaseUploadPath(), "docs", "zip_import",
                 org.apache.commons.codec.digest.DigestUtils.md5Hex(image) + ".png");
         assertFalse(Files.exists(path));
+        if (urlMode) {
+            try {
+                // 修改下载返回值不会污染缓存中的二进制快照。
+                Arrays.fill(source.getBinaryContent(), (byte) 0);
+                assertTrue(imports.importExistsProject(options, new MockHttpServletRequest()).isSuccess());
+                assertArrayEquals(image, Files.readAllBytes(path));
+                assertTrue(docs.loadByProject(project.getId()).get(0).getDocContent().contains("/upload/docs/zip_import/"));
+                org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(1)).getContent(any());
+            } finally {
+                Files.deleteIfExists(path);
+            }
+        }
     }
 
 
@@ -589,7 +801,8 @@ class ApiImportPreviewIntegrationTest {
         assertTrue(events.logs.isEmpty());
         assertNull(tasks.getById(task.getId()).getExecDate());
         assertTrue(docs.loadByProject(project.getId()).isEmpty());
-        assertTrue(taskInvoker.importProject(task).isSuccess());
+        assertTrue(taskInvoker.importProject(task, options.getPreviewKey()).isSuccess());
+        org.mockito.Mockito.verify(urlContent, org.mockito.Mockito.times(1)).getContent(any());
         assertNotNull(tasks.getById(task.getId()).getExecDate());
         assertEquals(1, docs.loadByProject(project.getId()).size());
     }

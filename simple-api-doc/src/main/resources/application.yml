@@ -70,6 +70,10 @@ simple:
     task-pool-size: ${API_TASK_POOL_SIZE:10}
     api-log-retention-days: ${API_LOG_RETENTION_DAYS:180}
     ai-cache-retention-days: ${API_AI_CACHE_RETENTION_DAYS:90}
+    import-preview-cache:
+      ttl-millis: 600000 # URL/Git 预览来源保留 10 分钟
+      max-entry-bytes: 67108864 # 单份 64 MiB（包含 Git 图片）
+      max-total-bytes: 268435456 # 总计 256 MiB，最多 32 份
     ai:
       # 仅控制环境 AI 配置自动入库；运行时以数据库中的配置为准。
       enabled: ${API_AI_ENABLED:true}

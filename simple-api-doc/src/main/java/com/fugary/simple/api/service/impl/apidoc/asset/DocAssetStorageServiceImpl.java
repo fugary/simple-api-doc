@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.function.Supplier;
+import java.util.function.Consumer;
 
 /**
  * 文档静态资源（图片等）存储与链接替换实现
@@ -30,6 +31,25 @@ import java.util.function.Supplier;
 public class DocAssetStorageServiceImpl implements DocAssetStorageService {
 
     private static final ThreadLocal<Boolean> PREVIEW = new ThreadLocal<>();
+    private static final ThreadLocal<Consumer<PendingImage>> IMAGE_CAPTURE = new ThreadLocal<>();
+
+    /** 下载 Git 来源时暂存图片，正式导入时再保存到原来的内容寻址位置。 */
+    @lombok.Value
+    public static class PendingImage {
+        byte[] bytes;
+        String fileName;
+        String projectCode;
+    }
+
+    public static <T> T captureImages(Consumer<PendingImage> capture, Supplier<T> action) {
+        Consumer<PendingImage> previous = IMAGE_CAPTURE.get();
+        IMAGE_CAPTURE.set(capture);
+        try {
+            return withoutSavingImages(action);
+        } finally {
+            if (previous == null) { IMAGE_CAPTURE.remove(); } else { IMAGE_CAPTURE.set(previous); }
+        }
+    }
 
     /** 预览只计算图片链接，不保存图片；请求结束即清除标记。 */
     public static <T> T withoutSavingImages(Supplier<T> action) {
@@ -71,6 +91,10 @@ public class DocAssetStorageServiceImpl implements DocAssetStorageService {
     public String saveImage(byte[] imageBytes, String originalFileName, String projectCode) {
         if (imageBytes == null || imageBytes.length == 0) {
             return null;
+        }
+
+        if (IMAGE_CAPTURE.get() != null) {
+            IMAGE_CAPTURE.get().accept(new PendingImage(imageBytes, originalFileName, projectCode));
         }
 
         String cleanProjectCode = sanitizeProjectCode(projectCode);

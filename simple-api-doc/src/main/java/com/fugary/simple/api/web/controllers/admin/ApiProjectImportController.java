@@ -5,6 +5,7 @@ import com.fugary.simple.api.contants.SystemErrorConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.service.impl.apidoc.ApiImportPreviewService;
+import com.fugary.simple.api.service.impl.apidoc.ImportSourceCache;
 import com.fugary.simple.api.web.vo.imports.ImportPreviewVo;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
 import com.fugary.simple.api.service.apidoc.ApiProjectService;
@@ -65,15 +66,31 @@ public class ApiProjectImportController {
     @Autowired
     private ApiImportPreviewService importPreviewService;
 
+    @Autowired
+    private ImportSourceCache importSourceCache;
+
     // 沿用 load* 只读接口约定，避免将完整差异写入操作日志。
     @PostMapping("/previewImportProject")
     public SimpleResult<ImportPreviewVo> loadImportPreview(@ModelAttribute ApiProjectTaskImportVo importVo, HttpServletRequest request) {
-        return importPreviewService.preview(importVo, () -> parseProject(importVo, request));
+        importVo.setPreviewKey(null);
+        boolean success = false;
+        try {
+            SimpleResult<ImportPreviewVo> result = importPreviewService.preview(importVo, () -> parseProject(importVo, request, true));
+            success = result.isSuccess();
+            if (success) { result.getResultData().setPreviewKey(importVo.getPreviewKey()); }
+            return result;
+        } finally {
+            if (!success) { importSourceCache.discard(importVo.getPreviewKey()); }
+        }
+    }
+
+    @PostMapping("/parseProject")
+    public SimpleResult<ExportApiProjectVo> parseProject(@ModelAttribute ApiProjectImportVo importVo, HttpServletRequest request){
+        return parseProject(importVo, request, false);
     }
 
     @SneakyThrows
-    @PostMapping("/parseProject")
-    public SimpleResult<ExportApiProjectVo> parseProject(@ModelAttribute ApiProjectImportVo importVo, HttpServletRequest request){
+    private SimpleResult<ExportApiProjectVo> parseProject(ApiProjectImportVo importVo, HttpServletRequest request, boolean preview){
         DocSourceData sourceData = null;
         String fileName = null;
         boolean isUrlMode = ApiDocConstants.IMPORT_TYPE_URL.equals(importVo.getImportType());
@@ -112,7 +129,8 @@ public class ApiProjectImportController {
                     importVo.setFileName(fileName);
                 }
             }
-            SimpleResult<DocSourceData> contentResult = urlDocContentProvider.getContent(importVo);
+            SimpleResult<DocSourceData> contentResult = importSourceCache.getContent(importVo, preview,
+                    () -> urlDocContentProvider.getContent(importVo));
             if (!contentResult.isSuccess()) {
                 return SimpleResultUtils.createError(contentResult.getCode(), contentResult.getMessage());
             }
@@ -161,7 +179,9 @@ public class ApiProjectImportController {
         }
         SimpleResult<ExportApiProjectVo> parseResult = parseProject(importVo, request);
         if (parseResult.isSuccess()) {
-            return apiProjectService.importUpdateProject(apiProject, parseResult.getResultData(), importVo);
+            SimpleResult<ApiProject> result = apiProjectService.importUpdateProject(apiProject, parseResult.getResultData(), importVo);
+            if (result.isSuccess()) { importSourceCache.discard(importVo.getPreviewKey()); }
+            return result;
         }
         return SimpleResult.<ApiProject>builder()
                 .code(parseResult.getCode())

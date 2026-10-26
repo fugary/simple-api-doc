@@ -177,7 +177,8 @@ public class ApiProjectTaskController {
     }
 
     @PostMapping("/trigger/{id}")
-    public SimpleResult<ApiProject> triggerNow(@PathVariable("id") Integer id) {
+    public SimpleResult<ApiProject> triggerNow(@PathVariable("id") Integer id,
+            @RequestParam(value = "previewKey", required = false) String previewKey) {
         ApiProjectTask apiTask = apiProjectTaskService.getById(id);
         if (apiTask == null) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
@@ -185,7 +186,7 @@ public class ApiProjectTaskController {
         if (!apiProjectAccessService.canAccessTask(apiTask, ApiGroupAuthority.WRITABLE)) {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
-        SimpleResult<ApiProject> result = projectAutoImportInvoker.importProject(apiTask);
+        SimpleResult<ApiProject> result = projectAutoImportInvoker.importProject(apiTask, previewKey);
         if (result.isSuccess()) {
             SimpleAutoTask<?> autoTask = simpleTaskManager.getAutoTask(SimpleTaskUtils.getTaskId(apiTask.getId()));
             if (autoTask != null && autoTask.getTaskWrapper() != null) {
