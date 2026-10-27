@@ -217,15 +217,19 @@ export const filterApiProjectItem = (projectItem) => {
 /**
  * 获取folder路径
  * @param node
+ * @param folders 项目文件夹列表，用于补全非目录树节点的父级路径
  * @return {*[]}
  */
-export const getFolderPaths = node => {
+export const getFolderPaths = (node, folders = []) => {
   const paths = []
-  while (node) {
+  const folderMap = new Map(folders.map(folder => [folder.id, folder]))
+  const visited = new Set()
+  while (node && !visited.has(node)) {
+    visited.add(node)
     if (node.folderName) {
       paths.push(node.folderName)
     }
-    node = node.parent
+    node = node.parent || folderMap.get(node.folderId ?? node.parentId)
   }
   return paths.reverse()
 }

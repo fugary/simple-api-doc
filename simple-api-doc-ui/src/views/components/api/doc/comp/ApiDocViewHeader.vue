@@ -42,7 +42,7 @@ const currentDoc = defineModel({
 })
 const folderPaths = computed(() => {
   if (currentDoc.value) {
-    return getFolderPaths(currentDoc.value)
+    return getFolderPaths(currentDoc.value, props.projectItem?.folders)
   }
   return []
 })
