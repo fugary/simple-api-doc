@@ -10,7 +10,7 @@ def git(*args):
     return subprocess.check_output(['git', *args], encoding='utf-8').strip()
 
 
-def generate_notes(tag, republish_from='', republished_at=''):
+def generate_notes(tag):
     # Start at the parent to exclude the release itself, including on a rerun.
     previous = subprocess.run(
         ['git', 'describe', '--tags', '--match', 'v[0-9]*', '--abbrev=0', f'{tag}^'],
@@ -46,25 +46,7 @@ def generate_notes(tag, republish_from='', republished_at=''):
         category = 'fix' if category == 'bug' else category
         groups.get(category, groups['other'])[1].append((subject, commit))
 
-    lines = []
-    if republish_from:
-        commit = git('rev-parse', f'{tag}^{{commit}}')
-        lines.extend([
-            '## 同版本重新发布', '',
-            f'- 发布时间（UTC）：{republished_at}',
-            f'- 原提交：[{republish_from[:12]}]({repo_url}/commit/{republish_from})',
-            f'- 构建提交：[{commit[:12]}]({repo_url}/commit/{commit})',
-            f'- 本次变更：[查看差异]({repo_url}/compare/{republish_from}...{commit})',
-            '', '### 本次修复', '',
-        ])
-        changes = git('log', '--reverse', '--format=%H%x09%s', f'{republish_from}..{commit}')
-        for change in changes.splitlines():
-            change_commit, subject = change.split('\t', 1)
-            lines.append(f'- [{subject}]({repo_url}/commit/{change_commit})')
-        if not changes:
-            lines.append('- 无新增提交，仅重新构建发布。')
-        lines.append('')
-    lines.extend(["## What's Changed", ''])
+    lines = ["## What's Changed", '']
     for title, entries in groups.values():
         if entries:
             lines.extend([f'### {title}', ''])
@@ -77,7 +59,4 @@ def generate_notes(tag, republish_from='', republished_at=''):
 
 
 if __name__ == '__main__':
-    Path(sys.argv[2]).write_text(generate_notes(
-        sys.argv[1], os.environ.get('REPUBLISH_PREVIOUS_COMMIT', ''),
-        os.environ.get('REPUBLISHED_AT', ''),
-    ), encoding='utf-8')
+    Path(sys.argv[2]).write_text(generate_notes(sys.argv[1]), encoding='utf-8')

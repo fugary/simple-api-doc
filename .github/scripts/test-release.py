@@ -125,16 +125,21 @@ class ReleaseTest(unittest.TestCase):
         self.assertEqual(self.git('--git-dir', str(self.remote), 'rev-parse', 'main'), self.source_sha)
         self.assertEqual(self.state['previous_commit'], self.release_sha)
         notes = self.base / 'notes.md'
-        env = dict(self.env, REPUBLISH_PREVIOUS_COMMIT=self.release_sha,
-                   REPUBLISHED_AT=published['republished_at'])
         subprocess.run([sys.executable, str(ROOT / '.github/scripts/release-notes.py'),
-                        'v2.9.6', str(notes)], cwd=self.repo, env=env, check=True)
+                        'v2.9.6', str(notes)], cwd=self.repo, env=self.env, check=True)
         body = notes.read_text(encoding='utf-8')
-        self.assertIn('## 同版本重新发布', body)
-        self.assertIn(published['republished_at'], body)
-        self.assertIn('fix: small bug', body)
+        self.assertTrue(body.startswith("## What's Changed\n"))
+        for text in ('同版本重新发布', '发布时间', '原提交', '构建提交', '本次修复',
+                     published['republished_at']):
+            self.assertNotIn(text, body)
+        self.assertIn('### 🐛 Bug Fixes\n\n1. [fix: small bug]', body)
+        self.assertEqual(body.count('fix: small bug'), 1)
         self.assertIn(self.release_sha, body)
         self.assertIn(self.source_sha, body)
+        tag_message = self.git('for-each-ref', '--format=%(contents)', 'refs/tags/v2.9.6')
+        self.assertIn(f'Release-Run: {self.env["GITHUB_RUN_ID"]}', tag_message)
+        self.assertIn(f'Previous-Commit: {self.release_sha}', tag_message)
+        self.assertIn(f'Republished-At: {published["republished_at"]}', tag_message)
         moved_oid = self.remote_tag()
         # main can advance after the tag was moved; a retry still builds the original source.
         self.commit('fix: later change')

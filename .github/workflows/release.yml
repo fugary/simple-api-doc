@@ -302,8 +302,6 @@ jobs:
       - name: Generate Changelog
         env:
           TAG: ${{ steps.release.outputs.tag }}
-          REPUBLISH_PREVIOUS_COMMIT: ${{ steps.release.outputs.previous_commit }}
-          REPUBLISHED_AT: ${{ steps.republish.outputs.republished_at }}
         run: |
           python3 .github/scripts/release-notes.py "$TAG" "$RUNNER_TEMP/changelog.md"
 
