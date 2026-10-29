@@ -90,8 +90,8 @@ export const ALL_MENUS = [
     id: 55,
     parentId: 5,
     iconCls: 'Cpu',
-    nameCn: 'AI缓存管理',
-    nameEn: 'AI Cache',
+    nameCn: 'AI记录',
+    nameEn: 'AI Records',
     menuUrl: '/admin/ai/caches',
     checkEnabled: async () => {
       try {

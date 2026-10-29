@@ -134,9 +134,9 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
         response.setContent(text.toString());
         JsonNode usage = root.path("usageMetadata");
         if (!usage.isMissingNode()) {
-            response.setPromptTokens(usage.path("promptTokenCount").asInt());
-            response.setCompletionTokens(usage.path("candidatesTokenCount").asInt());
-            response.setTotalTokens(usage.path("totalTokenCount").asInt());
+            response.setPromptTokens(tokenCount(usage, "promptTokenCount"));
+            response.setCompletionTokens(tokenCount(usage, "candidatesTokenCount"));
+            response.setTotalTokens(tokenCount(usage, "totalTokenCount"));
         }
         return response;
     }

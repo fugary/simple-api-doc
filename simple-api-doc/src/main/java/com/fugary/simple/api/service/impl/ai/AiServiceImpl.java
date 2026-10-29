@@ -16,7 +16,6 @@ import com.fugary.simple.api.service.ai.provider.AiChatRequest;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
-import com.fugary.simple.api.utils.servlet.HttpRequestUtils;
 import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -108,7 +107,7 @@ public class AiServiceImpl implements AiService {
         String docId = req.getDocId();
 
         String promptHash = DigestUtils.md5Hex(systemPrompt);
-        String rawKey = targetAiConfig.getDefaultModel() + ":" + promptHash + ":" + userMessageContent;
+        String rawKey = targetAiConfig.getId() + ":" + targetAiConfig.getDefaultModel() + ":" + promptHash + ":" + userMessageContent;
         String cacheKey = DigestUtils.sha256Hex(rawKey);
 
         boolean cacheExists = false;
@@ -153,6 +152,8 @@ public class AiServiceImpl implements AiService {
             if (StringUtils.isNotBlank(generatedSample)) {
                 updateCacheOnSuccess(cacheKey, chatResponse, System.currentTimeMillis() - startTime);
                 log.info("AI {} 成功，写入缓存, key: {}", cacheType, cacheKey);
+            } else {
+                updateCacheOnFailure(cacheKey, new IllegalStateException("AI 未返回有效内容"), System.currentTimeMillis() - startTime);
             }
             return generatedSample;
         }, taskExecutor).whenComplete((res, ex) -> {
@@ -274,31 +275,22 @@ public class AiServiceImpl implements AiService {
     private void initAiCache(String cacheKey, String systemPrompt, String userMessageContent,
                              String projectId, String docId, String cacheType,
                              AiConfig currentAiConfig, boolean cacheExists) {
-        AiCache aiCache = new AiCache();
+        String shareId = SecurityUtils.getLoginShareId();
+        ApiProjectShare share = StringUtils.isBlank(shareId) ? null : apiProjectShareMapper.selectOne(
+                Wrappers.<ApiProjectShare>lambdaQuery().eq(ApiProjectShare::getShareId, shareId));
+        AiCache aiCache = AiExecutionRecord.create(currentAiConfig, share);
         aiCache.setCacheKey(cacheKey);
-        aiCache.setStatus(0);
-        aiCache.setCacheValue("");
-        aiCache.setModelName(currentAiConfig.getDefaultModel());
-        aiCache.setProvider(currentAiConfig.getProvider());
-        aiCache.setBaseUrl(currentAiConfig.getBaseUrl());
-        aiCache.setCreatedAt(new Date());
         aiCache.setPrompt(systemPrompt + "\n" + userMessageContent);
         aiCache.setProjectId(projectId);
         aiCache.setDocId(docId);
-        String userName = SecurityUtils.getLoginUserName();
-        if (StringUtils.isBlank(userName)) {
-            String shareId = SecurityUtils.getLoginShareId();
-            if (StringUtils.isNotBlank(shareId)) {
-                ApiProjectShare share = apiProjectShareMapper.selectOne(
-                        Wrappers.<ApiProjectShare>lambdaQuery().eq(ApiProjectShare::getShareId, shareId));
-                userName = (share != null && StringUtils.isNotBlank(share.getCreator())) ? share.getCreator() : shareId;
-            }
-        }
-        aiCache.setUserName(userName);
-        aiCache.setClientIp(HttpRequestUtils.getClientIp());
         aiCache.setCacheType(cacheType);
         if (cacheExists) {
-            aiCacheMapper.updateById(aiCache);
+            aiCacheMapper.update(aiCache, Wrappers.<AiCache>lambdaUpdate()
+                    .eq(AiCache::getCacheKey, cacheKey)
+                    .set(aiCache.getShareRecordId() == null, AiCache::getShareRecordId, null)
+                    .set(AiCache::getErrorMessage, null).set(AiCache::getRawResponse, null)
+                    .set(AiCache::getPromptTokens, null).set(AiCache::getCompletionTokens, null)
+                    .set(AiCache::getTotalTokens, null).set(AiCache::getCostTime, null));
         } else {
             aiCacheMapper.insert(aiCache);
         }

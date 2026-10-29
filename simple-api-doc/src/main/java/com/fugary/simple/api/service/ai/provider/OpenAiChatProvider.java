@@ -54,9 +54,9 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
         chatResponse.setContent(cleanGeneratedContent(messageNode.asText()));
         JsonNode usageNode = root.path("usage");
         if (!usageNode.isMissingNode()) {
-            chatResponse.setPromptTokens(usageNode.path("prompt_tokens").asInt());
-            chatResponse.setCompletionTokens(usageNode.path("completion_tokens").asInt());
-            chatResponse.setTotalTokens(usageNode.path("total_tokens").asInt());
+            chatResponse.setPromptTokens(tokenCount(usageNode, "prompt_tokens"));
+            chatResponse.setCompletionTokens(tokenCount(usageNode, "completion_tokens"));
+            chatResponse.setTotalTokens(tokenCount(usageNode, "total_tokens"));
         }
         return chatResponse;
     }
@@ -121,9 +121,9 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
 
         JsonNode usageNode = root.path("usage");
         if (!usageNode.isMissingNode()) {
-            chatResponse.setPromptTokens(usageNode.path("prompt_tokens").asInt());
-            chatResponse.setCompletionTokens(usageNode.path("completion_tokens").asInt());
-            chatResponse.setTotalTokens(usageNode.path("total_tokens").asInt());
+            chatResponse.setPromptTokens(tokenCount(usageNode, "prompt_tokens"));
+            chatResponse.setCompletionTokens(tokenCount(usageNode, "completion_tokens"));
+            chatResponse.setTotalTokens(tokenCount(usageNode, "total_tokens"));
         }
         return chatResponse;
     }

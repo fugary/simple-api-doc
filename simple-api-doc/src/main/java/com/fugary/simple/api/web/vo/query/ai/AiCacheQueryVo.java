@@ -23,6 +23,10 @@ public class AiCacheQueryVo extends SimpleQueryVo {
      */
     private String modelName;
 
+    private Integer configId;
+
+    private String cacheType;
+
     /**
      * 开始时间
      */

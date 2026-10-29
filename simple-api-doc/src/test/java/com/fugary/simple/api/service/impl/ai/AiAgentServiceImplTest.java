@@ -3,6 +3,7 @@ package com.fugary.simple.api.service.impl.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.AiConfig;
+import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiProject;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
@@ -82,6 +83,7 @@ class AiAgentServiceImplTest {
         ReflectionTestUtils.setField(service, "apiFolderService", apiFolderService);
         ReflectionTestUtils.setField(service, "apiProjectAccessService", apiProjectAccessService);
         ReflectionTestUtils.setField(service, "shareService", shareService);
+        ReflectionTestUtils.setField(service, "aiCacheMapper", mock(AiCacheMapper.class));
     }
 
     @ParameterizedTest

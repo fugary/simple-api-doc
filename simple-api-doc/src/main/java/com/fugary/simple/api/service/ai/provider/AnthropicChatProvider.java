@@ -125,11 +125,11 @@ public class AnthropicChatProvider extends AbstractAiChatProvider {
         response.setContent(text.toString());
         JsonNode usage = root.path("usage");
         if (!usage.isMissingNode()) {
-            int input = usage.path("input_tokens").asInt();
-            int output = usage.path("output_tokens").asInt();
+            Integer input = tokenCount(usage, "input_tokens");
+            Integer output = tokenCount(usage, "output_tokens");
             response.setPromptTokens(input);
             response.setCompletionTokens(output);
-            response.setTotalTokens(input + output);
+            response.setTotalTokens(input == null || output == null ? null : input + output);
         }
         return response;
     }

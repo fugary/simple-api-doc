@@ -26,6 +26,11 @@ import java.util.regex.Pattern;
 @Slf4j
 public abstract class AbstractAiChatProvider implements AiChatProvider {
 
+    protected Integer tokenCount(JsonNode usage, String field) {
+        JsonNode value = usage.path(field);
+        return value.isIntegralNumber() && value.canConvertToInt() && value.intValue() >= 0 ? value.intValue() : null;
+    }
+
     @Autowired
     protected AiConfigProperties aiConfigProperties;
 

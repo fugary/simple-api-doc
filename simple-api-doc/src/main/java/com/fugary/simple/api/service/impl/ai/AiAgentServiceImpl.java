@@ -7,6 +7,7 @@ import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.contants.ApiDocConstants;
 import com.fugary.simple.api.contants.enums.ApiGroupAuthority;
 import com.fugary.simple.api.entity.api.AiConfig;
+import com.fugary.simple.api.mapper.api.AiCacheMapper;
 import com.fugary.simple.api.entity.api.ApiDoc;
 import com.fugary.simple.api.entity.api.ApiFolder;
 import com.fugary.simple.api.entity.api.ApiProject;
@@ -111,12 +112,17 @@ public class AiAgentServiceImpl implements AiAgentService {
     @Autowired
     private ApiProjectShareService shareService;
 
+    @Autowired
+    private AiCacheMapper aiCacheMapper;
+
     @Override
     public void streamChat(AiAgentChatReqVo req, SseEmitter emitter) {
         AtomicBoolean clientDisconnected = new AtomicBoolean(false);
-        emitter.onCompletion(() -> clientDisconnected.set(true));
-        emitter.onTimeout(() -> clientDisconnected.set(true));
-        emitter.onError(e -> clientDisconnected.set(true));
+        AiExecutionRecord record = null;
+        Runnable disconnect = () -> clientDisconnected.set(true);
+        emitter.onCompletion(disconnect);
+        emitter.onTimeout(disconnect);
+        emitter.onError(e -> disconnect.run());
 
         try {
             if (!sendSseEvent(emitter, "status", Map.of("status", "thinking", "message", "正在分析业务意图与检索策略..."))) {
@@ -142,6 +148,8 @@ public class AiAgentServiceImpl implements AiAgentService {
                 config.setDefaultModel(req.getModel().trim());
             }
             AiChatProvider provider = getChatProvider(config.getProvider());
+            record = new AiExecutionRecord(aiCacheMapper, config, share, project.getId(), req.getQuery());
+            if (clientDisconnected.get()) return;
 
             // 3. 初始化上下文与权限
             ApiUserVo user = SecurityUtils.getLoginUser();
@@ -163,7 +171,10 @@ public class AiAgentServiceImpl implements AiAgentService {
             String userPrompt = "[当前关注项目: " + project.getProjectName() + " (ID: " + project.getId() + ")]\n" + req.getQuery();
             boolean hasOverviewDocs = false;
             if (req.isIncludeProjectOverview()) {
+                long overviewStarted = System.currentTimeMillis();
                 AiProjectDocOverviewService.Overview overview = projectDocOverviewService.build(project, share);
+                record.step("overview", null, null, overview.getMessage(), "success", 0,
+                        System.currentTimeMillis() - overviewStarted);
                 if (clientDisconnected.get()) return;
                 if (StringUtils.isNotBlank(overview.getContent())) {
                     hasOverviewDocs = overview.getDocCount() > 0;
@@ -181,6 +192,7 @@ public class AiAgentServiceImpl implements AiAgentService {
             int repeatedRounds = 0;
             int maxToolRounds = Math.max(1, aiConfigProperties.getMaxToolRounds());
             Set<String> calledToolFingerprints = new HashSet<>();
+            String finishReason = "max_rounds";
 
             while (round < maxToolRounds) {
                 round++;
@@ -188,7 +200,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                     log.info("Client disconnected, stopping agent loop early");
                     return;
                 }
-                AiChatResponse response = provider.chatWithTools(config, messages, toolDefinitions, "auto");
+                AiChatResponse response = callModel(provider, config, messages, toolDefinitions, "auto", record, round);
                 if (clientDisconnected.get()) {
                     return;
                 }
@@ -196,6 +208,7 @@ public class AiAgentServiceImpl implements AiAgentService {
 
                 if (toolCalls == null || toolCalls.isEmpty()) {
                     finalContent = response.getContent() != null ? response.getContent() : "";
+                    finishReason = StringUtils.isBlank(finalContent) ? "incomplete" : "success";
                     break;
                 }
 
@@ -232,6 +245,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                     }
                     String fp = buildToolFingerprint(toolName, toolCall.getArguments());
                     if (!calledToolFingerprints.add(fp)) {
+                        record.step("tool", toolName, toolCall.getArguments(), "重复调用已跳过", "skipped", round, 0);
                         addToolResult(messages, toolCall, "该查询已执行过，请参考此前返回结果，不要重复查询相同内容。"
                                 + "若需续读文档，仅在此前结果 hasMore=true 时使用 nextOffset。");
                         continue;
@@ -246,10 +260,21 @@ public class AiAgentServiceImpl implements AiAgentService {
                     }
 
                     AgentTool tool = toolMap.get(toolName);
-                    String toolResult = tool != null ? tool.execute(toolCall.getArguments(), context) : "未知工具: " + toolCall.getName();
+                    long toolStarted = System.currentTimeMillis();
+                    String toolResult;
+                    try {
+                        toolResult = tool != null ? tool.execute(toolCall.getArguments(), context) : "未知工具";
+                    } catch (Exception e) {
+                        record.step("tool", toolName, toolCall.getArguments(), "工具执行失败", "failed", round,
+                                System.currentTimeMillis() - toolStarted);
+                        throw e;
+                    }
+                    Map<String, Object> toolSummary = buildToolEndData(toolName, toolResult);
+                    record.step("tool", toolName, toolCall.getArguments(), JsonUtils.toJson(toolSummary),
+                            isToolResultSuccessful(toolName, toolResult) ? "success" : "failed", round, System.currentTimeMillis() - toolStarted);
                     executedTool = true;
 
-                    if (!sendSseEvent(emitter, "tool_end", buildToolEndData(toolName, toolResult))) {
+                    if (!sendSseEvent(emitter, "tool_end", toolSummary)) {
                         clientDisconnected.set(true);
                         break;
                     }
@@ -263,6 +288,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                 }
                 repeatedRounds = executedTool ? 0 : repeatedRounds + 1;
                 if (repeatedRounds >= 2) {
+                    finishReason = "repeated_calls";
                     log.info("AI agent stopped repeated tool calls after {} rounds", round);
                     break;
                 }
@@ -278,7 +304,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                         "请现在根据已返回的文档证据回答最初的问题，不再调用工具。先给出可以确认的结论及文档引用；"
                                 + "若详情未读完或证据不足，明确说明尚不能确认的部分，不编造字段、必填条件或调用顺序。"));
                 try {
-                    AiChatResponse summaryRes = provider.chatWithTools(config, messages, toolDefinitions, "none");
+                    AiChatResponse summaryRes = callModel(provider, config, messages, toolDefinitions, "none", record, round + 1);
                     if (summaryRes != null && (summaryRes.getToolCalls() == null || summaryRes.getToolCalls().isEmpty())
                             && StringUtils.isNotBlank(summaryRes.getContent())) {
                         finalContent = summaryRes.getContent();
@@ -308,11 +334,15 @@ public class AiAgentServiceImpl implements AiAgentService {
             // 7. 推送最终结果事件
             if (!sendSseEvent(emitter, "related_docs", relatedDocs)) return;
             if (!sendSseEvent(emitter, "delta", Map.of("text", cleanedContent))) return;
-            sendSseEvent(emitter, "finish", Map.of("status", fallback ? "INCOMPLETE" : "SUCCESS"));
+            if (!sendSseEvent(emitter, "finish", Map.of("status", fallback ? "INCOMPLETE" : "SUCCESS"))) return;
+            record.finish(fallback ? 3 : 1, cleanedContent,
+                    !fallback && "incomplete".equals(finishReason) ? "success" : finishReason, null);
             try {
                 emitter.complete();
             } catch (Exception ignore) {}
         } catch (Exception e) {
+            if (record != null) record.finish(clientDisconnected.get() ? 4 : 2, null,
+                    clientDisconnected.get() ? "interrupted" : "failed", AiServiceImpl.getSimpleErrorMessage(e));
             log.error("AiAgentServiceImpl streamChat error", e);
             if (!clientDisconnected.get()) {
                 sendSseEvent(emitter, "error", Map.of("message", e.getMessage() != null ? e.getMessage() : "AI 服务响应异常"));
@@ -320,6 +350,20 @@ public class AiAgentServiceImpl implements AiAgentService {
                     emitter.complete();
                 } catch (Exception ignore) {}
             }
+        } finally {
+            if (record != null) record.finish(4, null, "interrupted", null);
+        }
+    }
+
+    private AiChatResponse callModel(AiChatProvider provider, AiConfig config, List<Map<String, Object>> messages,
+                                     List<AiToolDefinition> tools, String choice, AiExecutionRecord record, int round) {
+        long started = System.currentTimeMillis();
+        AiChatResponse response = null;
+        try {
+            response = provider.chatWithTools(config, messages, tools, choice);
+            return response;
+        } finally {
+            record.model(response, round, System.currentTimeMillis() - started);
         }
     }
 
@@ -369,6 +413,16 @@ public class AiAgentServiceImpl implements AiAgentService {
         }
         data.put("summary", StringUtils.abbreviate(toolResult.replaceAll("\\s+", " "), 100));
         return data;
+    }
+
+    private boolean isToolResultSuccessful(String toolName, String result) {
+        try {
+            JsonNode value = JsonUtils.getMapper().readTree(result);
+            return value != null && ("get_doc".equals(toolName) ? value.path("content").isTextual()
+                    : "search_docs".equals(toolName) && value.path("total").isNumber() && value.path("docs").isArray());
+        } catch (IOException | IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private String buildFallbackContent(List<ApiDocSearchResultVo> docs) {

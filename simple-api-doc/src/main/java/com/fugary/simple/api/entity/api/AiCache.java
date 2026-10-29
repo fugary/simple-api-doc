@@ -34,7 +34,7 @@ public class AiCache {
     private Date createdAt;
 
     /**
-     * 状态（0:处理中, 1:成功, 2:失败）
+     * 状态（0:处理中, 1:成功, 2:失败, 3:未完成, 4:已中断）
      */
     private Integer status;
 
@@ -112,4 +112,12 @@ public class AiCache {
      * 客户端请求 IP
      */
     private String clientIp;
+
+    private Integer configId;
+
+    /** 分享记录主键，不保存分享访问凭证。 */
+    private Integer shareRecordId;
+
+    /** 有界的执行步骤 JSON，不包含模型思考或完整文档上下文。 */
+    private String executionDetail;
 }

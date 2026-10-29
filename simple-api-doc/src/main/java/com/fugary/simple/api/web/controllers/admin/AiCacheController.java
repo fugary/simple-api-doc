@@ -42,7 +42,10 @@ public class AiCacheController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
         }
         QueryWrapper<AiCache> queryWrapper = Wrappers.<AiCache>query()
+                .select(AiCache.class, field -> !List.of("prompt", "rawResponse", "executionDetail", "cacheValue").contains(field.getProperty()))
                 .eq(queryVo.getProjectId() != null, "project_id", queryVo.getProjectId())
+                .eq(queryVo.getConfigId() != null, "config_id", queryVo.getConfigId())
+                .eq(StringUtils.isNotBlank(queryVo.getCacheType()), "cache_type", queryVo.getCacheType())
                 .eq(SecurityUtils.isAdmin() && StringUtils.isNotBlank(queryVo.getUserName()), "user_name", StringUtils.trimToEmpty(queryVo.getUserName()))
                 .eq(queryVo.getStatus() != null, "status", queryVo.getStatus())
                 .eq(StringUtils.isNotBlank(queryVo.getModelName()), "model_name", StringUtils.trimToEmpty(queryVo.getModelName()))
@@ -51,14 +54,28 @@ public class AiCacheController {
                 .and(StringUtils.isNotBlank(keyword), wrapper -> wrapper.like("cache_key", keyword)
                         .or().like("cache_value", keyword))
                 .orderByDesc("created_at");
+        queryWrapper.select(queryWrapper.getSqlSelect() + ", SUBSTRING(cache_value, 1, 200) AS cache_value");
         if (!SecurityUtils.isAdmin() && queryVo.getProjectId() == null) {
-            String userName = SecurityUtils.getLoginUserName();
-            queryWrapper.and(wrapper -> {
-                wrapper.eq("user_name", userName)
-                       .or(inner -> apiProjectAccessService.addProjectRelatedGroupCodeQuery(inner, "t_ai_cache", "project_id", null, userName));
-            });
+            applyVisibility(queryWrapper);
         }
         return SimpleResultUtils.createSimpleResult(aiCacheMapper.selectPage(page, queryWrapper));
+    }
+
+    @GetMapping("/{id}")
+    public SimpleResult<AiCache> detail(@PathVariable("id") String id) {
+        QueryWrapper<AiCache> query = Wrappers.<AiCache>query().eq("cache_key", id);
+        if (!SecurityUtils.isAdmin()) {
+            applyVisibility(query);
+        }
+        AiCache record = aiCacheMapper.selectOne(query);
+        return record == null ? SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404)
+                : SimpleResultUtils.createSimpleResult(record);
+    }
+
+    private void applyVisibility(QueryWrapper<AiCache> query) {
+        String userName = SecurityUtils.getLoginUserName();
+        query.and(wrapper -> wrapper.eq("user_name", userName)
+                .or(inner -> apiProjectAccessService.addProjectRelatedGroupCodeQuery(inner, "t_ai_cache", "project_id", null, userName)));
     }
 
     @DeleteMapping("/{id}")
@@ -69,6 +86,7 @@ public class AiCacheController {
                 return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_403);
             }
         }
-        return SimpleResultUtils.createSimpleResult(aiCacheMapper.deleteById(id) > 0);
+        return SimpleResultUtils.createSimpleResult(aiCacheMapper.delete(Wrappers.<AiCache>lambdaQuery()
+                .eq(AiCache::getCacheKey, id).ne(AiCache::getStatus, 0)) > 0);
     }
 }

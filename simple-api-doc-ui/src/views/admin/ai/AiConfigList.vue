@@ -15,8 +15,10 @@ import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtil
 import { defineTableColumns } from '@/components/utils'
 import { renderAiProviderTag } from '@/utils/AiProviderUtils'
 import AiConfigTestWindow from './AiConfigTestWindow.vue'
+import { useRouter } from 'vue-router'
 
 const aiConfigStore = useAiConfigStore()
+const router = useRouter()
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { configName: '', status: '', isDefault: '', page: useDefaultPage() },
@@ -319,6 +321,10 @@ const buttons = computed(() => {
     type: 'success',
     click: showTestDialog
   }, {
+    labelKey: 'api.label.viewAiRecords',
+    type: 'info',
+    click: row => router.push({ name: 'AiCaches', query: { configId: row.id } })
+  }, {
     labelKey: 'api.label.history',
     type: 'info',
     buttonIf: (row) => row.version > 1,
@@ -501,7 +507,7 @@ const editWindowAttrs = computed(() => ({
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'340px', fixed: 'right'}"
+      :buttons-column-attrs="{minWidth:'420px', fixed: 'right'}"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"

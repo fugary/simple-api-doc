@@ -132,7 +132,13 @@ public class TaskScheduleConfig {
         Date processingTimeoutDate = new Date(System.currentTimeMillis() - timeoutMs);
         int deletedProcessing = aiCacheMapper.delete(Wrappers.<AiCache>query()
                 .eq("status", 0)
+                .and(query -> query.ne("cache_type", "agent_chat").or().isNull("cache_type"))
                 .lt("created_at", processingTimeoutDate));
+        aiCacheMapper.update(null, Wrappers.<AiCache>update()
+                .eq("status", 0).eq("cache_type", "agent_chat")
+                .apply("COALESCE(updated_at, created_at) < {0}", processingTimeoutDate)
+                .set("status", 4).set("updated_at", new Date())
+                .set("error_message", "执行超时或服务已重启，问答已中断"));
         if (deletedProcessing > 0) {
             log.info("Cleaned up {} blocked AI cache processing tasks older than: {}", deletedProcessing, processingTimeoutDate);
         }
