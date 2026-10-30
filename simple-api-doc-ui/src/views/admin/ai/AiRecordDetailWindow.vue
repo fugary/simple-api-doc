@@ -205,9 +205,6 @@ const openDocument = async event => {
               {{ $t('api.label.aiRecordRawExecution') }}
             </el-button>
           </div>
-          <p class="record-meta">
-            {{ $t('api.label.aiRecordExecutionSummary') }}
-          </p>
           <p v-if="finishReason">
             {{ finishReason }}
           </p>

@@ -37,7 +37,6 @@ const isSwitchable = computed(() => {
 })
 
 const aiConfigs = ref([])
-const defaultAiConfigId = ref(null)
 
 const formData = ref({
   configId: null,
@@ -112,7 +111,6 @@ onMounted(async () => {
   aiConfigs.value = list
   const defConfig = list.find(c => c.isDefault === 1) || list[0]
   if (defConfig) {
-    defaultAiConfigId.value = defConfig.id
     formData.value.configId = defConfig.id
     syncModelFromConfig(defConfig.id)
   } else if (!isSwitchable.value) {
@@ -128,7 +126,7 @@ const formOptions = computed(() => {
       type: 'select',
       required: true,
       disabled: !isSwitchable.value,
-      children: buildAiConfigOptions(aiConfigs.value, defaultAiConfigId.value),
+      children: buildAiConfigOptions(aiConfigs.value),
       attrs: {
         clearable: false
       }
