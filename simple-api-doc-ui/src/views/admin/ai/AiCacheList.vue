@@ -87,8 +87,13 @@ watch(() => route.query.configId, () => {
 
 const changeConfig = async () => {
   searchParam.value.configId = searchParam.value.configId || undefined
-  await router.replace({ query: { ...route.query, configId: searchParam.value.configId || undefined } })
-  loadAiCaches(1)
+  searchParam.value.page.pageNumber = 1
+  // 地址变化会触发页面初始化，由初始化统一查询，避免重复请求。
+  const query = { ...route.query, configId: searchParam.value.configId }
+  if (router.resolve({ query }).fullPath === route.fullPath) {
+    return loadAiCaches(1)
+  }
+  await router.replace({ query })
 }
 
 const configName = item => configOptions.value.find(option => option.value === item.configId)?.label || (item.configId ? `#${item.configId}` : $i18nBundle('api.label.aiRecordUnassociated'))
