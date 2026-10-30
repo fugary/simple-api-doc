@@ -10,6 +10,7 @@ import ApiDocApi from '@/api/ApiDocApi'
 import ApiProjectApi from '@/api/ApiProjectApi'
 import ApiDocAiExecutionSteps from '@/views/components/api/doc/comp/ApiDocAiExecutionSteps.vue'
 import AiAnswerViewer from '@/views/components/utils/AiAnswerViewer.vue'
+import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 
 const visible = defineModel({ type: Boolean, default: false })
 const purifier = createDOMPurify(window)
@@ -134,7 +135,13 @@ const openDocument = async event => {
             class="record-section"
           >
             <div class="record-section-header">
-              <h4>{{ $t('api.label.aiRecordInput') }}</h4>
+              <h4>
+                {{ $t('api.label.aiRecordInput') }}
+                <url-copy-link
+                  :content="record.prompt"
+                  :aria-label="$t('common.label.copy')"
+                />
+              </h4>
             </div>
             <ai-answer-viewer
               :key="record.cacheKey"
@@ -144,7 +151,14 @@ const openDocument = async event => {
           </section>
           <section class="record-section">
             <div class="record-section-header">
-              <h4>{{ $t('api.label.aiRecordResponse') }}</h4>
+              <h4>
+                {{ $t('api.label.aiRecordResponse') }}
+                <url-copy-link
+                  :content="record.cacheValue"
+                  :disabled="!record.cacheValue"
+                  :aria-label="$t('common.label.copy')"
+                />
+              </h4>
               <response-json-action v-if="!record.cacheValue" />
             </div>
             <el-alert
@@ -224,7 +238,7 @@ const openDocument = async event => {
 .record-content { width: 100%; min-width: 0; }
 .record-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--el-text-color-secondary); font-size: 13px; }
 .record-section + .record-section { margin-top: 24px; }
-.record-section h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.record-section h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
 .record-section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
 .record-config { min-width: 0; overflow-wrap: anywhere; color: var(--el-text-color-regular); }
 </style>
