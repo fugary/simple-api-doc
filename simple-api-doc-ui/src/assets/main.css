@@ -852,18 +852,44 @@ body,
     }
 }
 
+/* 统一编辑器外框，内侧描边不占用编辑区尺寸。 */
+.common-monaco-editor {
+    position: relative;
+    box-sizing: border-box;
+    border-radius: var(--el-border-radius-base);
+    overflow: hidden;
+}
+
+.common-monaco-editor::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 12; /* 高于 Monaco 滚动条，低于代码提示浮层 */
+    border-radius: inherit;
+    box-shadow: 0 0 0 1px var(--el-border-color) inset;
+    pointer-events: none;
+    transition: var(--el-transition-box-shadow);
+}
+
+.common-monaco-editor:hover::after {
+    box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
+}
+
+.common-monaco-editor:focus-within::after {
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+
 /* 整体编辑器区域 */
 .monaco-editor.vs {
     background-color: #f5f7fa;
     /* el-bg-color-page */
 }
 
-/* gutter（行号区） */
-.monaco-editor.vs .margin {
-    background-color: #f0f2f5;
-    /* el-fill-color-light */
-    box-shadow: inset -1px 0 0 #dcdfe6;
-    /* el-border-color */
+/* 行号区与明暗主题保持一致。 */
+.monaco-editor.vs .margin,
+.monaco-editor.vs-dark .margin {
+    background-color: var(--el-fill-color-light);
+    box-shadow: inset -1px 0 0 var(--el-border-color-light);
 }
 
 /* 内容区 */

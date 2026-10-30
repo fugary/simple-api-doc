@@ -254,13 +254,30 @@ export const useMonacoDiffEditorOptions = (config) => {
   }
 }
 
+const withEditorPadding = options => ({
+  ...options,
+  padding: { top: 4, bottom: 4, ...options?.padding }
+})
+
+const MonacoDiffEditor = (props, { attrs, slots }) => h(VueMonacoDiffEditor, {
+  ...attrs,
+  options: withEditorPadding(attrs.options),
+  class: ['common-monaco-editor', attrs.class]
+}, slots)
+MonacoDiffEditor.inheritAttrs = false
+
 export default {
   install (app) {
-    app.component(VueMonacoDiffEditor.name, VueMonacoDiffEditor)
+    app.component(VueMonacoDiffEditor.name, MonacoDiffEditor)
     app.component(VueMonacoEditor.name, {
+      inheritAttrs: false,
       setup (props, context) {
         loader.config({ monaco })
-        return () => h(VueMonacoEditor, fixEditorSetValue(props, context), () => [getLoadingDiv()])
+        return () => h(VueMonacoEditor, fixEditorSetValue({
+          ...context.attrs,
+          options: withEditorPadding(context.attrs.options),
+          class: ['common-monaco-editor', context.attrs.class]
+        }, context), () => [getLoadingDiv()])
       }
     })
   }
