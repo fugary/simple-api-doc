@@ -5,13 +5,14 @@ import { formatDate, $coreConfirm, isAdminUser, checkShowColumn } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { AiCacheApi, getAiStatus } from '@/api/AiCacheApi'
-import { showCodeWindow, showMarkdownWindow } from '@/utils/DynamicUtils'
+import { showCodeWindow } from '@/utils/DynamicUtils'
 import { $i18nBundle } from '@/messages'
 import { ElText, ElTag, ElMessage } from 'element-plus'
 import { useDefaultPage } from '@/config'
 import { useSelectProjects } from '@/api/ApiProjectApi'
-import { isJson, buildAiConfigOptions } from '@/services/api/ApiCommonService'
+import { buildAiConfigOptions } from '@/services/api/ApiCommonService'
 import { renderAiProviderTag } from '@/utils/AiProviderUtils'
+import AiRecordDetailWindow from './AiRecordDetailWindow.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -165,114 +166,13 @@ const columns = computed(() => {
   }]
 })
 
-const formatCodeStr = (str) => {
-  if (!isJson(str)) return str
-  try {
-    const obj = JSON.parse(str)
-    return JSON.stringify(obj, null, 2)
-  } catch (e) {
-    console.debug('JSON parse error in formatCodeStr:', e)
-    return str
-  }
-}
-
-const codeBlock = value => {
-  const text = String(value)
-  const fence = '`'.repeat(Math.max(3, ...[...text.matchAll(/`+/g)].map(match => match[0].length + 1)))
-  return `${fence}\n${text}\n${fence}\n\n`
-}
-
-const parseJson = value => {
-  try {
-    return JSON.parse(value)
-  } catch {
-    return null
-  }
-}
-
-const executionSummary = value => {
-  const detail = parseJson(value)
-  if (!Array.isArray(detail?.steps)) return codeBlock(value)
-  const steps = []
-  const docs = new Map()
-  detail.steps.forEach(step => {
-    const args = parseJson(step.args)
-    const docId = step.tool === 'get_doc' ? args?.docId : null
-    const previous = docId ? docs.get(docId) : null
-    if (previous) {
-      previous.duration += step.duration || 0
-      previous.count++
-      if (previous.status !== 'failed' || step.status === 'failed') {
-        previous.status = step.status
-        previous.summary = step.summary || previous.summary
-      }
-    } else {
-      const entry = { ...step, duration: step.duration || 0, count: 1, docId }
-      steps.push(entry)
-      if (docId) docs.set(docId, entry)
-    }
-  })
-  let result = ''
-  if (detail.finishReason) {
-    const reason = {
-      success: 'aiCacheStatusSuccess',
-      incomplete: 'aiRecordIncomplete',
-      failed: 'aiCacheStatusFailed',
-      interrupted: 'aiRecordInterrupted',
-      max_rounds: 'aiRecordMaxRounds',
-      repeated_calls: 'aiRecordRepeatedCalls'
-    }[detail.finishReason]
-    result += `${$i18nBundle('api.label.aiRecordFinishReason')}\n\n${codeBlock(reason ? $i18nBundle(`api.label.${reason}`) : detail.finishReason)}`
-  }
-  if (detail.modelCalls != null) result += `${$i18nBundle('api.label.aiRecordModelCall')}: ${detail.modelCalls}\n\n`
-  if (detail.toolCalls != null) result += `${$i18nBundle('api.label.aiRecordTool')}: ${detail.toolCalls}\n\n`
-  if (detail.truncated) result += `${$i18nBundle('api.label.aiRecordTruncated')}\n\n`
-  if (detail.usageComplete === false) result += `${$i18nBundle('api.label.aiRecordPartialUsage')}\n\n`
-  steps.forEach((step, index) => {
-    const label = {
-      model: 'aiRecordModelCall',
-      overview: 'aiRecordOverview',
-      search_docs: 'aiRecordSearch',
-      get_doc: 'aiRecordRead'
-    }[step.tool || step.type]
-    const status = { success: 'aiCacheStatusSuccess', failed: 'aiCacheStatusFailed', skipped: 'aiRecordSkipped' }[step.status]
-    result += `#### ${index + 1}. ${label ? $i18nBundle(`api.label.${label}`) : $i18nBundle('api.label.aiRecordTool')}\n\n`
-    const lines = [
-      `${$i18nBundle('api.label.aiCacheStatus')}: ${status ? $i18nBundle(`api.label.${status}`) : step.status || '-'}`,
-      `${$i18nBundle('api.label.aiCacheCostTime')}: ${step.duration}`
-    ]
-    if (step.docId) lines.push(`${$i18nBundle('api.label.aiRecordRead')}: #${step.docId} (${step.count})`)
-    else if (step.args) lines.push(formatCodeStr(step.args))
-    if (step.summary) lines.push(step.summary)
-    result += codeBlock(lines.join('\n'))
-  })
-  return result
-}
-
+const detailRecord = ref(null)
+const showDetail = ref(false)
 const showCacheDetail = async row => {
   const res = await AiCacheApi.getById(row.cacheKey)
   if (!res.success || !res.resultData) return
-  const item = res.resultData
-  const metadata = [
-    ['aiConfigSelect', configName(item)], ['provider', item.provider || '-'],
-    ['aiCacheModelName', item.modelName || '-'], ['aiRecordSource', accessSource(item)]
-  ]
-  let detailStr = codeBlock(metadata.map(([label, value]) => `${$i18nBundle(`api.label.${label}`)}: ${value}`).join('\n'))
-  const sections = [
-    ['aiCachePrompt', item.prompt],
-    ['aiCacheValue', item.cacheValue],
-    ['aiCacheErrorMessage', item.errorMessage]
-  ]
-  sections.forEach(([label, value]) => {
-    if (value) detailStr += `### ${$i18nBundle(`api.label.${label}`)}\n\n${codeBlock(formatCodeStr(value))}`
-  })
-  if (item.executionDetail) detailStr += `### ${$i18nBundle('api.label.aiRecordExecution')}\n\n${executionSummary(item.executionDetail)}`
-  if (item.rawResponse) detailStr += `### ${$i18nBundle('api.label.aiCacheRawResponse')}\n\n${codeBlock(formatCodeStr(item.rawResponse))}`
-  showMarkdownWindow({
-    content: detailStr,
-    title: $i18nBundle('api.label.aiCacheManagement'),
-    previewOnly: true
-  })
+  detailRecord.value = res.resultData
+  showDetail.value = true
 }
 
 const removeCache = async (item) => {
@@ -389,6 +289,13 @@ const searchFormOptions = computed(() => {
       @page-size-change="loadAiCaches()"
       @current-page-change="loadAiCaches()"
       @row-dblclick="showCacheDetail($event)"
+    />
+    <ai-record-detail-window
+      v-if="showDetail && detailRecord"
+      v-model="showDetail"
+      :record="detailRecord"
+      :config-name="configName(detailRecord)"
+      :status-option="statusOptions.find(item => item.value === detailRecord.status) || statusOptions[0]"
     />
   </el-container>
 </template>
