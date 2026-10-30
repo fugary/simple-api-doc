@@ -14,7 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
-/** 单次问答的有界执行记录；回调与执行线程共享同一个终态。 */
+/** 单次 AI 任务的有界执行记录；回调与执行线程共享同一个终态。 */
 @Slf4j
 class AiExecutionRecord {
     static final String AGENT_CHAT = "agent_chat";
@@ -27,6 +27,13 @@ class AiExecutionRecord {
     private int modelCalls;
     private int toolCalls;
     private boolean truncated;
+
+    /** 复用已初始化的生成缓存，不新增流水。 */
+    AiExecutionRecord(AiCacheMapper mapper, String cacheKey) {
+        this.mapper = mapper;
+        record = new AiCache();
+        record.setCacheKey(cacheKey);
+    }
 
     AiExecutionRecord(AiCacheMapper mapper, AiConfig config, ApiProjectShare share, Integer projectId, String query) {
         this(mapper, config, share, projectId, query, AGENT_CHAT);
@@ -63,6 +70,11 @@ class AiExecutionRecord {
     }
 
     synchronized void model(AiChatResponse response, int round, long duration) {
+        model(response, round, duration, response == null ? "failed" : "success");
+    }
+
+    synchronized void model(AiChatResponse response, int round, long duration, String status) {
+        if (finished) return;
         modelCalls++;
         usageComplete &= response != null && response.getPromptTokens() != null
                 && response.getCompletionTokens() != null && response.getTotalTokens() != null;
@@ -75,7 +87,14 @@ class AiExecutionRecord {
             record.setCompletionTokens(add(record.getCompletionTokens(), response.getCompletionTokens()));
             record.setTotalTokens(add(record.getTotalTokens(), response.getTotalTokens()));
         }
-        step("model", null, null, null, response == null ? "failed" : "success", round, duration);
+        step("model", null, null, null, status, round, duration);
+    }
+
+    synchronized void completeModel(AiChatResponse response, long duration) {
+        boolean success = response != null && StringUtils.isNotBlank(response.getContent());
+        String reason = success ? "success" : "incomplete";
+        model(response, 1, duration, reason);
+        finish(success ? 1 : 3, response == null ? "" : response.getContent(), reason, null);
     }
 
     private Integer add(Integer total, Integer value) {

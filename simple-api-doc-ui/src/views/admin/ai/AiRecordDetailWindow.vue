@@ -34,7 +34,7 @@ const viewSource = value => showCodeWindow(String(value ?? ''), { language: 'jso
 const steps = computed(() => {
   const result = []
   for (const step of Array.isArray(execution.value?.steps) ? execution.value.steps : []) {
-    if (!step || typeof step !== 'object' || (step.type === 'model' && step.status === 'success')) continue
+    if (!step || typeof step !== 'object') continue
     const args = parseJson(step.args)
     const summary = parseJson(step.summary)
     const titleKey = { search_docs: 'aiSearchDocsStep', get_doc: 'aiGetDocStep', model: 'aiRecordModelCall', overview: 'aiRecordOverview' }[step.tool || step.type] || 'aiRecordTool'
@@ -46,7 +46,7 @@ const steps = computed(() => {
     const label = step.tool === 'search_docs' && args?.keywords
       ? $i18nBundle('api.label.aiSearchKeywords', [args.keywords])
       : $i18nBundle(`api.label.${titleKey}`)
-    const status = { success: 'finished', failed: 'error', skipped: 'skipped' }[step.status] || 'interrupted'
+    const status = { success: 'finished', failed: 'error', skipped: 'skipped', incomplete: 'incomplete' }[step.status] || 'interrupted'
     const previous = step.tool === 'get_doc' && args?.docId && result.find(item => item.docId === args.docId)
     if (previous) {
       previous.duration += Number(step.duration) || 0
@@ -205,6 +205,7 @@ const openDocument = async event => {
           </p>
           <api-doc-ai-execution-steps
             v-if="steps.length"
+            title-key="api.label.aiRecordExecution"
             :steps="steps"
             :answer-status="answerStatus"
           />

@@ -32,9 +32,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -144,7 +142,7 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             log.error("写入 AI 缓存状态失败", e);
         }
-        long startTime = System.currentTimeMillis();
+        AiExecutionRecord record = new AiExecutionRecord(aiCacheMapper, cacheKey);
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
             AiChatProvider provider = getChatProvider(targetAiConfig.getProvider());
             AiChatRequest chatRequest = new AiChatRequest();
@@ -152,19 +150,19 @@ public class AiServiceImpl implements AiService {
             chatRequest.setUserMessage(userMessageContent);
             chatRequest.setTemperature(0.3); // Default temperature as per original logic
 
-            AiChatResponse chatResponse = provider.chat(targetAiConfig, chatRequest);
-            String generatedSample = chatResponse.getContent();
-
-            if (StringUtils.isNotBlank(generatedSample)) {
-                updateCacheOnSuccess(cacheKey, chatResponse, System.currentTimeMillis() - startTime);
-                log.info("AI {} 成功，写入缓存, key: {}", cacheType, cacheKey);
-            } else {
-                updateCacheOnFailure(cacheKey, new IllegalStateException("AI 未返回有效内容"), System.currentTimeMillis() - startTime);
+            long startTime = System.currentTimeMillis();
+            AiChatResponse chatResponse;
+            try {
+                chatResponse = provider.chat(targetAiConfig, chatRequest);
+            } catch (RuntimeException e) {
+                record.model(null, 1, System.currentTimeMillis() - startTime);
+                throw e;
             }
-            return generatedSample;
+            record.completeModel(chatResponse, System.currentTimeMillis() - startTime);
+            return chatResponse == null ? null : chatResponse.getContent();
         }, taskExecutor).whenComplete((res, ex) -> {
             if (ex != null) {
-                updateCacheOnFailure(cacheKey, ex, System.currentTimeMillis() - startTime);
+                record.finish(2, null, "failed", getSimpleErrorMessage(ex));
             }
         });
 
@@ -295,43 +293,12 @@ public class AiServiceImpl implements AiService {
                     .eq(AiCache::getCacheKey, cacheKey)
                     .set(aiCache.getShareRecordId() == null, AiCache::getShareRecordId, null)
                     .set(AiCache::getErrorMessage, null).set(AiCache::getRawResponse, null)
+                    .set(AiCache::getExecutionDetail, null)
                     .set(AiCache::getPromptTokens, null).set(AiCache::getCompletionTokens, null)
                     .set(AiCache::getTotalTokens, null).set(AiCache::getCostTime, null));
         } else {
             aiCacheMapper.insert(aiCache);
         }
-    }
-
-    private void updateCacheOnSuccess(String cacheKey, AiChatResponse chatResponse, long costTime) {
-        try {
-            aiCacheMapper.update(null, Wrappers.<AiCache>lambdaUpdate()
-                    .set(AiCache::getCacheValue, chatResponse.getContent())
-                    .set(AiCache::getStatus, 1)
-                    .set(costTime > 0, AiCache::getCostTime, costTime)
-                    .set(AiCache::getRawResponse, chatResponse.getRawResponse())
-                    .set(AiCache::getUpdatedAt, new Date())
-                    .set(chatResponse.getPromptTokens() != null, AiCache::getPromptTokens, chatResponse.getPromptTokens())
-                    .set(chatResponse.getCompletionTokens() != null, AiCache::getCompletionTokens, chatResponse.getCompletionTokens())
-                    .set(chatResponse.getTotalTokens() != null, AiCache::getTotalTokens, chatResponse.getTotalTokens())
-                    .eq(AiCache::getCacheKey, cacheKey));
-        } catch (Exception cacheEx) {
-            log.error("写入 AI 缓存失败", cacheEx);
-        }
-    }
-
-    private void updateCacheOnFailure(String cacheKey, Throwable ex, long costTime) {
-        try {
-            String errorMessage = getSimpleErrorMessage(ex);
-            if (errorMessage != null && errorMessage.length() > 1000) {
-                errorMessage = errorMessage.substring(0, 1000);
-            }
-            aiCacheMapper.update(null, Wrappers.<AiCache>lambdaUpdate()
-                    .set(AiCache::getStatus, 2)
-                    .set(costTime > 0, AiCache::getCostTime, costTime)
-                    .set(AiCache::getErrorMessage, errorMessage)
-                    .set(AiCache::getUpdatedAt, new Date())
-                    .eq(AiCache::getCacheKey, cacheKey));
-        } catch (Exception ignore) {}
     }
 
     @Override
@@ -380,40 +347,29 @@ public class AiServiceImpl implements AiService {
         chatRequest.setUserMessage(prompt);
         chatRequest.setTemperature(0.5);
 
-        String cacheKey = UUID.randomUUID().toString();
-        AiExecutionRecord record = stream == null ? null : new AiExecutionRecord(aiCacheMapper, targetConfig, null, null, prompt, "test_config");
-        try {
-            if (stream == null) initAiCache(cacheKey, chatRequest.getSystemPrompt(), prompt, null, null, "test_config", targetConfig, false);
-        } catch (Exception e) {
-            log.error("写入 AI 缓存状态失败", e);
-        }
+        AiExecutionRecord record = new AiExecutionRecord(aiCacheMapper, targetConfig, null, null,
+                stream == null ? chatRequest.getSystemPrompt() + "\n" + prompt : prompt, "test_config");
 
         long startTime = System.currentTimeMillis();
         AiChatResponse chatResponse = null;
+        boolean modelCalled = false;
         try {
             if (stream != null) stream.check();
+            modelCalled = true;
             chatResponse = stream == null ? provider.chat(targetConfig, chatRequest) : provider.chatStream(targetConfig, chatRequest, stream);
             long endTime = System.currentTimeMillis();
+            if (chatResponse == null) chatResponse = new AiChatResponse();
             chatResponse.setElapsedTime(endTime - startTime);
-
-            if (record != null) {
-                stream.check();
-                record.model(chatResponse, 1, chatResponse.getElapsedTime());
-                boolean success = StringUtils.isNotBlank(chatResponse.getContent());
-                record.finish(success ? 1 : 3, chatResponse.getContent(), success ? "success" : "incomplete", null);
-            } else if (StringUtils.isNotBlank(chatResponse.getContent())) {
-                updateCacheOnSuccess(cacheKey, chatResponse, chatResponse.getElapsedTime());
-                log.info("AI {} 成功，写入缓存, key: {}", "test_config", cacheKey);
-            }
+            if (stream != null) stream.check();
+            record.completeModel(chatResponse, chatResponse.getElapsedTime());
             return chatResponse;
         } catch (Exception e) {
             boolean interrupted = stream != null && (stream.isCancelled() || e instanceof CancellationException);
             if (interrupted) log.debug("AI 测试已中断");
             else log.error("AI 测试连接失败", e);
-            if (record != null) {
-                record.model(chatResponse, 1, System.currentTimeMillis() - startTime);
-                record.finish(interrupted ? 4 : 2, stream.getText(), interrupted ? "interrupted" : "failed", getSimpleErrorMessage(e));
-            } else updateCacheOnFailure(cacheKey, e, 0L);
+            String reason = interrupted ? "interrupted" : "failed";
+            if (modelCalled) record.model(chatResponse, 1, System.currentTimeMillis() - startTime, reason);
+            record.finish(interrupted ? 4 : 2, stream == null ? null : stream.getText(), reason, getSimpleErrorMessage(e));
             if (interrupted) throw new CancellationException("AI 测试已中断");
             throw new SimpleRuntimeException(500, "测试连接失败: " + getSimpleErrorMessage(e));
         }

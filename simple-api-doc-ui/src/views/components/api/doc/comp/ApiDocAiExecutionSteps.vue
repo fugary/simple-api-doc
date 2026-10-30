@@ -1,6 +1,7 @@
 <script setup>
 defineProps({
   steps: { type: Array, default: () => [] },
+  titleKey: { type: String, default: 'api.label.aiRetrievalSteps' },
   loading: { type: Boolean, default: false },
   answerStatus: { type: String, default: '' }
 })
@@ -43,7 +44,7 @@ const expanded = defineModel('expanded', { type: Boolean, default: true })
           icon="InfoFilled"
           color="var(--el-text-color-secondary)"
         />
-        <span class="thought-title-text">{{ $t('api.label.aiRetrievalSteps') }}</span>
+        <span class="thought-title-text">{{ $t(titleKey) }}</span>
         <span class="thought-count-badge">{{ steps.length }}</span>
         <span
           v-if="loading"
@@ -118,6 +119,10 @@ const expanded = defineModel('expanded', { type: Boolean, default: true })
                   v-else-if="st.status === 'skipped'"
                   class="step-status-text"
                 >{{ $t('api.label.aiRecordSkipped') }}</span>
+                <span
+                  v-else-if="st.status === 'incomplete'"
+                  class="step-status-text"
+                >{{ $t('api.label.aiIncompleteAnswer') }}</span>
                 <span
                   v-else-if="st.status === 'interrupted'"
                   class="step-status-text interrupted"
@@ -243,7 +248,7 @@ const expanded = defineModel('expanded', { type: Boolean, default: true })
 .step-dot.error {
   background: var(--el-color-danger);
 }
-.step-dot.skipped {
+.step-dot.skipped, .step-dot.incomplete {
   background: var(--el-color-warning);
 }
 .step-dot.interrupted {

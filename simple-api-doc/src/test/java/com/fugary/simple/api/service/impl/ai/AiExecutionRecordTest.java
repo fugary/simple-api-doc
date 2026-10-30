@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.fugary.simple.api.entity.api.AiCache;
+import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.entity.api.ApiProjectShare;
 import com.fugary.simple.api.mapper.api.AiCacheMapper;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,6 +44,8 @@ class AiExecutionRecordTest {
         ReflectionTestUtils.setField(service, "aiCacheMapper", mapper);
         ReflectionTestUtils.setField(service, "aiConfigService", configs);
         ReflectionTestUtils.setField(service, "chatProviders", List.of(provider));
+        ReflectionTestUtils.setField(service, "aiConfigProperties", new AiConfigProperties());
+        ReflectionTestUtils.setField(service, "taskExecutor", (Executor) Runnable::run);
         return service;
     }
 
@@ -132,6 +136,84 @@ class AiExecutionRecordTest {
         when(provider.chat(any(), any())).thenReturn(result);
         assertThat(service.testAiConfig(12, req).getContent()).isEqualTo("{}");
         verify(provider, never()).chatStream(any(), any(), any());
+        assertThat(writes.get(writes.size() - 1)).containsKey("execution_detail");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"mock_data", "generate_desc", "generate_model"})
+    void generationRecordsOneModelCallAndCacheHitDoesNotAddSteps(String type) throws Exception {
+        AiChatProvider provider = mock(AiChatProvider.class);
+        AiGenericTaskReq req = request();
+        req.setConfigId(12);
+        req.setSystemPrompt("system prompt");
+        req.setCacheType(type);
+        AiServiceImpl service = testService(provider, req.getConfig());
+        AiChatResponse response = new AiChatResponse();
+        response.setContent("{}");
+        response.setPromptTokens(10);
+        response.setCompletionTokens(5);
+        response.setTotalTokens(15);
+        when(provider.chat(any(), any())).thenReturn(response);
+        assertThat(service.executeGenericTask(req)).isEqualTo("{}");
+        ArgumentCaptor<AiCache> inserted = ArgumentCaptor.forClass(AiCache.class);
+        verify(mapper).insert(inserted.capture());
+        AiCache cache = inserted.getValue();
+        assertThat(cache.getCacheType()).isEqualTo(type);
+        assertThat(cache.getModelName()).isEqualTo("selected-model");
+        Map<String, Object> terminal = writes.get(writes.size() - 1);
+        assertThat(terminal).containsEntry("status", 1).containsEntry("total_tokens", 15);
+        com.fasterxml.jackson.databind.JsonNode detail = JsonUtils.getMapper().readTree((String) terminal.get("execution_detail"));
+        assertThat(detail.path("modelCalls").asInt()).isEqualTo(1);
+        assertThat(detail.path("steps").size()).isEqualTo(1);
+        assertThat(detail.path("steps").get(0).path("status").asText()).isEqualTo("success");
+        cache.setStatus(1);
+        cache.setCacheValue("{}");
+        when(mapper.selectById(cache.getCacheKey())).thenReturn(cache);
+        int writeCount = writes.size();
+        assertThat(service.executeGenericTask(req)).isEqualTo("{}");
+        assertThat(writes).hasSize(writeCount);
+        verify(provider, times(1)).chat(any(), any());
+        verify(mapper, times(1)).insert(any(AiCache.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void synchronousEmptyAnswersAreIncompleteInsteadOfPending(boolean generation) throws Exception {
+        AiChatProvider provider = mock(AiChatProvider.class);
+        AiGenericTaskReq req = request();
+        req.setConfigId(12);
+        req.setSystemPrompt("system");
+        req.setCacheType("mock_data");
+        AiServiceImpl service = testService(provider, req.getConfig());
+        when(provider.chat(any(), any())).thenReturn(new AiChatResponse());
+        if (generation) service.executeGenericTask(req);
+        else service.testAiConfig(12, req);
+        Map<String, Object> terminal = writes.get(writes.size() - 1);
+        assertThat(terminal).containsEntry("status", 3);
+        com.fasterxml.jackson.databind.JsonNode detail = JsonUtils.getMapper().readTree((String) terminal.get("execution_detail"));
+        assertThat(detail.path("finishReason").asText()).isEqualTo("incomplete");
+        assertThat(detail.path("steps").get(0).path("status").asText()).isEqualTo("incomplete");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void synchronousFailuresRecordOneFailedCall(boolean generation) throws Exception {
+        AiChatProvider provider = mock(AiChatProvider.class);
+        AiGenericTaskReq req = request();
+        req.setConfigId(12);
+        req.setSystemPrompt("system");
+        req.setCacheType("generate_model");
+        AiServiceImpl service = testService(provider, req.getConfig());
+        when(provider.chat(any(), any())).thenThrow(new IllegalStateException("upstream error"));
+        assertThatThrownBy(() -> {
+            if (generation) service.executeGenericTask(req);
+            else service.testAiConfig(12, req);
+        }).isInstanceOf(RuntimeException.class);
+        Map<String, Object> terminal = writes.get(writes.size() - 1);
+        assertThat(terminal).containsEntry("status", 2).containsEntry("error_message", "upstream error");
+        com.fasterxml.jackson.databind.JsonNode detail = JsonUtils.getMapper().readTree((String) terminal.get("execution_detail"));
+        assertThat(detail.path("modelCalls").asInt()).isEqualTo(1);
+        assertThat(detail.path("steps").get(0).path("status").asText()).isEqualTo("failed");
     }
 
     @BeforeEach
@@ -139,12 +221,88 @@ class AiExecutionRecordTest {
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "test"), AiCache.class);
         when(mapper.update(isNull(), any())).thenAnswer(invocation -> {
             LambdaUpdateWrapper<AiCache> wrapper = invocation.getArgument(1);
-            Map<String, Object> values = new HashMap<>();
-            Matcher matcher = Pattern.compile("(\\w+)=#\\{ew.paramNameValuePairs.(\\w+)}").matcher(wrapper.getSqlSet());
-            while (matcher.find()) values.put(matcher.group(1), wrapper.getParamNameValuePairs().get(matcher.group(2)));
-            writes.add(values);
+            writes.add(updateValues(wrapper));
             return 1;
         });
+    }
+
+    private Map<String, Object> updateValues(LambdaUpdateWrapper<AiCache> wrapper) {
+        Map<String, Object> values = new HashMap<>();
+        Matcher matcher = Pattern.compile("(\\w+)=#\\{ew.paramNameValuePairs.(\\w+)}").matcher(wrapper.getSqlSet());
+        while (matcher.find()) values.put(matcher.group(1), wrapper.getParamNameValuePairs().get(matcher.group(2)));
+        return values;
+    }
+
+    @Test
+    void cancellationBeforeProviderCallDoesNotInventModelStep() throws Exception {
+        AiChatProvider provider = mock(AiChatProvider.class);
+        AiGenericTaskReq req = request();
+        AiServiceImpl service = testService(provider, req.getConfig());
+        AiStreamSession stream = new AiStreamSession(text -> {});
+        stream.cancel();
+        assertThatThrownBy(() -> service.streamTestAiConfig(null, req, mock(SseEmitter.class), stream))
+                .isInstanceOf(java.util.concurrent.CancellationException.class);
+        verify(provider, never()).chatStream(any(), any(), any());
+        Map<String, Object> terminal = writes.get(writes.size() - 1);
+        assertThat(terminal).containsEntry("status", 4);
+        com.fasterxml.jackson.databind.JsonNode detail = JsonUtils.getMapper().readTree((String) terminal.get("execution_detail"));
+        assertThat(detail.path("modelCalls").asInt()).isZero();
+        assertThat(detail.path("steps").size()).isZero();
+    }
+
+    @Test
+    void generationSetupFailureDoesNotInventModelStep() throws Exception {
+        AiChatProvider provider = mock(AiChatProvider.class);
+        AiGenericTaskReq req = request();
+        req.setConfigId(12);
+        req.setSystemPrompt("system");
+        req.setCacheType("mock_data");
+        AiServiceImpl service = testService(provider, req.getConfig());
+        ReflectionTestUtils.setField(service, "chatProviders", Collections.emptyList());
+        assertThatThrownBy(() -> service.executeGenericTask(req)).isInstanceOf(RuntimeException.class);
+        Map<String, Object> terminal = writes.get(writes.size() - 1);
+        assertThat(terminal).containsEntry("status", 2);
+        com.fasterxml.jackson.databind.JsonNode detail = JsonUtils.getMapper().readTree((String) terminal.get("execution_detail"));
+        assertThat(detail.path("modelCalls").asInt()).isZero();
+        assertThat(detail.path("steps").size()).isZero();
+    }
+
+    @Test
+    void generationRetryResetsOldExecutionAndReusesCacheKey() throws Exception {
+        AiChatProvider provider = mock(AiChatProvider.class);
+        AiGenericTaskReq req = request();
+        req.setConfigId(12);
+        req.setSystemPrompt("system");
+        req.setCacheType("mock_data");
+        AiServiceImpl service = testService(provider, req.getConfig());
+        AiChatResponse response = new AiChatResponse();
+        response.setContent("{}");
+        when(provider.chat(any(), any())).thenThrow(new IllegalStateException("first failure")).thenReturn(response);
+        assertThatThrownBy(() -> service.executeGenericTask(req)).isInstanceOf(RuntimeException.class);
+        ArgumentCaptor<AiCache> inserted = ArgumentCaptor.forClass(AiCache.class);
+        verify(mapper).insert(inserted.capture());
+        AiCache previous = inserted.getValue();
+        previous.setStatus(2);
+        previous.setExecutionDetail((String) writes.get(writes.size() - 1).get("execution_detail"));
+        when(mapper.selectById(previous.getCacheKey())).thenReturn(previous);
+        doAnswer(call -> {
+            AiCache reset = call.getArgument(0);
+            LambdaUpdateWrapper<AiCache> wrapper = call.getArgument(1);
+            assertThat(reset.getCacheKey()).isEqualTo(previous.getCacheKey());
+            assertThat(reset.getStatus()).isZero();
+            assertThat(updateValues(wrapper)).containsEntry("execution_detail", null).containsEntry("raw_response", null)
+                    .containsEntry("error_message", null).containsEntry("total_tokens", null);
+            return 1;
+        }).when(mapper).update(isNotNull(), any());
+        assertThat(service.executeGenericTask(req)).isEqualTo("{}");
+        verify(mapper, times(1)).update(isNotNull(), any());
+        verify(mapper, times(1)).insert(any(AiCache.class));
+        Map<String, Object> terminal = writes.get(writes.size() - 1);
+        assertThat(terminal).containsEntry("status", 1);
+        com.fasterxml.jackson.databind.JsonNode detail = JsonUtils.getMapper().readTree((String) terminal.get("execution_detail"));
+        assertThat(detail.path("modelCalls").asInt()).isEqualTo(1);
+        assertThat(detail.path("steps").size()).isEqualTo(1);
+        assertThat(detail.path("steps").get(0).path("status").asText()).isEqualTo("success");
     }
 
     @Test
