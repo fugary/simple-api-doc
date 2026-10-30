@@ -313,22 +313,9 @@ const buttons = computed(() => {
     type: 'primary',
     click: showEditDialog
   }, {
-    labelKey: 'common.label.copy',
-    type: 'warning',
-    click: copyConfig
-  }, {
     labelKey: 'common.label.test',
     type: 'success',
     click: showTestDialog
-  }, {
-    labelKey: 'api.label.viewAiRecords',
-    type: 'info',
-    click: row => router.push({ name: 'AiCaches', query: { configId: row.id } })
-  }, {
-    labelKey: 'api.label.history',
-    type: 'info',
-    buttonIf: (row) => row.version > 1,
-    click: showHistoryDialog
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
@@ -507,14 +494,46 @@ const editWindowAttrs = computed(() => ({
     <common-table
       v-model:page="searchParam.page"
       :data="tableData"
-      :buttons-column-attrs="{minWidth:'420px', fixed: 'right'}"
+      :buttons-column-attrs="{minWidth:'280px', fixed: 'right'}"
+      buttons-slot="moreActions"
       :columns="columns"
       :buttons="buttons"
       :loading="loading"
       @row-dblclick="showEditDialog($event)"
       @page-size-change="searchMethod()"
       @current-page-change="searchMethod()"
-    />
+    >
+      <template #moreActions="{ row }">
+        <el-dropdown
+          class="more-actions"
+          trigger="hover"
+        >
+          <el-button size="small">
+            {{ $t('api.label.moreActions') }}
+            <common-icon
+              icon="ArrowDown"
+              class="margin-left1"
+            />
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="copyConfig(row)">
+                {{ $t('common.label.copy') }}
+              </el-dropdown-item>
+              <el-dropdown-item @click="router.push({ name: 'AiCaches', query: { configId: row.id } })">
+                {{ $t('api.label.viewAiRecords') }}
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-if="row.version > 1"
+                @click="showHistoryDialog(row)"
+              >
+                {{ $t('api.label.history') }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </template>
+    </common-table>
 
     <simple-edit-window
       v-model="editForm"
@@ -535,4 +554,12 @@ const editWindowAttrs = computed(() => ({
 </template>
 
 <style scoped>
+.more-actions {
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
+.more-actions :deep(.el-button) {
+  outline: none;
+}
 </style>
