@@ -27,6 +27,15 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
 
     @Override
     public AiChatResponse chat(AiConfig config, AiChatRequest request) {
+        return chat(config, request, null);
+    }
+
+    @Override
+    public AiChatResponse chatStream(AiConfig config, AiChatRequest request, AiStreamSession stream) {
+        return chat(config, request, stream);
+    }
+
+    private AiChatResponse chat(AiConfig config, AiChatRequest request, AiStreamSession stream) {
         HttpHeaders headers = createBearerJsonHeaders(config.getApiKey());
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -43,7 +52,7 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
         }
 
         String url = buildUrl(config.getBaseUrl(), "/chat/completions");
-        String rawResponse = callApi(url, headers, requestBody);
+        String rawResponse = callChatApi(url, headers, requestBody, stream);
         JsonNode root = parseJson(rawResponse);
         JsonNode messageNode = root.path("choices").path(0).path("message").path("content");
         if (messageNode.isMissingNode()) {
@@ -51,7 +60,7 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
         }
         AiChatResponse chatResponse = new AiChatResponse();
         chatResponse.setRawResponse(rawResponse);
-        chatResponse.setContent(cleanGeneratedContent(messageNode.asText()));
+        chatResponse.setContent(stream == null ? cleanGeneratedContent(messageNode.asText()) : messageNode.asText());
         JsonNode usageNode = root.path("usage");
         if (!usageNode.isMissingNode()) {
             chatResponse.setPromptTokens(tokenCount(usageNode, "prompt_tokens"));
@@ -63,6 +72,17 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
 
     @Override
     public AiChatResponse chatWithTools(AiConfig config, List<Map<String, Object>> messages, List<AiToolDefinition> tools, String toolChoice) {
+        return chatWithTools(config, messages, tools, toolChoice, null);
+    }
+
+    @Override
+    public AiChatResponse chatWithToolsStream(AiConfig config, List<Map<String, Object>> messages,
+                                              List<AiToolDefinition> tools, String toolChoice, AiStreamSession stream) {
+        return chatWithTools(config, messages, tools, toolChoice, stream);
+    }
+
+    private AiChatResponse chatWithTools(AiConfig config, List<Map<String, Object>> messages,
+                                         List<AiToolDefinition> tools, String toolChoice, AiStreamSession stream) {
         HttpHeaders headers = createBearerJsonHeaders(config.getApiKey());
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -80,7 +100,7 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
 
         String url = buildUrl(config.getBaseUrl(), "/chat/completions");
         long start = System.currentTimeMillis();
-        String rawResponse = callApi(url, headers, requestBody);
+        String rawResponse = callChatApi(url, headers, requestBody, stream);
         long elapsed = System.currentTimeMillis() - start;
 
         JsonNode root = parseJson(rawResponse);
@@ -104,7 +124,7 @@ public class OpenAiChatProvider extends AbstractAiChatProvider {
 
         JsonNode contentNode = messageNode.path("content");
         if (!contentNode.isNull() && !contentNode.isMissingNode() && StringUtils.isNotBlank(contentNode.asText())) {
-            chatResponse.setContent(contentNode.asText().trim());
+            chatResponse.setContent(stream == null ? contentNode.asText().trim() : contentNode.asText());
         }
 
         JsonNode toolCallsNode = messageNode.path("tool_calls");

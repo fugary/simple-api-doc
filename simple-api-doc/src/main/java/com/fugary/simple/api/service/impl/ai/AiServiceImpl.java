@@ -1,5 +1,7 @@
 package com.fugary.simple.api.service.impl.ai;
 
+import java.util.concurrent.CancellationException;
+import java.util.LinkedHashMap;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fugary.simple.api.config.AiConfigProperties;
 import com.fugary.simple.api.contants.SystemErrorConstants;
@@ -13,6 +15,10 @@ import com.fugary.simple.api.service.ai.AiConfigService;
 import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.service.ai.provider.AiChatProvider;
 import com.fugary.simple.api.service.ai.provider.AiChatRequest;
+import com.fugary.simple.api.service.ai.provider.AiStreamSession;
+import com.fugary.simple.api.service.ai.provider.AiSseSupport;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.util.Map;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.security.SecurityUtils;
@@ -336,6 +342,24 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public AiChatResponse testAiConfig(AiConfig config, AiGenericTaskReq req) {
+        return testAiConfig(config, req, null);
+    }
+
+    @Override
+    public void streamTestAiConfig(Integer configId, AiGenericTaskReq req, SseEmitter emitter, AiStreamSession stream) {
+        AiConfig config = configId != null ? resolveAiConfig(configId) : req.getConfig();
+        AiChatResponse response = testAiConfig(config, req, stream);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", StringUtils.isBlank(response.getContent()) ? "INCOMPLETE" : "SUCCESS");
+        result.put("content", response.getContent());
+        result.put("elapsedTime", response.getElapsedTime());
+        result.put("promptTokens", response.getPromptTokens());
+        result.put("completionTokens", response.getCompletionTokens());
+        result.put("totalTokens", response.getTotalTokens());
+        AiSseSupport.send(emitter, "finish", result);
+    }
+
+    private AiChatResponse testAiConfig(AiConfig config, AiGenericTaskReq req, AiStreamSession stream) {
         if (config == null) {
             throw new SimpleRuntimeException(SystemErrorConstants.CODE_2012);
         }
@@ -357,26 +381,40 @@ public class AiServiceImpl implements AiService {
         chatRequest.setTemperature(0.5);
 
         String cacheKey = UUID.randomUUID().toString();
+        AiExecutionRecord record = stream == null ? null : new AiExecutionRecord(aiCacheMapper, targetConfig, null, null, prompt, "test_config");
         try {
-            initAiCache(cacheKey, chatRequest.getSystemPrompt(), prompt, null, null, "test_config", targetConfig, false);
+            if (stream == null) initAiCache(cacheKey, chatRequest.getSystemPrompt(), prompt, null, null, "test_config", targetConfig, false);
         } catch (Exception e) {
             log.error("写入 AI 缓存状态失败", e);
         }
 
+        long startTime = System.currentTimeMillis();
+        AiChatResponse chatResponse = null;
         try {
-            long startTime = System.currentTimeMillis();
-            AiChatResponse chatResponse = provider.chat(targetConfig, chatRequest);
+            if (stream != null) stream.check();
+            chatResponse = stream == null ? provider.chat(targetConfig, chatRequest) : provider.chatStream(targetConfig, chatRequest, stream);
             long endTime = System.currentTimeMillis();
             chatResponse.setElapsedTime(endTime - startTime);
 
-            if (StringUtils.isNotBlank(chatResponse.getContent())) {
+            if (record != null) {
+                stream.check();
+                record.model(chatResponse, 1, chatResponse.getElapsedTime());
+                boolean success = StringUtils.isNotBlank(chatResponse.getContent());
+                record.finish(success ? 1 : 3, chatResponse.getContent(), success ? "success" : "incomplete", null);
+            } else if (StringUtils.isNotBlank(chatResponse.getContent())) {
                 updateCacheOnSuccess(cacheKey, chatResponse, chatResponse.getElapsedTime());
                 log.info("AI {} 成功，写入缓存, key: {}", "test_config", cacheKey);
             }
             return chatResponse;
         } catch (Exception e) {
-            log.error("AI 测试连接失败", e);
-            updateCacheOnFailure(cacheKey, e, 0L);
+            boolean interrupted = stream != null && (stream.isCancelled() || e instanceof CancellationException);
+            if (interrupted) log.debug("AI 测试已中断");
+            else log.error("AI 测试连接失败", e);
+            if (record != null) {
+                record.model(chatResponse, 1, System.currentTimeMillis() - startTime);
+                record.finish(interrupted ? 4 : 2, stream.getText(), interrupted ? "interrupted" : "failed", getSimpleErrorMessage(e));
+            } else updateCacheOnFailure(cacheKey, e, 0L);
+            if (interrupted) throw new CancellationException("AI 测试已中断");
             throw new SimpleRuntimeException(500, "测试连接失败: " + getSimpleErrorMessage(e));
         }
     }

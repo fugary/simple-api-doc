@@ -29,11 +29,15 @@ class AiExecutionRecord {
     private boolean truncated;
 
     AiExecutionRecord(AiCacheMapper mapper, AiConfig config, ApiProjectShare share, Integer projectId, String query) {
+        this(mapper, config, share, projectId, query, AGENT_CHAT);
+    }
+
+    AiExecutionRecord(AiCacheMapper mapper, AiConfig config, ApiProjectShare share, Integer projectId, String query, String cacheType) {
         this.mapper = mapper;
         record = create(config, share);
         record.setCacheKey(UUID.randomUUID().toString());
-        record.setCacheType(AGENT_CHAT);
-        record.setProjectId(String.valueOf(projectId));
+        record.setCacheType(cacheType);
+        record.setProjectId(projectId == null ? null : String.valueOf(projectId));
         record.setPrompt(query);
         try {
             mapper.insert(record);

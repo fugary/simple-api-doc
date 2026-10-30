@@ -1,5 +1,8 @@
 package com.fugary.simple.api.web.controllers.admin;
 
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.http.MediaType;
+import com.fugary.simple.api.service.ai.provider.AiSseSupport;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -41,6 +44,18 @@ public class AiConfigController {
 
     @Autowired
     private AiService aiService;
+
+    @Autowired
+    private AiSseSupport aiSseSupport;
+
+    @PostMapping(value = {"/test/stream", "/{id}/test/stream"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamTest(
+            @PathVariable(value = "id", required = false) Integer id, @RequestBody AiGenericTaskReq req) {
+        String prompt = req == null ? null : StringUtils.defaultIfBlank(req.getUserMessage(), req.getPrompt());
+        if (StringUtils.isBlank(prompt)) throw new SimpleRuntimeException(SystemErrorConstants.CODE_2015);
+        Integer configId = ObjectUtils.defaultIfNull(id, req.getConfigId());
+        return aiSseSupport.start((emitter, stream) -> aiService.streamTestAiConfig(configId, req, emitter, stream));
+    }
 
     @PostMapping({"/test", "/{id}/test"})
     public SimpleResult<AiChatResponse> test(@PathVariable(value = "id", required = false) Integer id,

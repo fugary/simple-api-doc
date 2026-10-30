@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { testAiConfig, loadAiModels, AiConfigApi } from '@/api/AiConfigApi'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { streamTestAiConfig, loadAiModels, AiConfigApi } from '@/api/AiConfigApi'
 import { useAiConfigStore } from '@/stores/AiConfigStore'
 import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
+import AiAnswerViewer from '@/views/components/utils/AiAnswerViewer.vue'
 
 const props = defineProps({
   config: {
@@ -149,18 +150,27 @@ const formOptions = computed(() => {
     {
       labelKey: 'api.label.testResult',
       prop: 'result',
-      attrs: {
-        type: 'textarea',
-        rows: 10,
-        readonly: true,
-        placeholder: $i18nBundle('api.msg.testResultPlaceholder')
-      }
+      slot: 'result'
     }
   ]
 })
 
 const testLoading = ref(false)
+const testError = ref('')
+const testStatus = ref('')
+let abortController
+const stopTest = () => {
+  if (!abortController) return
+  const controller = abortController
+  abortController = null
+  controller.abort()
+  testLoading.value = false
+  testStatus.value = 'INTERRUPTED'
+}
+watch(visible, value => { if (!value) stopTest() })
+onUnmounted(stopTest)
 const handleTest = () => {
+  if (testLoading.value) return false
   if (!formData.value.prompt?.trim()) {
     ElMessage.warning($i18nBundle('api.msg.inputPrompt'))
     return false
@@ -175,6 +185,8 @@ const handleTest = () => {
 
   formData.value.result = ''
   testMetrics.value = null
+  testError.value = ''
+  testStatus.value = ''
   testLoading.value = true
 
   const reqBody = {
@@ -182,19 +194,34 @@ const handleTest = () => {
     model: formData.value.model || undefined
   }
 
-  testAiConfig(target, reqBody, { timeout: 30000 }).then(res => {
-    if (res.success) {
-      formData.value.result = res.resultData?.content || $i18nBundle('api.msg.noContent')
-      testMetrics.value = res.resultData
-      ElMessage.success($i18nBundle('api.msg.testSuccess'))
-    } else {
-      formData.value.result = $i18nBundle('api.msg.testFailed', [res.message || $i18nBundle('common.msg.unknownError')])
-      ElMessage.error($i18nBundle('api.msg.testFailed', [res.message || $i18nBundle('common.msg.unknownError')]))
+  const controller = new AbortController()
+  abortController = controller
+  const isCurrent = () => abortController === controller && !controller.signal.aborted
+  streamTestAiConfig(target, reqBody, {
+    onDelta: data => {
+      if (isCurrent() && typeof data?.text === 'string') formData.value.result += data.text
+    },
+    onFinish: data => {
+      if (!isCurrent()) return
+      formData.value.result = data.content ?? formData.value.result
+      testMetrics.value = data
+      testStatus.value = data.status
+      if (data.status === 'SUCCESS') ElMessage.success($i18nBundle('api.msg.testSuccess'))
+    },
+    onError: error => {
+      if (!isCurrent()) return
+      testStatus.value = 'ERROR'
+      testError.value = error?.message || $i18nBundle('common.msg.unknownError')
     }
-  }).catch(error => {
-    formData.value.result = $i18nBundle('api.msg.requestError', [error.message || $i18nBundle('common.msg.networkError')])
+  }, controller.signal).catch(error => {
+    if (!isCurrent() || error.name === 'AbortError') return
+    testStatus.value = 'ERROR'
+    testError.value = error.message || $i18nBundle('common.msg.networkError')
   }).finally(() => {
-    testLoading.value = false
+    if (abortController === controller) {
+      testLoading.value = false
+      abortController = null
+    }
   })
 
   return false
@@ -218,6 +245,47 @@ const handleTest = () => {
         :options="formOptions"
         :show-buttons="false"
         label-width="140px"
+      >
+        <template #result="{ option }">
+          <common-form-control
+            :model="formData"
+            :option="option"
+          >
+            <ai-answer-viewer
+              v-if="visible && (formData.result || testLoading)"
+              :content="formData.result"
+              :streaming="testLoading"
+            >
+              <template #actions>
+                <el-button
+                  v-if="testLoading"
+                  size="small"
+                  @click="stopTest"
+                >
+                  {{ $t('api.label.stopTask') }}
+                </el-button>
+              </template>
+            </ai-answer-viewer>
+            <span
+              v-else
+              class="test-result-placeholder"
+            >
+              {{ $t('api.msg.testResultPlaceholder') }}
+            </span>
+          </common-form-control>
+        </template>
+      </common-form>
+      <el-alert
+        v-if="testError"
+        :title="testError"
+        type="error"
+        :closable="false"
+      />
+      <el-alert
+        v-else-if="testStatus === 'INTERRUPTED' || testStatus === 'INCOMPLETE'"
+        :title="$t(testStatus === 'INTERRUPTED' ? 'api.msg.aiStreamInterrupted' : 'api.label.aiIncompleteAnswer')"
+        type="warning"
+        :closable="false"
       />
       <div
         v-if="testMetrics"
@@ -249,4 +317,5 @@ const handleTest = () => {
 </template>
 
 <style scoped>
+.test-result-placeholder { color: var(--el-text-color-placeholder); }
 </style>

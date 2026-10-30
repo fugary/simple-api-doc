@@ -16,6 +16,8 @@ import com.fugary.simple.api.service.ai.agent.tool.AiToolCall;
 import com.fugary.simple.api.service.ai.agent.tool.AiToolDefinition;
 import com.fugary.simple.api.service.ai.provider.AiChatProvider;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
+import com.fugary.simple.api.service.ai.provider.AiStreamSession;
+import com.fugary.simple.api.service.ai.provider.AiSseSupport;
 import com.fugary.simple.api.service.apidoc.ApiDocService;
 import com.fugary.simple.api.service.apidoc.ApiFolderService;
 import com.fugary.simple.api.service.apidoc.ApiProjectAccessService;
@@ -59,6 +61,14 @@ class AiAgentServiceImplTest {
     private final AiProjectDocOverviewService projectDocOverviewService = mock(AiProjectDocOverviewService.class);
     private final AiAgentServiceImpl service = new AiAgentServiceImpl();
     private final AiConfigProperties aiConfigProperties = new AiConfigProperties();
+
+    private void runChat(AiAgentChatReqVo req, SseEmitter emitter) {
+        AiStreamSession stream = new AiStreamSession(text -> AiSseSupport.send(emitter, "delta", Map.of("text", text)));
+        emitter.onCompletion(stream::cancel);
+        emitter.onTimeout(stream::cancel);
+        emitter.onError(error -> stream.cancel());
+        service.streamChat(req, emitter, stream);
+    }
 
     @BeforeEach
     void setUp() {
@@ -108,7 +118,7 @@ class AiAgentServiceImplTest {
         search.setToolCalls(List.of(new AiToolCall("s1", "search_docs", "{}")));
         AiChatResponse answer = new AiChatResponse();
         answer.setContent("No matching document found.");
-        when(chatProvider.chatWithTools(any(), any(), any(), any())).thenReturn(search, answer);
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), any(), any())).thenReturn(search, answer);
         when(searchTool.execute(any(), any())).thenReturn("{}");
         AiAgentChatReqVo req = new AiAgentChatReqVo();
         req.setShareId(includeShareId ? "shared" : null);
@@ -118,9 +128,9 @@ class AiAgentServiceImplTest {
         req.setQuery("Find an API");
         req.setIncludeProjectOverview(true);
         SseEmitter emitter = mock(SseEmitter.class);
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
         verify(searchTool).execute(any(), argThat(ctx -> ctx.getShare() == share && ctx.getDefaultProjectId() == 10));
-        verify(chatProvider, atLeastOnce()).chatWithTools(eq(config), any(), any(), any());
+        verify(chatProvider, atLeastOnce()).chatWithToolsStream(eq(config), any(), any(), any(), any());
         verify(projectDocOverviewService).build(project, share);
         verify(shareService).loadCurrentShare();
         verify(apiProjectService).getById(10);
@@ -150,8 +160,8 @@ class AiAgentServiceImplTest {
         req.setProjectId(10);
         req.setQuery("Find an API");
         SseEmitter emitter = mock(SseEmitter.class);
-        service.streamChat(req, emitter);
-        verify(chatProvider, never()).chatWithTools(any(), any(), any(), any());
+        runChat(req, emitter);
+        verify(chatProvider, never()).chatWithToolsStream(any(), any(), any(), any(), any());
         verify(searchTool, never()).execute(any(), any());
         verifyNoInteractions(aiConfigService);
         verify(emitter).complete();
@@ -174,7 +184,7 @@ class AiAgentServiceImplTest {
         AiChatResponse respRound2 = new AiChatResponse();
         respRound2.setContent("退款请调用 [申请退款](doc://101)，不要调用 [编造接口](doc://999)。");
 
-        when(chatProvider.chatWithTools(any(), any(), any(), any()))
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), any(), any()))
                 .thenReturn(respRound1)
                 .thenReturn(respRound2);
 
@@ -210,12 +220,12 @@ class AiAgentServiceImplTest {
         req.setQuery("如何发起退款？");
         req.setModel(" custom-model ");
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         // 验证工具调用了 1 次
         verify(searchTool, times(1)).execute(eq("{\"keywords\":\"退款\"}"), any());
-        verify(chatProvider, times(2)).chatWithTools(argThat(actual -> actual != config
-                && "custom-model".equals(actual.getDefaultModel())), any(), any(), any());
+        verify(chatProvider, times(2)).chatWithToolsStream(argThat(actual -> actual != config
+                && "custom-model".equals(actual.getDefaultModel())), any(), any(), any(), any());
         assertThat(config.getDefaultModel()).isEqualTo("gpt-4o-mini");
 
         // 验证 SSE 收到 tool_start, tool_end, related_docs, delta, finish
@@ -268,9 +278,9 @@ class AiAgentServiceImplTest {
             (inspected ? context.getInspectedDocIds() : context.getDiscoveredDocIds()).addAll(List.of(101, 999));
             return "已找到候选文档";
         });
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto")))
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any()))
                 .thenReturn(toolResponse, new AiChatResponse());
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("none"))).thenAnswer(call -> {
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("none"), any())).thenAnswer(call -> {
             List<Map<String, Object>> messages = call.getArgument(1);
             assertThat(messages.get(messages.size() - 1).get("role")).isEqualTo("user");
             assertThat(messages.get(messages.size() - 1).get("content").toString()).contains("不再调用工具", "证据不足");
@@ -279,10 +289,10 @@ class AiAgentServiceImplTest {
         });
 
         SseEmitter emitter = mock(SseEmitter.class);
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
-        verify(chatProvider, times(2)).chatWithTools(any(), any(), any(), eq("auto"));
-        verify(chatProvider).chatWithTools(any(), any(), any(), eq("none"));
+        verify(chatProvider, times(2)).chatWithToolsStream(any(), any(), any(), eq("auto"), any());
+        verify(chatProvider).chatWithToolsStream(any(), any(), any(), eq("none"), any());
         String events = emittedEvents(emitter);
         assertThat(events).contains("[POST /login](doc://101)", "候选文档", "INCOMPLETE")
                 .doesNotContain("doc://999", "未能检索到", "event:error");
@@ -299,13 +309,13 @@ class AiAgentServiceImplTest {
             context.getDiscoveredDocIds().add(101);
             return "已找到候选文档";
         });
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto")))
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any()))
                 .thenReturn(toolResponse, new AiChatResponse());
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("none")))
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("none"), any()))
                 .thenThrow(new IllegalStateException("summary unavailable"));
         SseEmitter emitter = mock(SseEmitter.class);
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         assertThat(emittedEvents(emitter)).contains("[POST /login](doc://101)", "INCOMPLETE")
                 .doesNotContain("event:error");
@@ -317,7 +327,7 @@ class AiAgentServiceImplTest {
         req.setIncludeProjectOverview(true);
         when(projectDocOverviewService.build(any(), isNull())).thenReturn(new AiProjectDocOverviewService.Overview(
                 "完整目录 OVERVIEW_MARKER", 2, "已附加全部 2 份文档"));
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenAnswer(call -> {
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any())).thenAnswer(call -> {
             List<Map<String, Object>> messages = call.getArgument(1);
             assertThat(messages.get(1).get("content").toString())
                     .contains("OVERVIEW_MARKER", "登录接口有哪些");
@@ -327,10 +337,10 @@ class AiAgentServiceImplTest {
             return response;
         });
         SseEmitter emitter = mock(SseEmitter.class);
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
         verify(searchTool, never()).execute(any(), any());
         verify(getDocTool, never()).execute(any(), any());
-        verify(chatProvider).chatWithTools(any(), any(), any(), eq("auto"));
+        verify(chatProvider).chatWithToolsStream(any(), any(), any(), eq("auto"), any());
         verify(apiDocService, never()).getById(102);
         assertThat(emittedEvents(emitter)).contains("全部 2 份", "doc://101", "SUCCESS")
                 .doesNotContain("doc://999", "doc://102", "event:error");
@@ -341,8 +351,8 @@ class AiAgentServiceImplTest {
         AiAgentChatReqVo req = prepareFallbackChat();
         AiChatResponse response = new AiChatResponse();
         response.setContent("请补充查询条件");
-        when(chatProvider.chatWithTools(any(), any(), any(), any())).thenReturn(response);
-        service.streamChat(req, mock(SseEmitter.class));
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), any(), any())).thenReturn(response);
+        runChat(req, mock(SseEmitter.class));
         verifyNoInteractions(projectDocOverviewService);
     }
 
@@ -352,10 +362,10 @@ class AiAgentServiceImplTest {
         req.setIncludeProjectOverview(true);
         when(projectDocOverviewService.build(any(), isNull())).thenReturn(new AiProjectDocOverviewService.Overview(
                 "完整目录", 2, "已附加全部 2 份文档"));
-        when(chatProvider.chatWithTools(any(), any(), any(), any())).thenReturn(new AiChatResponse());
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), any(), any())).thenReturn(new AiChatResponse());
         SseEmitter emitter = mock(SseEmitter.class);
-        service.streamChat(req, emitter);
-        verify(chatProvider).chatWithTools(any(), any(), any(), eq("none"));
+        runChat(req, emitter);
+        verify(chatProvider).chatWithToolsStream(any(), any(), any(), eq("none"), any());
         assertThat(emittedEvents(emitter)).contains("暂未生成有效回答", "INCOMPLETE")
                 .doesNotContain("doc://101", "doc://102", "未能检索到", "event:error");
     }
@@ -371,10 +381,10 @@ class AiAgentServiceImplTest {
         AiChatResponse answer = new AiChatResponse();
         answer.setContent("[POST /login](doc://101)");
         when(searchTool.execute(any(), any())).thenReturn("docId=101");
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto")))
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any()))
                 .thenReturn(toolResponse, answer);
         SseEmitter emitter = mock(SseEmitter.class);
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
         verify(searchTool).execute(eq("{}"), any());
         assertThat(emittedEvents(emitter)).contains("本次未附加", "doc://101", "SUCCESS")
                 .doesNotContain("event:error");
@@ -395,7 +405,7 @@ class AiAgentServiceImplTest {
         ReflectionTestUtils.setField(service, "agentTools", List.of(searchTool, detailTool));
 
         AtomicInteger round = new AtomicInteger();
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenAnswer(call -> {
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any())).thenAnswer(call -> {
             int current = round.incrementAndGet();
             List<Map<String, Object>> messages = call.getArgument(1);
             AiChatResponse response = new AiChatResponse();
@@ -420,12 +430,12 @@ class AiAgentServiceImplTest {
         });
 
         SseEmitter emitter = mock(SseEmitter.class);
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         ArgumentCaptor<AgentContext> contexts = ArgumentCaptor.forClass(AgentContext.class);
         verify(detailTool, times(2)).execute(anyString(), contexts.capture());
         assertThat(contexts.getValue().getInspectedDocIds()).containsExactly(101);
-        verify(chatProvider, times(3)).chatWithTools(any(), any(), any(), eq("auto"));
+        verify(chatProvider, times(3)).chatWithToolsStream(any(), any(), any(), eq("auto"), any());
         assertThat(emittedEvents(emitter)).contains("token 是返回字段", "doc://101", "SUCCESS",
                         "登录说明")
                 .doesNotContain("event:error", "不要重复查询", "首次读取 ·", "（续读）", "已到文末");
@@ -452,18 +462,18 @@ class AiAgentServiceImplTest {
         AiChatResponse answer = new AiChatResponse();
         answer.setContent("已完成查阅");
         when(getDocTool.execute(any(), any())).thenReturn("正文结果");
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto")))
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any()))
                 .thenReturn(firstRound, sameRound ? answer : nextRound, answer);
         SseEmitter emitter = mock(SseEmitter.class);
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         ArgumentCaptor<String> arguments = ArgumentCaptor.forClass(String.class);
         verify(getDocTool, times(3)).execute(arguments.capture(), any());
         assertThat(arguments.getAllValues()).containsExactly(
                 "{\"docId\":101}", "{\"docId\":101,\"offset\":12000}", "{\"docId\":102}");
         ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
-        verify(chatProvider, times(sameRound ? 2 : 3)).chatWithTools(any(), messages.capture(), any(), eq("auto"));
+        verify(chatProvider, times(sameRound ? 2 : 3)).chatWithToolsStream(any(), messages.capture(), any(), eq("auto"), any());
         List<Map<String, Object>> results = messages.getValue().stream()
                 .filter(message -> "tool".equals(message.get("role"))).collect(Collectors.toList());
         assertThat(results).hasSize(6);
@@ -475,8 +485,8 @@ class AiAgentServiceImplTest {
         assertThat(emittedEvents(emitter).split("event:tool_start", -1)).hasSize(4);
 
         // 去重只针对本次问答，新问题仍可读取同一段正文。
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenReturn(firstRound, answer);
-        service.streamChat(req, mock(SseEmitter.class));
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any())).thenReturn(firstRound, answer);
+        runChat(req, mock(SseEmitter.class));
         verify(getDocTool, times(2)).execute(eq("{\"docId\":101}"), any());
     }
 
@@ -487,7 +497,7 @@ class AiAgentServiceImplTest {
         AiAgentChatReqVo req = prepareFallbackChat();
         AgentTool tool = foundDocs ? getDocTool : searchTool;
         AtomicInteger round = new AtomicInteger();
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenAnswer(call -> {
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any())).thenAnswer(call -> {
             int current = round.getAndIncrement();
             AiChatResponse response = new AiChatResponse();
             response.setToolCalls(List.of(new AiToolCall("read_" + current, tool.getName(), foundDocs
@@ -500,7 +510,7 @@ class AiAgentServiceImplTest {
             if (foundDocs) context.getInspectedDocIds().add(101);
             return foundDocs ? "PAGE_EVIDENCE " + call.getArgument(0) : "未找到匹配的文档";
         });
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("none"))).thenAnswer(call -> {
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("none"), any())).thenAnswer(call -> {
             List<Map<String, Object>> messages = call.getArgument(1);
             assertThat(messages.stream().filter(message -> "tool".equals(message.get("role"))))
                     .hasSize(8).allSatisfy(message -> assertThat(message.get("content").toString())
@@ -512,11 +522,11 @@ class AiAgentServiceImplTest {
         });
         SseEmitter emitter = mock(SseEmitter.class);
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         verify(tool, times(8)).execute(any(), any());
-        verify(chatProvider, times(8)).chatWithTools(any(), any(), any(), eq("auto"));
-        verify(chatProvider).chatWithTools(any(), any(), any(), eq("none"));
+        verify(chatProvider, times(8)).chatWithToolsStream(any(), any(), any(), eq("auto"), any());
+        verify(chatProvider).chatWithToolsStream(any(), any(), any(), eq("none"), any());
         assertThat(emittedEvents(emitter)).contains(foundDocs ? "已确认的结论" : "无法确认所需字段", "SUCCESS")
                 .doesNotContain("INCOMPLETE", "event:error");
     }
@@ -525,7 +535,7 @@ class AiAgentServiceImplTest {
     void repeatedSearchesWithDifferentJsonFormattingTriggerEarlySummary() throws IOException {
         AiAgentChatReqVo req = prepareFallbackChat();
         AtomicInteger round = new AtomicInteger();
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenAnswer(call -> {
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any())).thenAnswer(call -> {
             int current = round.incrementAndGet();
             AiChatResponse response = new AiChatResponse();
             response.setToolCalls(List.of(new AiToolCall("search_" + current, "search_docs", current == 1
@@ -539,14 +549,14 @@ class AiAgentServiceImplTest {
         });
         AiChatResponse answer = new AiChatResponse();
         answer.setContent("找到 [登录接口](doc://101)，参数尚未查阅。");
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("none"))).thenReturn(answer);
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("none"), any())).thenReturn(answer);
         SseEmitter emitter = mock(SseEmitter.class);
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         verify(searchTool).execute(any(), any());
-        verify(chatProvider, times(3)).chatWithTools(any(), any(), any(), eq("auto"));
-        verify(chatProvider).chatWithTools(any(), any(), any(), eq("none"));
+        verify(chatProvider, times(3)).chatWithToolsStream(any(), any(), any(), eq("auto"), any());
+        verify(chatProvider).chatWithToolsStream(any(), any(), any(), eq("none"), any());
         assertThat(emittedEvents(emitter)).contains("参数尚未查阅", "SUCCESS").doesNotContain("event:error");
     }
 
@@ -555,14 +565,14 @@ class AiAgentServiceImplTest {
         AiAgentChatReqVo req = prepareFallbackChat();
         req.setIncludeProjectOverview(true);
         when(projectDocOverviewService.build(any(), isNull())).thenReturn(new AiProjectDocOverviewService.Overview("目录", 1, "已附加目录"));
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenReturn(new AiChatResponse());
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any())).thenReturn(new AiChatResponse());
         AiChatResponse summary = new AiChatResponse();
         summary.setContent("我将继续搜索。");
         summary.setToolCalls(List.of(new AiToolCall("ignored", "search_docs", "{}")));
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("none"))).thenReturn(summary);
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("none"), any())).thenReturn(summary);
         SseEmitter emitter = mock(SseEmitter.class);
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         assertThat(emittedEvents(emitter)).contains("INCOMPLETE").doesNotContain("我将继续搜索", "SUCCESS", "event:error");
         verify(searchTool, never()).execute(any(), any());
@@ -581,22 +591,57 @@ class AiAgentServiceImplTest {
                 new AiToolCall("s2", "search_docs", secondArgs)));
         AiChatResponse answer = new AiChatResponse();
         answer.setContent("已完成检索");
-        when(chatProvider.chatWithTools(any(), any(), any(), eq("auto"))).thenReturn(searches, answer);
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), eq("auto"), any())).thenReturn(searches, answer);
         when(searchTool.execute(eq(firstArgs), any())).thenReturn(firstResult);
         when(searchTool.execute(eq(secondArgs), any())).thenReturn(secondResult);
         SseEmitter emitter = mock(SseEmitter.class);
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         verify(searchTool).execute(eq(firstArgs), any());
         verify(searchTool).execute(eq(secondArgs), any());
         ArgumentCaptor<List<Map<String, Object>>> messages = ArgumentCaptor.forClass(List.class);
-        verify(chatProvider, times(2)).chatWithTools(any(), messages.capture(), any(), eq("auto"));
+        verify(chatProvider, times(2)).chatWithToolsStream(any(), messages.capture(), any(), eq("auto"), any());
         assertThat(messages.getValue().stream().filter(message -> "tool".equals(message.get("role")))
                 .map(message -> message.get("content"))).containsExactly(firstResult, secondResult);
         String events = emittedEvents(emitter);
         assertThat(events).contains("\"total\":15", "\"total\":1");
         assertThat(events).doesNotContain("订单说明", "详情说明");
+    }
+
+    @Test
+    void emitsIncrementallyThenReplacesWithGroundedAnswer() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        SseEmitter emitter = mock(SseEmitter.class);
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), any(), any())).thenAnswer(call -> {
+            AiStreamSession stream = call.getArgument(4);
+            stream.text("首段正文");
+            assertThat(emittedEvents(emitter)).contains("event:delta", "首段正文").doesNotContain("event:finish");
+            stream.text(" [登录](doc://101) [越权](doc://999)");
+            AiChatResponse response = new AiChatResponse();
+            response.setContent(stream.getText());
+            return response;
+        });
+        runChat(req, emitter);
+        String events = emittedEvents(emitter);
+        String terminal = events.substring(events.indexOf("event:answer\n"));
+        assertThat(terminal).contains("doc://101", "SUCCESS").doesNotContain("doc://999");
+        verify(chatProvider, never()).chatWithTools(any(), any(), any(), any());
+    }
+
+    @Test
+    void partialStreamFailureDoesNotBecomeSuccessfulFallback() throws IOException {
+        AiAgentChatReqVo req = prepareFallbackChat();
+        SseEmitter emitter = mock(SseEmitter.class);
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), any(), any())).thenAnswer(call -> {
+            AiStreamSession stream = call.getArgument(4);
+            stream.text("部分回答");
+            throw new IllegalStateException("upstream interrupted");
+        });
+        runChat(req, emitter);
+        assertThat(emittedEvents(emitter)).contains("部分回答", "event:error")
+                .doesNotContain("event:finish", "SUCCESS");
+        verify(chatProvider, times(1)).chatWithToolsStream(any(), any(), any(), any(), any());
     }
 
     private AiAgentChatReqVo prepareFallbackChat() {
@@ -656,7 +701,7 @@ class AiAgentServiceImplTest {
         AiChatResponse respRound2 = new AiChatResponse();
         respRound2.setContent("已完成查询");
 
-        when(chatProvider.chatWithTools(any(), any(), any(), any()))
+        when(chatProvider.chatWithToolsStream(any(), any(), any(), any(), any()))
                 .thenReturn(respRound1)
                 .thenReturn(respRound2);
 
@@ -672,7 +717,7 @@ class AiAgentServiceImplTest {
         req.setProjectId(10);
         req.setQuery("查询用户接口");
 
-        service.streamChat(req, emitter);
+        runChat(req, emitter);
 
         // 验证 default_api:search_docs 成功剥离前缀并路由到 searchTool 执行
         verify(searchTool, times(1)).execute(eq("{\"keywords\":\"用户\"}"), any());

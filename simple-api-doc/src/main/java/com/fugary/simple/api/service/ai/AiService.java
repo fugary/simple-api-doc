@@ -1,5 +1,7 @@
 package com.fugary.simple.api.service.ai;
 
+import com.fugary.simple.api.service.ai.provider.AiStreamSession;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.fugary.simple.api.entity.api.AiConfig;
 import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
@@ -50,6 +52,10 @@ public interface AiService {
      * @return AI 返回的内容及耗时/Token使用情况
      */
     AiChatResponse testAiConfig(Integer configId, AiGenericTaskReq req);
+
+    void streamTestAiConfig(Integer configId, AiGenericTaskReq req,
+                            SseEmitter emitter,
+                            AiStreamSession stream);
 
     /**
      * 测试指定的 AI 配置（支持未保存的配置）

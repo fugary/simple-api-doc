@@ -1,5 +1,6 @@
 package com.fugary.simple.api.service.impl.ai;
 
+import java.util.concurrent.CancellationException;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -40,7 +41,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.fugary.simple.api.service.ai.provider.AiStreamSession;
+import com.fugary.simple.api.service.ai.provider.AiSseSupport;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -116,14 +118,8 @@ public class AiAgentServiceImpl implements AiAgentService {
     private AiCacheMapper aiCacheMapper;
 
     @Override
-    public void streamChat(AiAgentChatReqVo req, SseEmitter emitter) {
-        AtomicBoolean clientDisconnected = new AtomicBoolean(false);
+    public void streamChat(AiAgentChatReqVo req, SseEmitter emitter, AiStreamSession stream) {
         AiExecutionRecord record = null;
-        Runnable disconnect = () -> clientDisconnected.set(true);
-        emitter.onCompletion(disconnect);
-        emitter.onTimeout(disconnect);
-        emitter.onError(e -> disconnect.run());
-
         try {
             if (!sendSseEvent(emitter, "status", Map.of("status", "thinking", "message", "正在分析业务意图与检索策略..."))) {
                 return;
@@ -149,7 +145,7 @@ public class AiAgentServiceImpl implements AiAgentService {
             }
             AiChatProvider provider = getChatProvider(config.getProvider());
             record = new AiExecutionRecord(aiCacheMapper, config, share, project.getId(), req.getQuery());
-            if (clientDisconnected.get()) return;
+            if (stream.isCancelled()) return;
 
             // 3. 初始化上下文与权限
             ApiUserVo user = SecurityUtils.getLoginUser();
@@ -175,7 +171,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                 AiProjectDocOverviewService.Overview overview = projectDocOverviewService.build(project, share);
                 record.step("overview", null, null, overview.getMessage(), "success", 0,
                         System.currentTimeMillis() - overviewStarted);
-                if (clientDisconnected.get()) return;
+                if (stream.isCancelled()) return;
                 if (StringUtils.isNotBlank(overview.getContent())) {
                     hasOverviewDocs = overview.getDocCount() > 0;
                     userPrompt = overview.getContent() + "\n【用户问题】\n" + userPrompt;
@@ -196,12 +192,12 @@ public class AiAgentServiceImpl implements AiAgentService {
 
             while (round < maxToolRounds) {
                 round++;
-                if (clientDisconnected.get()) {
+                if (stream.isCancelled()) {
                     log.info("Client disconnected, stopping agent loop early");
                     return;
                 }
-                AiChatResponse response = callModel(provider, config, messages, toolDefinitions, "auto", record, round);
-                if (clientDisconnected.get()) {
+                AiChatResponse response = callModel(provider, config, messages, toolDefinitions, "auto", record, round, emitter, stream);
+                if (stream.isCancelled()) {
                     return;
                 }
                 List<AiToolCall> toolCalls = response.getToolCalls();
@@ -212,6 +208,8 @@ public class AiAgentServiceImpl implements AiAgentService {
                     break;
                 }
 
+                stream.resetText();
+                AiSseSupport.send(emitter, "answer_reset", Map.of());
                 // 记录模型的 tool_calls 消息（完整保留原生 message 包含 thought_signature / reasoning_content 等关键元数据）
                 if (response.getAssistantMessage() != null && !response.getAssistantMessage().isEmpty()) {
                     messages.add(new HashMap<>(response.getAssistantMessage()));
@@ -236,7 +234,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                 // 顺序执行各个工具调用并推流
                 boolean executedTool = false;
                 for (AiToolCall toolCall : toolCalls) {
-                    if (clientDisconnected.get()) {
+                    if (stream.isCancelled()) {
                         break;
                     }
                     String toolName = toolCall.getName();
@@ -255,7 +253,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                             "tool", toolName != null ? toolName : "",
                             "arguments", toolCall.getArguments() != null ? toolCall.getArguments() : "{}"
                     ))) {
-                        clientDisconnected.set(true);
+                        stream.cancel();
                         break;
                     }
 
@@ -275,14 +273,14 @@ public class AiAgentServiceImpl implements AiAgentService {
                     executedTool = true;
 
                     if (!sendSseEvent(emitter, "tool_end", toolSummary)) {
-                        clientDisconnected.set(true);
+                        stream.cancel();
                         break;
                     }
 
                     addToolResult(messages, toolCall, toolResult);
                 }
 
-                if (clientDisconnected.get()) {
+                if (stream.isCancelled()) {
                     log.info("Client disconnected during tool execution, terminating agent loop early");
                     return;
                 }
@@ -294,7 +292,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                 }
             }
 
-            if (clientDisconnected.get()) {
+            if (stream.isCancelled()) {
                 return;
             }
 
@@ -304,7 +302,7 @@ public class AiAgentServiceImpl implements AiAgentService {
                         "请现在根据已返回的文档证据回答最初的问题，不再调用工具。先给出可以确认的结论及文档引用；"
                                 + "若详情未读完或证据不足，明确说明尚不能确认的部分，不编造字段、必填条件或调用顺序。"));
                 try {
-                    AiChatResponse summaryRes = callModel(provider, config, messages, toolDefinitions, "none", record, round + 1);
+                    AiChatResponse summaryRes = callModel(provider, config, messages, toolDefinitions, "none", record, round + 1, emitter, stream);
                     if (summaryRes != null && (summaryRes.getToolCalls() == null || summaryRes.getToolCalls().isEmpty())
                             && StringUtils.isNotBlank(summaryRes.getContent())) {
                         finalContent = summaryRes.getContent();
@@ -315,11 +313,12 @@ public class AiAgentServiceImpl implements AiAgentService {
                                 summaryRes == null ? null : summaryRes.getCompletionTokens());
                     }
                 } catch (Exception e) {
+                    if (stream.isCancelled() || StringUtils.isNotBlank(stream.getText())) throw e;
                     log.warn("生成最终总结失败", e);
                 }
             }
 
-            if (clientDisconnected.get()) return;
+            if (stream.isCancelled()) return;
 
             // 6. Grounding 校验与关联接口卡片组装，并自动修复 Markdown 代码块格式
             String cleanedContent = sanitizeMarkdownContent(processGroundingAndCleanLinks(finalContent, context));
@@ -333,34 +332,40 @@ public class AiAgentServiceImpl implements AiAgentService {
 
             // 7. 推送最终结果事件
             if (!sendSseEvent(emitter, "related_docs", relatedDocs)) return;
-            if (!sendSseEvent(emitter, "delta", Map.of("text", cleanedContent))) return;
-            if (!sendSseEvent(emitter, "finish", Map.of("status", fallback ? "INCOMPLETE" : "SUCCESS"))) return;
+            if (!sendSseEvent(emitter, "answer", Map.of("text", cleanedContent))) return;
             record.finish(fallback ? 3 : 1, cleanedContent,
                     !fallback && "incomplete".equals(finishReason) ? "success" : finishReason, null);
+            if (!sendSseEvent(emitter, "finish", Map.of("status", fallback ? "INCOMPLETE" : "SUCCESS"))) return;
             try {
                 emitter.complete();
             } catch (Exception ignore) {}
         } catch (Exception e) {
-            if (record != null) record.finish(clientDisconnected.get() ? 4 : 2, null,
-                    clientDisconnected.get() ? "interrupted" : "failed", AiServiceImpl.getSimpleErrorMessage(e));
-            log.error("AiAgentServiceImpl streamChat error", e);
-            if (!clientDisconnected.get()) {
+            if (e instanceof CancellationException) stream.cancel();
+            if (record != null) record.finish(stream.isCancelled() ? 4 : 2, stream.getText(),
+                    stream.isCancelled() ? "interrupted" : "failed", AiServiceImpl.getSimpleErrorMessage(e));
+            if (stream.isCancelled()) log.debug("AI 问答已中断");
+            else log.error("AiAgentServiceImpl streamChat error", e);
+            if (!stream.isCancelled()) {
                 sendSseEvent(emitter, "error", Map.of("message", e.getMessage() != null ? e.getMessage() : "AI 服务响应异常"));
                 try {
                     emitter.complete();
                 } catch (Exception ignore) {}
             }
         } finally {
-            if (record != null) record.finish(4, null, "interrupted", null);
+            if (record != null) record.finish(4, stream.getText(), "interrupted", null);
         }
     }
 
     private AiChatResponse callModel(AiChatProvider provider, AiConfig config, List<Map<String, Object>> messages,
-                                     List<AiToolDefinition> tools, String choice, AiExecutionRecord record, int round) {
+                                     List<AiToolDefinition> tools, String choice, AiExecutionRecord record, int round,
+                                     SseEmitter emitter, AiStreamSession stream) {
         long started = System.currentTimeMillis();
         AiChatResponse response = null;
         try {
-            response = provider.chatWithTools(config, messages, tools, choice);
+            stream.check();
+            stream.resetText();
+            AiSseSupport.send(emitter, "answer_reset", Map.of());
+            response = provider.chatWithToolsStream(config, messages, tools, choice, stream);
             return response;
         } finally {
             record.model(response, round, System.currentTimeMillis() - started);
@@ -444,9 +449,9 @@ public class AiAgentServiceImpl implements AiAgentService {
 
     private boolean sendSseEvent(SseEmitter emitter, String eventName, Object data) {
         try {
-            emitter.send(SseEmitter.event().name(eventName).data(JsonUtils.toJson(data)));
+            AiSseSupport.send(emitter, eventName, data);
             return true;
-        } catch (IOException | IllegalStateException e) {
+        } catch (IllegalStateException e) {
             log.debug("Failed to send SSE event: {}, client might have disconnected or completed: {}", eventName, e.getMessage());
             return false;
         }

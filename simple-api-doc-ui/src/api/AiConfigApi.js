@@ -1,5 +1,6 @@
 import { $httpGet, $httpPost } from '@/vendors/axios'
 import { useResourceApi } from '@/hooks/ApiHooks'
+import { streamAiRequest } from '@/api/AiStreamApi'
 
 const BASE_URL = '/admin/ai/configs'
 
@@ -29,4 +30,12 @@ export const loadAiModels = (idOrConfig, config) => {
     return $httpGet(`${BASE_URL}/${idOrConfig}/models`, config)
   }
   return $httpPost(`${BASE_URL}/models`, idOrConfig, config)
+}
+
+export const streamTestAiConfig = (idOrConfig, data, callbacks, signal) => {
+  const saved = typeof idOrConfig === 'number'
+  return streamAiRequest(
+    saved ? `${BASE_URL}/${idOrConfig}/test/stream` : `${BASE_URL}/test/stream`,
+    saved ? data : { ...data, config: { ...idOrConfig, id: undefined } }, callbacks, signal
+  )
 }

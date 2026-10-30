@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { MdPreview } from 'md-editor-v3'
 import createDOMPurify from 'dompurify'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -11,7 +10,7 @@ import { defineMonacoOptions } from '@/vendors/monaco-editor'
 import ApiDocApi from '@/api/ApiDocApi'
 import ApiProjectApi from '@/api/ApiProjectApi'
 import ApiDocAiExecutionSteps from '@/views/components/api/doc/comp/ApiDocAiExecutionSteps.vue'
-import 'md-editor-v3/lib/preview.css'
+import AiAnswerViewer from '@/views/components/utils/AiAnswerViewer.vue'
 
 const visible = defineModel({ type: Boolean, default: false })
 const purifier = createDOMPurify(window)
@@ -148,6 +147,7 @@ const openDocument = async event => {
               <h4>{{ $t('api.label.aiRecordResponse') }}</h4>
               <div class="record-actions">
                 <el-button
+                  v-if="!isMarkdown || jsonResponse !== null"
                   :disabled="!record.cacheValue"
                   type="primary"
                   size="small"
@@ -190,13 +190,11 @@ const openDocument = async event => {
                 :options="responseOptions"
                 :height="`${responseHeight}px`"
               />
-              <md-preview
+              <ai-answer-viewer
                 v-else-if="isMarkdown && record.cacheValue"
-                editor-id="ai-record-detail"
-                :model-value="record.cacheValue"
-                :theme="theme"
+                :key="record.id"
+                :content="record.cacheValue"
                 :sanitize="sanitize"
-                class="md-doc-container"
               />
               <pre
                 v-else-if="record.cacheValue"

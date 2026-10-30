@@ -1,5 +1,18 @@
 package com.fugary.simple.api.service.ai.provider;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.util.HashMap;
+import java.util.Locale;
+import java.nio.charset.StandardCharsets;
+import org.apache.http.util.EntityUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpPost;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fugary.simple.api.config.AiConfigProperties;
@@ -42,6 +55,73 @@ public abstract class AbstractAiChatProvider implements AiChatProvider {
     private static final List<String> ERROR_KEYS = List.of(
             "message", "msg", "error_description", "detail", "error", "errors", "description", "title"
     );
+
+    /** 流式入口独立使用可取消请求，不改变其他生成接口的同步与重试行为。 */
+    protected String callChatApi(String url, HttpHeaders headers, Map<String, Object> body, AiStreamSession stream) {
+        if (stream == null) return callApi(url, headers, body);
+        stream.check();
+        Map<String, Object> streamingBody = new HashMap<>(body);
+        if ("GEMINI".equals(getProviderCode())) {
+            url = url.replace(":generateContent", ":streamGenerateContent") + "?alt=sse";
+        } else {
+            streamingBody.put("stream", true);
+            if ("OPENAI".equals(getProviderCode())) streamingBody.put("stream_options", Map.of("include_usage", true));
+        }
+        HttpPost post = new HttpPost(url);
+        headers.forEach((key, values) -> values.forEach(value -> post.addHeader(key, value)));
+        post.setHeader("Accept", "text/event-stream");
+        post.setConfig(RequestConfig.custom()
+                .setConnectTimeout(aiConfigProperties.getTimeout()).setSocketTimeout(aiConfigProperties.getTimeout())
+                .setConnectionRequestTimeout(aiConfigProperties.getTimeout()).build());
+        stream.bind(post::abort);
+        try (CloseableHttpClient client = HttpClients.custom()
+                .useSystemProperties().disableAutomaticRetries().disableRedirectHandling().build()) {
+            post.setEntity(new StringEntity(objectMapper.writeValueAsString(streamingBody),
+                    StandardCharsets.UTF_8));
+            try (CloseableHttpResponse response = client.execute(post)) {
+                int status = response.getStatusLine().getStatusCode();
+                if (status < 200 || status >= 300) {
+                    String error = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+                    String message = extractJsonErrorMessage(error);
+                    throw new IllegalStateException(message != null ? message : "AI 接口调用失败，状态码: " + status);
+                }
+                if (response.getEntity() == null || response.getEntity().getContentType() == null
+                        || !response.getEntity().getContentType().getValue().toLowerCase(Locale.ROOT).contains("text/event-stream")) {
+                    throw new IllegalStateException("AI 接口未返回流式响应，请确认配置支持 SSE");
+                }
+                AiStreamAccumulator accumulator = new AiStreamAccumulator(getProviderCode(), objectMapper, stream);
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        response.getEntity().getContent(), StandardCharsets.UTF_8))) {
+                    StringBuilder data = new StringBuilder();
+                    String line;
+                    int received = 0;
+                    while ((line = reader.readLine()) != null) {
+                        stream.check();
+                        received += line.length();
+                        if (received > 8 * 1024 * 1024) throw new IOException("AI 流式响应超出大小限制");
+                        if (line.isEmpty()) {
+                            if (data.length() > 0) {
+                                accumulator.accept(data.toString());
+                                data.setLength(0);
+                                if (accumulator.isTerminal()) break;
+                            }
+                        } else if (line.startsWith("data:")) {
+                            if (data.length() > 0) data.append('\n');
+                            String value = line.substring(5);
+                            data.append(value.startsWith(" ") ? value.substring(1) : value);
+                        }
+                    }
+                    // 不分发缺少空行结束的残缺事件。
+                    return accumulator.result();
+                }
+            }
+        } catch (IOException e) {
+            stream.check();
+            throw new IllegalStateException("AI 流式请求失败: " + e.getMessage(), e);
+        } finally {
+            stream.unbind();
+        }
+    }
 
     /**
      * Execute HTTP POST and return raw response body

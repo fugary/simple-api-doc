@@ -34,6 +34,17 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
 
     @Override
     public AiChatResponse chatWithTools(AiConfig config, List<Map<String, Object>> messages, List<AiToolDefinition> tools, String toolChoice) {
+        return chatWithTools(config, messages, tools, toolChoice, null);
+    }
+
+    @Override
+    public AiChatResponse chatWithToolsStream(AiConfig config, List<Map<String, Object>> messages,
+                                              List<AiToolDefinition> tools, String toolChoice, AiStreamSession stream) {
+        return chatWithTools(config, messages, tools, toolChoice, stream);
+    }
+
+    private AiChatResponse chatWithTools(AiConfig config, List<Map<String, Object>> messages,
+                                         List<AiToolDefinition> tools, String toolChoice, AiStreamSession stream) {
         HttpHeaders headers = createApiKeyJsonHeaders("x-goog-api-key", config.getApiKey());
         Map<String, Object> body = new HashMap<>();
         List<Map<String, Object>> contents = new ArrayList<>();
@@ -96,7 +107,7 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
             body.put("toolConfig", Map.of("functionCallingConfig", calling));
         }
         long start = System.currentTimeMillis();
-        String raw = callApi(buildGenerateContentUrl(config), headers, body);
+        String raw = callChatApi(buildGenerateContentUrl(config), headers, body, stream);
         AiChatResponse response = parseResponse(raw);
         response.setElapsedTime(System.currentTimeMillis() - start);
         return response;
@@ -143,6 +154,15 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
 
     @Override
     public AiChatResponse chat(AiConfig config, AiChatRequest request) {
+        return chat(config, request, null);
+    }
+
+    @Override
+    public AiChatResponse chatStream(AiConfig config, AiChatRequest request, AiStreamSession stream) {
+        return chat(config, request, stream);
+    }
+
+    private AiChatResponse chat(AiConfig config, AiChatRequest request, AiStreamSession stream) {
         HttpHeaders headers = createApiKeyJsonHeaders("x-goog-api-key", config.getApiKey());
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -164,9 +184,9 @@ public class GeminiChatProvider extends AbstractAiChatProvider {
         }
 
         String url = buildGenerateContentUrl(config);
-        String rawResponse = callApi(url, headers, requestBody);
+        String rawResponse = callChatApi(url, headers, requestBody, stream);
         AiChatResponse response = parseResponse(rawResponse);
-        response.setContent(cleanGeneratedContent(response.getContent()));
+        if (stream == null) response.setContent(cleanGeneratedContent(response.getContent()));
         return response;
     }
 

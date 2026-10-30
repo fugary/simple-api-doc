@@ -1,5 +1,6 @@
 package com.fugary.simple.api.service.ai.agent;
 
+import com.fugary.simple.api.service.ai.provider.AiStreamSession;
 import com.fugary.simple.api.web.vo.ai.AiAgentChatReqVo;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -14,5 +15,5 @@ public interface AiAgentService {
      * @param req     请求参数
      * @param emitter SSE 发射器
      */
-    void streamChat(AiAgentChatReqVo req, SseEmitter emitter);
+    void streamChat(AiAgentChatReqVo req, SseEmitter emitter, AiStreamSession stream);
 }

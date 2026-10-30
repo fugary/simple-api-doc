@@ -1,10 +1,8 @@
 <script setup>
 import { computed, onUnmounted, ref, toRef, watch } from 'vue'
-import { MdPreview } from 'md-editor-v3'
-import 'md-editor-v3/lib/preview.css'
+import AiAnswerViewer from '@/views/components/utils/AiAnswerViewer.vue'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
-import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { streamAgentChat } from '@/api/AiAgentApi'
 import { $copyText } from '@/utils'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
@@ -23,9 +21,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['switch-to-search'])
-
-const globalConfigStore = useGlobalConfigStore()
-const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'default')
 
 const activeAiState = computed(() => props.aiState)
 
@@ -235,9 +230,11 @@ const runChat = async () => {
         onDelta: onCurrentRequest((data) => {
           finishReasoningStep()
           if (data?.text !== undefined) {
-            answerContent.value = data.text
+            answerContent.value += data.text
           }
         }),
+        onAnswerReset: onCurrentRequest(() => { answerContent.value = '' }),
+        onAnswer: onCurrentRequest((data) => { answerContent.value = data?.text || '' }),
         onFinish: onCurrentRequest((data) => {
           answerStatus.value = data?.status === 'SUCCESS' ? 'SUCCESS' : 'INCOMPLETE'
           finishReasoningStep()
@@ -300,17 +297,9 @@ const copyPath = (url) => {
 }
 
 // 拦截 Markdown 正文中的链接点击，支持点击 doc://{id} 打开对应接口
-const handlePreviewClick = (event) => {
-  const link = event.target.closest('a')
-  if (link) {
-    const href = link.getAttribute('href')
-    if (href && href.startsWith('doc://')) {
-      event.preventDefault()
-      const docId = Number(href.replace('doc://', ''))
-      const doc = relatedDocs.value.find(item => item.id === docId)
-      if (doc) handleOpenDoc(doc)
-    }
-  }
+const handlePreviewDoc = (docId) => {
+  const doc = relatedDocs.value.find(item => item.id === docId)
+  if (doc) handleOpenDoc(doc)
 }
 
 const switchToManualSearch = () => {
@@ -476,17 +465,16 @@ const switchToManualSearch = () => {
     <div
       v-if="answerContent"
       class="ai-answer-section"
-      @click="handlePreviewClick"
     >
       <div class="section-title">
         <common-icon icon="Document" />
         <span>{{ $t('api.label.aiAnswerTitle') }}</span>
       </div>
       <div class="ai-markdown-wrapper">
-        <md-preview
-          editor-id="ai-agent-preview"
-          :theme="theme"
-          :model-value="answerContent"
+        <ai-answer-viewer
+          :content="answerContent"
+          :streaming="loading"
+          @doc-click="handlePreviewDoc"
         />
       </div>
 

@@ -29,6 +29,15 @@ public interface AiChatProvider {
      */
     AiChatResponse chat(AiConfig config, AiChatRequest request);
 
+    default AiChatResponse chatStream(AiConfig config, AiChatRequest request, AiStreamSession stream) {
+        throw new UnsupportedOperationException("Provider " + getProviderCode() + " does not support streaming");
+    }
+
+    default AiChatResponse chatWithToolsStream(AiConfig config, List<Map<String, Object>> messages,
+                                               List<AiToolDefinition> tools, String toolChoice, AiStreamSession stream) {
+        throw new UnsupportedOperationException("Provider " + getProviderCode() + " does not support streaming tools");
+    }
+
     /**
      * Execute chat completion with tools (Function Calling)
      *
