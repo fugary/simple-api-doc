@@ -84,8 +84,7 @@ export const ALL_MENUS = [
     iconCls: 'Setting',
     nameCn: 'AI配置管理',
     nameEn: 'AI Configs',
-    menuUrl: '/admin/ai/configs',
-    checkEnabled: isAdminUser
+    menuUrl: '/admin/ai/configs'
   }, {
     id: 55,
     parentId: 5,

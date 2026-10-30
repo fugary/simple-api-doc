@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { ref, onMounted, onActivated, computed } from 'vue'
 import { omit } from 'lodash-es'
-import { formatDate, $coreConfirm } from '@/utils'
+import { formatDate, $coreConfirm, isAdminUser } from '@/utils'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { AiConfigApi, recoverAiConfigFromHistory, loadHistoryDiff, searchHistories, loadAiModels } from '@/api/AiConfigApi'
 import { useAiConfigStore } from '@/stores/AiConfigStore'
@@ -17,6 +17,7 @@ import { renderAiProviderTag } from '@/utils/AiProviderUtils'
 import AiConfigTestWindow from './AiConfigTestWindow.vue'
 import { useRouter } from 'vue-router'
 
+const isAdmin = computed(() => isAdminUser())
 const aiConfigStore = useAiConfigStore()
 const router = useRouter()
 
@@ -271,7 +272,7 @@ const columns = computed(() => {
     align: 'center',
     formatter (data) {
       return <DelFlagTag v-model={data.status}
-                         clickToToggle={true}
+                         clickToToggle={isAdmin.value}
                          onToggleValue={(status) => saveConfig({ ...data, status: Number(status) })} />
     }
   }, {
@@ -281,9 +282,10 @@ const columns = computed(() => {
     align: 'center',
     formatter (data) {
       const toText = data.isDefault === 1 ? $i18nBundle('common.label.statusDisabled') : $i18nBundle('api.label.setDefault')
-      const tooltip = $i18nKey('common.msg.clickTo', toText)
+      const tooltip = { content: $i18nKey('common.msg.clickTo', toText), disabled: !isAdmin.value }
       return <el-link v-common-tooltip={tooltip} underline="never">
         <ElSwitch v-model={data.isDefault}
+                  disabled={!isAdmin.value}
                   active-value={1}
                   inactive-value={0}
                   before-change={() => handleToggleDefault(data)}
@@ -309,17 +311,18 @@ const showTestDialog = (row = null) => {
 
 const buttons = computed(() => {
   return [{
-    labelKey: 'common.label.edit',
+    labelKey: isAdmin.value ? 'common.label.edit' : 'common.label.view',
     type: 'primary',
     click: showEditDialog
   }, {
     labelKey: 'common.label.test',
     type: 'success',
+    buttonIf: (row) => isAdmin.value || row.status === 1,
     click: showTestDialog
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
-    buttonIf: (row) => row.creator !== 'system',
+    buttonIf: (row) => isAdmin.value && row.creator !== 'system',
     click: deleteConfig
   }]
 })
@@ -372,7 +375,7 @@ const queryBaseUrlSuggestions = (queryString, cb) => {
 // Edit Form Options
 const editFormOptions = computed(() => {
   const isSystem = editForm.value.creator === 'system'
-  return [{
+  const options = [{
     labelKey: 'api.label.configName',
     prop: 'configName',
     required: true,
@@ -447,22 +450,32 @@ const editFormOptions = computed(() => {
     }
   }
   ]
+  return isAdmin.value
+    ? options
+    : options
+      .filter(option => option.prop !== 'apiKey')
+      .map(option => ({ ...option, disabled: true, required: false, tooltip: undefined, tooltipFunc: undefined }))
 })
 
-const editWindowAttrs = computed(() => ({
-  buttons: [{
-    labelKey: 'common.label.test',
-    type: 'success',
-    click: () => {
-      if (!editForm.value.baseUrl || !editForm.value.apiKey) {
-        ElMessage.warning($i18nBundle('api.msg.loadModelsNeedKey'))
+const editWindowAttrs = computed(() => {
+  if (!isAdmin.value) {
+    return { title: $i18nKey('common.label.commonView', $i18nBundle('api.label.aiConfigManagement')) }
+  }
+  return {
+    buttons: [{
+      labelKey: 'common.label.test',
+      type: 'success',
+      click: () => {
+        if (!editForm.value.baseUrl || !editForm.value.apiKey) {
+          ElMessage.warning($i18nBundle('api.msg.loadModelsNeedKey'))
+          return false
+        }
+        showTestDialog(editForm.value)
         return false
       }
-      showTestDialog(editForm.value)
-      return false
-    }
-  }]
-}))
+    }]
+  }
+})
 
 </script>
 
@@ -483,6 +496,7 @@ const editWindowAttrs = computed(() => ({
           {{ $t('common.label.test') }}
         </el-button>
         <el-button
+          v-if="isAdmin"
           type="info"
           @click="showEditDialog()"
         >
@@ -517,14 +531,17 @@ const editWindowAttrs = computed(() => ({
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="copyConfig(row)">
+              <el-dropdown-item
+                v-if="isAdmin"
+                @click="copyConfig(row)"
+              >
                 {{ $t('common.label.copy') }}
               </el-dropdown-item>
               <el-dropdown-item @click="router.push({ name: 'AiCaches', query: { configId: row.id } })">
                 {{ $t('api.label.viewAiRecords') }}
               </el-dropdown-item>
               <el-dropdown-item
-                v-if="row.version > 1"
+                v-if="isAdmin && row.version > 1"
                 @click="showHistoryDialog(row)"
               >
                 {{ $t('api.label.history') }}
@@ -538,6 +555,7 @@ const editWindowAttrs = computed(() => ({
     <simple-edit-window
       v-model="editForm"
       v-model:show-edit-window="editDialogVisible"
+      :editable="isAdmin"
       :form-options="editFormOptions"
       :name="$t('api.label.aiConfigManagement')"
       :save-current-item="saveConfig"

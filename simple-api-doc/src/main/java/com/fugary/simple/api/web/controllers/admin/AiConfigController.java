@@ -14,6 +14,7 @@ import com.fugary.simple.api.service.ai.AiService;
 import com.fugary.simple.api.service.ai.provider.AiChatResponse;
 import com.fugary.simple.api.utils.SimpleModelUtils;
 import com.fugary.simple.api.utils.SimpleResultUtils;
+import com.fugary.simple.api.utils.security.SecurityUtils;
 import com.fugary.simple.api.web.vo.AiGenericTaskReq;
 import com.fugary.simple.api.web.vo.SimpleResult;
 import com.fugary.simple.api.web.vo.query.SimpleQueryVo;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * AI Config 管理 Controller
@@ -54,6 +56,7 @@ public class AiConfigController {
         String prompt = req == null ? null : StringUtils.defaultIfBlank(req.getUserMessage(), req.getPrompt());
         if (StringUtils.isBlank(prompt)) throw new SimpleRuntimeException(SystemErrorConstants.CODE_2015);
         Integer configId = ObjectUtils.defaultIfNull(id, req.getConfigId());
+        checkTestAccess(configId, req);
         return aiSseSupport.start((emitter, stream) -> aiService.streamTestAiConfig(configId, req, emitter, stream));
     }
 
@@ -65,6 +68,7 @@ public class AiConfigController {
             return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_2015);
         }
         Integer configId = ObjectUtils.defaultIfNull(id, req != null ? req.getConfigId() : null);
+        checkTestAccess(configId, req);
         return testResult(() -> configId != null
                 ? aiService.testAiConfig(configId, req)
                 : aiService.testAiConfig(req != null ? req.getConfig() : null, req));
@@ -85,11 +89,13 @@ public class AiConfigController {
 
     @GetMapping("/{id}/models")
     public SimpleResult<List<String>> loadModels(@PathVariable("id") Integer id) {
+        checkUsableConfig(id);
         return loadModelsResult(() -> aiService.loadModels(id));
     }
 
     @PostMapping("/models")
     public SimpleResult<List<String>> loadModels(@RequestBody AiConfig config) {
+        requireAdmin();
         return loadModelsResult(() -> aiService.loadModels(config));
     }
 
@@ -108,6 +114,9 @@ public class AiConfigController {
 
     @GetMapping
     public SimpleResult<List<AiConfig>> search(AiConfigQueryVo queryVo) {
+        if (queryVo.getModifyFrom() != null) {
+            requireAdmin();
+        }
         Page<AiConfig> page = SimpleResultUtils.toPage(queryVo);
         QueryWrapper<AiConfig> queryWrapper = Wrappers.<AiConfig>query()
                 .like(StringUtils.isNotBlank(queryVo.getConfigName()), "config_name", queryVo.getConfigName())
@@ -118,20 +127,26 @@ public class AiConfigController {
                 .eq(queryVo.getModifyFrom() != null, "modify_from", queryVo.getModifyFrom())
                 .isNull(queryVo.getModifyFrom() == null, "modify_from")
                 .orderByDesc("id");
-        return SimpleResultUtils.createSimpleResult(aiConfigService.page(page, queryWrapper));
+        aiConfigService.page(page, queryWrapper);
+        page.setRecords(page.getRecords().stream().map(this::visibleConfig).collect(Collectors.toList()));
+        return SimpleResultUtils.createSimpleResult(page);
     }
 
     @GetMapping("/{id}")
     public SimpleResult<AiConfig> get(@PathVariable("id") Integer id) {
         AiConfig config = aiConfigService.getAiConfig(id);
         if (config != null) {
-            return SimpleResultUtils.createSimpleResult(config);
+            if (config.getModifyFrom() != null) {
+                requireAdmin();
+            }
+            return SimpleResultUtils.createSimpleResult(visibleConfig(config));
         }
         return SimpleResultUtils.createSimpleResult(SystemErrorConstants.CODE_404);
     }
 
     @PostMapping
     public SimpleResult<AiConfig> save(@RequestBody AiConfig aiConfig) {
+        requireAdmin();
         if (aiConfig.getId() != null) {
             AiConfig existsConfig = aiConfigService.getById(aiConfig.getId());
             if (existsConfig != null) {
@@ -168,6 +183,7 @@ public class AiConfigController {
 
     @DeleteMapping("/{id}")
     public SimpleResult<Boolean> delete(@PathVariable("id") Integer id) {
+        requireAdmin();
         AiConfig existsConfig = aiConfigService.getById(id);
         if (existsConfig != null) {
             if ("system".equals(existsConfig.getCreator())) {
@@ -184,6 +200,7 @@ public class AiConfigController {
 
     @PostMapping("/recover")
     public SimpleResult<AiConfig> recoverFromHistory(@RequestBody SimpleQueryVo historyVo) {
+        requireAdmin();
         AiConfig historyConfig = aiConfigService.getById(historyVo.getQueryId());
         if (historyConfig != null && historyConfig.getModifyFrom() != null) {
             AiConfig currentConfig = aiConfigService.getById(historyConfig.getModifyFrom());
@@ -199,6 +216,7 @@ public class AiConfigController {
 
     @PostMapping("/histories/{id}")
     public SimpleResult<List<AiConfig>> histories(@RequestBody AiConfigQueryVo queryVo, @PathVariable Integer id) {
+        requireAdmin();
         AiConfig currentData = aiConfigService.getById(id);
         Page<AiConfig> page = SimpleResultUtils.toPage(queryVo);
         QueryWrapper<AiConfig> queryWrapper = Wrappers.<AiConfig>query()
@@ -210,6 +228,7 @@ public class AiConfigController {
 
     @PostMapping("/loadHistoryDiff")
     public SimpleResult<Map<String, AiConfig>> loadHistoryDiff(@RequestBody SimpleQueryVo queryVo) {
+        requireAdmin();
         Integer id = queryVo.getQueryId();
         AiConfig modified = aiConfigService.getById(id);
         if (modified == null) {
@@ -231,6 +250,39 @@ public class AiConfigController {
                 map.put("original", data);
             });
             return SimpleResultUtils.createSimpleResult(map);
+        }
+    }
+
+    private void requireAdmin() {
+        if (!SecurityUtils.isAdmin()) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_403);
+        }
+    }
+
+    private AiConfig visibleConfig(AiConfig config) {
+        if (SecurityUtils.isAdmin()) {
+            return config;
+        }
+        AiConfig visible = SimpleModelUtils.copy(config, AiConfig.class);
+        visible.setApiKey(null);
+        return visible;
+    }
+
+    private void checkTestAccess(Integer configId, AiGenericTaskReq req) {
+        if (!SecurityUtils.isAdmin() && req.getConfig() != null) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_403);
+        }
+        checkUsableConfig(configId);
+    }
+
+    // 普通用户仅能通过 ID 使用已启用的当前配置，密钥始终留在服务端。
+    private void checkUsableConfig(Integer configId) {
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
+        AiConfig config = configId == null ? null : aiConfigService.getById(configId);
+        if (config == null || config.getModifyFrom() != null || !Integer.valueOf(1).equals(config.getStatus())) {
+            throw new SimpleRuntimeException(SystemErrorConstants.CODE_403);
         }
     }
 }
