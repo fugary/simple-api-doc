@@ -3,6 +3,8 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import createDOMPurify from 'dompurify'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
+import { defineMonacoOptions } from '@/vendors/monaco-editor'
+import { $i18nBundle } from '@/messages'
 import 'md-editor-v3/lib/preview.css'
 
 const props = defineProps({
@@ -14,6 +16,23 @@ const mode = ref('preview')
 const displayedContent = ref('')
 const globalConfigStore = useGlobalConfigStore()
 const theme = computed(() => globalConfigStore.isDarkTheme ? 'dark' : 'light')
+const modeOptions = computed(() => [
+  { label: $i18nBundle('common.label.preview'), value: 'preview' },
+  { label: $i18nBundle('api.label.aiAnswerSource'), value: 'source' }
+])
+const sourceOptions = defineMonacoOptions({
+  readOnly: true,
+  domReadOnly: true,
+  minimap: { enabled: false },
+  fontSize: 13,
+  lineHeight: 22,
+  padding: { top: 12, bottom: 12 },
+  wordWrap: 'on',
+  renderLineHighlight: 'none',
+  overviewRulerLanes: 0,
+  hideCursorInOverviewRuler: true
+})
+const sourceHeight = computed(() => Math.min(460, Math.max(160, displayedContent.value.split('\n').length * 22 + 24)))
 const emit = defineEmits(['doc-click'])
 const purifier = createDOMPurify(window)
 purifier.addHook('uponSanitizeAttribute', (node, data) => {
@@ -55,17 +74,11 @@ onUnmounted(() => clearTimeout(renderTimer))
     @auxclick.capture="openDoc"
   >
     <div class="answer-toolbar">
-      <el-radio-group
+      <el-segmented
         v-model="mode"
+        :options="modeOptions"
         size="small"
-      >
-        <el-radio-button value="preview">
-          {{ $t('common.label.preview') }}
-        </el-radio-button>
-        <el-radio-button value="source">
-          {{ $t('api.label.aiAnswerSource') }}
-        </el-radio-button>
-      </el-radio-group>
+      />
       <span
         v-if="streaming && content.trim()"
         class="answer-progress"
@@ -77,7 +90,12 @@ onUnmounted(() => clearTimeout(renderTimer))
         />
         {{ $t('api.label.aiAnswerGenerating') }}
       </span>
-      <slot name="actions" />
+      <div
+        v-if="$slots.actions"
+        class="answer-actions"
+      >
+        <slot name="actions" />
+      </div>
     </div>
     <div
       v-if="streaming && !content.trim()"
@@ -98,18 +116,24 @@ onUnmounted(() => clearTimeout(renderTimer))
       :sanitize="sanitizeContent"
       class="md-doc-container"
     />
-    <pre
+    <vue-monaco-editor
       v-else
       class="answer-source"
-    >{{ content }}</pre>
+      :value="displayedContent"
+      language="markdown"
+      :theme="theme === 'dark' ? 'vs-dark' : 'vs'"
+      :options="sourceOptions"
+      :height="`${sourceHeight}px`"
+    />
   </div>
 </template>
 
 <style scoped>
 .ai-answer-viewer { width: 100%; min-width: 0; }
 .answer-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 8px; }
+.answer-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .answer-progress, .answer-waiting { display: flex; align-items: center; gap: 8px; color: var(--el-text-color-secondary); font-size: 13px; }
 .answer-waiting { min-height: 96px; justify-content: center; padding: 12px; border-radius: 6px; background: var(--el-fill-color-light); }
-.answer-source { margin: 0; padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-family: monospace; font-size: 13px; line-height: 1.75; color: var(--el-text-color-regular); background: var(--el-fill-color-light); border-radius: 6px; }
-.answer-source, :deep(.md-editor-preview-wrapper) { max-height: 460px; overflow: auto; }
+.answer-source { overflow: hidden; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
+:deep(.md-editor-preview-wrapper) { max-height: 460px; overflow: auto; }
 </style>

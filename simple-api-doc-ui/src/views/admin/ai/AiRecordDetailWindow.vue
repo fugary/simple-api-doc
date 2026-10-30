@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { createReusableTemplate } from '@vueuse/core'
 import createDOMPurify from 'dompurify'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -40,6 +41,8 @@ const jsonResponse = computed(() => {
   const parsed = parseJson(props.record.cacheValue)
   return parsed == null ? null : JSON.stringify(parsed, null, 2)
 })
+const showMarkdownAnswer = computed(() => isMarkdown.value && !!props.record.cacheValue && jsonResponse.value === null)
+const [DefineResponseJsonAction, ResponseJsonAction] = createReusableTemplate()
 const responseHeight = computed(() => Math.min(460, Math.max(160, (jsonResponse.value?.split('\n').length || 1) * 22 + 24)))
 const responseOptions = defineMonacoOptions({
   readOnly: true,
@@ -111,6 +114,22 @@ const openDocument = async event => {
 </script>
 
 <template>
+  <define-response-json-action>
+    <el-tooltip
+      :disabled="!!record.rawResponse"
+      :content="$t('api.label.aiRecordNoRawResponse')"
+    >
+      <span>
+        <el-button
+          :disabled="!record.rawResponse"
+          size="small"
+          @click="viewSource(record.rawResponse)"
+        >
+          {{ $t('api.label.aiRecordResponseJson') }}
+        </el-button>
+      </span>
+    </el-tooltip>
+  </define-response-json-action>
   <common-window
     v-model="visible"
     width="1100px"
@@ -129,6 +148,7 @@ const openDocument = async event => {
         <span class="record-config"><config-label /></span>
         <span>{{ record.modelName }}</span>
         <span>{{ record.costTime ?? '-' }} ms · {{ record.totalTokens ?? '-' }} Tokens</span>
+        <span v-if="record.shareRecordId">{{ $t('api.label.aiRecordShare') }} #{{ record.shareRecordId }}</span>
       </div>
       <el-tabs v-model="activeTab">
         <el-tab-pane
@@ -145,7 +165,10 @@ const openDocument = async event => {
           <section class="record-section">
             <div class="record-section-header">
               <h4>{{ $t('api.label.aiRecordResponse') }}</h4>
-              <div class="record-actions">
+              <div
+                v-if="!showMarkdownAnswer"
+                class="record-actions"
+              >
                 <el-button
                   v-if="!isMarkdown || jsonResponse !== null"
                   :disabled="!record.cacheValue"
@@ -155,20 +178,7 @@ const openDocument = async event => {
                 >
                   {{ $t('api.label.aiRecordViewSource') }}
                 </el-button>
-                <el-tooltip
-                  :disabled="!!record.rawResponse"
-                  :content="$t('api.label.aiRecordNoRawResponse')"
-                >
-                  <span>
-                    <el-button
-                      :disabled="!record.rawResponse"
-                      size="small"
-                      @click="viewSource(record.rawResponse)"
-                    >
-                      {{ $t('api.label.aiRecordResponseJson') }}
-                    </el-button>
-                  </span>
-                </el-tooltip>
+                <response-json-action />
               </div>
             </div>
             <el-alert
@@ -191,11 +201,15 @@ const openDocument = async event => {
                 :height="`${responseHeight}px`"
               />
               <ai-answer-viewer
-                v-else-if="isMarkdown && record.cacheValue"
+                v-else-if="showMarkdownAnswer"
                 :key="record.id"
                 :content="record.cacheValue"
                 :sanitize="sanitize"
-              />
+              >
+                <template #actions>
+                  <response-json-action />
+                </template>
+              </ai-answer-viewer>
               <pre
                 v-else-if="record.cacheValue"
                 class="record-code"

@@ -17,11 +17,28 @@ import AiRecordDetailWindow from './AiRecordDetailWindow.vue'
 const route = useRoute()
 const router = useRouter()
 const aiConfigs = ref([])
+const currentConfigOptions = computed(() => buildAiConfigOptions(aiConfigs.value))
+const recordConfigOption = item => {
+  const name = item.configId ? `#${item.configId}` : $i18nBundle('api.label.aiRecordUnassociated')
+  const label = item.baseUrl ? `${name} (${item.baseUrl})` : name
+  return {
+    label,
+    value: item.configId,
+    slots: {
+      default: () => <span>
+        {renderAiProviderTag(item.provider, { size: 'small' })}
+        <span class="margin-left1">{label}</span>
+      </span>
+    }
+  }
+}
 const configOptions = computed(() => {
-  const options = buildAiConfigOptions(aiConfigs.value)
+  const options = [...currentConfigOptions.value]
   const ids = [searchParam.value.configId, ...tableData.value.map(item => item.configId)]
   ids.filter(Boolean).forEach(id => {
-    if (!options.some(option => option.value === id)) options.push({ label: `#${id}`, value: id })
+    if (!options.some(option => option.value === id)) {
+      options.push(recordConfigOption(tableData.value.find(item => item.configId === id) || { configId: id }))
+    }
   })
   return options
 })
@@ -96,8 +113,7 @@ const changeConfig = async () => {
   await router.replace({ query })
 }
 
-const configOption = item => configOptions.value.find(option => option.value === item.configId) || { label: item.configId ? `#${item.configId}` : $i18nBundle('api.label.aiRecordUnassociated') }
-const accessSource = item => item.shareRecordId ? `${$i18nBundle('api.label.aiRecordShare')} #${item.shareRecordId}` : $i18nBundle('api.label.aiRecordDirect')
+const configOption = item => currentConfigOptions.value.find(option => option.value === item.configId) || recordConfigOption(item)
 
 const columns = computed(() => {
   return [{
@@ -115,17 +131,6 @@ const columns = computed(() => {
     prop: 'configId',
     minWidth: '160px',
     formatter: item => configOption(item).slots?.default() || configOption(item).label
-  }, {
-    labelKey: 'api.label.aiRecordSource',
-    prop: 'shareRecordId',
-    formatter: accessSource
-  }, {
-    labelKey: 'api.label.provider',
-    prop: 'provider',
-    minWidth: '100px',
-    formatter (data) {
-      return renderAiProviderTag(data.provider)
-    }
   }, {
     labelKey: 'api.label.aiCacheModelName',
     minWidth: '150px',
