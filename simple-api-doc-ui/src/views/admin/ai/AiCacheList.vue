@@ -96,7 +96,7 @@ const changeConfig = async () => {
   await router.replace({ query })
 }
 
-const configName = item => configOptions.value.find(option => option.value === item.configId)?.label || (item.configId ? `#${item.configId}` : $i18nBundle('api.label.aiRecordUnassociated'))
+const configOption = item => configOptions.value.find(option => option.value === item.configId) || { label: item.configId ? `#${item.configId}` : $i18nBundle('api.label.aiRecordUnassociated') }
 const accessSource = item => item.shareRecordId ? `${$i18nBundle('api.label.aiRecordShare')} #${item.shareRecordId}` : $i18nBundle('api.label.aiRecordDirect')
 
 const columns = computed(() => {
@@ -114,7 +114,7 @@ const columns = computed(() => {
     labelKey: 'api.label.aiConfigSelect',
     prop: 'configId',
     minWidth: '160px',
-    formatter: configName
+    formatter: item => configOption(item).slots?.default() || configOption(item).label
   }, {
     labelKey: 'api.label.aiRecordSource',
     prop: 'shareRecordId',
@@ -299,7 +299,7 @@ const searchFormOptions = computed(() => {
       v-if="showDetail && detailRecord"
       v-model="showDetail"
       :record="detailRecord"
-      :config-name="configName(detailRecord)"
+      :config-option="configOption(detailRecord)"
       :status-option="statusOptions.find(item => item.value === detailRecord.status) || statusOptions[0]"
     />
   </el-container>

@@ -10,6 +10,7 @@ import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { defineMonacoOptions } from '@/vendors/monaco-editor'
 import ApiDocApi from '@/api/ApiDocApi'
 import ApiProjectApi from '@/api/ApiProjectApi'
+import ApiDocAiExecutionSteps from '@/views/components/api/doc/comp/ApiDocAiExecutionSteps.vue'
 import 'md-editor-v3/lib/preview.css'
 
 const visible = defineModel({ type: Boolean, default: false })
@@ -21,7 +22,8 @@ purifier.addHook('uponSanitizeAttribute', (node, data) => {
   }
 })
 const sanitize = html => purifier.sanitize(html)
-const props = defineProps({ record: { type: Object, required: true }, configName: { type: String, default: '' }, statusOption: { type: Object, required: true } })
+const props = defineProps({ record: { type: Object, required: true }, configOption: { type: Object, required: true }, statusOption: { type: Object, required: true } })
+const ConfigLabel = () => props.configOption.slots?.default() || props.configOption.label
 const activeTab = ref('result')
 const router = useRouter()
 const openingDoc = ref(false)
@@ -59,19 +61,30 @@ const steps = computed(() => {
     if (!step || typeof step !== 'object' || (step.type === 'model' && step.status === 'success')) continue
     const args = parseJson(step.args)
     const summary = parseJson(step.summary)
-    const titleKey = { search_docs: 'aiRecordSearch', get_doc: 'aiRecordRead', model: 'aiRecordModelCall', overview: 'aiRecordOverview' }[step.tool || step.type] || 'aiRecordTool'
-    const text = [step.tool === 'search_docs' ? args?.keywords : '', step.tool === 'get_doc' && args?.docId ? `#${args.docId}` : '', summary?.total != null ? $i18nBundle('api.label.aiRecordHits', [summary.total]) : '', summary?.summary || (typeof step.summary === 'string' && !summary ? step.summary : '')].filter(Boolean).join(' · ')
+    const titleKey = { search_docs: 'aiSearchDocsStep', get_doc: 'aiGetDocStep', model: 'aiRecordModelCall', overview: 'aiRecordOverview' }[step.tool || step.type] || 'aiRecordTool'
+    const rawSummary = summary?.summary ?? step.summary
+    // 与实时问答保持一致，保留工具返回的有界摘要，包括截断的文档结果片段。
+    const text = step.tool === 'search_docs' && summary?.total != null
+      ? $i18nBundle('api.label.aiSearchMatches', [summary.total])
+      : typeof rawSummary === 'string' ? rawSummary : ''
+    const label = step.tool === 'search_docs' && args?.keywords
+      ? $i18nBundle('api.label.aiSearchKeywords', [args.keywords])
+      : $i18nBundle(`api.label.${titleKey}`)
+    const status = { success: 'finished', failed: 'error', skipped: 'skipped' }[step.status] || 'interrupted'
     const previous = step.tool === 'get_doc' && args?.docId && result.find(item => item.docId === args.docId)
     if (previous) {
       previous.duration += Number(step.duration) || 0
-      if (step.status === 'failed') { previous.status = 'failed'; previous.text = text }
+      if (status === 'error' || (previous.status !== 'error' && status !== 'skipped')) {
+        previous.status = status
+        previous.summary = text || previous.summary
+      }
     } else {
-      result.push({ title: $i18nBundle(`api.label.${titleKey}`), text, status: step.status, duration: Number(step.duration) || 0, docId: step.tool === 'get_doc' ? args?.docId : null })
+      result.push({ tool: step.tool || step.type, label, summary: text, status, duration: Number(step.duration) || 0, docId: step.tool === 'get_doc' ? args?.docId : null })
     }
   }
   return result
 })
-const statusLabel = status => $i18nBundle(`api.label.${{ success: 'aiCacheStatusSuccess', failed: 'aiCacheStatusFailed', skipped: 'aiRecordSkipped' }[status] || 'aiRecordInterrupted'}`)
+const answerStatus = computed(() => ({ 1: 'SUCCESS', 2: 'ERROR', 3: 'INCOMPLETE', 4: 'INTERRUPTED' }[props.record.status] || ''))
 const finishReason = computed(() => {
   const key = { max_rounds: 'aiRecordMaxRounds', repeated_calls: 'aiRecordRepeatedCalls', incomplete: 'aiRecordIncomplete', interrupted: 'aiRecordInterrupted', failed: 'aiCacheStatusFailed' }[execution.value?.finishReason]
   return key ? $i18nBundle(`api.label.${key}`) : ''
@@ -102,7 +115,7 @@ const openDocument = async event => {
   <common-window
     v-model="visible"
     width="1100px"
-    :title="$t('api.label.aiCacheManagement')"
+    :title="$t('api.label.aiRecordDetail')"
     :show-cancel="false"
     :ok-label="$t('common.label.close')"
     show-fullscreen
@@ -114,7 +127,8 @@ const openDocument = async event => {
         <el-tag :type="statusOption.type">
           {{ $t(statusOption.labelKey) }}
         </el-tag>
-        <span>{{ configName }} · {{ record.modelName }}</span>
+        <span class="record-config"><config-label /></span>
+        <span>{{ record.modelName }}</span>
         <span>{{ record.costTime ?? '-' }} ms · {{ record.totalTokens ?? '-' }} Tokens</span>
       </div>
       <el-tabs v-model="activeTab">
@@ -135,6 +149,7 @@ const openDocument = async event => {
               <div class="record-actions">
                 <el-button
                   :disabled="!record.cacheValue"
+                  type="primary"
                   size="small"
                   @click="viewSource(record.cacheValue, isMarkdown ? 'markdown' : 'json')"
                 >
@@ -223,17 +238,16 @@ const openDocument = async event => {
           <p v-if="execution?.usageComplete === false">
             {{ $t('api.label.aiRecordPartialUsage') }}
           </p>
-          <div
-            v-for="(step, index) in steps"
-            :key="index"
-            class="record-step"
-          >
-            <strong>{{ step.title }}</strong>
-            <span>{{ step.text }}</span>
-            <el-text :type="step.status === 'failed' ? 'danger' : 'info'">
-              {{ statusLabel(step.status) }} · {{ step.duration }} ms
-            </el-text>
-          </div>
+          <api-doc-ai-execution-steps
+            v-if="steps.length"
+            :steps="steps"
+            :answer-status="answerStatus"
+          />
+          <el-empty
+            v-else
+            :description="$t('api.label.aiRecordNoSteps')"
+            :image-size="60"
+          />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -252,6 +266,5 @@ const openDocument = async event => {
 .record-json { overflow: hidden; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
 .record-code { margin: 12px 0 0; font-family: var(--el-font-family); font-size: 13px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 460px; overflow: auto; color: var(--el-text-color-regular); }
 .record-prompt { max-height: 240px; }
-.record-step { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--el-border-color-lighter); overflow-wrap: anywhere; }
-.record-step > span { flex: 1; }
+.record-config { min-width: 0; overflow-wrap: anywhere; color: var(--el-text-color-regular); }
 </style>
