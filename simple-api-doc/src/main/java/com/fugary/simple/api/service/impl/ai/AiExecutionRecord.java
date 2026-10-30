@@ -63,6 +63,10 @@ class AiExecutionRecord {
         usageComplete &= response != null && response.getPromptTokens() != null
                 && response.getCompletionTokens() != null && response.getTotalTokens() != null;
         if (response != null) {
+            // 仅保留最近一次原始响应，后续调用失败或未返回原文时不覆盖。
+            if (StringUtils.isNotBlank(response.getRawResponse())) {
+                record.setRawResponse(response.getRawResponse());
+            }
             record.setPromptTokens(add(record.getPromptTokens(), response.getPromptTokens()));
             record.setCompletionTokens(add(record.getCompletionTokens(), response.getCompletionTokens()));
             record.setTotalTokens(add(record.getTotalTokens(), response.getTotalTokens()));
@@ -113,6 +117,7 @@ class AiExecutionRecord {
                     .eq(AiCache::getCacheKey, record.getCacheKey()).eq(AiCache::getStatus, 0)
                     .set(AiCache::getStatus, status)
                     .set(content != null, AiCache::getCacheValue, content)
+                    .set(record.getRawResponse() != null, AiCache::getRawResponse, record.getRawResponse())
                     .set(AiCache::getErrorMessage, StringUtils.left(error, 2000))
                     .set(AiCache::getExecutionDetail, JsonUtils.toJson(detail))
                     .set(AiCache::getPromptTokens, record.getPromptTokens())

@@ -39,7 +39,7 @@ class AiExecutionRecordTest {
     }
 
     @Test
-    void recordsShareIdentityAndAggregatesProviderTotalsWithoutSavingRawResponse() throws Exception {
+    void recordsShareIdentityAndAggregatesProviderTotalsWithLatestRawResponse() throws Exception {
         AiConfig config = new AiConfig();
         config.setId(12);
         ApiProjectShare share = new ApiProjectShare();
@@ -51,8 +51,9 @@ class AiExecutionRecordTest {
         response.setPromptTokens(10);
         response.setCompletionTokens(5);
         response.setTotalTokens(20);
-        response.setRawResponse("secret reasoning signature");
+        response.setRawResponse("{\"id\":\"first\"}");
         record.model(response, 1, 100);
+        response.setRawResponse("{\"id\":\"last\"}");
         record.model(response, 2, 100);
         record.finish(1, "answer", "success", null);
         record.finish(4, null, "interrupted", null);
@@ -66,8 +67,23 @@ class AiExecutionRecordTest {
         Map<String, Object> terminal = writes.get(2);
         assertThat(terminal).containsEntry("status", 1).containsEntry("total_tokens", 40)
                 .containsEntry("prompt_tokens", 20).containsEntry("cache_value", "answer");
-        assertThat((String) terminal.get("execution_detail")).doesNotContain("secret reasoning");
+        assertThat(writes.get(0)).containsEntry("raw_response", "{\"id\":\"first\"}");
+        assertThat(terminal).containsEntry("raw_response", "{\"id\":\"last\"}");
+        assertThat((String) terminal.get("execution_detail")).doesNotContain("\"id\"");
         assertThat(JsonUtils.getMapper().readTree((String) terminal.get("execution_detail")).path("usageComplete").asBoolean()).isTrue();
+    }
+
+    @Test
+    void preservesLatestRawResponseWhenLaterCallsFailOrOmitRawResponse() {
+        AiExecutionRecord record = new AiExecutionRecord(mapper, new AiConfig(), null, 1, "question");
+        AiChatResponse response = new AiChatResponse();
+        response.setRawResponse("{\"id\":\"last\"}");
+        record.model(response, 1, 10);
+        record.model(new AiChatResponse(), 2, 10);
+        record.model(null, 3, 10);
+        record.finish(2, null, "failed", "error");
+        assertThat(writes).allSatisfy(write ->
+                assertThat(write).containsEntry("raw_response", "{\"id\":\"last\"}"));
     }
 
     @Test
