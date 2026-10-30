@@ -6,8 +6,6 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle } from '@/messages'
 import { showCodeWindow } from '@/utils/DynamicUtils'
-import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
-import { defineMonacoOptions } from '@/vendors/monaco-editor'
 import ApiDocApi from '@/api/ApiDocApi'
 import ApiProjectApi from '@/api/ApiProjectApi'
 import ApiDocAiExecutionSteps from '@/views/components/api/doc/comp/ApiDocAiExecutionSteps.vue'
@@ -27,36 +25,12 @@ const ConfigLabel = () => props.configOption.slots?.default() || props.configOpt
 const activeTab = ref('result')
 const router = useRouter()
 const openingDoc = ref(false)
-const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
-const isMarkdown = computed(() => ['agent_chat', 'test_config'].includes(props.record.cacheType))
 const parseJson = value => {
   try { return typeof value === 'string' ? JSON.parse(value) : value } catch { return null }
 }
 const execution = computed(() => parseJson(props.record.executionDetail))
-const formatJson = value => {
-  const parsed = parseJson(value)
-  return parsed == null ? String(value ?? '') : JSON.stringify(parsed, null, 2)
-}
-const jsonResponse = computed(() => {
-  const parsed = parseJson(props.record.cacheValue)
-  return parsed == null ? null : JSON.stringify(parsed, null, 2)
-})
-const showMarkdownAnswer = computed(() => isMarkdown.value && !!props.record.cacheValue && jsonResponse.value === null)
 const [DefineResponseJsonAction, ResponseJsonAction] = createReusableTemplate()
-const responseHeight = computed(() => Math.min(460, Math.max(160, (jsonResponse.value?.split('\n').length || 1) * 22 + 24)))
-const responseOptions = defineMonacoOptions({
-  readOnly: true,
-  domReadOnly: true,
-  minimap: { enabled: false },
-  fontSize: 13,
-  lineHeight: 22,
-  padding: { top: 12, bottom: 12 },
-  wordWrap: 'off',
-  renderLineHighlight: 'none',
-  overviewRulerLanes: 0,
-  hideCursorInOverviewRuler: true
-})
-const viewSource = (value, language = 'json') => showCodeWindow(language === 'json' ? formatJson(value) : value, { language, readOnly: true })
+const viewSource = value => showCodeWindow(String(value ?? ''), { language: 'json', readOnly: true })
 const steps = computed(() => {
   const result = []
   for (const step of Array.isArray(execution.value?.steps) ? execution.value.steps : []) {
@@ -157,29 +131,21 @@ const openDocument = async event => {
         >
           <section
             v-if="record.prompt"
-            class="record-section record-request"
+            class="record-section"
           >
-            <h4>{{ $t('api.label.aiRecordInput') }}</h4>
-            <pre class="record-code record-prompt">{{ record.prompt }}</pre>
+            <div class="record-section-header">
+              <h4>{{ $t('api.label.aiRecordInput') }}</h4>
+            </div>
+            <ai-answer-viewer
+              :key="record.cacheKey"
+              :content="record.prompt"
+              :max-height="240"
+            />
           </section>
           <section class="record-section">
             <div class="record-section-header">
               <h4>{{ $t('api.label.aiRecordResponse') }}</h4>
-              <div
-                v-if="!showMarkdownAnswer"
-                class="record-actions"
-              >
-                <el-button
-                  v-if="!isMarkdown || jsonResponse !== null"
-                  :disabled="!record.cacheValue"
-                  type="primary"
-                  size="small"
-                  @click="viewSource(record.cacheValue, isMarkdown ? 'markdown' : 'json')"
-                >
-                  {{ $t('api.label.aiRecordViewSource') }}
-                </el-button>
-                <response-json-action />
-              </div>
+              <response-json-action v-if="!record.cacheValue" />
             </div>
             <el-alert
               v-if="record.errorMessage"
@@ -191,18 +157,9 @@ const openDocument = async event => {
               @click.capture="openDocument"
               @auxclick.capture="openDocument"
             >
-              <vue-monaco-editor
-                v-if="record.cacheValue && jsonResponse !== null"
-                class="record-json"
-                :value="jsonResponse"
-                language="json"
-                :theme="theme === 'dark' ? 'vs-dark' : 'vs'"
-                :options="responseOptions"
-                :height="`${responseHeight}px`"
-              />
               <ai-answer-viewer
-                v-else-if="showMarkdownAnswer"
-                :key="record.id"
+                v-if="record.cacheValue"
+                :key="record.cacheKey"
                 :content="record.cacheValue"
                 :sanitize="sanitize"
               >
@@ -210,10 +167,6 @@ const openDocument = async event => {
                   <response-json-action />
                 </template>
               </ai-answer-viewer>
-              <pre
-                v-else-if="record.cacheValue"
-                class="record-code"
-              >{{ formatJson(record.cacheValue) }}</pre>
               <el-empty
                 v-else
                 :description="$t('api.label.aiRecordNoResult')"
@@ -268,15 +221,9 @@ const openDocument = async event => {
 
 <style scoped>
 .record-content { width: 100%; min-width: 0; }
-.record-meta, .record-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--el-text-color-secondary); font-size: 13px; }
-.record-actions { gap: 8px; }
-.record-actions .el-button + .el-button { margin-left: 0; }
+.record-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--el-text-color-secondary); font-size: 13px; }
 .record-section + .record-section { margin-top: 24px; }
 .record-section h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
 .record-section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
-.record-request { padding: 16px 18px; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; background: var(--el-fill-color-light); }
-.record-json { overflow: hidden; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
-.record-code { margin: 12px 0 0; font-family: var(--el-font-family); font-size: 13px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 460px; overflow: auto; color: var(--el-text-color-regular); }
-.record-prompt { max-height: 240px; }
 .record-config { min-width: 0; overflow-wrap: anywhere; color: var(--el-text-color-regular); }
 </style>
