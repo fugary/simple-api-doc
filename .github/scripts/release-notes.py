@@ -1,6 +1,7 @@
 """Generate categorized notes from the release tag's reachable Git history."""
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -42,7 +43,8 @@ def generate_notes(tag):
         if subject in seen:
             continue
         seen.add(subject)
-        category = subject.partition(':')[0]
+        prefix = re.match(r'^([a-z]+)(?:\([^()]+\))?!?:', subject)
+        category = prefix.group(1) if prefix else 'other'
         category = 'fix' if category == 'bug' else category
         groups.get(category, groups['other'])[1].append((subject, commit))
 

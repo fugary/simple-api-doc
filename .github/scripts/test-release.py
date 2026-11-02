@@ -117,6 +117,22 @@ class ReleaseTest(unittest.TestCase):
                 result = subprocess.run([BASH, '-n'], input=step['run'], text=True, capture_output=True)
                 self.assertEqual(result.returncode, 0, f'{step["name"]}: {result.stderr}')
 
+    def test_scoped_commit_categories(self):
+        for subject in ('fix(ui): scoped fix', 'bug(api): legacy fix',
+                        'feat(api)!: breaking feature', 'opt!: faster',
+                        'missing prefix'):
+            self.commit(subject)
+        notes = self.base / 'notes.md'
+        subprocess.run([sys.executable, str(ROOT / '.github/scripts/release-notes.py'),
+                        'HEAD', str(notes)], cwd=self.repo, env=self.env, check=True)
+        body = notes.read_text(encoding='utf-8')
+        self.assertIn('### 🐛 Bug Fixes\n\n1. [fix: small bug]', body)
+        self.assertIn('2. [fix(ui): scoped fix]', body)
+        self.assertIn('3. [bug(api): legacy fix]', body)
+        self.assertIn('### 🚀 Features\n\n1. [feat(api)!: breaking feature]', body)
+        self.assertIn('### ⚡ Optimizations\n\n1. [opt!: faster]', body)
+        self.assertIn('### 📝 Other Changes\n\n1. [missing prefix]', body)
+
     def test_overwrite_and_retry_preserve_source_and_audit(self):
         original_oid = self.remote_tag()
         published = self.publish()
