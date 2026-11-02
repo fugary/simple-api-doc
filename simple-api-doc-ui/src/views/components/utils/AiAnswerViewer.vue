@@ -27,7 +27,7 @@ const sourceOptions = defineMonacoOptions({
   minimap: { enabled: false },
   unicodeHighlight: { allowedLocales: { 'zh-hans': true, 'zh-hant': true } }
 })
-// 流式结束后再判断完整 JSON，避免半截内容在 Markdown 与 JSON 之间跳动。
+// 流式结束后再判断完整 JSON，避免半截内容反复切换预览格式。
 const isJsonContent = computed(() => {
   if (props.streaming) return false
   try {
@@ -38,6 +38,7 @@ const isJsonContent = computed(() => {
     return false
   }
 })
+const previewContent = computed(() => isJsonContent.value ? `\`\`\`json\n${displayedContent.value}\n\`\`\`` : displayedContent.value)
 const sourceHeight = computed(() => Math.min(props.maxHeight, Math.max(160, displayedContent.value.split('\n').length * 20 + 8)))
 const emit = defineEmits(['doc-click'])
 const purifier = createDOMPurify(window)
@@ -116,9 +117,9 @@ onUnmounted(() => clearTimeout(renderTimer))
       <span>{{ $t('api.label.aiAnswerWaiting') }}</span>
     </div>
     <md-preview
-      v-else-if="mode === 'preview' && !isJsonContent"
+      v-else-if="mode === 'preview'"
       :key="streaming"
-      :model-value="displayedContent"
+      :model-value="previewContent"
       :theme="theme"
       :sanitize="sanitizeContent"
       class="md-doc-container"
