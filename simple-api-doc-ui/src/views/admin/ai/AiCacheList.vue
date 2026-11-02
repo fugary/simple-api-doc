@@ -225,6 +225,7 @@ const searchFormOptions = computed(() => {
     type: 'select',
     enabled: isAdminUser(),
     children: userOptions.value,
+    attrs: { filterable: true },
     change () {
       loadAiCaches()
     }
@@ -234,6 +235,7 @@ const searchFormOptions = computed(() => {
     type: 'select',
     enabled: !!projectOptions.value.length,
     children: projectOptions.value,
+    attrs: { filterable: true },
     change () {
       loadAiCaches()
     }
@@ -252,6 +254,7 @@ const searchFormOptions = computed(() => {
     prop: 'cacheType',
     type: 'select',
     children: typeOptions,
+    attrs: { filterable: true },
     change () {
       loadAiCaches()
     }
@@ -259,7 +262,8 @@ const searchFormOptions = computed(() => {
     labelKey: 'api.label.aiCacheStatus',
     prop: 'status',
     type: 'select',
-    children: statusOptions,
+    children: statusOptions.map(({ labelKey, value }) => ({ labelKey, value })),
+    attrs: { filterable: true },
     change () {
       loadAiCaches()
     }
