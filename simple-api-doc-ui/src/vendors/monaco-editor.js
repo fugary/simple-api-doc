@@ -268,11 +268,12 @@ MonacoDiffEditor.inheritAttrs = false
 
 export default {
   install (app) {
+    // 在任意编辑器创建前配置本地 Monaco，避免先打开对比编辑器时加载 CDN。
+    loader.config({ monaco })
     app.component(VueMonacoDiffEditor.name, MonacoDiffEditor)
     app.component(VueMonacoEditor.name, {
       inheritAttrs: false,
       setup (props, context) {
-        loader.config({ monaco })
         return () => h(VueMonacoEditor, fixEditorSetValue({
           ...context.attrs,
           options: withEditorPadding(context.attrs.options),
