@@ -254,14 +254,15 @@ export const useMonacoDiffEditorOptions = (config) => {
   }
 }
 
-const withEditorPadding = options => ({
+const withEditorDefaults = options => ({
   ...options,
+  scrollbar: { ...defaultConfig.scrollbar, ...options?.scrollbar },
   padding: { top: 4, bottom: 4, ...options?.padding }
 })
 
 const MonacoDiffEditor = (props, { attrs, slots }) => h(VueMonacoDiffEditor, {
   ...attrs,
-  options: withEditorPadding(attrs.options),
+  options: withEditorDefaults(attrs.options),
   class: ['common-monaco-editor', attrs.class]
 }, slots)
 MonacoDiffEditor.inheritAttrs = false
@@ -276,7 +277,7 @@ export default {
       setup (props, context) {
         return () => h(VueMonacoEditor, fixEditorSetValue({
           ...context.attrs,
-          options: withEditorPadding(context.attrs.options),
+          options: withEditorDefaults(context.attrs.options),
           class: ['common-monaco-editor', context.attrs.class]
         }, context), () => [getLoadingDiv()])
       }
