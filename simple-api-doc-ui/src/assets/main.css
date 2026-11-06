@@ -820,6 +820,12 @@ body,
     overflow: auto !important;
 }
 
+/* 默认 Markdown 主题的代码块固定为深色，浅色模式与 Atom 高亮配色保持一致。 */
+.md-editor:not(.md-editor-dark) .md-editor-preview {
+    --md-theme-code-block-color: #383a42;
+    --md-theme-code-block-bg-color: #fafafa;
+}
+
 .md-editor-preview .md-editor-code .md-editor-code-head {
     z-index: 5 !important;
 }

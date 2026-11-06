@@ -19,11 +19,14 @@ import { BASE_URL } from '@/config'
 export const MD_AUTO_FOLD_THRESHOLD = 200
 
 export const initMdPropsDefault = () => {
-  if (MdPreview?.props?.autoFoldThreshold) {
-    MdPreview.props.autoFoldThreshold.default = MD_AUTO_FOLD_THRESHOLD
-  }
-  if (MdEditor?.props?.autoFoldThreshold) {
-    MdEditor.props.autoFoldThreshold.default = MD_AUTO_FOLD_THRESHOLD
+  for (const component of [MdPreview, MdEditor]) {
+    if (component?.props?.autoFoldThreshold) {
+      component.props.autoFoldThreshold.default = MD_AUTO_FOLD_THRESHOLD
+    }
+    // 默认预览主题会强制使用深色代码块，关闭后跟随组件的明暗主题。
+    if (component?.props?.codeStyleReverse) {
+      component.props.codeStyleReverse.default = false
+    }
   }
 }
 initMdPropsDefault()
