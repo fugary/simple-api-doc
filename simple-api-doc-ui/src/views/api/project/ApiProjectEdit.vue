@@ -18,6 +18,7 @@ import { $i18nKey } from '@/messages'
 import ApiProjectSecuritySchemaEdit from '@/views/components/api/doc/comp/edit/ApiProjectSecuritySchemaEdit.vue'
 import { useScreenCheck } from '@/services/api/ApiCommonService'
 import ApiProjectInfoDetailApi from '@/api/ApiProjectInfoDetailApi'
+import { DOC_EDIT_GUARD } from '@/hooks/useDocDraft'
 
 const route = useRoute()
 const projectCode = route.params.projectCode
@@ -29,6 +30,8 @@ const { projectItem, loading, loadProjectItem } = useApiProjectItem(projectCode,
 const folderTreeRef = ref()
 const drawerFolderTreeRef = ref()
 const currentDoc = ref(null)
+const docEditGuard = ref(null)
+provide(DOC_EDIT_GUARD, docEditGuard)
 const savedApiDoc = (newDoc) => {
   if (folderTreeRef.value?.sharePreference) {
     folderTreeRef.value.sharePreference.lastDocId = newDoc.id

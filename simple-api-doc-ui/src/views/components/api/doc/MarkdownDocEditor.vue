@@ -1,12 +1,11 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
+import { useDocDraft } from '@/hooks/useDocDraft'
+import DocEditorLayout from '@/views/components/api/doc/comp/DocEditorLayout.vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
-import MarkdownDocEditHeader from '@/views/components/api/doc/comp/MarkdownDocEditHeader.vue'
 import { uploadFiles } from '@/api/ApiProjectApi'
-import { $coreHideLoading, $coreShowLoading } from '@/utils'
-import ApiDocApi from '@/api/ApiDocApi'
 
 import { useRoute } from 'vue-router'
 
@@ -15,52 +14,28 @@ const currentDoc = defineModel({
   type: Object,
   default: () => ({})
 })
-const currentDocModel = ref({
-  ...currentDoc.value
-})
-const loadCurrentDoc = (id) => {
-  currentDocModel.value && (currentDocModel.value.docContent = '')
-  $coreShowLoading({ delay: 0, target: '.home-main' })
-  ApiDocApi.getById(id).then(data => {
-    Object.assign(currentDocModel.value, data.resultData)
-    if (!currentDocModel.value.docContent && currentDocModel.value.docType === 'api') {
-      currentDocModel.value.docContent = currentDocModel.value.description
-    }
-    $coreHideLoading()
-  }).catch(() => $coreHideLoading())
-}
-watch(currentDoc, (newDoc) => {
-  if (newDoc.id) {
-    loadCurrentDoc(currentDoc.value.id)
-  } else {
-    currentDocModel.value = {
-      ...newDoc
-    }
-  }
-}, { immediate: true })
+const emit = defineEmits(['savedDoc'])
+const { model: currentDocModel, saving, draft, onSaved } = useDocDraft(currentDoc, emit)
 const theme = computed(() => useGlobalConfigStore().isDarkTheme ? 'dark' : 'light')
 const onUploadImg = (files, callback) => {
   const projectCode = route?.params?.projectCode || currentDocModel.value?.projectCode || currentDoc.value?.projectCode
   uploadFiles(files, callback, projectCode)
 }
-defineEmits(['savedDoc'])
+
 </script>
 <template>
-  <el-container class="flex-column padding-left2 height100 padding-bottom2">
-    <markdown-doc-edit-header
-      v-model="currentDoc"
-      v-model:doc-model="currentDocModel"
-      @saved-doc="$emit('savedDoc', $event)"
-    />
+  <doc-editor-layout
+    v-model="currentDoc"
+    v-model:doc-model="currentDocModel"
+    v-model:saving="saving"
+    :draft="draft"
+    @saved-doc="onSaved"
+  >
     <md-editor
       v-model="currentDocModel.docContent"
       :theme="theme"
       class="scroll-main-container"
       :on-upload-img="onUploadImg"
     />
-  </el-container>
+  </doc-editor-layout>
 </template>
-
-<style scoped>
-
-</style>

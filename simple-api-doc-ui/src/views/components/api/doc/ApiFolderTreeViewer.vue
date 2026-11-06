@@ -1,5 +1,6 @@
 <script setup lang="jsx">
-import { computed, ref, reactive, watch, nextTick, onUnmounted } from 'vue'
+import { computed, ref, reactive, watch, nextTick, onUnmounted, inject } from 'vue'
+import { DOC_EDIT_GUARD } from '@/hooks/useDocDraft'
 import { useRoute } from 'vue-router'
 import {
   calcProjectItem,
@@ -44,6 +45,8 @@ import emitter from '@/vendors/emitter'
 
 const shareConfigStore = useShareConfigStore()
 const route = useRoute()
+const docEditGuard = inject(DOC_EDIT_GUARD, null)
+let selectingDoc = false
 
 const props = defineProps({
   shareDoc: {
@@ -105,7 +108,7 @@ const calcProjectItemInfo = () => {
     docTreeNodes,
     currentSelectDoc
   } = calcProjectItem(filteredItem, searchParam.value, sharePreference)
-  if (!currentDoc.value?.id) {
+  if (!currentDoc.value?.id && !currentDoc.value?.editing) {
     currentDoc.value = currentSelectDoc
     sharePreference.lastDocId = currentSelectDoc?.id
     if (currentSelectDoc?.id) {
@@ -164,23 +167,32 @@ watch([searchParam, () => sharePreference?.defaultShowLabel, () => sharePreferen
   }
 }, { deep: true })
 
-const showDocDetails = (doc, edit) => {
+const showDocDetails = async (doc, edit, { routeConfirmed = false } = {}) => {
   if (doc?.isDoc) {
-    if (edit) {
-      treeRef.value?.setCurrentKey(doc.id)
-    }
-    doc.editing = !!edit
-    clearAndSetValue(currentDoc, doc)
-    sharePreference.lastDocId = doc.id
-    shareConfigStore.pushNavDoc(preferenceId, doc)
+    if (selectingDoc) return false
+    selectingDoc = true
+    try {
+      if (!routeConfirmed && docEditGuard?.value && !await docEditGuard.value()) {
+        treeRef.value?.setCurrentKey(currentDoc.value?.treeId || currentDoc.value?.id)
+        return false
+      }
+      if (edit) {
+        treeRef.value?.setCurrentKey(doc.id)
+      }
+      doc = { ...doc, editing: !!edit }
+      await clearAndSetValue(currentDoc, doc)
+      sharePreference.lastDocId = doc.id
+      shareConfigStore.pushNavDoc(preferenceId, doc)
+      return true
+    } finally { selectingDoc = false }
   }
 }
 
-const handleSelectDocFromEvent = (doc) => {
+const handleSelectDocFromEvent = async (doc) => {
   if (doc?.id) {
     if (doc.docName || doc.docType) {
       doc.isDoc = true
-      showDocDetails(doc, false)
+      if (!await showDocDetails(doc, false)) return
       nextTick(() => {
         treeRef.value?.setCurrentKey(doc.treeId || doc.id)
       })
@@ -440,7 +452,7 @@ const handlerData = {
   scrollToTop
 }
 
-const selectSearchDoc = async (result) => {
+const selectSearchDoc = async (result, options) => {
   if (!projectItem.value?.docs?.some(doc => doc.id === result.id)) {
     const refreshedProject = props.shareDoc?.shareId
       ? (await loadSharedProject(props.shareDoc.shareId))?.resultData
@@ -451,6 +463,7 @@ const selectSearchDoc = async (result) => {
   }
   const doc = projectItem.value?.docs?.find(doc => doc.id === result.id)
   if (!doc) return
+  if (!await showDocDetails({ ...doc, isDoc: true }, false, options)) return
   searchParam.value.keyword = ''
   searchParam.value.recentType = ''
   const folders = new Map(projectItem.value.folders.map(folder => [folder.id, folder]))
@@ -463,8 +476,6 @@ const selectSearchDoc = async (result) => {
     folderId = folders.get(folderId)?.parentId
   }
   sharePreference.lastExpandKeys = [...expanded]
-  sharePreference.lastDocId = doc.id
-  showDocDetails({ ...doc, isDoc: true }, false)
   refreshFolderTreeInternal()
 }
 const openAdvancedSearch = () => showDocSearchWindow({
@@ -479,10 +490,11 @@ const handleSearchDocSelection = result => {
 }
 emitter.on('select-search-doc', handleSearchDocSelection)
 onUnmounted(() => emitter.off('select-search-doc', handleSearchDocSelection))
-watch([() => route.query.docId, () => projectItem.value?.projectCode], ([docId, projectCode]) => {
+watch([() => route.query.docId, () => projectItem.value?.projectCode], ([docId, projectCode], [oldDocId, oldProjectCode] = []) => {
   const id = Number(docId)
   if (Number.isSafeInteger(id) && id > 0 && route.params.projectCode === projectCode) {
-    selectSearchDoc({ id })
+    // 同项目路由定位已经过编辑器的路由守卫，避免再次询问；初始化和项目刷新仍检查。
+    selectSearchDoc({ id }, { routeConfirmed: projectCode === oldProjectCode && docId !== oldDocId })
   }
 }, { immediate: true })
 

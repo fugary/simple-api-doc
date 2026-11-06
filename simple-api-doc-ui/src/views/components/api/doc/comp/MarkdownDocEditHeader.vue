@@ -4,6 +4,7 @@ import { getFolderPaths } from '@/services/api/ApiProjectService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle, $i18nKey } from '@/messages'
+import DocDraftNotice from '@/views/components/api/doc/comp/DocDraftNotice.vue'
 
 const currentDoc = defineModel({ // 原始数据
   type: Object,
@@ -43,18 +44,30 @@ const docFormOption = computed(() => {
 })
 
 const emit = defineEmits(['savedDoc'])
+const saving = defineModel('saving', { type: Boolean, default: false })
+const props = defineProps({
+  beforeCancel: { type: Function, default: () => true },
+  draft: { type: Object, default: undefined }
+})
+const cancelEdit = async () => {
+  if (!saving.value && await props.beforeCancel()) currentDoc.value.editing = false
+}
 
-const saveApiDoc = (form) => {
-  form.validate(valid => {
-    if (valid) {
-      ApiDocApi.saveOrUpdate({ ...currentDocModel.value, parent: undefined }, { loading: true }).then(data => {
-        if (data.success) {
-          ElMessage.success($i18nBundle('common.msg.saveSuccess'))
-          emit('savedDoc', data.resultData)
-        }
-      })
+const saveApiDoc = async (form) => {
+  if (saving.value) return
+  saving.value = true
+  try {
+    await form.validate()
+    const data = await ApiDocApi.saveOrUpdate({ ...currentDocModel.value, parent: undefined }, { loading: true })
+    if (data.success) {
+      ElMessage.success($i18nBundle('common.msg.saveSuccess'))
+      emit('savedDoc', data.resultData)
     }
-  })
+  } catch {
+    // 表单和请求层负责错误提示，失败时保留编辑内容及草稿。
+  } finally {
+    saving.value = false
+  }
 }
 const showAffixBtn = inject('showAffixBtn', null)
 </script>
@@ -91,16 +104,22 @@ const showAffixBtn = inject('showAffixBtn', null)
         <el-form-item style="flex-grow: 2;padding-top: 3px">
           <el-button
             type="primary"
+            :loading="saving"
             @click="saveApiDoc(form)"
           >
             {{ $t('common.label.save') }}
           </el-button>
           <el-button
             type="info"
-            @click="currentDoc.editing=false"
+            :disabled="saving"
+            @click="cancelEdit"
           >
             {{ $t('common.label.cancel') }}
           </el-button>
+          <doc-draft-notice
+            v-if="draft"
+            :draft="draft"
+          />
         </el-form-item>
       </template>
     </common-form>

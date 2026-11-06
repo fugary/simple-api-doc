@@ -1,9 +1,9 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
+import { useDocDraft } from '@/hooks/useDocDraft'
+import DocEditorLayout from '@/views/components/api/doc/comp/DocEditorLayout.vue'
 import 'md-editor-v3/lib/style.css'
-import MarkdownDocEditHeader from '@/views/components/api/doc/comp/MarkdownDocEditHeader.vue'
-import { $coreHideLoading, $coreShowLoading, getSingleSelectOptions, getStyleGrow } from '@/utils'
-import ApiDocApi from '@/api/ApiDocApi'
+import { getSingleSelectOptions, getStyleGrow } from '@/utils'
 import { ALL_METHODS } from '@/consts/ApiConstants'
 import { useFormStatus } from '@/consts/GlobalConstants'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -13,7 +13,8 @@ const currentDoc = defineModel({
   type: Object,
   default: () => ({})
 })
-const currentDocModel = ref()
+const emit = defineEmits(['savedDoc'])
+const { model: currentDocModel, saving, draft, onSaved } = useDocDraft(currentDoc, emit)
 
 const formOptions = computed(() => {
   return [{
@@ -85,37 +86,16 @@ const formOptions = computed(() => {
     }
   }]
 })
-const loadCurrentDoc = (id) => {
-  $coreShowLoading({ delay: 0, target: '.home-main' })
-  ApiDocApi.getById(id).then(data => {
-    currentDocModel.value = data.resultData
-    if (!currentDocModel.value.docContent && currentDocModel.value.docType === 'api') {
-      currentDocModel.value.docContent = currentDocModel.value.description
-    }
-    $coreHideLoading()
-  }).catch(() => $coreHideLoading())
-}
-watch(currentDoc, (newDoc) => {
-  if (newDoc.id) {
-    loadCurrentDoc(newDoc.id)
-  } else {
-    currentDocModel.value = {
-      ...newDoc
-    }
-  }
-}, { immediate: true })
-defineEmits(['savedDoc'])
+
 </script>
 <template>
-  <el-container
-    v-if="currentDocModel"
-    class="flex-column padding-left2 height100 padding-bottom2"
+  <doc-editor-layout
+    v-model="currentDoc"
+    v-model:doc-model="currentDocModel"
+    v-model:saving="saving"
+    :draft="draft"
+    @saved-doc="onSaved"
   >
-    <markdown-doc-edit-header
-      v-model="currentDoc"
-      v-model:doc-model="currentDocModel"
-      @saved-doc="$emit('savedDoc', $event)"
-    />
     <common-form
       label-width="130px"
       :options="formOptions"
@@ -123,9 +103,5 @@ defineEmits(['savedDoc'])
       :show-buttons="false"
       class-name="common-form-auto"
     />
-  </el-container>
+  </doc-editor-layout>
 </template>
-
-<style scoped>
-
-</style>
