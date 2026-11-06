@@ -6,7 +6,10 @@ import MarkdownDocEditHeader from './MarkdownDocEditHeader.vue'
 const currentDoc = defineModel({ type: Object, required: true })
 const docModel = defineModel('docModel', { type: Object, default: undefined })
 const saving = defineModel('saving', { type: Boolean, default: false })
-defineProps({ draft: { type: Object, required: true } })
+defineProps({
+  draft: { type: Object, required: true },
+  projectItem: { type: Object, default: undefined }
+})
 defineEmits(['savedDoc'])
 </script>
 
@@ -29,6 +32,7 @@ defineEmits(['savedDoc'])
       v-model="currentDoc"
       v-model:doc-model="docModel"
       v-model:saving="saving"
+      :project-item="projectItem"
       :before-cancel="draft.confirmLeave"
       :draft="draft"
       @saved-doc="$emit('savedDoc', $event)"

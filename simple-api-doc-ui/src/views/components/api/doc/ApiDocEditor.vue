@@ -9,6 +9,7 @@ import { useFormStatus } from '@/consts/GlobalConstants'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import { showMarkdownWindow } from '@/utils/DynamicUtils'
 
+defineProps({ projectItem: { type: Object, default: undefined } })
 const currentDoc = defineModel({
   type: Object,
   default: () => ({})
@@ -94,6 +95,7 @@ const formOptions = computed(() => {
     v-model:doc-model="currentDocModel"
     v-model:saving="saving"
     :draft="draft"
+    :project-item="projectItem"
     @saved-doc="onSaved"
   >
     <common-form

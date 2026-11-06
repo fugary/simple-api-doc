@@ -85,3 +85,14 @@ const handleCopy = async (format) => {
     </template>
   </el-dropdown>
 </template>
+
+<style scoped>
+.copy-md-btn:focus {
+  outline: none;
+}
+
+.copy-md-btn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+</style>

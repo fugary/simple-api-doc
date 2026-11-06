@@ -1,6 +1,7 @@
 <script setup lang="jsx">
 import { computed, inject } from 'vue'
-import { getFolderPaths, getDocRecentInfo } from '@/services/api/ApiProjectService'
+import { getDocRecentInfo } from '@/services/api/ApiProjectService'
+import DocHeaderBreadcrumb from './DocHeaderBreadcrumb.vue'
 import { showHistoryListWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineTableColumns } from '@/components/utils'
 import { $copyText, formatDate } from '@/utils'
@@ -39,12 +40,6 @@ const props = defineProps({
 const currentDoc = defineModel({
   type: Object,
   default: undefined
-})
-const folderPaths = computed(() => {
-  if (currentDoc.value) {
-    return getFolderPaths(currentDoc.value, props.projectItem?.folders)
-  }
-  return []
 })
 const docDetailInfo = computed(() => props.currentDocDetail || currentDoc.value)
 
@@ -172,7 +167,10 @@ const showAffixBtn = inject('showAffixBtn', null)
     style="min-height: var(--el-header-height);height:auto;"
     :style="showAffixBtn?'padding-left: 50px;':''"
   >
-    <div class="doc-header-nav-bar margin-top3">
+    <doc-header-breadcrumb
+      :doc="currentDoc"
+      :folders="projectItem?.folders"
+    >
       <div
         class="doc-nav-actions"
         @contextmenu.prevent
@@ -203,22 +201,7 @@ const showAffixBtn = inject('showAffixBtn', null)
           />
         </el-button>
       </div>
-      <span
-        v-if="folderPaths.length > 0"
-        class="doc-header-path-prefix"
-      >/</span>
-      <el-breadcrumb
-        v-if="folderPaths.length > 0"
-        class="doc-header-breadcrumb"
-      >
-        <el-breadcrumb-item
-          v-for="(folderPath, index) in folderPaths"
-          :key="index"
-        >
-          {{ folderPath }}
-        </el-breadcrumb-item>
-      </el-breadcrumb>
-    </div>
+    </doc-header-breadcrumb>
     <h2 class="margin-bottom1">
       <el-text
         v-if="docDetailInfo?.deprecated"
@@ -289,25 +272,11 @@ const showAffixBtn = inject('showAffixBtn', null)
 </template>
 
 <style scoped>
-.doc-header-nav-bar {
-  display: flex;
-  align-items: center;
-  min-height: 26px;
-}
 
 .doc-nav-actions {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-}
-
-.doc-header-path-prefix {
-  font-weight: 700;
-  color: var(--el-text-color-placeholder);
-  user-select: none;
-  font-size: 13px;
-  line-height: 26px;
-  margin: 0 9px 0 6px;
 }
 
 .doc-nav-actions .doc-refresh-btn {
@@ -330,9 +299,6 @@ const showAffixBtn = inject('showAffixBtn', null)
   opacity: 0.4;
 }
 
-.doc-header-breadcrumb {
-  line-height: 26px;
-}
 .recent-header-tag {
   display: inline-flex;
   align-items: center;

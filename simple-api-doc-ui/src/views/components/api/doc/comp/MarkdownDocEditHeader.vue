@@ -1,6 +1,6 @@
 <script setup>
 import { computed, inject } from 'vue'
-import { getFolderPaths } from '@/services/api/ApiProjectService'
+import DocHeaderBreadcrumb from './DocHeaderBreadcrumb.vue'
 import ApiDocApi from '@/api/ApiDocApi'
 import { ElMessage } from 'element-plus'
 import { $i18nBundle, $i18nKey } from '@/messages'
@@ -14,13 +14,6 @@ const currentDoc = defineModel({ // 原始数据
 const currentDocModel = defineModel('docModel', { // 编辑数据，独立数据取消编辑才可以还原
   type: Object,
   default: undefined
-})
-
-const folderPaths = computed(() => {
-  if (currentDoc.value) {
-    return getFolderPaths(currentDoc.value)
-  }
-  return []
 })
 
 const docFormOption = computed(() => {
@@ -46,6 +39,7 @@ const docFormOption = computed(() => {
 const emit = defineEmits(['savedDoc'])
 const saving = defineModel('saving', { type: Boolean, default: false })
 const props = defineProps({
+  projectItem: { type: Object, default: undefined },
   beforeCancel: { type: Function, default: () => true },
   draft: { type: Object, default: undefined }
 })
@@ -77,17 +71,11 @@ const showAffixBtn = inject('showAffixBtn', null)
     style="min-height: var(--el-header-height);height:auto;"
     :style="showAffixBtn?'padding-left: 50px;':''"
   >
-    <el-breadcrumb
-      v-if="folderPaths.length>1"
-      class="margin-bottom3 margin-top3"
-    >
-      <el-breadcrumb-item
-        v-for="(folderPath, index) in folderPaths"
-        :key="index"
-      >
-        {{ folderPath }}
-      </el-breadcrumb-item>
-    </el-breadcrumb>
+    <doc-header-breadcrumb
+      :doc="currentDoc"
+      :folders="projectItem?.folders"
+      class="margin-bottom3"
+    />
     <common-form
       inline
       class-name="common-form-auto"
@@ -125,7 +113,3 @@ const showAffixBtn = inject('showAffixBtn', null)
     </common-form>
   </el-header>
 </template>
-
-<style scoped>
-
-</style>

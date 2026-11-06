@@ -10,6 +10,7 @@ import { uploadFiles } from '@/api/ApiProjectApi'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+defineProps({ projectItem: { type: Object, default: undefined } })
 const currentDoc = defineModel({
   type: Object,
   default: () => ({})
@@ -29,6 +30,7 @@ const onUploadImg = (files, callback) => {
     v-model:doc-model="currentDocModel"
     v-model:saving="saving"
     :draft="draft"
+    :project-item="projectItem"
     @saved-doc="onSaved"
   >
     <md-editor

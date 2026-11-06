@@ -332,11 +332,13 @@ watch([drawerFolderTreeRef, folderTreeRef], ([drawerVal, folderVal]) => {
               <markdown-doc-editor
                 v-if="currentDoc?.docType==='md'"
                 v-model="currentDoc"
+                :project-item="projectItem"
                 @saved-doc="savedApiDoc"
               />
               <api-doc-editor
                 v-if="currentDoc?.docType==='api'&&currentDoc.editing"
                 v-model="currentDoc"
+                :project-item="projectItem"
                 @saved-doc="savedApiDoc"
               />
             </el-container>
