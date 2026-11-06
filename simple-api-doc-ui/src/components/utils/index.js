@@ -161,6 +161,12 @@ export const limitStr = (str, len) => {
   return str
 }
 
+/** 通过 label 插槽复用纯展示选项，未匹配时保留选择框原标签。 */
+export const renderSelectOptionLabel = ({ value, label }, option) => {
+  const child = option.children?.find(child => child.enabled !== false && child.value === value)
+  return child?.slots?.default?.() ?? label
+}
+
 export const calcSlotsResult = (config, data) => {
   const results = {}
   if (config?.slots) {

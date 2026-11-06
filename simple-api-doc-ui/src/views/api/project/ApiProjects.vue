@@ -2,7 +2,7 @@
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useDefaultPage } from '@/config'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
 import { useAllUsers } from '@/api/ApiUserApi'
 import ApiProjectApi, { calcProjectIconUrl, copyProject, uploadFiles } from '@/api/ApiProjectApi'
 import { $coreConfirm, $goto, formatDate, isAdminUser, useCurrentUserName } from '@/utils'
@@ -113,6 +113,7 @@ const searchFormOptions = computed(() => {
     type: 'select',
     enabled: !!displayProjectGroupOptions.value?.length,
     children: displayProjectGroupOptions.value,
+    slots: { label: renderSelectOptionLabel },
     change () {
       loadApiProjects(1)
     }
@@ -280,6 +281,7 @@ const editFormOptions = computed(() => {
     value: isWritable ? searchParam.value?.groupCode : '',
     type: 'select',
     children: editProjectGroupOptions.value,
+    slots: { label: renderSelectOptionLabel },
     disabled: !isWritable,
     attrs: {
       filterable: true

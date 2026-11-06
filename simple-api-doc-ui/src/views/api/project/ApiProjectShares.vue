@@ -19,7 +19,7 @@ import { SHARE_WATERMARK, useDefaultPage } from '@/config'
 import ApiProjectShareApi, { copyProjectShare, getShareUrl } from '@/api/ApiProjectShareApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
 import { useFormStatus, useSearchOnlyMine, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
@@ -261,6 +261,7 @@ const searchFormOptions = computed(() => {
       type: 'select',
       enabled: !inProject && !!displayProjectGroupOptions.value?.length,
       children: displayProjectGroupOptions.value,
+      slots: { label: renderSelectOptionLabel },
       change: changeGroup
     }, {
       labelKey: 'api.label.project',
@@ -346,6 +347,7 @@ const editFormOptions = computed(() => {
     enabled: !inProject && !!projectGroupOptions.value?.length,
     disabled: !!currentShare.value?.id && !isCopyData,
     children: projectGroupOptions.value,
+    slots: { label: renderSelectOptionLabel },
     change (groupCode) {
       currentShare.value.projectId = null
       changeGroup(groupCode)

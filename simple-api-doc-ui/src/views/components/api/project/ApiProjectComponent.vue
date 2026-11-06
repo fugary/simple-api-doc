@@ -20,7 +20,7 @@ import {
   useComponentSchemas
 } from '@/services/api/ApiDocEditService'
 import { showHistoryListWindow, showMarkdownWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
-import { defineFormOptions, defineTableColumns } from '@/components/utils'
+import { defineFormOptions, defineTableColumns, renderSelectOptionLabel } from '@/components/utils'
 import { getComponentHistoryViewOptions } from '@/services/api/ApiDocPreviewService'
 import CommonIcon from '@/components/common-icon/index.vue'
 import { generateModel, getAiStatus } from '@/api/AiCacheApi'
@@ -379,6 +379,7 @@ const aiFormOptions = computed(() => {
       labelKey: 'api.label.aiConfigSelect',
       type: 'select',
       children: buildAiConfigOptions(aiConfigs.value, defaultAiConfigId.value),
+      slots: { label: renderSelectOptionLabel },
       attrs: {
         clearable: false
       }

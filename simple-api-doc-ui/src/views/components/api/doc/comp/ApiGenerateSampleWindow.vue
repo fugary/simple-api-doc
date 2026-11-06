@@ -3,7 +3,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
 import { getAiStatus } from '@/api/AiCacheApi'
 import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
 
 const showDialog = ref(false)
 const shareConfigStore = useShareConfigStore()
@@ -61,6 +61,7 @@ const formOptions = computed(() => {
       prop: 'configId',
       type: 'select',
       children: buildAiConfigOptions(aiConfigs.value, defaultAiConfigId.value),
+      slots: { label: renderSelectOptionLabel },
       attrs: {
         clearable: false
       }

@@ -9,7 +9,7 @@ import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import ApiDocAiExecutionSteps from './ApiDocAiExecutionSteps.vue'
 import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
 import { useDocProjectSelector } from '@/services/api/ApiDocSearchService'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
 
 const props = defineProps({
   project: { type: Object, default: undefined },
@@ -72,6 +72,7 @@ const configFormOptions = computed(() => {
       prop: 'configId',
       type: 'select',
       children: configOptions.value,
+      slots: { label: renderSelectOptionLabel },
       attrs: {
         clearable: false
       }

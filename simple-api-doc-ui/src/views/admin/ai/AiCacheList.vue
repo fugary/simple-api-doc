@@ -1,4 +1,5 @@
 <script setup lang="jsx">
+import { renderSelectOptionLabel } from '@/components/utils'
 import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { formatDate, $coreConfirm, isAdminUser, checkShowColumn } from '@/utils'
@@ -244,6 +245,7 @@ const searchFormOptions = computed(() => {
     prop: 'configId',
     type: 'select',
     children: configOptions.value,
+    slots: { label: renderSelectOptionLabel },
     attrs: { clearable: true, filterable: true },
     change: changeConfig
   }, {

@@ -8,7 +8,7 @@ import { useDefaultPage } from '@/config'
 import ApiProjectTaskApi, { copyProjectTask } from '@/api/ApiProjectTaskApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
 import { useFormStatus, useSearchOnlyMine, useSearchStatus } from '@/consts/GlobalConstants'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
 import ApiProjectImport from '@/views/components/api/project/ApiProjectImport.vue'
@@ -294,6 +294,7 @@ const searchFormOptions = computed(() => {
       type: 'select',
       enabled: !inProject && !!displayProjectGroupOptions.value?.length,
       children: displayProjectGroupOptions.value,
+      slots: { label: renderSelectOptionLabel },
       change: changeGroup
     }, {
       labelKey: 'api.label.project',
@@ -401,6 +402,7 @@ const editFormOptions = computed(() => {
     enabled: !inProject && !!projectGroupOptions.value?.length,
     disabled: !!currentModel.value?.id && !isCopyData,
     children: projectGroupOptions.value,
+    slots: { label: renderSelectOptionLabel },
     change (groupCode) {
       currentModel.value.projectId = null
       changeGroup(groupCode)

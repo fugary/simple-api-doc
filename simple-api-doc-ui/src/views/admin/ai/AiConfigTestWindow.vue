@@ -1,4 +1,5 @@
 <script setup>
+import { renderSelectOptionLabel } from '@/components/utils'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { streamTestAiConfig, loadAiModels, AiConfigApi } from '@/api/AiConfigApi'
 import { useAiConfigStore } from '@/stores/AiConfigStore'
@@ -127,6 +128,7 @@ const formOptions = computed(() => {
       required: true,
       disabled: !isSwitchable.value,
       children: buildAiConfigOptions(aiConfigs.value),
+      slots: { label: renderSelectOptionLabel },
       attrs: {
         clearable: false
       }

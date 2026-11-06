@@ -1,7 +1,7 @@
 <script setup lang="jsx">
 import { computed, ref, useTemplateRef } from 'vue'
 import { $coreAlert, $coreError, formatFileSize, getStyleGrow, isAdminUser, useCurrentUserName } from '@/utils'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
 import {
   IMPORT_AUTH_TYPES,
   IMPORT_DUPLICATE_STRATEGY,
@@ -334,6 +334,7 @@ const formOptions = computed(() => {
     value: props.defaultGroupCode,
     type: 'select',
     children: props.groupOptions,
+    slots: { label: renderSelectOptionLabel },
     tooltips: [canEditCurrentGroup.value
       ? {
           tooltip: $i18nKey('common.label.commonEdit', 'api.label.projectGroups1'),

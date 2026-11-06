@@ -25,7 +25,7 @@ import { cleanSchemaExamples, useComponentSchemas } from '@/services/api/ApiDocE
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { generateDescriptions, getAiStatus } from '@/api/AiCacheApi'
 import { buildAiConfigOptions, useAiModelSelector } from '@/services/api/ApiCommonService'
-import { defineFormOptions } from '@/components/utils'
+import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
 import { ElMessage } from 'element-plus'
 
 const aiEnabled = ref(false)
@@ -100,6 +100,7 @@ const aiFormOptions = computed(() => {
       labelKey: 'api.label.aiConfigSelect',
       type: 'select',
       children: buildAiConfigOptions(aiConfigs.value, defaultAiConfigId.value),
+      slots: { label: renderSelectOptionLabel },
       attrs: {
         clearable: false
       }
