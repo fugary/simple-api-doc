@@ -1,5 +1,15 @@
 import { MdPreview, MdEditor, config } from 'md-editor-v3'
 import mermaid from 'mermaid'
+import highlightJs from '@highlightjs/cdn-assets/highlight.min.js?url'
+import atomLight from '@highlightjs/cdn-assets/styles/atom-one-light.min.css?url'
+import atomDark from '@highlightjs/cdn-assets/styles/atom-one-dark.min.css?url'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
+import prettier from 'prettier/standalone'
+import parserMarkdown from 'prettier/plugins/markdown'
+import Cropper from 'cropperjs'
+import 'cropperjs/dist/cropper.min.css'
+import screenfull from 'screenfull'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import { BASE_URL } from '@/config'
 
@@ -85,6 +95,14 @@ export default {
     })
     config({
       editorExtensions: {
+        highlight: {
+          js: highlightJs,
+          css: { atom: { light: atomLight, dark: atomDark } }
+        },
+        katex: { instance: katex },
+        prettier: { prettierInstance: prettier, parserMarkdownInstance: parserMarkdown },
+        cropper: { instance: Cropper },
+        screenfull: { instance: screenfull },
         mermaid: {
           instance: mermaid
         }
