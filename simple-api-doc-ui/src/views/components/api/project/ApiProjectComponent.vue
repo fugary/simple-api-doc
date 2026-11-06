@@ -2,22 +2,25 @@
 import { $i18nBundle, $i18nKey, $i18nMsg } from '@/messages'
 import { computed, inject, reactive, ref, watch } from 'vue'
 import { useMonacoEditorOptions } from '@/vendors/monaco-editor'
+import { useEditDraft } from '@/hooks/useEditDraft'
+import { modelDraftFields, modelDraftSignature, normalizeSchemaContent } from '@/services/api/DocDraftStorage'
+import DocDraftWindow from '@/views/components/api/doc/comp/DocDraftWindow.vue'
+import DocDraftNotice from '@/views/components/api/doc/comp/DocDraftNotice.vue'
 import { useGlobalConfigStore } from '@/stores/GlobalConfigStore'
 import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElMessage, ElTag, ElText } from 'element-plus'
 import { $copyText, $coreConfirm, $coreError, formatDate, getSingleSelectOptions, getStyleGrow } from '@/utils'
 import ApiDocSchemaTable from '@/views/components/api/doc/comp/ApiDocSchemaTable.vue'
 import ApiComponentSchemaEditTree from '@/views/components/api/project/schema/ApiComponentSchemaEditTree.vue'
-import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail, loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiProjectInfoDetailApi'
+import ApiProjectInfoDetailApi, { copyApiModel, loadInfoDetail, loadInfoDetails, loadHistoryDiff, loadHistoryList, recoverFromHistory } from '@/api/ApiProjectInfoDetailApi'
 import { inProjectCheckAccess } from '@/api/ApiProjectGroupApi'
-import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE, SCHEMA_COMPONENT_PREFIX } from '@/consts/ApiConstants'
+import { ALL_CONTENT_TYPES, ALL_STATUS_CODES, AUTHORITY_TYPE } from '@/consts/ApiConstants'
 import { loadDetailById } from '@/api/ApiProjectApi'
 import { useManagedArrayItems } from '@/hooks/CommonHooks'
 import {
   checkAndSaveDocInfoDetail,
   cleanSchemaExamples,
-  processProjectInfos,
-  useComponentSchemas
+  processProjectInfos
 } from '@/services/api/ApiDocEditService'
 import { showHistoryListWindow, showMarkdownWindow, showApiCompareWindow } from '@/utils/DynamicUtils'
 import { defineFormOptions, defineTableColumns, renderSelectOptionLabel } from '@/components/utils'
@@ -39,35 +42,40 @@ const currentInfoDetail = defineModel({
 })
 const projectItemMap = reactive({})
 props.currentProject && (projectItemMap[props.currentProject.id] = props.currentProject)
-const { componentSchemas, loadComponents } = useComponentSchemas()
-const currentComponentModel = ref()
+const componentSchemas = ref([])
 const { managedItems, pushItem, clearItems, startContext, goToItem } = useManagedArrayItems()
 const historyCount = ref(0)
-watch(currentInfoDetail, async model => {
-  historyCount.value = 0
-  if (model.id) {
-    await loadInfoDetail(model).then(data => {
-      currentComponentModel.value = data.resultData
-      componentSchemas.value = data.addons?.components || []
-      historyCount.value = data.addons?.historyCount || 0
-    })
-  } else {
-    currentComponentModel.value = currentInfoDetail.value
-    if (!componentSchemas.value.length && (currentInfoDetail.value?.projectId || currentInfoDetail.value?.schemaContent?.includes(SCHEMA_COMPONENT_PREFIX))) {
-      await loadComponents(currentInfoDetail.value)
-    }
-  }
-  const projectId = currentComponentModel.value?.projectId
-  console.log('=============================data', currentComponentModel.value, projectItemMap, projectId)
-  if (projectId && !projectItemMap[projectId]) {
-    loadDetailById(projectId)
-      .then((data) => {
-        projectItemMap[projectId] = data
-      })
-  }
-  clearItems()
-  pushItem(currentComponentModel.value)
-}, { immediate: true })
+const { model: currentComponentModel, saving, draft, onSaved } = useEditDraft(currentInfoDetail, {
+  type: 'model',
+  signature: modelDraftSignature,
+  fields: model => model?.bodyType === 'component' ? modelDraftFields(model) : {},
+  enabled: model => model.bodyType === 'component' && writable.value,
+  project: model => model.projectId,
+  async load (model) {
+    const result = model.id ? await loadInfoDetail(model) : { success: true, resultData: { ...model } }
+    if (!result.success || !result.resultData) throw new Error('Model unavailable')
+    const value = result.resultData
+    const [project, components] = await Promise.all([
+      projectItemMap[value.projectId] || loadDetailById(value.projectId),
+      result.addons?.components || loadInfoDetails({ projectId: value.projectId, infoId: value.infoId, bodyType: 'component' })
+    ])
+    return { ...value, draftContext: { project, components, historyCount: result.addons?.historyCount || 0 } }
+  },
+  loaded (model) {
+    const { project, components, historyCount: count } = model.draftContext
+    delete model.draftContext
+    projectItemMap[model.projectId] = project
+    historyCount.value = count
+    componentSchemas.value = components || []
+    clearItems()
+    pushItem(model)
+  },
+  saved: data => emit('saveComponent', data)
+})
+const cancelDraftEditing = () => {
+  if (inWindow) inWindow.value.showWindow = false
+  else currentInfoDetail.value = null
+}
 const projectItem = computed(() => projectItemMap[currentComponentModel.value?.projectId])
 const deletable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.DELETABLE))
 const writable = computed(() => inProjectCheckAccess(projectItem.value, AUTHORITY_TYPE.WRITABLE) || deletable.value)
@@ -173,40 +181,52 @@ const componentEditOptions = computed(() => {
 })
 
 const emit = defineEmits(['saveComponent', 'deleteComponent', 'copyComponent'])
-const saveComponent = (form) => {
-  form.validate((valid) => {
-    if (valid) {
-      currentComponentModel.value.schemaContent = contentRef.value
-      const data = currentComponentModel.value
-      if (data.schemaContent) {
-        checkAndSaveDocInfoDetail(data)
-          .then((resultData) => emit('saveComponent', resultData))
-      } else {
-        $coreError($i18nBundle('common.msg.nonNull', ['JSON Schema']))
-      }
+const saveComponent = async (form) => {
+  if (saving.value || readonly.value || draft.pending || draft.loadError) return false
+  saving.value = true
+  try {
+    if (!await form.validate().catch(() => false)) return false
+    const data = { ...currentComponentModel.value, schemaContent: contentRef.value }
+    if (!data.schemaContent) {
+      $coreError($i18nBundle('common.msg.nonNull', ['JSON Schema']))
+      return false
     }
-  })
+    const resultData = await checkAndSaveDocInfoDetail(data)
+    if (!resultData) return false
+    Object.assign(currentComponentModel.value, resultData)
+    onSaved(resultData)
+    return true
+  } catch {
+    return false
+  } finally {
+    saving.value = false
+  }
 }
-const deleteComponent = () => {
+const deleteComponent = async () => {
+  if (!await draft.confirmLeave()) return false
   return $coreConfirm($i18nBundle('common.msg.deleteConfirm')).then(() => {
     return ApiProjectInfoDetailApi.deleteById(currentComponentModel.value.id)
       .then(() => {
+        draft.discard()
         emit('deleteComponent', currentComponentModel.value)
+        return true
       })
   })
 }
-const copyComponent = () => {
+const copyComponent = async () => {
+  if (!await draft.confirmLeave()) return
   return $coreConfirm($i18nBundle('common.msg.confirmCopy'))
     .then(() => copyApiModel(currentComponentModel.value.id, { loading: true }))
     .then(result => {
       if (result.resultData?.id) {
+        startContext()
+        currentInfoDetail.value = result.resultData
         emit('saveComponent', result.resultData)
-        gotoComponent(result.resultData)
       }
     })
 }
 const { contentRef, languageRef, editorRef, monacoEditorOptions, languageModel, languageSelectOption, formatDocument } = useMonacoEditorOptions({ readOnly: false })
-watch(readonly, isReadOnly => {
+watch(() => readonly.value || saving.value || !!draft.pending, isReadOnly => {
   monacoEditorOptions.readOnly = isReadOnly
   if (editorRef.value) {
     editorRef.value.updateOptions({ readOnly: isReadOnly })
@@ -215,6 +235,7 @@ watch(readonly, isReadOnly => {
 languageRef.value = 'json'
 const schemaContentObj = ref({})
 const mediaTypeSchemaObj = ref()
+const activeTab = ref('model')
 watch(() => currentComponentModel.value?.schemaContent, (schemaContent) => {
   contentRef.value = schemaContent
   try {
@@ -226,11 +247,11 @@ watch(() => currentComponentModel.value?.schemaContent, (schemaContent) => {
       mediaTypeSchemaObj.value = schemaObj
       schemaObj = schemaObj.schema
     }
-    schemaContentObj.value = schemaObj
-  } catch (e) { // 忽略错误保证能正常显示
-    console.error(e)
+    if (JSON.stringify(schemaContentObj.value) !== JSON.stringify(schemaObj)) schemaContentObj.value = schemaObj
+  } catch { // 保留未完成的源码并切换到源码编辑
+    activeTab.value = 'schema'
   }
-}, { immediate: true })
+}, { immediate: true, flush: 'sync' })
 watch(schemaContentObj, () => {
   if (currentComponentModel.value) {
     let schemaContent = JSON.stringify(schemaContentObj.value)
@@ -238,17 +259,22 @@ watch(schemaContentObj, () => {
       mediaTypeSchemaObj.value.schema = schemaContentObj.value
       schemaContent = JSON.stringify(mediaTypeSchemaObj.value)
     }
+    // 解析源码时不反向格式化，保留原文以及未完成的 JSON。
+    if (normalizeSchemaContent(currentComponentModel.value.schemaContent) === schemaContent) return
     currentComponentModel.value.schemaContent = schemaContent
   }
-}, { deep: true })
+}, { deep: true, flush: 'sync' })
+watch(contentRef, value => {
+  if (currentComponentModel.value) currentComponentModel.value.schemaContent = value
+}, { flush: 'sync' })
 const codeHeight = '400px'
-const activeTab = ref('model')
-
 const currentProjectInfo = computed(() => {
   return projectInfos.value?.find(info => info.id === currentComponentModel.value.infoId)
 })
 
-const gotoComponent = (componentData) => {
+const gotoComponent = async (componentData, index) => {
+  if (!await draft.confirmLeave()) return
+  if (index !== undefined) componentData = goToItem(index)
   startContext()
   currentInfoDetail.value = componentData
 }
@@ -347,7 +373,9 @@ const toShowHistoryWindow = (current) => {
       })
     },
     recoverFunc: writable.value ? recoverFromHistory : null,
-    onUpdateHistory: data => emit('saveComponent', data)
+    onUpdateHistory: async data => {
+      if (await draft.confirmLeave()) emit('saveComponent', data)
+    }
   })
 }
 
@@ -457,25 +485,38 @@ const doGenerateModel = async () => {
 defineExpose({
   saveComponent,
   copyComponent,
-  deleteComponent
+  deleteComponent,
+  draft,
+  saving
 })
 </script>
 
 <template>
-  <el-container class="flex-column height100">
+  <el-container
+    v-loading="draft.loading"
+    class="flex-column height100"
+  >
+    <doc-draft-window
+      :draft="draft"
+      @cancel="cancelDraftEditing"
+    />
+    <doc-draft-notice
+      v-if="draft.loadError"
+      :draft="draft"
+    />
     <common-form
       v-if="currentComponentModel&&schemaContentObj"
       class="padding-left2 padding-right2"
       :class="{'padding-top3':!inWindow}"
       class-name="common-form-auto"
       :model="currentComponentModel"
-      :disabled="readonly"
+      :disabled="readonly || saving || !!draft.pending"
       inline
       :options="componentEditOptions"
       :show-buttons="false"
     >
       <template
-        v-if="(writable && !inWindow) || historyCount"
+        v-if="writable || historyCount"
         #after-buttons="{form}"
       >
         <el-container class="flex-center">
@@ -493,6 +534,8 @@ defineExpose({
           <template v-if="writable&&!inWindow">
             <el-button
               type="primary"
+              :loading="saving"
+              :disabled="!!draft.pending"
               @click="saveComponent(form)"
             >
               {{ $t('common.label.save') }}
@@ -520,10 +563,17 @@ defineExpose({
               {{ $t('common.label.copy') }}
             </el-button>
           </template>
+          <doc-draft-notice
+            v-if="writable"
+            :draft="draft"
+          />
         </el-container>
       </template>
     </common-form>
-    <el-container class="padding-10 flex-column">
+    <el-container
+      v-if="currentComponentModel"
+      class="padding-10 flex-column"
+    >
       <div
         v-if="managedItems?.length>1"
         class="padding-top5 padding-left2 padding-bottom1"
@@ -536,7 +586,7 @@ defineExpose({
             v-if="index<managedItems.length-1"
             type="primary"
             style="vertical-align: baseline;"
-            @click="gotoComponent(goToItem(index))"
+            @click="gotoComponent(item, index)"
           >
             {{ getSchemaNameLabel(item) }}
           </el-link>
@@ -572,7 +622,7 @@ defineExpose({
               :spec-version="currentProjectInfo?.specVersion"
               :component-schemas="componentSchemas"
               :show-merge-all-of="false"
-              :readonly="readonly"
+              :readonly="readonly || saving || !!draft.pending"
               @goto-component="gotoComponent"
             />
           </el-container>

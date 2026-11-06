@@ -13,7 +13,16 @@ const toEditComponent = (component) => {
 }
 const apiComponentRef = useTemplateRef('apiComponent')
 const saveComponent = ({ form }) => {
-  apiComponentRef.value.saveComponent(form)
+  apiComponentRef.value?.saveComponent(form).then(saved => {
+    if (saved) showWindow.value = false
+  })
+  return false
+}
+const closeComponent = () => {
+  Promise.resolve(apiComponentRef.value?.draft.confirmLeave() ?? true).then(leave => {
+    if (leave) showWindow.value = false
+  })
+  return false
 }
 defineExpose({
   toEditComponent
@@ -30,8 +39,8 @@ const buttons = computed(() => {
     labelKey: 'common.label.delete',
     type: 'danger',
     click () {
-      apiComponentRef.value?.deleteComponent()?.then(() => {
-        showWindow.value = false
+      apiComponentRef.value?.deleteComponent()?.then(deleted => {
+        if (deleted) showWindow.value = false
       })
     },
     enabled: !!currentInfo.value?.id
@@ -55,9 +64,13 @@ const buttons = computed(() => {
     :cancel-label="$t('common.label.close')"
     :ok-click="saveComponent"
     :buttons="buttons"
+    :ok-loading="apiComponentRef?.saving"
+    :close-click="closeComponent"
+    :cancel-click="closeComponent"
+    :destroy-on-close="true"
   >
     <api-project-component
-      v-if="currentInfo"
+      v-if="currentInfo && showWindow"
       ref="apiComponent"
       v-model="currentInfo"
       v-bind="$attrs"

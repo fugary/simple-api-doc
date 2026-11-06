@@ -22,27 +22,37 @@ const componentsTableRef = useTemplateRef('componentsTableRef')
 const { goBack } = useBackUrl(`/api/projects/${projectCode}`)
 const { projectItem, loadProjectItem } = useApiProjectItem(projectCode, { autoLoad: false, detail: false })
 const currentInfoDetail = ref(null)
+const componentEditor = ref()
+const confirmLeave = () => componentEditor.value?.draft.confirmLeave() ?? Promise.resolve(true)
 
 const { tableData, loading, searchParam, searchMethod } = useTableAndSearchForm({
   defaultParam: { keyword: '', page: useDefaultPage(15), bodyType: 'component' },
   searchMethod: ApiProjectInfoDetailApi.search
 })
-const loadProjectComponents = (pageNumber) => searchMethod(pageNumber).then(data => {
-  if (data.resultData?.length) {
-    if (!currentInfoDetail.value) {
-      currentInfoDetail.value = data.resultData[0]
+const loadProjectComponents = async (pageNumber, confirmed = false) => {
+  if (confirmed !== true && !await confirmLeave()) return
+  return searchMethod(pageNumber).then(data => {
+    if (data.resultData?.length) {
+      if (!currentInfoDetail.value) {
+        currentInfoDetail.value = data.resultData[0]
+      } else {
+        console.log('=========================', data.resultData, currentInfoDetail.value)
+        currentInfoDetail.value = data.resultData.find(item => item.id === currentInfoDetail.value.id) || data.resultData[0]
+      }
+      componentsTableRef.value?.table?.setCurrentRow(currentInfoDetail.value)
     } else {
-      console.log('=========================', data.resultData, currentInfoDetail.value)
-      currentInfoDetail.value = data.resultData.find(item => item.id === currentInfoDetail.value.id) || data.resultData[0]
+      currentInfoDetail.value = null
     }
-    componentsTableRef.value?.table?.setCurrentRow(currentInfoDetail.value)
-  } else {
-    currentInfoDetail.value = null
-  }
-  return data
-})
+    return data
+  })
+}
 
-const newOrEdit = (id) => {
+const newOrEdit = async (id) => {
+  if (id && currentInfoDetail.value?.id === id) return
+  if (!await confirmLeave()) {
+    componentsTableRef.value?.table?.setCurrentRow(currentInfoDetail.value)
+    return
+  }
   if (id) {
     currentInfoDetail.value = { id }
   } else {
@@ -60,6 +70,7 @@ const clearWindowVisible = ref(false)
 const clearStat = ref(null)
 
 const openClearComponentsWindow = async () => {
+  if (!await confirmLeave()) return
   const stat = await removeByQuery(Object.assign({}, searchParam.value, { checkOnly: true }), { loading: true }).then(res => res?.resultData)
   if (!stat || !stat.totalCount) {
     ElMessage.warning($i18nBundle('api.msg.noComponentsToDelete'))
@@ -71,7 +82,7 @@ const openClearComponentsWindow = async () => {
 
 const onClearSuccess = () => {
   currentInfoDetail.value = null
-  loadProjectComponents(1)
+  loadProjectComponents(1, true)
 }
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
@@ -165,7 +176,7 @@ const isWritable = computed(() => inProjectCheckAccess(projectItem.value, AUTHOR
 const saveComponent = (data) => {
   console.log('===========================data', data)
   currentInfoDetail.value = data
-  loadProjectComponents()
+  loadProjectComponents(undefined, true)
 }
 
 const showContextMenu = ref(false)
@@ -199,7 +210,8 @@ const getRowHandlers = (row) => {
     icon: 'DocumentCopy',
     iconColor: 'var(--el-color-primary)',
     label: $i18nBundle('common.label.commonCopy', [modelLabel]),
-    handler: () => {
+    handler: async () => {
+      if (!await confirmLeave()) return
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [$i18nBundle('common.label.commonCopy', [modelLabel])]))
         .then(() => copyApiModel(row.id, { loading: true }))
         .then(result => {
@@ -213,14 +225,15 @@ const getRowHandlers = (row) => {
     icon: row.locked ? 'LockOpenFilled' : 'LockFilled',
     iconColor: row.locked ? 'var(--el-color-success)' : 'var(--el-color-warning)',
     label: lockLabel,
-    handler: () => {
+    handler: async () => {
+      if (!await confirmLeave()) return
       $coreConfirm($i18nBundle('common.msg.commonConfirm', [lockLabel]))
         .then(() => ApiProjectInfoDetailApi.saveOrUpdate({ ...row, locked: !row.locked }, { loading: true }))
         .then(() => {
           if (currentInfoDetail.value?.id === row.id) {
             currentInfoDetail.value.locked = !row.locked
           }
-          loadProjectComponents()
+          loadProjectComponents(undefined, true)
         })
     }
   }, {
@@ -228,7 +241,8 @@ const getRowHandlers = (row) => {
     icon: 'Delete',
     type: 'danger',
     label: $i18nBundle('common.label.commonDelete', [modelLabel]),
-    handler: () => {
+    handler: async () => {
+      if (!await confirmLeave()) return
       const alertMsg = row.schemaName ? $i18nBundle('common.msg.commonDeleteConfirm', [row.schemaName]) : $i18nBundle('common.msg.deleteConfirm')
       $coreConfirm(alertMsg)
         .then(() => ApiProjectInfoDetailApi.deleteById(row.id, { loading: true }))
@@ -236,7 +250,7 @@ const getRowHandlers = (row) => {
           if (currentInfoDetail.value?.id === row.id) {
             currentInfoDetail.value = null
           }
-          loadProjectComponents()
+          loadProjectComponents(undefined, true)
         })
     }
   }].filter(item => item.enabled !== false)
@@ -247,7 +261,6 @@ const handleRowContextMenu = (row, column, event) => {
   if (!isWritable.value && !isDeletable.value) {
     return
   }
-  componentsTableRef.value?.table?.setCurrentRow(row)
   showContextMenu.value = false
   contextMenuHandlers.value = getRowHandlers(row)
   contextMenuPos.x = event.clientX
@@ -324,7 +337,7 @@ const handleRowContextMenu = (row, column, event) => {
               :page-attrs="pageAttrs"
               @page-size-change="loadProjectComponents()"
               @current-page-change="loadProjectComponents()"
-              @current-change="$event?newOrEdit($event?.id):undefined"
+              @row-click="row => newOrEdit(row.id)"
               @row-contextmenu="handleRowContextMenu"
             >
               <template #buttonHeader>
@@ -346,10 +359,11 @@ const handleRowContextMenu = (row, column, event) => {
           <template #split-1>
             <api-project-component
               v-if="currentInfoDetail"
+              ref="componentEditor"
               v-model="currentInfoDetail"
               :current-project="projectItem"
               @save-component="saveComponent"
-              @delete-component="loadProjectComponents()"
+              @delete-component="currentInfoDetail = null; loadProjectComponents(undefined, true)"
             />
           </template>
         </common-split>
