@@ -549,3 +549,61 @@ const handleShareThemeChange = (shareDarkTheme, event, callback) => {
     await nextTick()
   })
 }
+
+/**
+ * 计算树形节点中文档/接口的选择与总数统计
+ * @param {Array} nodes 树节点列表
+ * @param {Array} selectedKeys 选中的 key 列表
+ * @param {Object} options 配置项 (nodeKey, isNodeDisabled)
+ * @returns {{totalLeaf: number, totalSelected: number, totalApi: number, apiSelected: number, totalMd: number, mdSelected: number}}
+ */
+export const calcTreeDocStats = (nodes, selectedKeys = [], options = {}) => {
+  const { nodeKey = 'value', isNodeDisabled } = options
+  const set = new Set(selectedKeys || [])
+  let totalLeaf = 0
+  let totalSelected = 0
+  let totalApi = 0
+  let apiSelected = 0
+  let totalMd = 0
+  let mdSelected = 0
+
+  const traverse = (list) => {
+    if (!list || !list.length) return
+    list.forEach(node => {
+      const isLeaf = !node.children || node.children.length === 0
+      if (isLeaf) {
+        const key = node[nodeKey] !== undefined ? node[nodeKey] : (node.treeId ?? node.id)
+        const isSelected = set.has(key)
+        const disabled = typeof isNodeDisabled === 'function' ? isNodeDisabled(node) : Boolean(node.disabled)
+
+        const isApi = node.docType === 'api'
+        const isMd = node.docType === 'md' || node.docType === 'markdown' || node.contentType === 'markdown'
+
+        // 仅将可选（非禁用）或已选中的叶子节点计入总数
+        if (!disabled || isSelected) {
+          totalLeaf++
+          if (isApi) totalApi++
+          if (isMd) totalMd++
+        }
+
+        if (isSelected) {
+          totalSelected++
+          if (isApi) apiSelected++
+          if (isMd) mdSelected++
+        }
+      } else if (node.children) {
+        traverse(node.children)
+      }
+    })
+  }
+
+  traverse(nodes)
+  return {
+    totalLeaf,
+    totalSelected,
+    totalApi,
+    apiSelected,
+    totalMd,
+    mdSelected
+  }
+}

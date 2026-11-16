@@ -2,6 +2,8 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { $i18nBundle } from '@/messages'
 import CommonIcon from '@/components/common-icon/index.vue'
+import DocCountTag from '@/views/components/utils/DocCountTag.vue'
+import { calcTreeDocStats } from '@/services/api/ApiFolderService'
 import { debounce } from 'lodash-es'
 
 const props = defineProps({
@@ -156,47 +158,10 @@ const selectedKeysSet = computed(() => {
 })
 
 const selectedStats = computed(() => {
-  let totalLeaf = 0
-  let totalSelected = 0
-  let apiSelected = 0
-  let mdSelected = 0
-
-  const set = selectedKeysSet.value
-
-  const traverse = (nodes) => {
-    if (!nodes || !nodes.length) return
-    nodes.forEach(node => {
-      const isLeaf = !node.children || node.children.length === 0
-      if (isLeaf) {
-        const isSelected = set.has(node[props.nodeKey])
-        const disabled = isNodeDisabled(node)
-
-        // 仅将可选（非禁用）或已选中的叶子节点计入总数
-        if (!disabled || isSelected) {
-          totalLeaf++
-        }
-
-        const isApi = node.docType === 'api'
-        const isMd = node.docType === 'md'
-
-        if (isSelected) {
-          totalSelected++
-          if (isApi) apiSelected++
-          if (isMd) mdSelected++
-        }
-      } else if (node.children) {
-        traverse(node.children)
-      }
-    })
-  }
-
-  traverse(props.treeNodes)
-  return {
-    totalLeaf,
-    totalSelected,
-    apiSelected,
-    mdSelected
-  }
+  return calcTreeDocStats(props.treeNodes, selectedKeys.value, {
+    nodeKey: props.nodeKey,
+    isNodeDisabled
+  })
 })
 
 let isInternalChange = false
@@ -387,30 +352,9 @@ const filterNode = (value, data) => {
           <slot name="extra-filter" />
         </div>
         <div class="tree-check-stats-group">
-          <template v-if="selectedStats.apiSelected > 0 || selectedStats.mdSelected > 0">
-            <el-tag
-              v-if="selectedStats.apiSelected > 0"
-              size="small"
-              type="success"
-              effect="plain"
-              class="stats-tag"
-            >
-              {{ $t('common.label.apiCount', [selectedStats.apiSelected]) }}
-            </el-tag>
-            <el-tag
-              v-if="selectedStats.mdSelected > 0"
-              size="small"
-              type="warning"
-              effect="plain"
-              class="stats-tag"
-            >
-              {{ $t('common.label.docCount', [selectedStats.mdSelected]) }}
-            </el-tag>
-            <span class="stats-divider">|</span>
-          </template>
-          <span class="stats-label">
-            {{ selectedStats.totalLeaf > 0 ? $t('common.label.selectedCount', [selectedStats.totalSelected, selectedStats.totalLeaf]) : $t('common.label.selectedCountSimple', [selectedStats.totalSelected]) }}
-          </span>
+          <doc-count-tag
+            :stats="selectedStats"
+          />
         </div>
       </div>
     </el-header>
@@ -507,19 +451,5 @@ const filterNode = (value, data) => {
   color: var(--el-text-color-regular);
   flex-shrink: 0;
   white-space: nowrap;
-}
-
-.stats-label {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.stats-divider {
-  color: var(--el-border-color);
-  margin: 0 4px;
-}
-
-.stats-tag {
-  border-radius: 4px;
 }
 </style>

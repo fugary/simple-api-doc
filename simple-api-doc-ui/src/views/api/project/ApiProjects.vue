@@ -7,6 +7,7 @@ import { useAllUsers } from '@/api/ApiUserApi'
 import ApiProjectApi, { calcProjectIconUrl, copyProject, uploadFiles } from '@/api/ApiProjectApi'
 import { $coreConfirm, $goto, formatDate, isAdminUser, useCurrentUserName } from '@/utils'
 import DelFlagTag from '@/views/components/utils/DelFlagTag.vue'
+import DocCountTag from '@/views/components/utils/DocCountTag.vue'
 import { $i18nBundle } from '@/messages'
 import { useFormStatus, useSearchOnlyMine, useSearchStatus } from '@/consts/GlobalConstants'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
@@ -339,34 +340,11 @@ const tableProjectItems = computed(() => {
           const apiCount = countsMap.api || countsMap.apiCount || 0
           const docCount = countsMap.md || countsMap.docCount || 0
           const totalCount = apiCount + docCount
-          const tipItems = [
-            apiCount > 0 && $i18nBundle('api.label.apiCount', [apiCount]),
-            docCount > 0 && $i18nBundle('api.label.docCount', [docCount])
-          ].filter(Boolean)
-          if ((apiCount > 0 && docCount > 0) || !tipItems.length) {
-            tipItems.push($i18nBundle('api.label.totalCount', [totalCount]))
-          }
-          const tooltipContent = tipItems.join(' | ')
 
           return <span class="project-status-container">
             <DelFlagTag v-model={project.status} clickToToggle={project.isWritable}
                         onToggleValue={(status) => saveProjectItem({ ...project, status })} />
-            <ElTooltip content={tooltipContent} placement="top">
-              <span class="project-doc-count-tag pointer">
-                {apiCount > 0 && <span class="count-item">
-                  <CommonIcon icon="custom-api" style="color: #10b981;" size={15} />
-                  <span>{apiCount}</span>
-                </span>}
-                {docCount > 0 && <span class="count-item">
-                  <CommonIcon icon="custom-markdown" style="color: #8b5cf6;" size={15} />
-                  <span>{docCount}</span>
-                </span>}
-                {((apiCount > 0 && docCount > 0) || totalCount === 0) && <span class="count-item font-weight-bold">
-                  <CommonIcon icon="Files" style="color: #3b82f6;" size={15} />
-                  <span>{totalCount}</span>
-                </span>}
-              </span>
-            </ElTooltip>
+            <DocCountTag stats={{ apiCount, docCount, totalCount }} pointer />
             {(project.topFlag || (project.isWritable && project.showOperations)) && <ElTooltip
               content={project.topFlag ? $i18nBundle('api.label.unpin') : $i18nBundle('api.label.pin')}
               placement="top"
@@ -786,32 +764,6 @@ const pageAttrs = {
   align-items: center;
   gap: 8px;
   vertical-align: middle;
-}
-
-.project-card :deep(.project-doc-count-tag) {
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  user-select: none;
-  background-color: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  padding: 2px 10px;
-  color: var(--el-text-color-regular);
-  transition: all 0.3s;
-  white-space: nowrap;
-}
-
-.project-card :deep(.count-item) {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.project-card :deep(.project-doc-count-tag:hover) {
-  background-color: var(--el-fill-color);
-  border-color: var(--el-border-color);
 }
 
 .project-group-panel {

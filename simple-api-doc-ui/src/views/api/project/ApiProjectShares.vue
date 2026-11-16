@@ -27,7 +27,8 @@ import { ElTag, ElButton, ElText, ElLink } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { calcProjectItem } from '@/services/api/ApiProjectService'
 import { cloneDeep, isNumber } from 'lodash-es'
-import { calcNodeLeaf } from '@/services/api/ApiFolderService'
+import { calcNodeLeaf, calcTreeDocStats } from '@/services/api/ApiFolderService'
+import DocCountTag from '@/views/components/utils/DocCountTag.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import TreeConfigWindow from '@/views/components/utils/TreeConfigWindow.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
@@ -61,6 +62,7 @@ const editTreeNodes = ref([])
 const showTreeConfigWindow = ref(false)
 const editShareProject = ref(null)
 const envConfigs = computed(() => calcEnvConfigs(editShareProject.value?.envContent))
+const shareDocStats = computed(() => calcTreeDocStats(editTreeNodes.value, currentShare.value?.shareDocsArr, { nodeKey: 'treeId' }))
 
 const { initLoadOnce } = useInitLoadOnce(async () => {
   if (inProject) {
@@ -421,17 +423,21 @@ const editFormOptions = computed(() => {
     labelKey: 'api.label.selectShareDocs',
     type: 'common-form-label',
     formatter () {
-      let msg = $i18nBundle('api.label.shareAllDocs')
-      const docsLen = currentShare.value?.shareDocsArr?.filter(id => isNumber(id))?.length
-      if (docsLen) {
-        msg = $i18nBundle('api.label.shareSelectedDocs', [docsLen])
-      }
-      return <>
-        <strong class="margin-right1">{msg}</strong>
+      const docsLen = currentShare.value?.shareDocsArr?.filter(id => isNumber(id))?.length || 0
+      const stats = shareDocStats.value
+      const hasSelected = docsLen > 0
+      const msg = hasSelected ? $i18nBundle('api.label.shareSelectedDocs', [docsLen]) : $i18nBundle('api.label.shareAllDocs')
+      const tagStats = hasSelected
+        ? stats
+        : { apiCount: stats.totalApi, docCount: stats.totalMd, totalCount: stats.totalLeaf }
+      return <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', verticalAlign: 'middle' }}>
+        {stats.totalLeaf > 0
+          ? <DocCountTag stats={tagStats} pointer onClick={() => (showTreeConfigWindow.value = true)} />
+          : <strong style={{ marginRight: '4px' }}>{msg}</strong>}
         <ElButton type="primary" size="small" onClick={() => (showTreeConfigWindow.value = true)}>
           {$i18nBundle('common.label.select')}
         </ElButton>
-      </>
+      </div>
     }
   }, {
     labelKey: 'api.label.environments',
