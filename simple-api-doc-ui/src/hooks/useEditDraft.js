@@ -134,8 +134,11 @@ export const useEditDraft = (currentDoc, adapter, guard = null) => {
   window.addEventListener('beforeunload', beforeUnload)
   document.addEventListener('visibilitychange', onHidden)
   if (guard) guard.value = confirmLeave
-  // 动态挂载的编辑弹窗不属于 RouterView，也需要离开保护。
-  const removeRouteGuard = useRouter().beforeEach(confirmLeave)
+  // 路由离开时默认自动保存草稿并直接放行，不弹窗阻拦
+  const removeRouteGuard = useRouter().beforeEach(() => {
+    persist()
+    return true
+  })
   onActivated(() => { active = true; if (guard) guard.value = confirmLeave })
   onDeactivated(() => {
     persist()
@@ -155,6 +158,6 @@ export const useEditDraft = (currentDoc, adapter, guard = null) => {
     model,
     saving,
     onSaved,
-    draft: reactive({ pending, conflict, dirty, saved, error, loading, loadError, leaving, resolveLeave, restore, discard, confirmLeave, retry: () => load(currentDoc.value) })
+    draft: reactive({ pending, conflict, dirty, saved, error, loading, loadError, leaving, resolveLeave, restore, discard, confirmLeave, persist, retry: () => load(currentDoc.value) })
   }
 }

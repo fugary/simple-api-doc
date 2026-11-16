@@ -440,3 +440,19 @@ test('DTO 自动格式化不生成草稿或冲突，真实修改和无效 JSON �
   e.model.value.schemaContent = '{'
   assert.equal(e.draft.dirty, true)
 })
+
+test('路由离开时默认自动保存草稿并直接放行，不弹窗', async t => {
+  const e = await setupEditor(t, { model: true })
+  e.model.value.description = '路由离开保存'
+  assert.equal(e.draft.dirty, true)
+  assert.equal(e.draft.leaving, false)
+
+  // 触发路由前置守卫
+  const allowed = await e.routes[0]()
+  assert.equal(allowed, true)
+  // 不弹窗
+  assert.equal(e.draft.leaving, false)
+  // 草稿已自动落盘
+  const stored = readDraft(e.storage, draftKey('s', 1, 7, { id: 1 }, 'model'), undefined, 'model')
+  assert.equal(stored.fields.description, '路由离开保存')
+})
