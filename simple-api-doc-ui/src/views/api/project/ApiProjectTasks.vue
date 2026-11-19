@@ -5,7 +5,7 @@ import { $coreAlert, $coreConfirm, $goto, checkShowColumn, getStyleGrow, isAdmin
 import { useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { useDefaultPage } from '@/config'
-import ApiProjectTaskApi, { copyProjectTask } from '@/api/ApiProjectTaskApi'
+import ApiProjectTaskApi from '@/api/ApiProjectTaskApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
@@ -22,7 +22,7 @@ import {
   TASK_TRIGGER_RATES
 } from '@/consts/ApiConstants'
 import { AUTH_OPTION_CONFIG } from '@/services/api/ApiAuthorizationService'
-import { cloneDeep, isFunction } from 'lodash-es'
+import { cloneDeep, isFunction, omit } from 'lodash-es'
 import { useFolderTreeNodes } from '@/services/api/ApiFolderService'
 import dayjs from 'dayjs'
 import { ElLink, ElTag, ElText, ElTooltip } from 'element-plus'
@@ -214,11 +214,7 @@ const buttons = computed(() => {
     type: 'warning',
     labelKey: 'common.label.copy',
     buttonIf: item => item.isWritable,
-    click: item => {
-      $coreConfirm($i18nBundle('common.msg.confirmCopy'))
-        .then(() => copyProjectTask(item.id))
-        .then(() => loadProjectTasks())
-    }
+    click: copyTask
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
@@ -346,6 +342,18 @@ const newOrEdit = async (id, initialData) => {
     }
   }
   showEditWindow.value = true
+}
+
+const copyTask = async (item) => {
+  await newOrEdit(item.id)
+  if (!currentModel.value) {
+    return
+  }
+  const rest = omit(currentModel.value, ['id', 'authContent', 'creator', 'createDate', 'modifier', 'modifyDate', 'modifyFrom', 'execDate', 'lastLog'])
+  currentModel.value = {
+    ...rest,
+    taskName: `${rest.taskName || ''}-copy`
+  }
 }
 
 const onCreateTask = (importModelData) => {

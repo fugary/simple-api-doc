@@ -16,7 +16,7 @@ import {
 import { loadDetailById, useApiProjectItem, useSelectProjects } from '@/api/ApiProjectApi'
 import { useInitLoadOnce, useTableAndSearchForm } from '@/hooks/CommonHooks'
 import { SHARE_WATERMARK, useDefaultPage } from '@/config'
-import ApiProjectShareApi, { copyProjectShare, getShareUrl } from '@/api/ApiProjectShareApi'
+import ApiProjectShareApi, { getShareUrl } from '@/api/ApiProjectShareApi'
 import { $i18nBundle, $i18nKey } from '@/messages'
 import SimpleEditWindow from '@/views/components/utils/SimpleEditWindow.vue'
 import { defineFormOptions, renderSelectOptionLabel } from '@/components/utils'
@@ -26,7 +26,7 @@ import UrlCopyLink from '@/views/components/api/UrlCopyLink.vue'
 import { ElTag, ElButton, ElText, ElLink } from 'element-plus'
 import { useAllUsers } from '@/api/ApiUserApi'
 import { calcProjectItem } from '@/services/api/ApiProjectService'
-import { cloneDeep, isNumber } from 'lodash-es'
+import { cloneDeep, isNumber, omit } from 'lodash-es'
 import { calcNodeLeaf, calcTreeDocStats } from '@/services/api/ApiFolderService'
 import DocCountTag from '@/views/components/utils/DocCountTag.vue'
 import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
@@ -183,11 +183,7 @@ const buttons = computed(() => {
     type: 'warning',
     labelKey: 'common.label.copy',
     buttonIf: item => item.isWritable,
-    click: item => {
-      $coreConfirm($i18nBundle('common.msg.confirmCopy'))
-        .then(() => copyProjectShare(item.id))
-        .then(() => loadProjectShares())
-    }
+    click: copyShare
   }, {
     labelKey: 'common.label.delete',
     type: 'danger',
@@ -327,6 +323,19 @@ const newOrEdit = async (id) => {
     }
   }
   showEditWindow.value = true
+}
+
+const copyShare = async (item) => {
+  await newOrEdit(item.id)
+  if (!currentShare.value) {
+    return
+  }
+  const rest = omit(currentShare.value, ['id', 'shareId', 'shareDocs', 'envContent', 'creator', 'createDate', 'modifier', 'modifyDate', 'modifyFrom'])
+  currentShare.value = {
+    ...rest,
+    shareName: `${rest.shareName || ''}-copy`,
+    sharePassword: rest.sharePassword ? $randomStr(8) : ''
+  }
 }
 
 const editFormOptions = computed(() => {
