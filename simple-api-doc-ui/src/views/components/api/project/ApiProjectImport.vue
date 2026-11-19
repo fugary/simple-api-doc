@@ -115,6 +115,20 @@ const importFolders = computed(() => props.project?.infoList?.map(info => info.f
 
 const importFiles = ref([])
 const detectedTypeNotice = ref('')
+const uploadRef = ref()
+const setUploadRef = (el) => {
+  uploadRef.value = el
+}
+
+const clearSelectedFiles = () => {
+  importFiles.value = []
+  detectedTypeNotice.value = ''
+  uploadRef.value?.clearFiles()
+  const inputEl = uploadRef.value?.$el?.querySelector('input[type="file"]')
+  if (inputEl) {
+    inputEl.value = ''
+  }
+}
 
 const getFileName = (file) => file?.name || file?.raw?.name || ''
 const isSupportedFile = (file) => {
@@ -135,12 +149,16 @@ const validateFileContent = async (file) => {
 }
 
 const onFileListUpdate = async (files) => {
+  if (!files || files.length === 0) {
+    clearSelectedFiles()
+    return
+  }
   const validFiles = []
   const oversizedFiles = []
   const invalidExtFiles = []
   const invalidContentFiles = []
-  detectedTypeNotice.value = ''
-  for (const file of files || []) {
+  let newDetectedNotice = detectedTypeNotice.value
+  for (const file of files) {
     if (!isSupportedFile(file)) {
       invalidExtFiles.push(file)
     } else if (isOversizedFile(file)) {
@@ -149,7 +167,7 @@ const onFileListUpdate = async (files) => {
       const detected = await detectImportFileType(file?.raw || file)
       if (detected) {
         importModel.value.sourceType = detected
-        detectedTypeNotice.value = $i18nBundle('api.msg.autoDetectTypeNotice', [getSourceTypeLabel(detected)])
+        newDetectedNotice = $i18nBundle('api.msg.autoDetectTypeNotice', [getSourceTypeLabel(detected)])
         validFiles.push(file)
         if (!props.project?.id && !importModel.value.projectName) {
           const fileName = getFileName(file)
@@ -177,7 +195,12 @@ const onFileListUpdate = async (files) => {
     const detail = invalidContentFiles.map(getFileName).join(', ')
     $coreError($i18nBundle('api.msg.importFileTypeInvalidDetail', [detail, getSourceTypeLabel()]))
   }
-  importFiles.value = validFiles
+  if (validFiles.length > 0) {
+    detectedTypeNotice.value = newDetectedNotice
+    importFiles.value = validFiles
+  } else {
+    clearSelectedFiles()
+  }
 }
 const formOptions = computed(() => {
   const existsProj = !!props.project
@@ -266,6 +289,7 @@ const formOptions = computed(() => {
     labelKey: 'api.label.importFile',
     type: 'upload',
     attrs: {
+      ref: setUploadRef,
       accept: SUPPORTED_IMPORT_FILE_ACCEPT,
       fileList: importFiles.value,
       'onUpdate:fileList': onFileListUpdate,
@@ -283,12 +307,27 @@ const formOptions = computed(() => {
     },
     slots: {
       trigger () {
+        const selectedFileName = importFiles.value?.[0]?.name
         return <>
           <ElButton type="primary">
             <CommonIcon size={18} icon="FileUploadFilled"/>
             {$i18nBundle('api.label.selectFile')}
           </ElButton>
-          <span style="display: inline-block; margin-left: 10px;">{importFiles.value?.[0]?.name}</span>
+          {selectedFileName && (
+            <span
+              style="display: inline-flex; align-items: center; margin-left: 10px; vertical-align: middle;"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span>{selectedFileName}</span>
+              <CommonIcon
+                icon="CircleClose"
+                size={14}
+                class="file-clear-btn"
+                style="margin-left: 6px; cursor: pointer;"
+                onClick={clearSelectedFiles}
+              />
+            </span>
+          )}
         </>
       },
       tip: () => <div class="el-upload__tip">{$i18nBundle('api.msg.importFileLimit', [SUPPORTED_IMPORT_FILE_EXTS.join('/'), formatFileSize(DEFAULT_MAX_IMPORT_FILE_SIZE)])}</div>
@@ -498,5 +537,13 @@ defineExpose({
 </template>
 
 <style scoped>
+:deep(.file-clear-btn) {
+  color: var(--el-text-color-placeholder);
+  transition: color var(--el-transition-duration-fast), transform var(--el-transition-duration-fast);
+}
 
+:deep(.file-clear-btn:hover) {
+  color: var(--el-color-danger);
+  transform: scale(1.15);
+}
 </style>
