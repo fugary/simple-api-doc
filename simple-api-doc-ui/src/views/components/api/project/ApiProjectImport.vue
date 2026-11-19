@@ -427,7 +427,8 @@ const createImportTask = () => {
 const doImportProject = (autoAlert = true) => {
   importFormRef.value?.form.validate(async (valid) => {
     if (valid) {
-      if (importModel.value.importType === 'file') {
+      const isUrlMode = importModel.value.importType === 'url'
+      if (!isUrlMode) {
         if (!importFiles.value?.length) {
           $coreError($i18nBundle('api.msg.importFileNoFile'))
           return
@@ -457,26 +458,32 @@ const doImportProject = (autoAlert = true) => {
           return
         }
       }
-      if (importFiles.value?.length || importModel.value.importType === 'url') {
-        importModel.value.projectId = props.project?.id
-        const modelParam = { ...importModel.value }
+      importModel.value.projectId = props.project?.id
+      const modelParam = { ...importModel.value }
+      delete modelParam.authContentModel
+
+      const filesToUpload = isUrlMode ? [] : importFiles.value
+      if (isUrlMode) {
         if (importModel.value.authType !== AUTH_TYPE.NONE) {
-          modelParam.authContent = JSON.stringify(modelParam.authContentModel)
-          delete modelParam.authContentModel
+          modelParam.authContent = JSON.stringify(importModel.value.authContentModel || {})
+        } else {
+          delete modelParam.authContent
         }
-        importProjectWithPreview(importFiles.value, modelParam, {
-          loading: true
-        }).then(data => {
-          if (data.success) {
-            if (autoAlert) {
-              $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
-            }
-            emit('import-success', data.resultData)
-          }
-        })
       } else {
-        $coreError($i18nBundle('api.msg.importFileNoFile'))
+        delete modelParam.url
+        delete modelParam.authType
+        delete modelParam.authContent
       }
+      importProjectWithPreview(filesToUpload, modelParam, {
+        loading: true
+      }).then(data => {
+        if (data.success) {
+          if (autoAlert) {
+            $coreAlert($i18nBundle('api.msg.importFileSuccess', [data.resultData?.projectName]))
+          }
+          emit('import-success', data.resultData)
+        }
+      })
     }
   })
 }

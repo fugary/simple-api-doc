@@ -186,9 +186,17 @@ export const calcProjectIconUrl = (iconUrl) => {
 const uploadImport = (files, params, config, url) => {
   const formData = new FormData()
   files = isArray(files) ? files : [files]
-  files.filter(file => file.raw).forEach(file => formData.append('files', file.raw))
+  if (params?.importType !== 'url') {
+    files.filter(file => file.raw).forEach(file => formData.append('files', file.raw))
+  }
   for (const key in params) {
-    params[key] && formData.append(key, params[key])
+    const val = params[key]
+    if (val !== undefined && val !== null && val !== '') {
+      if (typeof val === 'object' && !(val instanceof Blob)) {
+        continue
+      }
+      formData.append(key, val)
+    }
   }
   return $httpPost(url,
     formData, Object.assign({ headers: { 'Content-Type': 'multipart/form-data' }, loading: true, timeout: 120000 }, config))
