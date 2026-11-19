@@ -354,8 +354,12 @@ public class ApiDocParseUtils {
         if (existsInfoDetail != null) {
             projectInfoDetailVo.setVersion(Objects.requireNonNullElse(existsInfoDetail.getVersion(), 1));
             projectInfoDetailVo.setId(existsInfoDetail.getId());
-            boolean isSameInfoDetail = SimpleModelUtils.isSameData(projectInfoDetailVo, existsInfoDetail, "schemaContent")
+            String[] ignoreFields = {"id", "projectId", "infoId", "docId", ApiDocConstants.STATUS_KEY, "schemaContent"};
+            boolean isSameInfoDetail = SimpleModelUtils.isSameData(projectInfoDetailVo, existsInfoDetail, ignoreFields)
                     && ApiSchemaContentUtils.isSameSchemaContent(projectInfoDetailVo.getSchemaContent(), existsInfoDetail.getSchemaContent());
+            if (isSameInfoDetail) {
+                return Pair.of(null, null);
+            }
             if (ApiDocConstants.PROJECT_SCHEMA_TYPE_COMPONENT.equals(existsInfoDetail.getBodyType())) {
                 if (Boolean.TRUE.equals(existsInfoDetail.getLocked())) {
                     String mergedSchemaContent = ApiSchemaContentUtils.mergeComponentSchemaContent(existsInfoDetail.getSchemaContent(),
@@ -379,10 +383,9 @@ public class ApiDocParseUtils {
                         projectInfoDetailVo.getSchemaContent());
                 projectInfoDetailVo.setSchemaContent(mergedSchemaContent);
             }
-            // 合并/保留操作仅影响 schemaContent，统一重新比较判断是否真正有变化，避免产生不必要的历史记录
-            if (!isSameInfoDetail) {
-                isSameInfoDetail = ApiSchemaContentUtils.isSameSchemaContent(projectInfoDetailVo.getSchemaContent(), existsInfoDetail.getSchemaContent());
-            }
+            // 合并/保留操作仅影响 schemaContent 和 description，统一重新比较判断是否真正有变化，避免产生不必要的历史记录
+            isSameInfoDetail = SimpleModelUtils.isSameData(projectInfoDetailVo, existsInfoDetail, ignoreFields)
+                    && ApiSchemaContentUtils.isSameSchemaContent(projectInfoDetailVo.getSchemaContent(), existsInfoDetail.getSchemaContent());
             if (!isSameInfoDetail) {
                 SimpleModelUtils.mergeAuditInfo(projectInfoDetailVo, existsInfoDetail);
             }

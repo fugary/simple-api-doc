@@ -1,12 +1,15 @@
 package com.fugary.simple.api.utils.exports;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fugary.simple.api.utils.JsonUtils;
 import com.fugary.simple.api.utils.SchemaJsonUtils;
 import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -18,6 +21,7 @@ import java.util.function.Supplier;
  *
  * @author gary.fu
  */
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ApiSchemaContentUtils {
     /**
@@ -80,6 +84,10 @@ public class ApiSchemaContentUtils {
      * @return
      */
     public static String mergeComponentSchemaContent(String savedComponentSchemaContent, String componentSchemaContent, boolean isV31) {
+        if (StringUtils.isBlank(savedComponentSchemaContent) || StringUtils.isBlank(componentSchemaContent)
+                || isSameSchemaContent(savedComponentSchemaContent, componentSchemaContent)) {
+            return savedComponentSchemaContent;
+        }
         Schema<?> savedSchema = SchemaJsonUtils.fromJson(savedComponentSchemaContent, Schema.class, isV31);
         Schema<?> newSchema = SchemaJsonUtils.fromJson(componentSchemaContent, Schema.class, isV31);
         mergeSchema(savedSchema, newSchema);
@@ -95,6 +103,20 @@ public class ApiSchemaContentUtils {
      * @return
      */
     public static String retainComponentSchemaDescription(String savedComponentSchemaContent, String componentSchemaContent, boolean isV31) {
+        if (StringUtils.isBlank(savedComponentSchemaContent) || StringUtils.isBlank(componentSchemaContent)
+                || isSameSchemaContent(savedComponentSchemaContent, componentSchemaContent)) {
+            return componentSchemaContent;
+        }
+        try {
+            JsonNode savedNode = JsonUtils.getMapper().readTree(savedComponentSchemaContent);
+            JsonNode newNode = JsonUtils.getMapper().readTree(componentSchemaContent);
+            if (savedNode instanceof ObjectNode && newNode instanceof ObjectNode) {
+                retainSchemaDescription((ObjectNode) savedNode, (ObjectNode) newNode);
+                return JsonUtils.toJson(newNode);
+            }
+        } catch (Exception e) {
+            log.error("保留Schema描述失败", e);
+        }
         Schema<?> savedSchema = SchemaJsonUtils.fromJson(savedComponentSchemaContent, Schema.class, isV31);
         Schema<?> newSchema = SchemaJsonUtils.fromJson(componentSchemaContent, Schema.class, isV31);
         retainSchemaDescription(savedSchema, newSchema);
@@ -196,6 +218,59 @@ public class ApiSchemaContentUtils {
         }
         if (newSchema.getDefault() == null && savedSchema.getDefault() != null) {
             newSchema.setDefault(savedSchema.getDefault());
+        }
+    }
+
+    /**
+     * 仅保留/合并schema的描述相关字段（description, title, example, default），不合并属性结构（基于ObjectNode避免非标类型丢失）
+     *
+     * @param savedSchema
+     * @param newSchema
+     */
+    public static void retainSchemaDescription(ObjectNode savedSchema, ObjectNode newSchema) {
+        if (savedSchema == null || newSchema == null) {
+            return;
+        }
+        // properties
+        JsonNode savedPropsNode = savedSchema.get("properties");
+        JsonNode newPropsNode = newSchema.get("properties");
+        if (savedPropsNode instanceof ObjectNode && newPropsNode instanceof ObjectNode) {
+            ObjectNode savedProps = (ObjectNode) savedPropsNode;
+            ObjectNode newProps = (ObjectNode) newPropsNode;
+            newProps.fields().forEachRemaining(entry -> {
+                JsonNode savedProp = savedProps.get(entry.getKey());
+                if (savedProp instanceof ObjectNode && entry.getValue() instanceof ObjectNode) {
+                    retainDescriptionFields((ObjectNode) savedProp, (ObjectNode) entry.getValue());
+                }
+            });
+        }
+        // 顶层字段
+        retainDescriptionFields(savedSchema, newSchema);
+    }
+
+    /**
+     * 将 savedNode 中的描述相关字段（description, title, example, default）保留到 newNode 中
+     */
+    private static void retainDescriptionFields(ObjectNode savedNode, ObjectNode newNode) {
+        mergeStringField(savedNode, newNode, "description");
+        mergeStringField(savedNode, newNode, "title");
+        if (!newNode.hasNonNull("example") && savedNode.hasNonNull("example")) {
+            newNode.set("example", savedNode.get("example"));
+        }
+        if (!newNode.hasNonNull("default") && savedNode.hasNonNull("default")) {
+            newNode.set("default", savedNode.get("default"));
+        }
+    }
+
+    private static void mergeStringField(ObjectNode savedNode, ObjectNode newNode, String fieldName) {
+        JsonNode savedVal = savedNode.get(fieldName);
+        JsonNode newVal = newNode.get(fieldName);
+        if (savedVal != null && savedVal.isTextual() && StringUtils.isNotBlank(savedVal.asText())) {
+            if (newVal == null || !newVal.isTextual() || StringUtils.isBlank(newVal.asText())) {
+                newNode.set(fieldName, savedVal);
+            } else if (savedVal.asText().length() > newVal.asText().length()) {
+                newNode.set(fieldName, savedVal);
+            }
         }
     }
 
