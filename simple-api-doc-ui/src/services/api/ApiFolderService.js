@@ -167,6 +167,19 @@ export const getDownloadDocsHandlers = (projectItem, shareDoc, config = {}) => {
         }
       }
     })
+    results.push({
+      icon: 'DocumentCopy',
+      iconColor: 'var(--el-color-success)',
+      label: $i18nBundle('api.label.copyDocList'),
+      divided: true,
+      enabled: !!projectItem?.docs?.length,
+      handler: () => {
+        const { toShowCopyWindow } = config
+        if (isFunction(toShowCopyWindow)) {
+          toShowCopyWindow()
+        }
+      }
+    })
     return results.filter(result => result.enabled)
   }
   return []

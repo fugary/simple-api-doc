@@ -36,6 +36,7 @@ import { loadProject as loadSharedProject } from '@/api/SimpleShareApi'
 import { updateFolderSorts } from '@/api/ApiFolderApi'
 import { useElementSize } from '@vueuse/core'
 import ApiDocExportWindow from '@/views/components/api/doc/comp/ApiDocExportWindow.vue'
+import ApiDocCopyWindow from '@/views/components/api/doc/comp/ApiDocCopyWindow.vue'
 import { cloneDeep, debounce } from 'lodash-es'
 import { $coreHideLoading, $coreShowLoading, clearAndSetValue, useReload, $coreConfirm } from '@/utils'
 import ApiDocCodeGenWindow from '@/views/components/api/doc/comp/ApiDocCodeGenWindow.vue'
@@ -316,6 +317,17 @@ const toShowTreeConfigWindow = (type, exAllFunc) => {
   showExportWindow.value = true
 }
 
+const showCopyWindow = ref(false)
+const copyTreeNodes = ref([])
+const copySelectedKeys = ref([])
+const toShowCopyWindow = () => {
+  const validDocIds = new Set((projectItem.value?.docs || []).map(doc => doc.id))
+  copySelectedKeys.value = copySelectedKeys.value.filter(id => typeof id === 'number' && validDocIds.has(id))
+  const { docTreeNodes } = calcProjectItem(cloneDeep(projectItem.value), null)
+  copyTreeNodes.value = docTreeNodes
+  showCopyWindow.value = true
+}
+
 const showCodeGenConfigWindow = ref(false)
 const generateTreeNodes = ref([])
 const generateSelectedKeys = ref([])
@@ -443,6 +455,7 @@ const handlerData = {
   showDocDetails,
   addOrEditFolder,
   toShowTreeConfigWindow,
+  toShowCopyWindow,
   toShowCodeGenConfigWindow,
   toShowBatchDeleteWindow,
   refreshFolderTree,
@@ -753,6 +766,13 @@ defineExpose(handlerData)
       :export-type="currentExportType"
       :project-item="projectItem"
       :export-all-func="exportAllFunc"
+    />
+    <api-doc-copy-window
+      v-model:tree-select-keys="copySelectedKeys"
+      v-model="showCopyWindow"
+      :tree-nodes="copyTreeNodes"
+      :share-doc="shareDoc"
+      :project-item="projectItem"
     />
     <api-doc-code-gen-window
       v-model:tree-select-keys="generateSelectedKeys"
