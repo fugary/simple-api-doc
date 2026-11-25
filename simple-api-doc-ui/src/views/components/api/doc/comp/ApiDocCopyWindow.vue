@@ -6,7 +6,6 @@ import { calcNodeLeaf } from '@/services/api/ApiFolderService'
 import {
   COPY_LIST_FIELDS,
   DEFAULT_COPY_LIST_CONFIG,
-  buildCopyPreview,
   collectDocsFromTree,
   formatCopyRows
 } from '@/services/api/DocCopyListService'
@@ -16,8 +15,6 @@ import TreeIconLabel from '@/views/components/utils/TreeIconLabel.vue'
 import ApiMethodTag from '@/views/components/api/doc/ApiMethodTag.vue'
 import { $i18nBundle } from '@/messages'
 import { $coreAlert, $copyText } from '@/utils'
-
-const PREVIEW_MAX_LINES = 100
 
 const FORMAT_ITEMS = [
   { value: 'tsv', labelKey: 'api.label.copyFormatTsv' },
@@ -114,8 +111,6 @@ const copyResult = computed(() => {
     valueLabels: valueLabels.value
   })
 })
-
-const previewData = computed(() => buildCopyPreview(copyResult.value, PREVIEW_MAX_LINES))
 
 const okLabel = computed(() => {
   const count = copyResult.value.rowCount
@@ -284,15 +279,11 @@ const copyGeneratedList = () => {
               size="small"
               type="info"
             >
-              {{
-                previewData.truncated
-                  ? $t('api.label.copyPreviewTruncated', [PREVIEW_MAX_LINES, previewData.rowCount])
-                  : $t('api.label.copyPreviewCount', [previewData.rowCount])
-              }}
+              {{ $t('api.label.copyPreviewCount', [copyResult.rowCount]) }}
             </el-text>
           </div>
           <el-input
-            :model-value="previewData.previewText"
+            :model-value="copyResult.text"
             type="textarea"
             wrap="off"
             readonly

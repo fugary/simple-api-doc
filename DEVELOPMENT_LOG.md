@@ -2,6 +2,10 @@
 
 本文档完整记录了 `simple-api-doc` 项目的详细开发进程、功能迭代及维护记录。
 
+### 2026-11-25
+- **opt(ui)**: 取消复制文档清单弹窗的 100 行预览截断限制，预览文本框直接展示全部生成内容并统一显示条数统计；同时按格式区分加固特殊字符处理（`normalizeSingleLine` 统一折叠 `\r\n\t` 为空格，`TABULAR_FORMATTERS` 配置表统一管理 CSV 逗号/引号包裹、TSV 双引号兼容转义及 Markdown 竖线 `\|` 转义），清理 `buildCopyPreview` 与未使用的截断提示词条；4 项单元测试与修改文件 ESLint 校验全部通过。
+- **feat(ui)**: 文档导出菜单新增复制文档清单功能（`ApiDocCopyWindow` / `DocCopyListService`），支持按树勾选与筛选条件导出 TSV、CSV、Markdown 表格及纯文本行格式，支持字段选择、表头开关、环境 BaseURL 拼接、按行去重及实时预览。
+
 ### 2026-11-19
 - **opt(ui)**: 优化分享管理（`ApiProjectShares`）与导入任务管理（`ApiProjectTasks`）的复制交互，对齐 AI 配置复制体验：
   1. 点击“复制”不再弹出二次确认对话框并直接调用后端接口写入数据库，而是直接打开编辑弹窗预填充原有配置数据；

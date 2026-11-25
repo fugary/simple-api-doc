@@ -6,7 +6,6 @@ const source = await readFile(new URL('../src/services/api/DocCopyListService.js
 const {
   collectDocsFromTree,
   formatCopyRows,
-  buildCopyPreview,
   resolveDocUrl
 } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`)
 
@@ -124,7 +123,7 @@ test('TSV、CSV、Markdown 表格与无空格类型纯文本格式化正确', ()
   assert.ok(!plain.lines.some(line => line.includes('Markdown 文档')))
 })
 
-test('环境 BaseURL 拼接、去重和预览截断', () => {
+test('环境 BaseURL 拼接与去重', () => {
   assert.equal(resolveDocUrl({ docType: 'api', url: 'v1/users' }, 'https://api.example.com/'), 'https://api.example.com/v1/users')
   assert.equal(resolveDocUrl({ docType: 'api', url: 'https://other.com/a' }, 'https://api.example.com/'), 'https://other.com/a')
   assert.equal(resolveDocUrl({ docType: 'md', url: '/readme' }, 'https://api.example.com/'), '/readme')
@@ -139,8 +138,38 @@ test('环境 BaseURL 拼接、去重和预览截断', () => {
     deduplicate: true
   })
   assert.deepEqual(deduped.lines, ['/a'])
+})
 
-  const preview = buildCopyPreview({ lines: ['1', '2', '3'], text: '1\n2\n3', rowCount: 3 }, 2)
-  assert.equal(preview.truncated, true)
-  assert.equal(preview.previewText, '1\n2')
+test('特殊字符（逗号、双引号、制表符、换行、竖线）转义正确', () => {
+  const specialItems = [
+    {
+      doc: { id: 21, docType: 'api', docName: '"用户", 登录\t接口\nV2', method: 'POST', url: '/api/v2/login', status: 1 },
+      folderSegments: ['认证|安全']
+    }
+  ]
+
+  const tsv = formatCopyRows(specialItems, {
+    format: 'tsv',
+    fields: ['folderPath', 'docName', 'url'],
+    includeHeader: false
+  })
+  assert.equal(tsv.lines[0], '认证|安全\t"""用户"", 登录 接口 V2"\t/api/v2/login')
+
+  const csv = formatCopyRows(specialItems, {
+    format: 'csv',
+    fields: ['folderPath', 'docName', 'url'],
+    includeHeader: false
+  })
+  assert.equal(csv.lines[0], '认证|安全,"""用户"", 登录 接口 V2",/api/v2/login')
+
+  const md = formatCopyRows(specialItems, {
+    format: 'markdown',
+    fields: ['folderPath', 'docName'],
+    includeHeader: false
+  })
+  assert.equal(md.lines[0], '| 认证\\|安全 | "用户", 登录 接口 V2 |')
+
+  const commaOnly = [{ doc: { id: 22, docType: 'api', docName: '查询, 列表', url: '/list' }, folderSegments: [] }]
+  assert.equal(formatCopyRows(commaOnly, { format: 'tsv', fields: ['docName', 'url'], includeHeader: false }).lines[0], '查询, 列表\t/list')
+  assert.equal(formatCopyRows(commaOnly, { format: 'csv', fields: ['docName', 'url'], includeHeader: false }).lines[0], '"查询, 列表",/list')
 })

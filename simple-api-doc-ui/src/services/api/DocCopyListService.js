@@ -104,11 +104,28 @@ export const collectDocsFromTree = (treeNodes = [], selectedDocIds = [], options
   return items
 }
 
-const normalizeSingleLine = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').trim()
+const normalizeSingleLine = (value) => String(value ?? '').replace(/[\r\n\t]+/g, ' ').trim()
 
-const escapeCsvCell = (value) => {
-  const str = String(value ?? '')
-  return /[",\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str
+const escapeDelimitedCell = (value, quotePattern) => {
+  const str = normalizeSingleLine(value)
+  return quotePattern.test(str) ? `"${str.replace(/"/g, '""')}"` : str
+}
+
+const TABULAR_FORMATTERS = {
+  csv: {
+    delimiter: ',',
+    escapeCell: (value) => escapeDelimitedCell(value, /[",]/)
+  },
+  tsv: {
+    delimiter: '\t',
+    escapeCell: (value) => escapeDelimitedCell(value, /"/)
+  },
+  markdown: {
+    delimiter: ' | ',
+    prefix: '| ',
+    suffix: ' |',
+    escapeCell: (value) => normalizeSingleLine(value).replace(/(\\*)\|/g, '$1$1\\|')
+  }
 }
 
 const resolveFieldValue = (item, field, options) => {
@@ -134,9 +151,8 @@ const resolveFieldValue = (item, field, options) => {
 }
 
 const formatTabularLine = (cells, format) => {
-  if (format === 'csv') return cells.map(escapeCsvCell).join(',')
-  if (format === 'markdown') return `| ${cells.map(c => normalizeSingleLine(c).replace(/\|/g, '\\|')).join(' | ')} |`
-  return cells.map(normalizeSingleLine).join('\t')
+  const { delimiter, prefix = '', suffix = '', escapeCell } = TABULAR_FORMATTERS[format] || TABULAR_FORMATTERS.tsv
+  return `${prefix}${cells.map(escapeCell).join(delimiter)}${suffix}`
 }
 
 /**
@@ -182,18 +198,4 @@ export const formatCopyRows = (items = [], config = {}) => {
   lines.push(...dataLines)
 
   return { text: lines.join('\n'), lines, rowCount: dataLines.length }
-}
-
-/**
- * Build preview text capped at maxLines while preserving full text for copy.
- */
-export const buildCopyPreview = (result, maxLines = 100) => {
-  const lines = result?.lines || []
-  const truncated = lines.length > maxLines
-  return {
-    previewText: truncated ? lines.slice(0, maxLines).join('\n') : (result?.text || ''),
-    truncated,
-    totalLines: lines.length,
-    rowCount: result?.rowCount || 0
-  }
 }
