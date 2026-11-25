@@ -123,6 +123,14 @@ common.label.modifiedContent = '对比'
 common.label.unlimited = '不限'
 common.label.all = '全部'
 
+common.label.pasteSelect = '粘贴选择'
+common.label.pasteAppend = '追加到已选'
+common.label.pasteMatchResult = '匹配结果'
+common.label.pasteMatched = '匹配 {0} 条'
+common.label.pasteUnmatched = '未匹配 {0} 条'
+common.label.pasteApply = '应用选择 ({0})'
+common.label.pastePlaceholder = '粘贴 URL 列表，每行一条'
+
 //= ============通用============
 common.label.commonCode = '{0}代码'
 common.label.commonConfig = '配置{0}'

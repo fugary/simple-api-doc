@@ -29,6 +29,10 @@ defineProps({
   singleSelect: {
     type: Boolean,
     default: false
+  },
+  showPasteSelect: {
+    type: Boolean,
+    default: true
   }
 })
 const emit = defineEmits(['submitKeys'])
@@ -63,6 +67,7 @@ const submitKeys = () => {
       :show-filter="showFilter"
       :tree-height="treeHeight"
       :single-select="singleSelect"
+      :show-paste-select="showPasteSelect"
     >
       <template #extra-filter>
         <slot name="extra-filter" />

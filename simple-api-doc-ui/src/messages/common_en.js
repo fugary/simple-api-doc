@@ -123,6 +123,14 @@ common.label.modifiedContent = 'Modified Content'
 common.label.unlimited = 'Unlimited'
 common.label.all = 'All'
 
+common.label.pasteSelect = 'Paste Select'
+common.label.pasteAppend = 'Append to selected'
+common.label.pasteMatchResult = 'Match Result'
+common.label.pasteMatched = 'Matched {0}'
+common.label.pasteUnmatched = 'Unmatched {0}'
+common.label.pasteApply = 'Apply ({0})'
+common.label.pastePlaceholder = 'Paste URLs, one per line'
+
 //= ============通用============
 common.label.commonConfig = 'Config {0}'
 common.label.commonCode = '{0} Code'

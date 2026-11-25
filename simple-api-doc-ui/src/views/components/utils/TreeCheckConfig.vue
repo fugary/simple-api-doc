@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { $i18nBundle } from '@/messages'
 import CommonIcon from '@/components/common-icon/index.vue'
 import DocCountTag from '@/views/components/utils/DocCountTag.vue'
+import PasteSelectWindow from '@/views/components/utils/PasteSelectWindow.vue'
 import { calcTreeDocStats } from '@/services/api/ApiFolderService'
 import { debounce } from 'lodash-es'
 
@@ -30,6 +31,10 @@ const props = defineProps({
   singleSelect: {
     type: Boolean,
     default: false
+  },
+  showPasteSelect: {
+    type: Boolean,
+    default: true
   }
 })
 const selectedKeys = defineModel('selectedKeys', {
@@ -40,6 +45,18 @@ const treeRef = ref(null)
 const onlySelected = ref(false)
 const onlyApi = ref(false)
 const onlyDoc = ref(false)
+const showPasteSelectWindow = ref(false)
+
+// 获取已选中的禁用节点 key，确保操作时保持其状态
+const getDisabledCheckedKeys = () => {
+  return checkedKeys.value.filter(key => isNodeDisabled(treeRef.value?.getNode(key)?.data))
+}
+
+const handlePasteApply = (keys, append) => {
+  if (!keys?.length) return
+  const baseKeys = append ? checkedKeys.value : getDisabledCheckedKeys()
+  applyCheckedKeys([...new Set([...baseKeys, ...keys])])
+}
 
 const hasTypeFilter = computed(() => onlyApi.value || onlyDoc.value)
 const isFiltering = computed(() => !!filterModel.value?.keyword?.trim() || onlySelected.value || hasTypeFilter.value)
@@ -113,8 +130,7 @@ const getSelectableLeafKeys = (nodes, onlyVisible = false, result = []) => {
 const selectOrClearAll = (select) => {
   if (!treeRef.value) return
 
-  // 获取原本已选中的禁用节点 key，确保操作时保持其状态
-  const disabledCheckedKeys = checkedKeys.value.filter(key => isNodeDisabled(treeRef.value?.getNode(key)?.data))
+  const disabledCheckedKeys = getDisabledCheckedKeys()
 
   if (!select) {
     treeRef.value.setCurrentKey(null)
@@ -317,6 +333,12 @@ const filterNode = (value, data) => {
           <el-button @click="selectOrClearAll(false)">
             {{ $t('common.label.clear') }}
           </el-button>
+          <el-button
+            v-if="!singleSelect && showPasteSelect"
+            @click="showPasteSelectWindow = true"
+          >
+            {{ $t('common.label.pasteSelect') }}
+          </el-button>
         </div>
         <common-form-control
           v-if="showFilter"
@@ -389,6 +411,14 @@ const filterNode = (value, data) => {
         </el-tree>
       </el-scrollbar>
     </el-container>
+    <paste-select-window
+      v-if="!singleSelect && showPasteSelect"
+      v-model="showPasteSelectWindow"
+      :tree-nodes="treeNodes"
+      :node-key="nodeKey"
+      :is-node-disabled="isNodeDisabled"
+      @apply-keys="handlePasteApply"
+    />
   </el-container>
 </template>
 
