@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, ref, reactive, nextTick } from 'vue'
+import { computed, watch, ref, reactive, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import MarkdownDocCatalog from '@/views/components/api/doc/comp/MarkdownDocCatalog.vue'
 import 'md-editor-v3/lib/preview.css'
@@ -7,9 +7,7 @@ import ApiDocViewHeader from '@/views/components/api/doc/comp/ApiDocViewHeader.v
 import { useCopyRight, useContainerCheck } from '@/services/api/ApiCommonService'
 import ApiDocApi from '@/api/ApiDocApi'
 import { loadMdDoc } from '@/api/SimpleShareApi'
-import { $coreHideLoading, $coreShowLoading } from '@/utils'
 import DocCopyMenu from '@/views/components/api/doc/comp/DocCopyMenu.vue'
-import { useInitLoadOnce } from '@/hooks/CommonHooks'
 import { calcPreferenceId, calcSharePreference, useShareDocTheme } from '@/services/api/ApiFolderService'
 import { resolveRelativeDocPath, findMatchingDoc, getDocAncestorTreeIds, scrollToAnchor, setPendingAnchor, consumePendingAnchor } from '@/services/api/MarkdownLinkService'
 import { useShareConfigStore } from '@/stores/ShareConfigStore'
@@ -48,9 +46,10 @@ const currentDoc = defineModel({
 })
 const historyCount = ref(0)
 const loading = ref(false)
+let active = true
+onBeforeUnmount(() => { active = false })
 
 const finalizeLoad = () => {
-  $coreHideLoading()
   const anchor = consumePendingAnchor()
   if (anchor) {
     nextTick(() => {
@@ -73,36 +72,27 @@ const finalizeLoad = () => {
   }
 }
 
-const loadCurrentDoc = (id) => {
-  if (!id) return
+const loadCurrentDoc = async (id) => {
+  if (!id || loading.value) return
   loading.value = true
-  currentDoc.value && (currentDoc.value.docContent = '')
-  $coreShowLoading({ delay: 0, target: '.home-main' })
-  if (!props.shareDoc) {
-    return ApiDocApi.getById(id).then(data => {
-      Object.assign(currentDoc.value, data.resultData)
-      historyCount.value = data.addons?.historyCount || 0
-      finalizeLoad()
-    }).catch(() => $coreHideLoading()).finally(() => (loading.value = false))
-  } else {
-    return loadMdDoc({
-      shareId: props.shareDoc.shareId,
-      docId: id
-    }, { showErrorMessage: false }).then(data => {
-      Object.assign(currentDoc.value, data.resultData)
-      finalizeLoad()
-    }).catch(err => {
-      emitter.emit('share-doc-error', err)
-      $coreHideLoading()
-    }).finally(() => (loading.value = false))
+  try {
+    const data = props.shareDoc
+      ? await loadMdDoc({ shareId: props.shareDoc.shareId, docId: id }, { showErrorMessage: false })
+      : await ApiDocApi.getById(id)
+    if (!active || currentDoc.value?.id !== id) return
+    Object.assign(currentDoc.value, data.resultData)
+    if (!props.shareDoc) historyCount.value = data.addons?.historyCount || 0
+    finalizeLoad()
+  } catch (err) {
+    if (active && props.shareDoc) emitter.emit('share-doc-error', err)
+  } finally {
+    loading.value = false
   }
 }
 
-const { initLoadOnce } = useInitLoadOnce(() => loadCurrentDoc(currentDoc.value.id))
-
 watch(currentDoc, (newDoc, oldDoc) => {
   if (newDoc.id && (newDoc.id !== oldDoc?.id || newDoc.docContent !== oldDoc?.docContent || newDoc.docName !== oldDoc?.docName)) {
-    initLoadOnce()
+    loadCurrentDoc(newDoc.id)
   }
 }, { immediate: true })
 
@@ -193,6 +183,7 @@ const handleContainerClick = (event) => {
 <template>
   <el-container
     :key="`markdown-doc-preview-${currentDoc.id}`"
+    v-loading="loading"
     class="padding-left2 padding-right2 flex-column"
     :style="!isSmallContainer?'height:100%':''"
   >

@@ -189,6 +189,15 @@ const showDocDetails = async (doc, edit, { routeConfirmed = false } = {}) => {
   }
 }
 
+const selectTreeDoc = async (doc) => {
+  if (!doc.isDoc) return
+  // 先让浏览器绘制当前行，再卸载旧详情并挂载新详情。
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  if (treeRef.value?.getCurrentNode() === doc) {
+    await showDocDetails(doc, false)
+  }
+}
+
 const handleSelectDocFromEvent = async (doc) => {
   if (doc?.id) {
     if (doc.docName || doc.docType) {
@@ -690,7 +699,7 @@ defineExpose(handlerData)
           :draggable="editable"
           @node-drag-start="handleDragStart"
           @node-drag-end="handleDragEnd"
-          @node-click="showDocDetails($event, false)"
+          @node-click="selectTreeDoc"
           @node-contextmenu="handleNodeContextMenu"
           @node-expand="expandOrCollapse($event, true)"
           @node-collapse="expandOrCollapse($event, false)"
