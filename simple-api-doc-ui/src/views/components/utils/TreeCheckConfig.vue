@@ -42,10 +42,16 @@ const selectedKeys = defineModel('selectedKeys', {
   default: () => []
 })
 const treeRef = ref(null)
-const onlySelected = ref(false)
+const selectionFilter = ref('all')
 const onlyApi = ref(false)
 const onlyDoc = ref(false)
 const showPasteSelectWindow = ref(false)
+
+const selectionFilterOptions = computed(() => [
+  { label: $i18nBundle('common.label.all'), value: 'all' },
+  { label: $i18nBundle('common.label.selected'), value: 'selected' },
+  { label: $i18nBundle('common.label.unselected'), value: 'unselected' }
+])
 
 // 获取已选中的禁用节点 key，确保操作时保持其状态
 const getDisabledCheckedKeys = () => {
@@ -58,8 +64,9 @@ const handlePasteApply = (keys, append) => {
   applyCheckedKeys([...new Set([...baseKeys, ...keys])])
 }
 
+const hasSelectionFilter = computed(() => selectionFilter.value !== 'all')
 const hasTypeFilter = computed(() => onlyApi.value || onlyDoc.value)
-const isFiltering = computed(() => !!filterModel.value?.keyword?.trim() || onlySelected.value || hasTypeFilter.value)
+const isFiltering = computed(() => !!filterModel.value?.keyword?.trim() || hasSelectionFilter.value || hasTypeFilter.value)
 
 // 检查节点是否被禁用
 const isNodeDisabled = (data) => {
@@ -196,7 +203,7 @@ watch(() => selectedKeys.value, (val) => {
   }
   isInternalChange = false
 
-  if (onlySelected.value) {
+  if (hasSelectionFilter.value) {
     treeRef.value?.filter(filterModel.value.keyword)
   }
 }, { immediate: true, deep: true })
@@ -220,22 +227,19 @@ const filterOption = computed(() => {
   }
 })
 
-const handleOnlySelectedChange = () => {
+const applyFilter = () => {
   treeRef.value?.filter(filterModel.value.keyword)
 }
 
-const handleOnlyApiChange = (val) => {
+const toggleTypeFilter = (type, val) => {
   if (val) {
-    onlyDoc.value = false
+    if (type === 'api') {
+      onlyDoc.value = false
+    } else {
+      onlyApi.value = false
+    }
   }
-  treeRef.value?.filter(filterModel.value.keyword)
-}
-
-const handleOnlyDocChange = (val) => {
-  if (val) {
-    onlyApi.value = false
-  }
-  treeRef.value?.filter(filterModel.value.keyword)
+  applyFilter()
 }
 
 const nodeClick = (data, node) => {
@@ -286,9 +290,12 @@ const filterNode = (value, data) => {
   const isLeaf = !data.children || data.children.length === 0
 
   if (isLeaf) {
-    // 仅看已选：只显示已选中的叶子节点
-    if (onlySelected.value && !selectedKeysSet.value.has(data[props.nodeKey])) {
-      return false
+    // 全部 / 已选 / 未选：根据选中状态过滤叶子节点
+    if (hasSelectionFilter.value) {
+      const expectSelected = selectionFilter.value === 'selected'
+      if (selectedKeysSet.value.has(data[props.nodeKey]) !== expectSelected) {
+        return false
+      }
     }
 
     // 类型过滤：仅接口 / 仅文档
@@ -351,22 +358,22 @@ const filterNode = (value, data) => {
         class="tree-check-row-bottom"
       >
         <div class="tree-check-filter-group">
-          <el-checkbox
-            v-model="onlySelected"
-            @change="handleOnlySelectedChange"
-          >
-            {{ $t('common.label.onlySelected') }}
-          </el-checkbox>
+          <el-segmented
+            v-model="selectionFilter"
+            :options="selectionFilterOptions"
+            size="small"
+            @change="applyFilter"
+          />
           <template v-if="hasBothTypes">
             <el-checkbox
               v-model="onlyApi"
-              @change="handleOnlyApiChange"
+              @change="(val) => toggleTypeFilter('api', val)"
             >
               {{ $t('common.label.onlyApi') }}
             </el-checkbox>
             <el-checkbox
               v-model="onlyDoc"
-              @change="handleOnlyDocChange"
+              @change="(val) => toggleTypeFilter('doc', val)"
             >
               {{ $t('common.label.onlyDoc') }}
             </el-checkbox>
@@ -400,7 +407,7 @@ const filterNode = (value, data) => {
           @check-change="checkChange"
         >
           <template #empty>
-            <el-empty :description="onlySelected ? ($t('api.msg.noApiSelected') || $t('common.msg.noData')) : $t('common.msg.noData')" />
+            <el-empty :description="selectionFilter === 'selected' ? ($t('api.msg.noApiSelected') || $t('common.msg.noData')) : $t('common.msg.noData')" />
           </template>
           <template #default="scope">
             <slot
@@ -463,7 +470,7 @@ const filterNode = (value, data) => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .tree-check-filter-group :deep(.el-checkbox) {
