@@ -126,6 +126,7 @@ common.label.unlimited = 'Unlimited'
 common.label.all = 'All'
 
 common.label.pasteSelect = 'Paste Select'
+common.label.copySelectedUrls = 'Copy Selected URLs'
 common.label.pasteAppend = 'Append to selected'
 common.label.pasteMatchResult = 'Match Result'
 common.label.pasteMatched = 'Matched {0}'

@@ -126,6 +126,7 @@ common.label.unlimited = '不限'
 common.label.all = '全部'
 
 common.label.pasteSelect = '粘贴选择'
+common.label.copySelectedUrls = '复制已选 URL'
 common.label.pasteAppend = '追加到已选'
 common.label.pasteMatchResult = '匹配结果'
 common.label.pasteMatched = '匹配 {0} 条'

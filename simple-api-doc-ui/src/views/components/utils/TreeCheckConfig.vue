@@ -5,6 +5,7 @@ import CommonIcon from '@/components/common-icon/index.vue'
 import DocCountTag from '@/views/components/utils/DocCountTag.vue'
 import PasteSelectWindow from '@/views/components/utils/PasteSelectWindow.vue'
 import { calcTreeDocStats } from '@/services/api/ApiFolderService'
+import { $copyText } from '@/utils'
 import { debounce } from 'lodash-es'
 
 const props = defineProps({
@@ -42,9 +43,9 @@ const selectedKeys = defineModel('selectedKeys', {
   default: () => []
 })
 const treeRef = ref(null)
+const filterModel = ref({})
 const selectionFilter = ref('all')
-const onlyApi = ref(false)
-const onlyDoc = ref(false)
+const typeFilter = ref('')
 const showPasteSelectWindow = ref(false)
 
 const selectionFilterOptions = computed(() => [
@@ -63,10 +64,6 @@ const handlePasteApply = (keys, append) => {
   const baseKeys = append ? checkedKeys.value : getDisabledCheckedKeys()
   applyCheckedKeys([...new Set([...baseKeys, ...keys])])
 }
-
-const hasSelectionFilter = computed(() => selectionFilter.value !== 'all')
-const hasTypeFilter = computed(() => onlyApi.value || onlyDoc.value)
-const isFiltering = computed(() => !!filterModel.value?.keyword?.trim() || hasSelectionFilter.value || hasTypeFilter.value)
 
 // 检查节点是否被禁用
 const isNodeDisabled = (data) => {
@@ -104,13 +101,20 @@ const hasBothTypes = computed(() => {
   return hasApi && hasDoc
 })
 
-const applyCheckedKeys = (keys) => {
+const activeSelectionFilter = computed(() => props.singleSelect ? 'all' : selectionFilter.value)
+const activeTypeFilter = computed(() => !props.singleSelect && hasBothTypes.value ? typeFilter.value : '')
+const isFiltering = computed(() => !!filterModel.value.keyword?.trim() || activeSelectionFilter.value !== 'all' || !!activeTypeFilter.value)
+
+const syncCheckedKeys = () => {
+  const tree = treeRef.value
+  if (!tree) return
   isInternalChange = true
+  selectedKeys.value = [...tree.getHalfCheckedKeys(), ...tree.getCheckedKeys()]
+}
+
+const applyCheckedKeys = (keys) => {
   treeRef.value?.setCheckedKeys(keys)
-  selectedKeys.value = [
-    ...treeRef.value?.getHalfCheckedKeys() || [],
-    ...treeRef.value?.getCheckedKeys() || []
-  ]
+  syncCheckedKeys()
 }
 
 /**
@@ -154,16 +158,6 @@ const selectOrClearAll = (select) => {
 }
 
 /**
- * 检查节点是否满足类型过滤条件
- */
-const matchesTypeFilter = (node) => {
-  if (!hasTypeFilter.value) return true
-  if (onlyApi.value && node.docType === 'api') return true
-  if (onlyDoc.value && node.docType === 'md') return true
-  return false
-}
-
-/**
  * 过滤父节点选择状态，el-tree处理半选节点有点问题
  *
  * @type {ComputedRef<*[]>}
@@ -176,8 +170,8 @@ const checkedKeys = computed(() => {
   })
 })
 
-const selectedKeysSet = computed(() => {
-  return new Set(selectedKeys.value || [])
+const filterSelectedKeys = computed(() => {
+  return activeSelectionFilter.value === 'all' ? null : new Set(selectedKeys.value)
 })
 
 const selectedStats = computed(() => {
@@ -185,6 +179,14 @@ const selectedStats = computed(() => {
     nodeKey: props.nodeKey,
     isNodeDisabled
   })
+})
+
+const selectedUrlText = computed(() => {
+  const nodes = props.singleSelect
+    ? [treeRef.value?.getNode(selectedKeys.value?.[0])?.data]
+    : treeRef.value?.getCheckedNodes(true) ?? []
+  const urls = nodes.filter(node => node?.isDoc).map(node => node.url?.trim()).filter(Boolean)
+  return [...new Set(urls)].join('\n')
 })
 
 let isInternalChange = false
@@ -202,13 +204,18 @@ watch(() => selectedKeys.value, (val) => {
     })
   }
   isInternalChange = false
-
-  if (hasSelectionFilter.value) {
-    treeRef.value?.filter(filterModel.value.keyword)
-  }
 }, { immediate: true, deep: true })
 
-const filterModel = ref({})
+watch([
+  () => filterModel.value.keyword,
+  activeSelectionFilter,
+  activeTypeFilter,
+  filterSelectedKeys,
+  () => isFiltering.value ? props.treeNodes : null
+], () => {
+  treeRef.value?.filter(filterModel.value.keyword)
+}, { flush: 'post' })
+
 const filterOption = computed(() => {
   return {
     labelWidth: '1px',
@@ -216,31 +223,13 @@ const filterOption = computed(() => {
     placeholder: $i18nBundle('common.msg.inputKeywords'),
     attrs: {
       clearable: true,
-      prefixIcon: <CommonIcon icon="Search"/>,
-      onInput (value) {
-        treeRef.value?.filter(value)
-      }
+      prefixIcon: <CommonIcon icon="Search"/>
     },
     style: {
       flexGrow: 1
     }
   }
 })
-
-const applyFilter = () => {
-  treeRef.value?.filter(filterModel.value.keyword)
-}
-
-const toggleTypeFilter = (type, val) => {
-  if (val) {
-    if (type === 'api') {
-      onlyDoc.value = false
-    } else {
-      onlyApi.value = false
-    }
-  }
-  applyFilter()
-}
 
 const nodeClick = (data, node) => {
   if (props.singleSelect && data?.isDoc) {
@@ -253,8 +242,7 @@ const nodeClick = (data, node) => {
 
 const checkChange = debounce(() => {
   if (!props.singleSelect) {
-    isInternalChange = true
-    selectedKeys.value = [...treeRef.value?.getHalfCheckedKeys() || [], ...treeRef.value?.getCheckedKeys() || []]
+    syncCheckedKeys()
   }
 }, 100)
 
@@ -291,15 +279,15 @@ const filterNode = (value, data) => {
 
   if (isLeaf) {
     // 全部 / 已选 / 未选：根据选中状态过滤叶子节点
-    if (hasSelectionFilter.value) {
-      const expectSelected = selectionFilter.value === 'selected'
-      if (selectedKeysSet.value.has(data[props.nodeKey]) !== expectSelected) {
+    if (filterSelectedKeys.value) {
+      const expectSelected = activeSelectionFilter.value === 'selected'
+      if (filterSelectedKeys.value.has(data[props.nodeKey]) !== expectSelected) {
         return false
       }
     }
 
     // 类型过滤：仅接口 / 仅文档
-    if (hasTypeFilter.value && !matchesTypeFilter(data)) {
+    if (activeTypeFilter.value && data.docType !== activeTypeFilter.value) {
       return false
     }
 
@@ -353,27 +341,28 @@ const filterNode = (value, data) => {
           :model="filterModel"
         />
       </div>
-      <div
-        v-if="!singleSelect"
-        class="tree-check-row-bottom"
-      >
-        <div class="tree-check-filter-group">
+      <div class="tree-check-row-bottom">
+        <div
+          v-if="!singleSelect"
+          class="tree-check-filter-group"
+        >
           <el-segmented
             v-model="selectionFilter"
             :options="selectionFilterOptions"
             size="small"
-            @change="applyFilter"
           />
           <template v-if="hasBothTypes">
             <el-checkbox
-              v-model="onlyApi"
-              @change="(val) => toggleTypeFilter('api', val)"
+              v-model="typeFilter"
+              true-value="api"
+              false-value=""
             >
               {{ $t('common.label.onlyApi') }}
             </el-checkbox>
             <el-checkbox
-              v-model="onlyDoc"
-              @change="(val) => toggleTypeFilter('doc', val)"
+              v-model="typeFilter"
+              true-value="md"
+              false-value=""
             >
               {{ $t('common.label.onlyDoc') }}
             </el-checkbox>
@@ -381,6 +370,18 @@ const filterNode = (value, data) => {
           <slot name="extra-filter" />
         </div>
         <div class="tree-check-stats-group">
+          <el-button
+            v-common-tooltip="$t('common.label.copySelectedUrls')"
+            :aria-label="$t('common.label.copySelectedUrls')"
+            :disabled="!selectedUrlText"
+            type="primary"
+            size="small"
+            plain
+            circle
+            @click="$copyText(selectedUrlText)"
+          >
+            <common-icon icon="CopyDocument" />
+          </el-button>
           <doc-count-tag
             :stats="selectedStats"
           />
@@ -407,7 +408,7 @@ const filterNode = (value, data) => {
           @check-change="checkChange"
         >
           <template #empty>
-            <el-empty :description="selectionFilter === 'selected' ? ($t('api.msg.noApiSelected') || $t('common.msg.noData')) : $t('common.msg.noData')" />
+            <el-empty :description="$t(activeSelectionFilter === 'selected' && !selectedStats.totalSelected ? 'api.msg.noApiSelected' : 'common.msg.noData')" />
           </template>
           <template #default="scope">
             <slot
@@ -483,6 +484,7 @@ const filterNode = (value, data) => {
 
 .tree-check-stats-group {
   display: flex;
+  margin-inline-start: auto;
   align-items: center;
   gap: 6px;
   color: var(--el-text-color-regular);
